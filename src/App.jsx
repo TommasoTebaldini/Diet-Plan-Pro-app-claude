@@ -1,0 +1,49 @@
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { useAuth } from './context/AuthContext'
+import LoginPage from './pages/LoginPage'
+import RegisterPage from './pages/RegisterPage'
+import DashboardPage from './pages/DashboardPage'
+import DietPage from './pages/DietPage'
+import MacroTrackerPage from './pages/MacroTrackerPage'
+import WaterPage from './pages/WaterPage'
+import FoodDatabasePage from './pages/FoodDatabasePage'
+import ProfilePage from './pages/ProfilePage'
+import BottomNav from './components/BottomNav'
+import LoadingScreen from './components/LoadingScreen'
+import InstallBanner from './components/InstallBanner'
+
+function PrivateRoute({ children }) {
+  const { user, loading } = useAuth()
+  if (loading) return <LoadingScreen />
+  if (!user) return <Navigate to="/login" replace />
+  return children
+}
+
+function PublicRoute({ children }) {
+  const { user, loading } = useAuth()
+  if (loading) return <LoadingScreen />
+  if (user) return <Navigate to="/" replace />
+  return children
+}
+
+export default function App() {
+  const { user } = useAuth()
+
+  return (
+    <>
+      <InstallBanner />
+      <Routes>
+        <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+        <Route path="/" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
+        <Route path="/dieta" element={<PrivateRoute><DietPage /></PrivateRoute>} />
+        <Route path="/macro" element={<PrivateRoute><MacroTrackerPage /></PrivateRoute>} />
+        <Route path="/acqua" element={<PrivateRoute><WaterPage /></PrivateRoute>} />
+        <Route path="/alimenti" element={<PrivateRoute><FoodDatabasePage /></PrivateRoute>} />
+        <Route path="/profilo" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      {user && <BottomNav />}
+    </>
+  )
+}
