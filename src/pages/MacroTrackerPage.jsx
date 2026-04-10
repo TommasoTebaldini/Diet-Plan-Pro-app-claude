@@ -1,25 +1,48 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { Plus, Search, Trash2, Flame, Apple } from 'lucide-react'
+import { Plus, Search, Trash2, Apple } from 'lucide-react'
 
-const OPENFOODFACTS_API = 'https://world.openfoodfacts.org/cgi/search.pl'
+const OFF_API = 'https://world.openfoodfacts.org/cgi/search.pl'
 
-async function searchFoods(query) {
+async function searchSupabaseFoods(query) {
   try {
-    const res = await fetch(`${OPENFOODFACTS_API}?search_terms=${encodeURIComponent(query)}&json=1&fields=product_name,nutriments,quantity,brands&page_size=20&lc=it&cc=it`)
+    const { data } = await supabase
+      .from('foods')
+      .select('id, name, brand, calories_per_100g, proteins_per_100g, carbs_per_100g, fats_per_100g, fiber_per_100g')
+      .ilike('name', `%${query}%`)
+      .limit(20)
+    return (data || []).map(f => ({
+      id: `sb_${f.id}`, name: f.name, brand: f.brand,
+      kcal_100g: f.calories_per_100g || 0,
+      proteins_100g: f.proteins_per_100g || 0,
+      carbs_100g: f.carbs_per_100g || 0,
+      fats_100g: f.fats_per_100g || 0,
+      source: 'database'
+    }))
+  } catch { return [] }
+}
+
+async function searchOFFFoods(query) {
+  try {
+    const res = await fetch(`${OFF_API}?search_terms=${encodeURIComponent(query)}&json=1&fields=product_name,nutriments,quantity,brands,code&page_size=15&lc=it&cc=it`)
     const data = await res.json()
     return (data.products || [])
       .filter(p => p.product_name && p.nutriments?.['energy-kcal_100g'])
       .map(p => ({
-        id: p.code,
-        name: p.product_name,
-        brand: p.brands,
+        id: p.code, name: p.product_name, brand: p.brands,
         kcal_100g: Math.round(p.nutriments['energy-kcal_100g'] || 0),
         proteins_100g: Math.round((p.nutriments['proteins_100g'] || 0) * 10) / 10,
         carbs_100g: Math.round((p.nutriments['carbohydrates_100g'] || 0) * 10) / 10,
         fats_100g: Math.round((p.nutriments['fat_100g'] || 0) * 10) / 10,
+        source: 'openfoodfacts'
       }))
   } catch { return [] }
+}
+
+async function searchFoods(query) {
+  const [db, off] = await Promise.all([searchSupabaseFoods(query), searchOFFFoods(query)])
+  // DB results first (dietitian's foods take priority)
+  return [...db, ...off]
 }
 
 function calcMacros(food, grams) {
@@ -181,7 +204,10 @@ export default function MacroTrackerPage() {
                 {results.map(f => (
                   <button key={f.id} onClick={() => setSelected(f)} style={{ width: '100%', background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 10, padding: '10px 12px', textAlign: 'left', cursor: 'pointer', font: 'inherit' }}>
                     <p style={{ fontSize: 14, fontWeight: 500 }}>{f.name}</p>
-                    <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{f.brand} · {f.kcal_100g} kcal/100g · P:{f.proteins_100g}g C:{f.carbs_100g}g F:{f.fats_100g}g</p>
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                    {f.brand && `${f.brand} · `}{f.kcal_100g} kcal/100g · P:{f.proteins_100g}g C:{f.carbs_100g}g F:{f.fats_100g}g
+                    {f.source === 'database' && <span style={{ marginLeft: 6, color: 'var(--green-main)', fontWeight: 600 }}>✓ DB dietista</span>}
+                  </p>
                   </button>
                 ))}
               </div>

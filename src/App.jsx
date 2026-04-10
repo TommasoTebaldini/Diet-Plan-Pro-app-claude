@@ -8,6 +8,9 @@ import MacroTrackerPage from './pages/MacroTrackerPage'
 import WaterPage from './pages/WaterPage'
 import FoodDatabasePage from './pages/FoodDatabasePage'
 import ProfilePage from './pages/ProfilePage'
+import ChatPage from './pages/ChatPage'
+import DocumentsPage from './pages/DocumentsPage'
+import ProgressPage from './pages/ProgressPage'
 import BottomNav from './components/BottomNav'
 import LoadingScreen from './components/LoadingScreen'
 import InstallBanner from './components/InstallBanner'
@@ -40,6 +43,9 @@ export default function App() {
         <Route path="/macro" element={<PrivateRoute><MacroTrackerPage /></PrivateRoute>} />
         <Route path="/acqua" element={<PrivateRoute><WaterPage /></PrivateRoute>} />
         <Route path="/alimenti" element={<PrivateRoute><FoodDatabasePage /></PrivateRoute>} />
+        <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
+        <Route path="/documenti" element={<PrivateRoute><DocumentsPage /></PrivateRoute>} />
+        <Route path="/progressi" element={<PrivateRoute><ProgressPage /></PrivateRoute>} />
         <Route path="/profilo" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
-import { Utensils, Droplets, BarChart2, Apple, ChevronRight, Flame, TrendingUp, Leaf } from 'lucide-react'
+import { Utensils, Droplets, BarChart2, Apple, ChevronRight, Flame, Leaf, MessageCircle, FileText, BookOpen, User } from 'lucide-react'
 
 function MacroRing({ percent, color, size = 56 }) {
   const r = (size - 8) / 2
@@ -70,7 +70,11 @@ export default function DashboardPage() {
     { label: 'La mia dieta', icon: <Utensils size={20} />, to: '/dieta', color: 'var(--green-main)', bg: 'var(--green-pale)' },
     { label: 'Traccia pasto', icon: <Apple size={20} />, to: '/macro', color: '#f0922b', bg: '#fff4e6' },
     { label: 'Acqua', icon: <Droplets size={20} />, to: '/acqua', color: '#3b82f6', bg: '#eff6ff' },
-    { label: 'Statistiche', icon: <BarChart2 size={20} />, to: '/macro', color: '#8b5cf6', bg: '#f5f3ff' },
+    { label: 'Progressi', icon: <BarChart2 size={20} />, to: '/progressi', color: '#8b5cf6', bg: '#f5f3ff' },
+    { label: 'Chat', icon: <MessageCircle size={20} />, to: '/chat', color: '#e05a5a', bg: '#fff0f0' },
+    { label: 'Documenti', icon: <FileText size={20} />, to: '/documenti', color: '#0ea5e9', bg: '#f0f9ff' },
+    { label: 'Alimenti', icon: <BookOpen size={20} />, to: '/alimenti', color: '#16a34a', bg: '#f0fdf4' },
+    { label: 'Profilo', icon: <User size={20} />, to: '/profilo', color: '#64748b', bg: '#f8fafc' },
   ]
 
   return (
@@ -113,14 +117,14 @@ export default function DashboardPage() {
       </div>
 
       <div style={{ padding: '20px 20px 0', display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {/* Quick actions */}
+        {/* Quick actions 4x2 */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
           {quickActions.map(a => (
-            <Link key={a.to + a.label} to={a.to} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 56, height: 56, borderRadius: 18, background: a.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: a.color }}>
+            <Link key={a.to + a.label} to={a.to} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 54, height: 54, borderRadius: 18, background: a.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: a.color }}>
                 {a.icon}
               </div>
-              <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 500, textAlign: 'center', lineHeight: 1.2 }}>{a.label}</span>
+              <span style={{ fontSize: 10.5, color: 'var(--text-secondary)', fontWeight: 500, textAlign: 'center', lineHeight: 1.2 }}>{a.label}</span>
             </Link>
           ))}
         </div>
