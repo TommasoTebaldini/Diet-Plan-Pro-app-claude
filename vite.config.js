@@ -1,44 +1,32 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa'
-
-export default defineConfig({
-  plugins: [
-    react(),
-    VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
-      manifest: {
-        name: 'NutriPlan – Il tuo piano nutrizionale',
-        short_name: 'NutriPlan',
-        description: 'Visualizza le tue diete, traccia i macro e monitora l\'idratazione',
-        theme_color: '#1a7f5a',
-        background_color: '#f8faf9',
-        display: 'standalone',
-        orientation: 'portrait',
-        scope: '/',
-        start_url: '/',
-        icons: [
-          { src: 'icons/icon-72x72.png', sizes: '72x72', type: 'image/png' },
-          { src: 'icons/icon-96x96.png', sizes: '96x96', type: 'image/png' },
-          { src: 'icons/icon-128x128.png', sizes: '128x128', type: 'image/png' },
-          { src: 'icons/icon-144x144.png', sizes: '144x144', type: 'image/png' },
-          { src: 'icons/icon-152x152.png', sizes: '152x152', type: 'image/png' },
-          { src: 'icons/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-          { src: 'icons/icon-384x384.png', sizes: '384x384', type: 'image/png' },
-          { src: 'icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
-        ]
-      },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-            handler: 'NetworkFirst',
-            options: { cacheName: 'supabase-cache', networkTimeoutSeconds: 10 }
-          }
-        ]
-      }
-    })
-  ]
-})
+{
+  "name": "nutri-patient-app",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.22.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "lucide-react": "^0.344.0",
+    "recharts": "^2.12.0",
+    "date-fns": "^3.3.0",
+    "framer-motion": "^11.0.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.1.0",
+    "vite-plugin-pwa": "^0.19.0",
+    "workbox-window": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.55",
+    "@types/react-dom": "^18.2.19"
+  }
+}
