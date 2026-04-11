@@ -1,17 +1,44 @@
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User } from 'lucide-react'
-
-const TABS = [
-  { to: '/', icon: Home, label: 'Home' },
-  { to: '/dieta', icon: Utensils, label: 'Dieta' },
-  { to: '/macro', icon: BookOpen, label: 'Diario' },
-  { to: '/chat', icon: MessageCircle, label: 'Chat' },
-  { to: '/progressi', icon: TrendingUp, label: 'Progressi' },
-  { to: '/profilo', icon: User, label: 'Profilo' },
-]
+import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 
 export default function BottomNav() {
   const { pathname } = useLocation()
+  const { user } = useAuth()
+  const [newDocs, setNewDocs] = useState(0)
+
+  useEffect(() => {
+    if (!user) return
+    const key = `docs_last_seen_${user.id}`
+    const lastSeen = localStorage.getItem(key) || '1970-01-01T00:00:00Z'
+    supabase
+      .from('patient_documents')
+      .select('*', { count: 'exact', head: true })
+      .eq('patient_id', user.id)
+      .eq('visible', true)
+      .gt('created_at', lastSeen)
+      .then(({ count }) => setNewDocs(count || 0))
+  }, [user])
+
+  useEffect(() => {
+    if (pathname === '/documenti' && user) {
+      localStorage.setItem(`docs_last_seen_${user.id}`, new Date().toISOString())
+      setNewDocs(0)
+    }
+  }, [pathname, user])
+
+  const TABS = [
+    { to: '/', icon: Home, label: 'Home' },
+    { to: '/dieta', icon: Utensils, label: 'Dieta' },
+    { to: '/macro', icon: BookOpen, label: 'Diario' },
+    { to: '/chat', icon: MessageCircle, label: 'Chat' },
+    { to: '/documenti', icon: FileText, label: 'Documenti', badge: newDocs },
+    { to: '/progressi', icon: TrendingUp, label: 'Progressi' },
+    { to: '/profilo', icon: User, label: 'Profilo' },
+  ]
+
   return (
     <nav style={{
       position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 999,
@@ -23,7 +50,7 @@ export default function BottomNav() {
       boxShadow: '0 -2px 16px rgba(13,92,58,0.07)',
       paddingBottom: 'env(safe-area-inset-bottom)',
     }}>
-      {TABS.map(({ to, icon: Icon, label }) => {
+      {TABS.map(({ to, icon: Icon, label, badge }) => {
         const active = pathname === to || (to !== '/' && pathname.startsWith(to))
         return (
           <Link key={to} to={to} style={{
@@ -40,8 +67,12 @@ export default function BottomNav() {
               borderRadius: 8,
               background: active ? 'var(--green-pale)' : 'transparent',
               transition: 'background 0.15s',
+              position: 'relative',
             }}>
               <Icon size={20} strokeWidth={active ? 2.2 : 1.8} />
+              {badge > 0 && (
+                <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: '#0891b2', color: 'white', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid white' }}>{badge}</span>
+              )}
             </div>
             <span style={{ fontSize: 9.5, fontWeight: active ? 600 : 400, letterSpacing: '0.01em' }}>
               {label}
