@@ -820,6 +820,7 @@ export default function ProgressPage() {
             {photoPreview && (
               <div className="card animate-slideUp" style={{ padding: 20 }}>
                 <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 14 }}>📸 Nuova foto</h3>
+                {/* lgtm[js/xss-through-dom] -- img src cannot execute scripts; URL is a validated blob: URL from URL.createObjectURL */}
                 <img src={photoPreview.startsWith('blob:') ? photoPreview : ''} alt="Anteprima" style={{ width: '100%', maxHeight: 280, objectFit: 'contain', borderRadius: 12, marginBottom: 14, background: 'var(--surface-2)' }} />
                 <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
                   {PHOTO_TYPES.map(t => (
