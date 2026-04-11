@@ -70,12 +70,40 @@ async function searchRicette(query) {
     return data.map(r => ({
       id: `ricetta_${r.id}`, name: r.nome || r.name || '',
       brand: '🍳 Ricetta',
-      kcal_100g: r.calorie_porzione || r.calorie || r.kcal || 0,
-      proteins_100g: r.proteine || r.proteins || 0,
-      carbs_100g: r.carboidrati || r.carbs || 0,
-      fats_100g: r.grassi || r.lipidi || 0,
+      kcal_100g: r.kcal_100g || r.calorie_porzione || r.calorie || r.kcal || 0,
+      proteins_100g: r.proteins_100g || r.proteine || r.proteins || 0,
+      carbs_100g: r.carbs_100g || r.carboidrati || r.carbs || 0,
+      fats_100g: r.fats_100g || r.grassi || r.lipidi || 0,
       fiber_100g: r.fibra || 0, source: 'recipe',
     })).filter(r => r.name)
+  } catch { return [] }
+}
+
+// Custom meals (user-created meal combos)
+async function searchCustomMeals(query) {
+  try {
+    const { data } = await supabase
+      .from('custom_meals')
+      .select('*')
+      .ilike('name', `%${query}%`)
+      .limit(6)
+    if (!data?.length) return []
+    return data.map(m => {
+      const w = m.peso_totale_g || 100
+      return {
+        id: `meal_${m.id}`,
+        name: m.name,
+        brand: '🍽️ Pasto personalizzato',
+        kcal_100g: w > 0 ? Math.round(m.kcal_total / w * 100) : 0,
+        proteins_100g: w > 0 ? Math.round(m.proteins_total / w * 1000) / 10 : 0,
+        carbs_100g: w > 0 ? Math.round(m.carbs_total / w * 1000) / 10 : 0,
+        fats_100g: w > 0 ? Math.round(m.fats_total / w * 1000) / 10 : 0,
+        fiber_100g: 0,
+        source: 'custom_meal',
+        meal_id: m.id,
+        default_grams: w,
+      }
+    })
   } catch { return [] }
 }
 
@@ -122,10 +150,11 @@ export async function searchOpenFoodFacts(query) {
 }
 
 export async function searchFoods(query) {
-  const [a, b, c, d] = await Promise.allSettled([
+  const [a, b, c, d, e] = await Promise.allSettled([
     searchRecentFoods(query),
     searchDietMealFoods(query),
     searchRicette(query),
+    searchCustomMeals(query),
     searchOpenFoodFacts(query),
   ])
   const seen = new Set()
@@ -134,9 +163,35 @@ export async function searchFoods(query) {
     if (!k || seen.has(k)) return false
     seen.add(k); return true
   })
-  return [...dedup(a), ...dedup(b), ...dedup(c), ...dedup(d)]
+  return [...dedup(a), ...dedup(b), ...dedup(c), ...dedup(d), ...dedup(e)]
 }
 
 export async function searchDatabaseFoods(query) {
   return searchDietMealFoods(query)
+}
+
+export async function searchByBarcode(barcode) {
+  try {
+    const res = await fetch(
+      `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(barcode)}.json`,
+      { signal: AbortSignal.timeout(8000) }
+    )
+    const data = await res.json()
+    if (data.status !== 1 || !data.product) return null
+    const p = data.product
+    const n = p.nutriments || {}
+    const name = p.product_name_it || p.product_name || ''
+    if (!name) return null
+    return {
+      id: p.code || barcode,
+      name,
+      brand: p.brands || '',
+      kcal_100g: Math.round(n['energy-kcal_100g'] || 0),
+      proteins_100g: Math.round((n['proteins_100g'] || 0) * 10) / 10,
+      carbs_100g: Math.round((n['carbohydrates_100g'] || 0) * 10) / 10,
+      fats_100g: Math.round((n['fat_100g'] || 0) * 10) / 10,
+      fiber_100g: Math.round((n['fiber_100g'] || 0) * 10) / 10,
+      source: 'openfoodfacts',
+    }
+  } catch { return null }
 }

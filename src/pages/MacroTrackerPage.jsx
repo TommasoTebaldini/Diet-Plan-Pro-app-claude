@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { searchFoods } from '../lib/foodSearch'
-import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
+import { searchFoods, searchByBarcode } from '../lib/foodSearch'
+import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle } from 'lucide-react'
+import BarcodeScanner from '../components/BarcodeScanner'
 
 function calcMacros(food, grams) {
   const f = (parseFloat(grams) || 100) / 100
@@ -63,6 +64,9 @@ export default function MacroTrackerPage() {
   const [expandedMeal, setExpandedMeal] = useState(null)
   const [mood, setMood] = useState(null)
   const [addedFood, setAddedFood] = useState(null)
+  const [showScanner, setShowScanner] = useState(false)
+  const [scanningBarcode, setScanningBarcode] = useState(false)
+  const [barcodeError, setBarcodeError] = useState('')
   const searchRef = useRef(null)
 
   useEffect(() => { loadLog() }, [date])
@@ -98,6 +102,24 @@ export default function MacroTrackerPage() {
     setMeal(key)
     const def = MEALS.find(m => m.key === key)
     if (def) setMealTime(def.defaultTime)
+  }
+
+  async function handleBarcodeFound(barcode) {
+    setShowScanner(false)
+    setScanningBarcode(true)
+    setBarcodeError('')
+    setShowSearch(true)
+    const food = await searchByBarcode(barcode)
+    setScanningBarcode(false)
+    if (food) {
+      setSelected(food)
+      setGrams(food.default_grams ? String(food.default_grams) : '100')
+      setQuery(food.name)
+      setResults([])
+    } else {
+      setBarcodeError(`Prodotto con codice "${barcode}" non trovato. Prova la ricerca manuale.`)
+      setTimeout(() => setBarcodeError(''), 5000)
+    }
   }
 
   async function addFood() {
@@ -257,7 +279,7 @@ export default function MacroTrackerPage() {
 
             {/* Live search input */}
             <div style={{ position: 'relative', marginBottom: 10 }} ref={searchRef}>
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: 'relative', display: 'flex', gap: 8 }}>
                 <input
                   type="text"
                   className="input-field"
@@ -265,25 +287,44 @@ export default function MacroTrackerPage() {
                   value={query}
                   onChange={e => { setQuery(e.target.value); setSelected(null) }}
                   autoComplete="off"
-                  style={{ paddingRight: searching ? 40 : 14 }}
+                  style={{ flex: 1, paddingRight: searching ? 40 : 14 }}
                 />
                 {searching && (
-                  <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, border: '2px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'block' }} />
+                  <span style={{ position: 'absolute', right: 52, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, border: '2px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'block' }} />
                 )}
+                {scanningBarcode && (
+                  <span style={{ position: 'absolute', right: 52, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, border: '2px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'block' }} />
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowScanner(true)}
+                  title="Scansiona codice a barre"
+                  style={{ flexShrink: 0, width: 42, height: 42, background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                >
+                  <ScanLine size={18} />
+                </button>
               </div>
+
+              {/* Barcode error */}
+              {barcodeError && (
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', background: '#fff0f0', padding: '8px 12px', borderRadius: 8, marginTop: 8, color: '#dc4a4a', fontSize: 12 }}>
+                  <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                  <span>{barcodeError}</span>
+                </div>
+              )}
 
               {/* Dropdown results */}
               {!selected && results.length > 0 && (
                 <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 200, background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 12, boxShadow: 'var(--shadow-md)', maxHeight: 260, overflowY: 'auto' }}>
                   {results.map((f, i) => (
-                    <button key={`${f.id}_${i}`} onClick={() => { setSelected(f); setGrams('100'); setResults([]) }} style={{
+                    <button key={`${f.id}_${i}`} onClick={() => { setSelected(f); setGrams(f.default_grams ? String(f.default_grams) : '100'); setResults([]) }} style={{
                       width: '100%', background: 'none', border: 'none', borderBottom: i < results.length - 1 ? '1px solid var(--border-light)' : 'none',
                       padding: '10px 13px', textAlign: 'left', cursor: 'pointer', font: 'inherit',
                     }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
                         <p style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.3, flex: 1 }}>{f.name}</p>
                         {(() => {
-                          const badges = { recent: ['🕐', '#fff4e6', '#c45e00'], diet: ['🥗', 'var(--green-pale)', 'var(--green-main)'], recipe: ['🍳', '#fff4e6', '#c45e00'], openfoodfacts: ['🌍', '#f1f5f9', 'var(--text-muted)'], database: ['DB', 'var(--green-pale)', 'var(--green-main)'] }
+                          const badges = { recent: ['🕐', '#fff4e6', '#c45e00'], diet: ['🥗', 'var(--green-pale)', 'var(--green-main)'], recipe: ['🍳', '#fff4e6', '#c45e00'], custom_meal: ['🍽️', '#f0fdf4', 'var(--green-dark)'], openfoodfacts: ['🌍', '#f1f5f9', 'var(--text-muted)'], database: ['DB', 'var(--green-pale)', 'var(--green-main)'] }
                           const [label, bg, color] = badges[f.source] || badges.openfoodfacts
                           return <span style={{ fontSize: 9, background: bg, color, padding: '2px 5px', borderRadius: 100, fontWeight: 700, flexShrink: 0 }}>{label}</span>
                         })()}
@@ -400,6 +441,13 @@ export default function MacroTrackerPage() {
           </div>
         )}
       </div>
+
+      {showScanner && (
+        <BarcodeScanner
+          onFound={handleBarcodeFound}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
     </div>
   )
 }
