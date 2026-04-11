@@ -1,5 +1,5 @@
 -- ============================================================
--- NutriPlan — SQL AGGIORNAMENTO v5
+-- NutriPlan — SQL AGGIORNAMENTO v8
 -- Esegui nel SQL Editor di Supabase
 -- Aggiunge: meal_completions — traccia i pasti completati dal paziente
 -- ============================================================
