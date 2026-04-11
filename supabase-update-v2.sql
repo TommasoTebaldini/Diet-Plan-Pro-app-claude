@@ -1,63 +1,144 @@
-#!/usr/bin/env node
-// Run: node generate-icons.js
-// Generates all required PWA icon sizes as PNG files
+-- ============================================================
+-- NutriPlan — SQL AGGIORNAMENTO v2
+-- Esegui nel SQL Editor di Supabase
+-- Aggiunge: chat, documenti paziente, progressi peso, wellness
+-- ============================================================
 
-const { createCanvas } = require('canvas')
-const fs = require('fs')
-const path = require('path')
+-- Tabella: relazione paziente ↔ dietista
+create table if not exists patient_dietitian (
+  id uuid primary key default gen_random_uuid(),
+  patient_id uuid references auth.users not null,
+  dietitian_id uuid references auth.users not null,
+  created_at timestamptz default now(),
+  unique(patient_id, dietitian_id)
+);
+alter table patient_dietitian enable row level security;
+create policy "visibile ai coinvolti" on patient_dietitian
+  for select using (auth.uid() = patient_id or auth.uid() = dietitian_id);
+create policy "dietista crea relazioni" on patient_dietitian
+  for insert with check (auth.uid() = dietitian_id);
 
-const SIZES = [72, 96, 128, 144, 152, 192, 384, 512]
+-- ============================================================
+-- CHAT
+-- ============================================================
+create table if not exists chat_messages (
+  id uuid primary key default gen_random_uuid(),
+  patient_id uuid references auth.users not null,
+  sender_id uuid references auth.users not null,
+  sender_role text not null check (sender_role in ('patient', 'dietitian')),
+  content text not null,
+  read_at timestamptz,
+  created_at timestamptz default now()
+);
+alter table chat_messages enable row level security;
+create policy "chat visibile ai coinvolti" on chat_messages
+  for all using (
+    auth.uid() = patient_id or
+    exists (
+      select 1 from patient_dietitian pd
+      where pd.patient_id = chat_messages.patient_id
+      and pd.dietitian_id = auth.uid()
+    )
+  );
 
-function drawIcon(size) {
-  const canvas = createCanvas(size, size)
-  const ctx = canvas.getContext('2d')
-  const r = size * 0.18  // corner radius
+-- ============================================================
+-- DOCUMENTI CONDIVISI DAL DIETISTA
+-- ============================================================
+create table if not exists patient_documents (
+  id uuid primary key default gen_random_uuid(),
+  patient_id uuid references auth.users not null,
+  dietitian_id uuid references auth.users not null,
+  title text not null,
+  type text default 'document', -- 'diet', 'advice', 'recipe', 'document', 'education'
+  content text,
+  file_url text,
+  tags text[] default '{}',
+  visible boolean default true,  -- il dietista può nascondere/mostrare
+  published_at timestamptz default now(),
+  created_at timestamptz default now()
+);
+alter table patient_documents enable row level security;
+-- Paziente vede solo i documenti visibili
+create policy "paziente vede propri documenti" on patient_documents
+  for select using (auth.uid() = patient_id and visible = true);
+-- Dietista gestisce tutti i documenti dei propri pazienti
+create policy "dietista gestisce documenti" on patient_documents
+  for all using (auth.uid() = dietitian_id);
 
-  // Background rounded rect
-  ctx.beginPath()
-  ctx.moveTo(r, 0)
-  ctx.lineTo(size - r, 0)
-  ctx.quadraticCurveTo(size, 0, size, r)
-  ctx.lineTo(size, size - r)
-  ctx.quadraticCurveTo(size, size, size - r, size)
-  ctx.lineTo(r, size)
-  ctx.quadraticCurveTo(0, size, 0, size - r)
-  ctx.lineTo(0, r)
-  ctx.quadraticCurveTo(0, 0, r, 0)
-  ctx.closePath()
-  const grad = ctx.createLinearGradient(0, 0, size, size)
-  grad.addColorStop(0, '#0d5c3a')
-  grad.addColorStop(1, '#2da06e')
-  ctx.fillStyle = grad
-  ctx.fill()
+-- ============================================================
+-- PROGRESSI PESO
+-- ============================================================
+create table if not exists weight_logs (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users not null default auth.uid(),
+  date date not null,
+  weight_kg numeric not null,
+  created_at timestamptz default now(),
+  unique(user_id, date)
+);
+alter table weight_logs enable row level security;
+create policy "utente gestisce proprio peso" on weight_logs
+  for all using (auth.uid() = user_id);
+-- Il dietista può leggere i pesi dei propri pazienti
+create policy "dietista legge peso pazienti" on weight_logs
+  for select using (
+    exists (
+      select 1 from patient_dietitian pd
+      where pd.patient_id = weight_logs.user_id
+      and pd.dietitian_id = auth.uid()
+    )
+  );
 
-  // Leaf
-  const cx = size / 2, cy = size / 2, lh = size * 0.62
-  ctx.beginPath()
-  ctx.moveTo(cx, cy - lh / 2)
-  ctx.bezierCurveTo(cx + lh * 0.45, cy - lh * 0.35, cx + lh * 0.45, cy + lh * 0.35, cx, cy + lh / 2)
-  ctx.bezierCurveTo(cx - lh * 0.45, cy + lh * 0.35, cx - lh * 0.45, cy - lh * 0.35, cx, cy - lh / 2)
-  ctx.closePath()
-  ctx.fillStyle = 'rgba(255,255,255,0.92)'
-  ctx.fill()
+-- ============================================================
+-- WELLNESS GIORNALIERO (umore, sintomi, note)
+-- ============================================================
+create table if not exists daily_wellness (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users not null default auth.uid(),
+  date date not null,
+  mood int check (mood between 1 and 5),
+  symptoms text[] default '{}',
+  notes text,
+  created_at timestamptz default now(),
+  unique(user_id, date)
+);
+alter table daily_wellness enable row level security;
+create policy "utente gestisce proprio wellness" on daily_wellness
+  for all using (auth.uid() = user_id);
+create policy "dietista legge wellness pazienti" on daily_wellness
+  for select using (
+    exists (
+      select 1 from patient_dietitian pd
+      where pd.patient_id = daily_wellness.user_id
+      and pd.dietitian_id = auth.uid()
+    )
+  );
 
-  // Vein
-  ctx.beginPath()
-  ctx.moveTo(cx, cy - lh / 2)
-  ctx.lineTo(cx, cy + lh / 2)
-  ctx.strokeStyle = 'rgba(13,92,58,0.3)'
-  ctx.lineWidth = size * 0.025
-  ctx.stroke()
+-- ============================================================
+-- PROFILI ESTESI (target_weight, altezza, ecc.)
+-- Aggiorna la tabella profiles esistente
+-- ============================================================
+alter table profiles add column if not exists target_weight numeric;
+alter table profiles add column if not exists height_cm numeric;
+alter table profiles add column if not exists birth_date date;
+alter table profiles add column if not exists gender text;
+alter table profiles add column if not exists activity_level text;
 
-  return canvas.toBuffer('image/png')
-}
+-- ============================================================
+-- REALTIME: abilita per la chat
+-- ============================================================
+alter publication supabase_realtime add table chat_messages;
 
-const iconsDir = path.join(__dirname, 'public', 'icons')
-if (!fs.existsSync(iconsDir)) fs.mkdirSync(iconsDir, { recursive: true })
-
-SIZES.forEach(size => {
-  const buf = drawIcon(size)
-  fs.writeFileSync(path.join(iconsDir, `icon-${size}x${size}.png`), buf)
-  console.log(`✓ icon-${size}x${size}.png`)
-})
-console.log('\nAll icons generated in public/icons/')
+-- ============================================================
+-- NOTE PER IL DIETISTA (da implementare nel sito)
+-- Per collegare un paziente al dietista:
+--   insert into patient_dietitian (patient_id, dietitian_id)
+--   values ('UUID-PAZIENTE', auth.uid());
+--
+-- Per condividere un documento:
+--   insert into patient_documents (patient_id, dietitian_id, title, type, content, visible)
+--   values ('UUID-PAZIENTE', auth.uid(), 'Titolo', 'advice', 'Testo...', true);
+--
+-- Per nascondere un documento al paziente:
+--   update patient_documents set visible = false where id = 'ID-DOCUMENTO';
+-- ============================================================

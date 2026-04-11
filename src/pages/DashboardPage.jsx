@@ -2,198 +2,215 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
-import { Utensils, Droplets, BarChart2, Apple, ChevronRight, Flame, Leaf, MessageCircle, FileText, BookOpen, User } from 'lucide-react'
+import { Utensils, Droplets, TrendingUp, Apple, Flame, Leaf, MessageCircle, FileText, BookOpen, User, ChevronRight, Activity, Scale } from 'lucide-react'
 
-function MacroRing({ percent, color, size = 56 }) {
-  const r = (size - 8) / 2
+function Ring({ pct, color, size = 60, strokeWidth = 7 }) {
+  const r = (size - strokeWidth) / 2
   const circ = 2 * Math.PI * r
-  const offset = circ - (percent / 100) * circ
+  const offset = circ - Math.min(100, pct) / 100 * circ
   return (
     <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--border-light)" strokeWidth={6} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,.15)" strokeWidth={strokeWidth} />
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color}
-        strokeWidth={6} strokeLinecap="round"
+        strokeWidth={strokeWidth} strokeLinecap="round"
         strokeDasharray={circ} strokeDashoffset={offset}
-        style={{ transition: 'stroke-dashoffset 1s ease' }} />
+        style={{ transition: 'stroke-dashoffset 1.2s ease' }} />
     </svg>
   )
 }
 
+function StatPill({ label, val, target, color }) {
+  const pct = target ? Math.min(100, Math.round(val / target * 100)) : 0
+  return (
+    <div style={{ flex: 1, background: 'rgba(255,255,255,.1)', borderRadius: 14, padding: '10px 8px', textAlign: 'center', border: '1px solid rgba(255,255,255,.12)', backdropFilter: 'blur(8px)' }}>
+      <div style={{ height: 3, background: 'rgba(255,255,255,.2)', borderRadius: 2, marginBottom: 8, overflow: 'hidden' }}>
+        {target && <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 2, transition: 'width 1s ease' }} />}
+      </div>
+      <p style={{ color: 'white', fontSize: 14, fontWeight: 700, lineHeight: 1 }}>{val}{target ? `/${target}` : ''}</p>
+      <p style={{ color: 'rgba(255,255,255,.6)', fontSize: 10, marginTop: 3 }}>{label}</p>
+    </div>
+  )
+}
+
+const ACTIONS = [
+  { label: 'Dieta', icon: Utensils, to: '/dieta', color: '#157a4a', bg: '#e6f5ee' },
+  { label: 'Pasti', icon: Apple, to: '/macro', color: '#e8882a', bg: '#fff4e6' },
+  { label: 'Acqua', icon: Droplets, to: '/acqua', color: '#2f7de8', bg: '#eff6ff' },
+  { label: 'Progressi', icon: TrendingUp, to: '/progressi', color: '#7c3aed', bg: '#f5f3ff' },
+  { label: 'Chat', icon: MessageCircle, to: '/chat', color: '#dc4a4a', bg: '#fff0f0' },
+  { label: 'Documenti', icon: FileText, to: '/documenti', color: '#0891b2', bg: '#ecfeff' },
+  { label: 'Alimenti', icon: BookOpen, to: '/alimenti', color: '#157a4a', bg: '#f0fdf4' },
+  { label: 'Profilo', icon: User, to: '/profilo', color: '#64748b', bg: '#f8fafc' },
+]
+
 export default function DashboardPage() {
-  const { profile } = useAuth()
+  const { profile, user } = useAuth()
   const [todayLog, setTodayLog] = useState(null)
   const [waterLog, setWaterLog] = useState(0)
   const [diet, setDiet] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [weight, setWeight] = useState(null)
+  const [unreadChat, setUnreadChat] = useState(0)
   const today = new Date().toISOString().split('T')[0]
-
   const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Buongiorno' : hour < 18 ? 'Buon pomeriggio' : 'Buona sera'
+  const greet = hour < 6 ? 'Buona notte' : hour < 12 ? 'Buongiorno' : hour < 18 ? 'Buon pomeriggio' : 'Buona sera'
 
   useEffect(() => {
     async function load() {
-      try {
-        // Load today's macro log
-        const { data: log } = await supabase
-          .from('daily_logs').select('*').eq('date', today).maybeSingle()
-        setTodayLog(log)
-
-        // Load water intake
-        const { data: water } = await supabase
-          .from('water_logs').select('amount_ml').eq('date', today)
-        setWaterLog(water?.reduce((s, w) => s + w.amount_ml, 0) || 0)
-
-        // Load active diet
-        const { data: activeDiet } = await supabase
-          .from('patient_diets').select('*').eq('is_active', true).maybeSingle()
-        setDiet(activeDiet)
-      } catch (e) { console.error(e) }
-      setLoading(false)
+      const [log, water, activeDiet, w, chat] = await Promise.allSettled([
+        supabase.from('daily_logs').select('*').eq('date', today).maybeSingle(),
+        supabase.from('water_logs').select('amount_ml').eq('date', today),
+        supabase.from('patient_diets').select('*').eq('is_active', true).maybeSingle(),
+        supabase.from('weight_logs').select('weight_kg').eq('user_id', user.id).order('date', { ascending: false }).limit(1).maybeSingle(),
+        supabase.from('chat_messages').select('id', { count: 'exact' }).eq('patient_id', user.id).eq('sender_role', 'dietitian').is('read_at', null),
+      ])
+      if (log.value?.data) setTodayLog(log.value.data)
+      if (water.value?.data) setWaterLog(water.value.data.reduce((s, w) => s + w.amount_ml, 0))
+      if (activeDiet.value?.data) setDiet(activeDiet.value.data)
+      if (w.value?.data) setWeight(w.value.data.weight_kg)
+      if (chat.value?.count) setUnreadChat(chat.value.count)
     }
     load()
-  }, [today])
+  }, [today, user.id])
 
-  const firstName = profile?.first_name || profile?.full_name?.split(' ')[0] || 'Paziente'
+  const firstName = profile?.first_name || profile?.full_name?.split(' ')[0] || 'Ciao'
+  const kcal = todayLog?.kcal || 0
   const kcalTarget = diet?.kcal_target || 2000
-  const kcalLogged = todayLog?.kcal || 0
-  const kcalPct = Math.min(100, Math.round((kcalLogged / kcalTarget) * 100))
+  const kcalPct = Math.min(100, Math.round(kcal / kcalTarget * 100))
   const waterTarget = 2500
-  const waterPct = Math.min(100, Math.round((waterLog / waterTarget) * 100))
-
-  const macros = [
-    { label: 'Proteine', value: todayLog?.proteins || 0, target: diet?.protein_target || 120, color: '#3b82f6', unit: 'g' },
-    { label: 'Carboidrati', value: todayLog?.carbs || 0, target: diet?.carbs_target || 240, color: '#f0922b', unit: 'g' },
-    { label: 'Grassi', value: todayLog?.fats || 0, target: diet?.fats_target || 70, color: '#e05a5a', unit: 'g' },
-  ]
-
-  const quickActions = [
-    { label: 'La mia dieta', icon: <Utensils size={20} />, to: '/dieta', color: 'var(--green-main)', bg: 'var(--green-pale)' },
-    { label: 'Traccia pasto', icon: <Apple size={20} />, to: '/macro', color: '#f0922b', bg: '#fff4e6' },
-    { label: 'Acqua', icon: <Droplets size={20} />, to: '/acqua', color: '#3b82f6', bg: '#eff6ff' },
-    { label: 'Progressi', icon: <BarChart2 size={20} />, to: '/progressi', color: '#8b5cf6', bg: '#f5f3ff' },
-    { label: 'Chat', icon: <MessageCircle size={20} />, to: '/chat', color: '#e05a5a', bg: '#fff0f0' },
-    { label: 'Documenti', icon: <FileText size={20} />, to: '/documenti', color: '#0ea5e9', bg: '#f0f9ff' },
-    { label: 'Alimenti', icon: <BookOpen size={20} />, to: '/alimenti', color: '#16a34a', bg: '#f0fdf4' },
-    { label: 'Profilo', icon: <User size={20} />, to: '/profilo', color: '#64748b', bg: '#f8fafc' },
-  ]
+  const waterPct = Math.min(100, Math.round(waterLog / waterTarget * 100))
 
   return (
-    <div className="page" style={{ padding: '0 0 calc(var(--bottom-nav-height) + env(safe-area-inset-bottom))' }}>
-      {/* Header */}
+    <div className="page">
+      {/* ── Hero header ── */}
       <div style={{
-        background: 'linear-gradient(160deg, var(--green-dark) 0%, var(--green-main) 100%)',
-        padding: 'calc(env(safe-area-inset-top) + 20px) 24px 32px',
+        background: 'linear-gradient(160deg, var(--green-dark) 0%, var(--green-main) 55%, var(--green-mid) 100%)',
+        padding: 'calc(env(safe-area-inset-top) + 20px) 20px 28px',
         position: 'relative', overflow: 'hidden'
       }}>
-        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle at 90% 10%, rgba(255,255,255,0.08) 0%, transparent 50%)' }} />
+        {/* Decorative circles */}
+        <div style={{ position: 'absolute', top: -40, right: -40, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,.05)' }} />
+        <div style={{ position: 'absolute', bottom: -20, left: -20, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,.04)' }} />
+
         <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
             <div>
-              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginBottom: 2 }}>{greeting} 👋</p>
-              <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 26, color: 'white', fontWeight: 300 }}>{firstName}</h1>
+              <p style={{ color: 'rgba(255,255,255,.65)', fontSize: 12, marginBottom: 2 }}>{greet} 👋</p>
+              <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 28, color: 'white', fontWeight: 300, lineHeight: 1.1 }}>{firstName}</h1>
             </div>
-            <Link to="/profilo" style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.2)', textDecoration: 'none', color: 'white', fontSize: 16, fontWeight: 600 }}>
-              {firstName[0]?.toUpperCase()}
-            </Link>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {unreadChat > 0 && (
+                <Link to="/chat" style={{ width: 42, height: 42, borderRadius: '50%', background: '#dc4a4a', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', position: 'relative', boxShadow: '0 4px 12px rgba(220,74,74,.4)' }}>
+                  <MessageCircle size={18} color="white" />
+                  <span style={{ position: 'absolute', top: -2, right: -2, width: 18, height: 18, borderRadius: '50%', background: 'white', color: '#dc4a4a', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{unreadChat}</span>
+                </Link>
+              )}
+              <Link to="/profilo" style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(255,255,255,.18)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', color: 'white', fontWeight: 700, fontSize: 16, border: '1.5px solid rgba(255,255,255,.25)' }}>
+                {firstName[0]?.toUpperCase()}
+              </Link>
+            </div>
           </div>
 
-          {/* Kcal card */}
-          <div style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(12px)', borderRadius: 18, padding: '16px 20px', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', gap: 16 }}>
+          {/* Calorie ring + stats */}
+          <div style={{ background: 'rgba(255,255,255,.1)', backdropFilter: 'blur(12px)', borderRadius: 20, padding: '16px 18px', border: '1px solid rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14 }}>
             <div style={{ position: 'relative', flexShrink: 0 }}>
-              <MacroRing percent={kcalPct} color="rgba(255,255,255,0.9)" size={64} />
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Flame size={20} color="white" />
+              <Ring pct={kcalPct} color="rgba(255,255,255,.9)" size={68} strokeWidth={7} />
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <Flame size={14} color="white" />
+                <span style={{ color: 'white', fontSize: 11, fontWeight: 700 }}>{kcalPct}%</span>
               </div>
             </div>
             <div style={{ flex: 1 }}>
-              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 2 }}>Calorie oggi</p>
-              <p style={{ color: 'white', fontSize: 22, fontWeight: 600 }}>{kcalLogged} <span style={{ fontSize: 14, opacity: 0.7 }}>/ {kcalTarget} kcal</span></p>
-              <div style={{ marginTop: 8, height: 4, background: 'rgba(255,255,255,0.2)', borderRadius: 2, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${kcalPct}%`, background: 'white', borderRadius: 2, transition: 'width 1s ease' }} />
+              <p style={{ color: 'rgba(255,255,255,.7)', fontSize: 11, marginBottom: 2 }}>Calorie oggi</p>
+              <p style={{ color: 'white', fontSize: 22, fontWeight: 700, lineHeight: 1 }}>{kcal} <span style={{ fontSize: 13, opacity: .7, fontWeight: 400 }}>/ {kcalTarget} kcal</span></p>
+              <div style={{ marginTop: 8, height: 5, background: 'rgba(255,255,255,.2)', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${kcalPct}%`, background: 'white', borderRadius: 3, transition: 'width 1.2s ease' }} />
               </div>
             </div>
+          </div>
+
+          {/* Macro pills */}
+          <div style={{ display: 'flex', gap: 6 }}>
+            <StatPill label="Prot." val={`${todayLog?.proteins || 0}g`} target={diet?.protein_target ? `${diet.protein_target}g` : null} color="#93c5fd" />
+            <StatPill label="Carbo" val={`${todayLog?.carbs || 0}g`} target={diet?.carbs_target ? `${diet.carbs_target}g` : null} color="#fcd34d" />
+            <StatPill label="Grassi" val={`${todayLog?.fats || 0}g`} target={diet?.fats_target ? `${diet.fats_target}g` : null} color="#fca5a5" />
+            <StatPill label="Acqua" val={`${Math.round(waterLog/100)/10}L`} target="2.5L" color="#7dd3fc" />
           </div>
         </div>
       </div>
 
-      <div style={{ padding: '20px 20px 0', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* Quick actions 4x2 */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
-          {quickActions.map(a => (
-            <Link key={a.to + a.label} to={a.to} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 54, height: 54, borderRadius: 18, background: a.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: a.color }}>
-                {a.icon}
-              </div>
-              <span style={{ fontSize: 10.5, color: 'var(--text-secondary)', fontWeight: 500, textAlign: 'center', lineHeight: 1.2 }}>{a.label}</span>
-            </Link>
-          ))}
-        </div>
-
-        {/* Macros row */}
-        <div className="card" style={{ padding: '18px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 600 }}>Macro di oggi</h3>
-            <Link to="/macro" style={{ fontSize: 13, color: 'var(--green-main)', textDecoration: 'none', fontWeight: 500 }}>Traccia →</Link>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-            {macros.map(m => {
-              const pct = Math.min(100, Math.round((m.value / m.target) * 100))
-              return (
-                <div key={m.label} style={{ textAlign: 'center' }}>
-                  <div style={{ position: 'relative', display: 'inline-block', marginBottom: 6 }}>
-                    <MacroRing percent={pct} color={m.color} size={52} />
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 600, color: m.color }}>{pct}%</div>
-                  </div>
-                  <p style={{ fontSize: 13, fontWeight: 600 }}>{m.value}{m.unit}</p>
-                  <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{m.label}</p>
+        <div>
+          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12 }}>Accesso rapido</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+            {ACTIONS.map(({ label, icon: Icon, to, color, bg }) => (
+              <Link key={to} to={to} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
+                <div style={{ width: 54, height: 54, borderRadius: 18, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color, boxShadow: 'var(--shadow-xs)', border: '1px solid rgba(0,0,0,.04)', transition: 'transform .15s', position: 'relative' }}>
+                  <Icon size={22} strokeWidth={1.8} />
+                  {label === 'Chat' && unreadChat > 0 && (
+                    <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: '#dc4a4a', color: 'white', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--surface-2)' }}>{unreadChat}</span>
+                  )}
                 </div>
-              )
-            })}
+                <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 500, textAlign: 'center' }}>{label}</span>
+              </Link>
+            ))}
           </div>
         </div>
 
-        {/* Water */}
-        <div className="card" style={{ padding: '18px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        {/* Water bar */}
+        <div className="card" style={{ padding: '14px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Droplets size={18} color="#3b82f6" />
-              <h3 style={{ fontSize: 15, fontWeight: 600 }}>Acqua</h3>
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Droplets size={16} color="#2f7de8" />
+              </div>
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 600 }}>Idratazione</p>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{waterLog} ml / {waterTarget} ml</p>
+              </div>
             </div>
-            <Link to="/acqua" style={{ fontSize: 13, color: 'var(--green-main)', textDecoration: 'none', fontWeight: 500 }}>Aggiungi →</Link>
+            <Link to="/acqua" style={{ fontSize: 13, color: 'var(--green-main)', fontWeight: 600, textDecoration: 'none' }}>+ Aggiungi</Link>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 13 }}>
-                <span style={{ fontWeight: 600 }}>{waterLog} ml</span>
-                <span style={{ color: 'var(--text-muted)' }}>/ {waterTarget} ml</span>
-              </div>
-              <div style={{ height: 8, background: 'var(--border-light)', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${waterPct}%`, background: 'linear-gradient(90deg, #60a5fa, #3b82f6)', borderRadius: 4, transition: 'width 1s ease' }} />
-              </div>
+          <div style={{ height: 8, background: 'var(--border-light)', borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${waterPct}%`, background: 'linear-gradient(90deg, #60a5fa, #2f7de8)', borderRadius: 4, transition: 'width 1.2s ease' }} />
+          </div>
+        </div>
+
+        {/* Weight + diet summary */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div className="card" style={{ padding: '14px' }}>
+            <div style={{ width: 32, height: 32, borderRadius: 10, background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+              <Scale size={16} color="#7c3aed" />
             </div>
-            <span style={{ fontSize: 24, fontWeight: 700, color: '#3b82f6' }}>{waterPct}%</span>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Peso attuale</p>
+            <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{weight ? `${weight} kg` : '–'}</p>
+            {profile?.target_weight && <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Obiettivo: {profile.target_weight} kg</p>}
+          </div>
+          <div className="card" style={{ padding: '14px' }}>
+            <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+              <Leaf size={16} color="var(--green-main)" />
+            </div>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Piano attivo</p>
+            <p style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.3 }}>{diet?.name || 'Nessun piano'}</p>
+            {diet && <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{diet.kcal_target} kcal</p>}
           </div>
         </div>
 
         {/* Diet preview */}
-        {diet ? (
+        {diet && (
           <Link to="/dieta" style={{ textDecoration: 'none' }}>
-            <div className="card" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }}>
-              <div style={{ width: 48, height: 48, borderRadius: 16, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Leaf size={22} color="var(--green-main)" />
+            <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg, var(--green-pale), #c8f5e2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Utensils size={20} color="var(--green-main)" strokeWidth={1.8} />
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 2 }}>Piano attivo</p>
-                <p style={{ fontSize: 15, fontWeight: 600 }}>{diet.name || 'Piano personalizzato'}</p>
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{diet.kcal_target} kcal · {diet.meals_count || 5} pasti</p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Piano personalizzato</p>
+                <p style={{ fontSize: 15, fontWeight: 600 }}>{diet.name || 'Vedi la tua dieta'}</p>
+                {diet.notes && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '90%' }}>{diet.notes}</p>}
               </div>
-              <ChevronRight size={18} color="var(--text-muted)" />
+              <ChevronRight size={16} color="var(--text-muted)" />
             </div>
           </Link>
-        ) : (
-          <div className="card" style={{ padding: '18px 20px', textAlign: 'center', border: '1.5px dashed var(--border)' }}>
-            <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Nessun piano attivo.<br />Contatta il tuo dietista.</p>
-          </div>
         )}
       </div>
     </div>

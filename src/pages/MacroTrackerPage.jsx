@@ -171,9 +171,11 @@ export default function MacroTrackerPage() {
                   <button key={`${f.id}_${i}`} onClick={() => { setSelected(f); setGrams('100') }} style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 10, padding: '9px 11px', textAlign: 'left', cursor: 'pointer', font: 'inherit', width: '100%' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
                       <p style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.3, flex: 1 }}>{f.name}</p>
-                      <span style={{ fontSize: 9, background: f.source === 'database' ? 'var(--green-pale)' : '#f1f5f9', color: f.source === 'database' ? 'var(--green-main)' : 'var(--text-muted)', padding: '2px 5px', borderRadius: 100, fontWeight: 700, flexShrink: 0 }}>
-                        {f.source === 'database' ? 'DB' : 'OFF'}
-                      </span>
+                      {(() => {
+                        const badges = { recent: ['🕐','#fff4e6','#c45e00'], diet: ['🥗','var(--green-pale)','var(--green-main)'], recipe: ['🍳','#fff4e6','#c45e00'], openfoodfacts: ['🌍','#f1f5f9','var(--text-muted)'], database: ['DB','var(--green-pale)','var(--green-main)'] }
+                        const [label, bg, color] = badges[f.source] || badges.openfoodfacts
+                        return <span style={{ fontSize: 9, background: bg, color, padding: '2px 5px', borderRadius: 100, fontWeight: 700, flexShrink: 0 }}>{label}</span>
+                      })()}
                     </div>
                     <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
                       {f.brand ? `${f.brand} · ` : ''}{f.kcal_100g} kcal · P:{f.proteins_100g} C:{f.carbs_100g} G:{f.fats_100g}
