@@ -62,6 +62,7 @@ export default function MacroTrackerPage() {
   const [showSearch, setShowSearch] = useState(false)
   const [expandedMeal, setExpandedMeal] = useState(null)
   const [mood, setMood] = useState(null)
+  const [addedFood, setAddedFood] = useState(null)
   const searchRef = useRef(null)
 
   useEffect(() => { loadLog() }, [date])
@@ -110,8 +111,12 @@ export default function MacroTrackerPage() {
     }).select().single()
     if (data) setLog(l => [...l, data])
     await updateDailyLog()
+    const justAdded = selected.name
     setSelected(null); setQuery(''); setResults([])
-    setShowSearch(false); setSaving(false)
+    setSaving(false)
+    // Show brief confirmation and keep search panel open for more items
+    setAddedFood(justAdded)
+    setTimeout(() => setAddedFood(null), 2000)
   }
 
   async function updateDailyLog() {
@@ -231,6 +236,12 @@ export default function MacroTrackerPage() {
         {/* ── Add food panel ── */}
         {showSearch && (
           <div className="card animate-slideUp" style={{ padding: 14 }}>
+            {/* Success confirmation */}
+            {addedFood && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--green-pale)', borderRadius: 10, padding: '9px 12px', marginBottom: 12, color: 'var(--green-dark)', fontSize: 13, fontWeight: 500 }}>
+                <span>✅</span> <span>"{addedFood}" aggiunto! Puoi aggiungere un altro alimento.</span>
+              </div>
+            )}
             {/* Meal type selector */}
             <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 12, paddingBottom: 2 }}>
               {MEALS.map(m => (
