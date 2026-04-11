@@ -73,6 +73,7 @@ const ACTIONS = [
   { label: 'Dieta', icon: Utensils, to: '/dieta', color: '#157a4a', bg: '#e6f5ee' },
   { label: 'Pasti', icon: Apple, to: '/macro', color: '#e8882a', bg: '#fff4e6' },
   { label: 'Acqua', icon: Droplets, to: '/acqua', color: '#2f7de8', bg: '#eff6ff' },
+  { label: 'Attività', icon: Activity, to: '/attivita', color: '#f97316', bg: '#fff7ed' },
   { label: 'Progressi', icon: TrendingUp, to: '/progressi', color: '#7c3aed', bg: '#f5f3ff' },
   { label: 'Chat', icon: MessageCircle, to: '/chat', color: '#dc4a4a', bg: '#fff0f0' },
   { label: 'Documenti', icon: FileText, to: '/documenti', color: '#0891b2', bg: '#ecfeff' },
@@ -271,7 +272,7 @@ export default function DashboardPage() {
         {/* Quick actions 4x2 */}
         <div>
           <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12 }}>Accesso rapido</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
             {ACTIONS.map(({ label, icon: Icon, to, color, bg }) => (
               <Link key={to} to={to} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
                 <div style={{ width: 54, height: 54, borderRadius: 18, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color, boxShadow: 'var(--shadow-xs)', border: '1px solid rgba(0,0,0,.04)', transition: 'transform .15s', position: 'relative' }}>

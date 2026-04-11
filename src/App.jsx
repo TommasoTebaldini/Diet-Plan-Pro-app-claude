@@ -11,6 +11,7 @@ import ProfilePage from './pages/ProfilePage'
 import ChatPage from './pages/ChatPage'
 import DocumentsPage from './pages/DocumentsPage'
 import ProgressPage from './pages/ProgressPage'
+import ActivityPage from './pages/ActivityPage'
 import BottomNav from './components/BottomNav'
 import LoadingScreen from './components/LoadingScreen'
 import InstallBanner from './components/InstallBanner'
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
         <Route path="/documenti" element={<PrivateRoute><DocumentsPage /></PrivateRoute>} />
         <Route path="/progressi" element={<PrivateRoute><ProgressPage /></PrivateRoute>} />
+        <Route path="/attivita" element={<PrivateRoute><ActivityPage /></PrivateRoute>} />
         <Route path="/profilo" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
