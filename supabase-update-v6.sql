@@ -1,5 +1,5 @@
 -- ============================================================
--- NutriPlan — SQL AGGIORNAMENTO v5
+-- NutriPlan — SQL AGGIORNAMENTO v6
 -- Esegui nel SQL Editor di Supabase
 -- Aggiunge: custom_meals (pasti personalizzati), ricette (con ingredienti e macro auto)
 -- ============================================================
