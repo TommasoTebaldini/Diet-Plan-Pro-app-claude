@@ -216,7 +216,7 @@ function NotificationsModal({ onClose }) {
 
 // ─── Main Profile page ────────────────────────────────────────────────────────
 export default function ProfilePage() {
-  const { user, profile, signOut } = useAuth()
+  const { user, profile, signOut, refreshProfile } = useAuth()
   const navigate = useNavigate()
   const [modal, setModal] = useState(null) // 'personal' | 'security' | 'notifications'
   const [localProfile, setLocalProfile] = useState(profile)
@@ -231,8 +231,8 @@ export default function ProfilePage() {
   }
 
   async function reloadProfile() {
-    const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-    if (data) setLocalProfile(data)
+    await refreshProfile()
+    // localProfile is synced from global profile via useEffect([profile])
   }
 
   const firstName = localProfile?.first_name || localProfile?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'P'
