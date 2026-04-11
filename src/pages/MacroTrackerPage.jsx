@@ -1,52 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { searchFoods } from '../lib/foodSearch'
 import { Plus, Search, Trash2, Apple, X, ChevronDown, ChevronUp } from 'lucide-react'
-
-async function searchSupabaseFoods(query) {
-  const tableNames = ['foods', 'alimenti', 'food_items', 'ingredients']
-  for (const tbl of tableNames) {
-    try {
-      const { data, error } = await supabase.from(tbl).select('*')
-        .or(`name.ilike.%${query}%,nome.ilike.%${query}%`).limit(15)
-      if (!error && data?.length > 0) {
-        return data.map(f => ({
-          id: `db_${f.id}`,
-          name: f.name || f.nome || f.food_name || '',
-          brand: f.brand || f.marca || '',
-          kcal_100g: f.calories_per_100g || f.calorie || f.kcal || f.energy_kcal || 0,
-          proteins_100g: f.proteins_per_100g || f.proteine || f.protein || f.proteins || 0,
-          carbs_100g: f.carbs_per_100g || f.carboidrati || f.carbs || f.carbohydrates || 0,
-          fats_100g: f.fats_per_100g || f.grassi || f.fat || f.fats || 0,
-          source: 'database'
-        }))
-      }
-    } catch { }
-  }
-  return []
-}
-
-async function searchOFFFoods(query) {
-  try {
-    const res = await fetch(
-      `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&json=1&fields=product_name,nutriments,brands,code&page_size=20&lc=it&cc=it`,
-      { signal: AbortSignal.timeout(8000) }
-    )
-    const data = await res.json()
-    return (data.products || []).filter(p => p.product_name && p.nutriments?.['energy-kcal_100g']).map(p => ({
-      id: p.code, name: p.product_name, brand: p.brands || '',
-      kcal_100g: Math.round(p.nutriments['energy-kcal_100g'] || 0),
-      proteins_100g: Math.round((p.nutriments['proteins_100g'] || 0) * 10) / 10,
-      carbs_100g: Math.round((p.nutriments['carbohydrates_100g'] || 0) * 10) / 10,
-      fats_100g: Math.round((p.nutriments['fat_100g'] || 0) * 10) / 10,
-      source: 'openfoodfacts'
-    }))
-  } catch { return [] }
-}
-
-async function searchFoods(query) {
-  const [db, off] = await Promise.allSettled([searchSupabaseFoods(query), searchOFFFoods(query)])
-  return [...(db.value || []), ...(off.value || [])]
-}
 
 function calcMacros(food, grams) {
   const f = (parseFloat(grams) || 100) / 100
@@ -195,7 +150,7 @@ export default function MacroTrackerPage() {
             </div>
 
             <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-              <input type="text" className="input-field" placeholder="Cerca alimento…"
+              <input type="text" className="input-field" placeholder="es. pollo, pasta, mela…"
                 value={query} onChange={e => setQuery(e.target.value)} style={{ flex: 1 }} autoComplete="off" />
               <button type="submit" className="btn btn-primary" style={{ padding: '0 14px', flexShrink: 0 }} disabled={searching || !query.trim()}>
                 {searching
@@ -204,22 +159,34 @@ export default function MacroTrackerPage() {
               </button>
             </form>
 
-            {!selected && results.length > 0 && (
-              <div style={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 7 }}>
+            {searching && (
+              <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-muted)', padding: '8px 0' }}>
+                Ricerca nel database e in Open Food Facts…
+              </p>
+            )}
+
+            {!selected && !searching && results.length > 0 && (
+              <div style={{ maxHeight: 250, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 7 }}>
                 {results.map((f, i) => (
-                  <button key={`${f.id}_${i}`} onClick={() => setSelected(f)} style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 10, padding: '9px 11px', textAlign: 'left', cursor: 'pointer', font: 'inherit', width: '100%' }}>
+                  <button key={`${f.id}_${i}`} onClick={() => { setSelected(f); setGrams('100') }} style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 10, padding: '9px 11px', textAlign: 'left', cursor: 'pointer', font: 'inherit', width: '100%' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
                       <p style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.3, flex: 1 }}>{f.name}</p>
-                      {f.source === 'database' && <span style={{ fontSize: 9, background: 'var(--green-pale)', color: 'var(--green-main)', padding: '2px 5px', borderRadius: 100, fontWeight: 700, flexShrink: 0 }}>DB</span>}
+                      <span style={{ fontSize: 9, background: f.source === 'database' ? 'var(--green-pale)' : '#f1f5f9', color: f.source === 'database' ? 'var(--green-main)' : 'var(--text-muted)', padding: '2px 5px', borderRadius: 100, fontWeight: 700, flexShrink: 0 }}>
+                        {f.source === 'database' ? 'DB' : 'OFF'}
+                      </span>
                     </div>
-                    <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{f.brand ? `${f.brand} · ` : ''}{f.kcal_100g} kcal · P:{f.proteins_100g} C:{f.carbs_100g} G:{f.fats_100g}</p>
+                    <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                      {f.brand ? `${f.brand} · ` : ''}{f.kcal_100g} kcal · P:{f.proteins_100g} C:{f.carbs_100g} G:{f.fats_100g}
+                    </p>
                   </button>
                 ))}
               </div>
             )}
 
             {!selected && !searching && query && results.length === 0 && (
-              <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-muted)', padding: '10px 0' }}>Nessun risultato. Prova con un termine diverso.</p>
+              <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-muted)', padding: '10px 0' }}>
+                Nessun risultato per "{query}". Prova con un termine diverso.
+              </p>
             )}
 
             {selected && (
