@@ -1,11 +1,11 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Utensils, MessageCircle, FileText, TrendingUp, User } from 'lucide-react'
+import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User } from 'lucide-react'
 
 const TABS = [
   { to: '/', icon: Home, label: 'Home' },
   { to: '/dieta', icon: Utensils, label: 'Dieta' },
+  { to: '/macro', icon: BookOpen, label: 'Diario' },
   { to: '/chat', icon: MessageCircle, label: 'Chat' },
-  { to: '/documenti', icon: FileText, label: 'Documenti' },
   { to: '/progressi', icon: TrendingUp, label: 'Progressi' },
   { to: '/profilo', icon: User, label: 'Profilo' },
 ]
