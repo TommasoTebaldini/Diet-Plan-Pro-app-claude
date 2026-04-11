@@ -2,21 +2,58 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
-import { Utensils, Droplets, TrendingUp, Apple, Flame, Leaf, MessageCircle, FileText, BookOpen, User, ChevronRight, Activity, Scale } from 'lucide-react'
+import { Utensils, Droplets, TrendingUp, Apple, Flame, Leaf, MessageCircle, FileText, BookOpen, User, ChevronRight, Activity, Scale, Calendar, Zap, Award } from 'lucide-react'
 
+// Animated progress ring: starts at 0, transitions to target pct on mount
 function Ring({ pct, color, size = 60, strokeWidth = 7 }) {
+  const [display, setDisplay] = useState(0)
+  useEffect(() => {
+    const t = setTimeout(() => setDisplay(pct), 80)
+    return () => clearTimeout(t)
+  }, [pct])
   const r = (size - strokeWidth) / 2
   const circ = 2 * Math.PI * r
-  const offset = circ - Math.min(100, pct) / 100 * circ
+  const offset = circ - Math.min(100, display) / 100 * circ
   return (
     <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,.15)" strokeWidth={strokeWidth} />
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color}
         strokeWidth={strokeWidth} strokeLinecap="round"
         strokeDasharray={circ} strokeDashoffset={offset}
-        style={{ transition: 'stroke-dashoffset 1.2s ease' }} />
+        style={{ transition: 'stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)' }} />
     </svg>
   )
+}
+
+// Meal types with time windows (startHour as decimal)
+const MEAL_ORDER = ['colazione', 'spuntino_mattina', 'pranzo', 'spuntino_pomeriggio', 'cena']
+const MEAL_META = {
+  colazione:           { label: 'Colazione',            icon: '☀️', time: '07:00–08:30', startHour: 7 },
+  spuntino_mattina:    { label: 'Spuntino mattina',      icon: '🍎', time: '10:00–10:30', startHour: 10 },
+  pranzo:              { label: 'Pranzo',                icon: '🍽️', time: '12:30–13:30', startHour: 12.5 },
+  spuntino_pomeriggio: { label: 'Spuntino pomeriggio',   icon: '🥤', time: '15:30–16:00', startHour: 15.5 },
+  cena:                { label: 'Cena',                  icon: '🌙', time: '19:30–20:30', startHour: 19.5 },
+}
+
+function getNextMeal(meals, nowHour) {
+  for (const type of MEAL_ORDER) {
+    if (MEAL_META[type].startHour > nowHour) {
+      const meal = meals.find(m => m.meal_type === type)
+      if (meal) return { meal, meta: MEAL_META[type] }
+    }
+  }
+  return null
+}
+
+function getMotivationalMessage(kcalPct, waterPct, streak) {
+  if (streak >= 14) return `🏆 ${streak} giorni di fila! Sei straordinario!`
+  if (streak >= 7)  return `🔥 ${streak} giorni consecutivi! Continua così!`
+  if (streak >= 3)  return `⚡ ${streak} giorni di streak! Stai crescendo!`
+  if (kcalPct >= 90) return '✅ Ottimo! Stai raggiungendo l\'obiettivo calorico!'
+  if (kcalPct >= 50) return '💪 Sei a metà strada. Registra il prossimo pasto!'
+  if (waterPct >= 80) return '💧 Ottima idratazione oggi! Continua!'
+  if (kcalPct === 0)  return '🌱 Buona giornata! Inizia a registrare i pasti.'
+  return '🎯 Ogni piccolo passo conta. Vai avanti!'
 }
 
 function StatPill({ label, val, target, color }) {
@@ -50,12 +87,20 @@ export default function DashboardPage() {
   const [diet, setDiet] = useState(null)
   const [weight, setWeight] = useState(null)
   const [unreadChat, setUnreadChat] = useState(0)
-  const today = new Date().toISOString().split('T')[0]
+  const [streak, setStreak] = useState(0)
+  const [nextMealInfo, setNextMealInfo] = useState(null)
+  const [appointment, setAppointment] = useState(null)
+
   const hour = new Date().getHours()
   const greet = hour < 6 ? 'Buona notte' : hour < 12 ? 'Buongiorno' : hour < 18 ? 'Buon pomeriggio' : 'Buona sera'
 
   useEffect(() => {
     async function load() {
+      const now = new Date()
+      const today = now.toISOString().split('T')[0]
+      const nowDecimalHour = now.getHours() + now.getMinutes() / 60
+
+      // Base data
       const [log, water, activeDiet, w, chat] = await Promise.allSettled([
         supabase.from('daily_logs').select('*').eq('date', today).maybeSingle(),
         supabase.from('water_logs').select('amount_ml').eq('date', today),
@@ -65,12 +110,75 @@ export default function DashboardPage() {
       ])
       if (log.value?.data) setTodayLog(log.value.data)
       if (water.value?.data) setWaterLog(water.value.data.reduce((s, w) => s + w.amount_ml, 0))
-      if (activeDiet.value?.data) setDiet(activeDiet.value.data)
       if (w.value?.data) setWeight(w.value.data.weight_kg)
       if (chat.value?.count) setUnreadChat(chat.value.count)
+
+      const currentDiet = activeDiet.value?.data ?? null
+      setDiet(currentDiet)
+
+      // Streak: count consecutive days with food logs (last 60 days)
+      const sixtyAgo = new Date(now)
+      sixtyAgo.setDate(sixtyAgo.getDate() - 60)
+      const { data: streakRows } = await supabase
+        .from('daily_logs')
+        .select('date')
+        .eq('user_id', user.id)
+        .gte('date', sixtyAgo.toISOString().split('T')[0])
+        .order('date', { ascending: false })
+      if (streakRows) {
+        const datesSet = new Set(streakRows.map(r => r.date))
+        let s = 0
+        // If today has no log yet, start counting from yesterday (offset=1); otherwise from today (offset=0)
+        const startOffset = datesSet.has(today) ? 0 : 1
+        for (let i = startOffset; i < 60 + startOffset; i++) {
+          const d = new Date(now)
+          d.setDate(d.getDate() - i)
+          if (datesSet.has(d.toISOString().split('T')[0])) s++
+          else break
+        }
+        setStreak(s)
+      }
+
+      // Next meal from today's diet meals
+      if (currentDiet) {
+        // getDay(): 0=Sun, 1=Mon, ..., 6=Sat → convert to 1=Mon...7=Sun
+        const jsDay = now.getDay()
+        const dayNumber = jsDay === 0 ? 7 : jsDay
+        const { data: mealRows } = await supabase
+          .from('diet_meals')
+          .select('*')
+          .eq('diet_id', currentDiet.id)
+          .or(`day_number.eq.${dayNumber},day_number.is.null`)
+          .order('meal_order')
+        if (mealRows?.length) {
+          const found = getNextMeal(mealRows, nowDecimalHour)
+          setNextMealInfo(found)
+        }
+      }
+
+      // Next appointment (graceful fail if table doesn't exist yet)
+      try {
+        const { data: appt, error: apptError } = await supabase
+          .from('appointments')
+          .select('*')
+          .eq('patient_id', user.id)
+          .gte('appointment_date', now.toISOString())
+          .order('appointment_date')
+          .limit(1)
+          .maybeSingle()
+        if (apptError && !apptError.message?.includes('relation') && !apptError.message?.includes('does not exist')) {
+          console.error('appointments query error:', apptError)
+        }
+        if (appt) setAppointment(appt)
+      } catch (err) {
+        // appointments table may not exist yet — only log unexpected errors
+        if (!err?.message?.includes('relation') && !err?.message?.includes('does not exist')) {
+          console.error('appointments error:', err)
+        }
+      }
     }
     load()
-  }, [today, user.id])
+  }, [user.id])
 
   const firstName = profile?.first_name || profile?.full_name?.split(' ')[0] || 'Ciao'
   const kcal = todayLog?.kcal || 0
@@ -78,6 +186,16 @@ export default function DashboardPage() {
   const kcalPct = Math.min(100, Math.round(kcal / kcalTarget * 100))
   const waterTarget = 2500
   const waterPct = Math.min(100, Math.round(waterLog / waterTarget * 100))
+  const motivationalMsg = getMotivationalMessage(kcalPct, waterPct, streak)
+
+  // Format appointment date
+  const apptDate = appointment ? new Date(appointment.appointment_date) : null
+  const apptLabel = apptDate
+    ? apptDate.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
+    : null
+  const apptTime = apptDate
+    ? apptDate.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+    : null
 
   return (
     <div className="page">
@@ -98,6 +216,12 @@ export default function DashboardPage() {
               <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 28, color: 'white', fontWeight: 300, lineHeight: 1.1 }}>{firstName}</h1>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
+              {streak > 0 && (
+                <div style={{ height: 42, borderRadius: 100, background: 'rgba(255,165,0,.25)', border: '1.5px solid rgba(255,165,0,.45)', display: 'flex', alignItems: 'center', gap: 5, padding: '0 12px' }}>
+                  <Zap size={14} color="#fbbf24" fill="#fbbf24" />
+                  <span style={{ color: '#fde68a', fontSize: 13, fontWeight: 700 }}>{streak}d</span>
+                </div>
+              )}
               {unreadChat > 0 && (
                 <Link to="/chat" style={{ width: 42, height: 42, borderRadius: '50%', background: '#dc4a4a', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', position: 'relative', boxShadow: '0 4px 12px rgba(220,74,74,.4)' }}>
                   <MessageCircle size={18} color="white" />
@@ -134,6 +258,11 @@ export default function DashboardPage() {
             <StatPill label="Carbo" val={`${todayLog?.carbs || 0}g`} target={diet?.carbs_target ? `${diet.carbs_target}g` : null} color="#fcd34d" />
             <StatPill label="Grassi" val={`${todayLog?.fats || 0}g`} target={diet?.fats_target ? `${diet.fats_target}g` : null} color="#fca5a5" />
             <StatPill label="Acqua" val={`${Math.round(waterLog/100)/10}L`} target="2.5L" color="#7dd3fc" />
+          </div>
+
+          {/* Motivational message */}
+          <div style={{ marginTop: 12, background: 'rgba(255,255,255,.1)', borderRadius: 12, padding: '10px 14px', border: '1px solid rgba(255,255,255,.15)' }}>
+            <p style={{ color: 'rgba(255,255,255,.9)', fontSize: 13, fontWeight: 500 }}>{motivationalMsg}</p>
           </div>
         </div>
       </div>
@@ -176,6 +305,26 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Next meal */}
+        {nextMealInfo && (
+          <Link to="/dieta" style={{ textDecoration: 'none' }}>
+            <div className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 14, background: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 22 }}>
+                {nextMealInfo.meta.icon}
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Prossimo pasto</p>
+                <p style={{ fontSize: 15, fontWeight: 600 }}>{nextMealInfo.meta.label}</p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>
+                  🕐 {nextMealInfo.meta.time}
+                  {nextMealInfo.meal.kcal ? ` · ${nextMealInfo.meal.kcal} kcal` : ''}
+                </p>
+              </div>
+              <ChevronRight size={16} color="var(--text-muted)" />
+            </div>
+          </Link>
+        )}
+
         {/* Weight + diet summary */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div className="card" style={{ padding: '14px' }}>
@@ -195,6 +344,42 @@ export default function DashboardPage() {
             {diet && <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{diet.kcal_target} kcal</p>}
           </div>
         </div>
+
+        {/* Appointment reminder */}
+        {appointment && (
+          <div className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, borderLeft: '3px solid var(--green-main)' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Calendar size={20} color="var(--green-main)" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Prossima visita</p>
+              <p style={{ fontSize: 15, fontWeight: 600 }}>{appointment.title}</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1, textTransform: 'capitalize' }}>
+                {apptLabel} · {apptTime}
+              </p>
+              {appointment.notes && <p style={{ fontSize: 12, color: 'var(--green-dark)', marginTop: 4 }}>💡 {appointment.notes}</p>}
+            </div>
+          </div>
+        )}
+
+        {/* Unread messages from dietitian */}
+        {unreadChat > 0 && (
+          <Link to="/chat" style={{ textDecoration: 'none' }}>
+            <div className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, borderLeft: '3px solid #dc4a4a' }}>
+              <div style={{ width: 44, height: 44, borderRadius: 14, background: '#fff0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
+                <MessageCircle size={20} color="#dc4a4a" />
+                <span style={{ position: 'absolute', top: -4, right: -4, width: 18, height: 18, borderRadius: '50%', background: '#dc4a4a', color: 'white', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--surface-2)' }}>{unreadChat}</span>
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Messaggi non letti</p>
+                <p style={{ fontSize: 15, fontWeight: 600 }}>
+                  {unreadChat === 1 ? '1 nuovo messaggio' : `${unreadChat} nuovi messaggi`} dal dietista
+                </p>
+                <p style={{ fontSize: 12, color: '#dc4a4a', fontWeight: 500, marginTop: 1 }}>Tocca per leggere →</p>
+              </div>
+            </div>
+          </Link>
+        )}
 
         {/* Diet preview */}
         {diet && (
