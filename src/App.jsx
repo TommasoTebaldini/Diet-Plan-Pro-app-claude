@@ -14,6 +14,7 @@ import ProgressPage from './pages/ProgressPage'
 import BottomNav from './components/BottomNav'
 import LoadingScreen from './components/LoadingScreen'
 import InstallBanner from './components/InstallBanner'
+import { NotificationProvider } from './context/NotificationContext'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -33,7 +34,7 @@ export default function App() {
   const { user } = useAuth()
 
   return (
-    <>
+    <NotificationProvider user={user}>
       <InstallBanner />
       <Routes>
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
@@ -50,6 +51,6 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       {user && <BottomNav />}
-    </>
+    </NotificationProvider>
   )
 }
