@@ -4,6 +4,15 @@ import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText } f
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
+const DOCS_EPOCH = '1970-01-01T00:00:00Z'
+
+const badgeStyle = {
+  position: 'absolute', top: -4, right: -4, width: 16, height: 16,
+  borderRadius: '50%', background: '#0891b2', color: 'white',
+  fontSize: 9, fontWeight: 700, display: 'flex',
+  alignItems: 'center', justifyContent: 'center', border: '2px solid white',
+}
+
 export default function BottomNav() {
   const { pathname } = useLocation()
   const { user } = useAuth()
@@ -12,7 +21,7 @@ export default function BottomNav() {
   useEffect(() => {
     if (!user) return
     const key = `docs_last_seen_${user.id}`
-    const lastSeen = localStorage.getItem(key) || '1970-01-01T00:00:00Z'
+    const lastSeen = localStorage.getItem(key) || DOCS_EPOCH
     supabase
       .from('patient_documents')
       .select('*', { count: 'exact', head: true })
@@ -70,9 +79,7 @@ export default function BottomNav() {
               position: 'relative',
             }}>
               <Icon size={20} strokeWidth={active ? 2.2 : 1.8} />
-              {badge > 0 && (
-                <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: '#0891b2', color: 'white', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid white' }}>{badge}</span>
-              )}
+              {badge > 0 && <span style={badgeStyle}>{badge}</span>}
             </div>
             <span style={{ fontSize: 9.5, fontWeight: active ? 600 : 400, letterSpacing: '0.01em' }}>
               {label}
