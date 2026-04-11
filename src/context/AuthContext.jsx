@@ -61,8 +61,10 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut()
   }
 
+  const isDietitian = profile?.role === 'dietitian'
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, refreshProfile, isDietitian }}>
       {children}
     </AuthContext.Provider>
   )

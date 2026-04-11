@@ -11,6 +11,7 @@ import ProfilePage from './pages/ProfilePage'
 import ChatPage from './pages/ChatPage'
 import DocumentsPage from './pages/DocumentsPage'
 import ProgressPage from './pages/ProgressPage'
+import DietitianChatPage from './pages/DietitianChatPage'
 import BottomNav from './components/BottomNav'
 import LoadingScreen from './components/LoadingScreen'
 import InstallBanner from './components/InstallBanner'
@@ -29,8 +30,16 @@ function PublicRoute({ children }) {
   return children
 }
 
+function PatientRoute({ children }) {
+  const { user, loading, isDietitian } = useAuth()
+  if (loading) return <LoadingScreen />
+  if (!user) return <Navigate to="/login" replace />
+  if (isDietitian) return <Navigate to="/dietitian/chat" replace />
+  return children
+}
+
 export default function App() {
-  const { user } = useAuth()
+  const { user, isDietitian } = useAuth()
 
   return (
     <>
@@ -38,18 +47,19 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
-        <Route path="/" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
-        <Route path="/dieta" element={<PrivateRoute><DietPage /></PrivateRoute>} />
-        <Route path="/macro" element={<PrivateRoute><MacroTrackerPage /></PrivateRoute>} />
-        <Route path="/acqua" element={<PrivateRoute><WaterPage /></PrivateRoute>} />
-        <Route path="/alimenti" element={<PrivateRoute><FoodDatabasePage /></PrivateRoute>} />
-        <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
-        <Route path="/documenti" element={<PrivateRoute><DocumentsPage /></PrivateRoute>} />
-        <Route path="/progressi" element={<PrivateRoute><ProgressPage /></PrivateRoute>} />
-        <Route path="/profilo" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+        <Route path="/dietitian/chat" element={<PrivateRoute><DietitianChatPage /></PrivateRoute>} />
+        <Route path="/" element={<PatientRoute><DashboardPage /></PatientRoute>} />
+        <Route path="/dieta" element={<PatientRoute><DietPage /></PatientRoute>} />
+        <Route path="/macro" element={<PatientRoute><MacroTrackerPage /></PatientRoute>} />
+        <Route path="/acqua" element={<PatientRoute><WaterPage /></PatientRoute>} />
+        <Route path="/alimenti" element={<PatientRoute><FoodDatabasePage /></PatientRoute>} />
+        <Route path="/chat" element={<PatientRoute><ChatPage /></PatientRoute>} />
+        <Route path="/documenti" element={<PatientRoute><DocumentsPage /></PatientRoute>} />
+        <Route path="/progressi" element={<PatientRoute><ProgressPage /></PatientRoute>} />
+        <Route path="/profilo" element={<PatientRoute><ProfilePage /></PatientRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      {user && <BottomNav />}
+      {user && !isDietitian && <BottomNav />}
     </>
   )
 }
