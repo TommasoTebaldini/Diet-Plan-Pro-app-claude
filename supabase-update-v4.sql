@@ -6,6 +6,7 @@
 -- ============================================================
 
 -- Aggiunge colonne nome/cognome se non presenti
+alter table profiles add column if not exists full_name text;
 alter table profiles add column if not exists first_name text;
 alter table profiles add column if not exists last_name text;
 
