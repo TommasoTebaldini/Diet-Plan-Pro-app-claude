@@ -820,7 +820,7 @@ export default function ProgressPage() {
             {photoPreview && (
               <div className="card animate-slideUp" style={{ padding: 20 }}>
                 <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 14 }}>📸 Nuova foto</h3>
-                <img src={photoPreview} alt="Anteprima" style={{ width: '100%', maxHeight: 280, objectFit: 'contain', borderRadius: 12, marginBottom: 14, background: 'var(--surface-2)' }} />
+                <img src={photoPreview.startsWith('blob:') ? photoPreview : ''} alt="Anteprima" style={{ width: '100%', maxHeight: 280, objectFit: 'contain', borderRadius: 12, marginBottom: 14, background: 'var(--surface-2)' }} />
                 <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
                   {PHOTO_TYPES.map(t => (
                     <button key={t.value} onClick={() => setPhotoType(t.value)} style={{ flex: 1, padding: '9px 6px', borderRadius: 12, background: photoType === t.value ? 'var(--green-pale)' : 'var(--surface-2)', color: photoType === t.value ? 'var(--green-main)' : 'var(--text-secondary)', border: `1.5px solid ${photoType === t.value ? 'var(--green-main)' : 'var(--border)'}`, font: 'inherit', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
