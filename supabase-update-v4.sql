@@ -13,7 +13,10 @@ alter table profiles add column if not exists last_name text;
 update profiles
 set
   first_name = split_part(full_name, ' ', 1),
-  last_name = substring(full_name from position(' ' in full_name) + 1)
+  last_name = case
+    when full_name like '% %' then substring(full_name from position(' ' in full_name) + 1)
+    else ''
+  end
 where
   (first_name is null or first_name = '')
   and full_name is not null
@@ -42,7 +45,11 @@ begin
     new.email,
     coalesce(new.raw_user_meta_data->>'full_name', new.email),
     coalesce(new.raw_user_meta_data->>'first_name', split_part(coalesce(new.raw_user_meta_data->>'full_name', ''), ' ', 1)),
-    coalesce(new.raw_user_meta_data->>'last_name',  substring(coalesce(new.raw_user_meta_data->>'full_name', '') from position(' ' in coalesce(new.raw_user_meta_data->>'full_name', '')) + 1)),
+    coalesce(new.raw_user_meta_data->>'last_name',  case
+      when coalesce(new.raw_user_meta_data->>'full_name', '') like '% %'
+        then substring(coalesce(new.raw_user_meta_data->>'full_name', '') from position(' ' in coalesce(new.raw_user_meta_data->>'full_name', '')) + 1)
+      else ''
+    end),
     coalesce(new.raw_user_meta_data->>'role', 'patient')
   )
   on conflict (id) do update set

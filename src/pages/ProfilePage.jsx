@@ -232,8 +232,7 @@ export default function ProfilePage() {
 
   async function reloadProfile() {
     await refreshProfile()
-    const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-    if (data) setLocalProfile(data)
+    // localProfile is synced from global profile via useEffect([profile])
   }
 
   const firstName = localProfile?.first_name || localProfile?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'P'
