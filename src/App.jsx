@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
+import { AppSettingsProvider } from './context/AppSettingsContext'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
@@ -14,6 +15,7 @@ import ProgressPage from './pages/ProgressPage'
 import BottomNav from './components/BottomNav'
 import LoadingScreen from './components/LoadingScreen'
 import InstallBanner from './components/InstallBanner'
+import OfflineBar from './components/OfflineBar'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -29,11 +31,17 @@ function PublicRoute({ children }) {
   return children
 }
 
-export default function App() {
-  const { user } = useAuth()
+function AppInner() {
+  const { user, refreshProfile } = useAuth()
+
+  // When connectivity is restored, refresh profile and let pages react to auth state
+  async function handleReconnect() {
+    if (user) await refreshProfile()
+  }
 
   return (
     <>
+      <OfflineBar onReconnect={handleReconnect} />
       <InstallBanner />
       <Routes>
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
@@ -51,5 +59,13 @@ export default function App() {
       </Routes>
       {user && <BottomNav />}
     </>
+  )
+}
+
+export default function App() {
+  return (
+    <AppSettingsProvider>
+      <AppInner />
+    </AppSettingsProvider>
   )
 }
