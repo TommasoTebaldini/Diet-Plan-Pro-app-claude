@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
-import { TrendingDown, TrendingUp, Minus, Target, Plus, Scale, Activity } from 'lucide-react'
+import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { TrendingDown, TrendingUp, Minus, Target, Plus, Scale, Activity, Flame } from 'lucide-react'
 
 const MOOD_OPTIONS = [
   { value: 1, emoji: '😞', label: 'Pessimo' },
@@ -35,29 +35,47 @@ export default function ProgressPage() {
   const [saving, setSaving] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
   const [range, setRange] = useState(30)
+  const [macroHistory, setMacroHistory] = useState([])
+  const [macroRange, setMacroRange] = useState(30)
+  const [dietTarget, setDietTarget] = useState(null)
+  const [macroTab, setMacroTab] = useState('kcal') // kcal | proteins | carbs | fats
   const today = new Date().toISOString().split('T')[0]
 
   useEffect(() => {
     loadData()
   }, [])
 
-  async function loadData() {
-    const { data: wData } = await supabase
-      .from('weight_logs')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('date', { ascending: true })
-    setWeights(wData || [])
+  useEffect(() => {
+    loadMacroHistory()
+  }, [macroRange])
 
-    const { data: log } = await supabase
-      .from('daily_wellness')
-      .select('*').eq('date', today).maybeSingle()
+  async function loadData() {
+    const [wRes, logRes, dietRes] = await Promise.all([
+      supabase.from('weight_logs').select('*').eq('user_id', user.id).order('date', { ascending: true }),
+      supabase.from('daily_wellness').select('*').eq('date', today).maybeSingle(),
+      supabase.from('patient_diets').select('kcal_target,protein_target,carbs_target,fats_target').eq('is_active', true).maybeSingle(),
+    ])
+    setWeights(wRes.data || [])
+    setDietTarget(dietRes.data || null)
+    const log = logRes.data
     setTodayLog(log)
     if (log) {
       setMood(log.mood)
       setSymptoms(log.symptoms || [])
       setNotes(log.notes || '')
     }
+  }
+
+  async function loadMacroHistory() {
+    const cutoffDate = new Date()
+    cutoffDate.setDate(cutoffDate.getDate() - macroRange)
+    const from = cutoffDate.toISOString().split('T')[0]
+    const { data } = await supabase
+      .from('daily_logs')
+      .select('date, kcal, proteins, carbs, fats')
+      .gte('date', from)
+      .order('date', { ascending: true })
+    setMacroHistory(data || [])
   }
 
   async function saveEntry() {
@@ -238,6 +256,112 @@ export default function ProgressPage() {
             </button>
           </div>
         )}
+
+        {/* ── Macro history chart ── */}
+        <div className="card" style={{ padding: '18px 12px 14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px', marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Flame size={16} color="var(--green-main)" />
+              <h3 style={{ fontSize: 15, fontWeight: 600 }}>Storico macronutrienti</h3>
+            </div>
+            <div style={{ display: 'flex', gap: 5 }}>
+              {[30, 90].map(r => (
+                <button key={r} onClick={() => setMacroRange(r)} style={{ padding: '4px 10px', borderRadius: 100, background: macroRange === r ? 'var(--green-main)' : 'var(--surface-2)', color: macroRange === r ? 'white' : 'var(--text-muted)', border: `1px solid ${macroRange === r ? 'transparent' : 'var(--border)'}`, font: 'inherit', fontSize: 12, cursor: 'pointer' }}>
+                  {r}g
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Macro tab selector */}
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingLeft: 8, paddingBottom: 12 }}>
+            {[
+              { key: 'kcal', label: '🔥 Kcal', color: '#f0922b', targetKey: 'kcal_target' },
+              { key: 'proteins', label: '💪 Prot.', color: '#3b82f6', targetKey: 'protein_target' },
+              { key: 'carbs', label: '🌾 Carbo', color: '#f0922b', targetKey: 'carbs_target' },
+              { key: 'fats', label: '🥑 Grassi', color: '#e05a5a', targetKey: 'fats_target' },
+            ].map(t => (
+              <button key={t.key} onClick={() => setMacroTab(t.key)} style={{ flexShrink: 0, padding: '5px 12px', borderRadius: 100, background: macroTab === t.key ? 'var(--green-main)' : 'var(--surface-2)', color: macroTab === t.key ? 'white' : 'var(--text-secondary)', border: `1.5px solid ${macroTab === t.key ? 'transparent' : 'var(--border)'}`, font: 'inherit', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {macroHistory.length > 0 ? (() => {
+            const tabs = {
+              kcal: { color: '#f0922b', targetKey: 'kcal_target', unit: 'kcal' },
+              proteins: { color: '#3b82f6', targetKey: 'protein_target', unit: 'g' },
+              carbs: { color: '#f0922b', targetKey: 'carbs_target', unit: 'g' },
+              fats: { color: '#e05a5a', targetKey: 'fats_target', unit: 'g' },
+            }
+            const { color, targetKey, unit } = tabs[macroTab]
+            const targetVal = dietTarget?.[targetKey] || null
+            const chartData = macroHistory.map(d => ({
+              date: new Date(d.date + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }),
+              val: Math.round((d[macroTab] || 0) * 10) / 10,
+              target: targetVal,
+            }))
+            return (
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={chartData} margin={{ top: 4, right: 4, left: -22, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} interval="preserveStartEnd" />
+                  <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                  <Tooltip
+                    formatter={(v, n) => [`${v} ${unit}`, n === 'val' ? (macroTab === 'kcal' ? 'Kcal' : macroTab) : 'Obiettivo']}
+                    labelStyle={{ fontSize: 11 }}
+                    contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid var(--border)' }}
+                  />
+                  {targetVal && <ReferenceLine y={targetVal} stroke={color} strokeDasharray="4 4" strokeWidth={1.5} label={{ value: 'Obiettivo', fontSize: 9, fill: color, position: 'insideTopRight' }} />}
+                  <Bar dataKey="val" radius={[4, 4, 0, 0]}>
+                    {chartData.map((entry, i) => (
+                      <Cell key={i} fill={targetVal && entry.val > targetVal ? '#e05a5a' : color} fillOpacity={0.85} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )
+          })() : (
+            <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--text-muted)', fontSize: 13 }}>
+              <Flame size={28} style={{ marginBottom: 8, opacity: 0.2 }} />
+              <p>Nessun dato disponibile.<br />Inizia a registrare i tuoi pasti nel diario.</p>
+            </div>
+          )}
+
+          {/* Daily list */}
+          {macroHistory.length > 0 && (
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-light)' }}>
+              <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 10, paddingLeft: 8 }}>Ultimi {macroRange} giorni</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {[...macroHistory].reverse().slice(0, 15).map(d => {
+                  const pct = dietTarget?.kcal_target ? Math.min(100, Math.round(d.kcal / dietTarget.kcal_target * 100)) : null
+                  return (
+                    <div key={d.date} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 10 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <p style={{ fontSize: 12, fontWeight: 600 }}>{new Date(d.date + 'T12:00:00').toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}</p>
+                          <p style={{ fontSize: 12, fontWeight: 700, color: pct !== null && pct > 105 ? 'var(--red)' : 'var(--green-main)' }}>
+                            {d.kcal} kcal{pct !== null ? ` (${pct}%)` : ''}
+                          </p>
+                        </div>
+                        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                          {[`P:${Math.round(d.proteins || 0)}g`, `C:${Math.round(d.carbs || 0)}g`, `G:${Math.round(d.fats || 0)}g`].map(v => (
+                            <span key={v} style={{ fontSize: 10, background: 'var(--surface)', padding: '1px 6px', borderRadius: 100, color: 'var(--text-muted)' }}>{v}</span>
+                          ))}
+                        </div>
+                        {dietTarget?.kcal_target && (
+                          <div style={{ height: 3, background: 'var(--border-light)', borderRadius: 2, marginTop: 5, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${Math.min(100, pct)}%`, background: pct > 105 ? 'var(--red)' : 'var(--green-main)', borderRadius: 2, transition: 'width 0.5s ease' }} />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
