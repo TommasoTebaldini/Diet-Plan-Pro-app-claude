@@ -56,25 +56,27 @@ function AppInner() {
     <NotificationProvider user={user}>
       <OfflineBar onReconnect={handleReconnect} />
       <InstallBanner />
-      <Routes>
-        <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-        <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
-        <Route path="/dietitian/chat" element={<PrivateRoute><DietitianChatPage /></PrivateRoute>} />
-        <Route path="/" element={<PatientRoute><DashboardPage /></PatientRoute>} />
-        <Route path="/dieta" element={<PatientRoute><DietPage /></PatientRoute>} />
-        <Route path="/macro" element={<PatientRoute><MacroTrackerPage /></PatientRoute>} />
-        <Route path="/acqua" element={<PatientRoute><WaterPage /></PatientRoute>} />
-        <Route path="/alimenti" element={<PatientRoute><FoodDatabasePage /></PatientRoute>} />
-        <Route path="/chat" element={<PatientRoute><ChatPage /></PatientRoute>} />
-        <Route path="/documenti" element={<PatientRoute><DocumentsPage /></PatientRoute>} />
-        <Route path="/progressi" element={<PatientRoute><ProgressPage /></PatientRoute>} />
-        <Route path="/attivita" element={<PatientRoute><ActivityPage /></PatientRoute>} />
-        <Route path="/statistiche" element={<PatientRoute><StatisticsPage /></PatientRoute>} />
-        <Route path="/benessere" element={<PatientRoute><WellnessPage /></PatientRoute>} />
-        <Route path="/profilo" element={<PatientRoute><ProfilePage /></PatientRoute>} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
       {user && !isDietitian && <BottomNav />}
+      <div className={user && !isDietitian ? 'app-content' : undefined}>
+        <Routes>
+          <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+          <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+          <Route path="/dietitian/chat" element={<PrivateRoute><DietitianChatPage /></PrivateRoute>} />
+          <Route path="/" element={<PatientRoute><DashboardPage /></PatientRoute>} />
+          <Route path="/dieta" element={<PatientRoute><DietPage /></PatientRoute>} />
+          <Route path="/macro" element={<PatientRoute><MacroTrackerPage /></PatientRoute>} />
+          <Route path="/acqua" element={<PatientRoute><WaterPage /></PatientRoute>} />
+          <Route path="/alimenti" element={<PatientRoute><FoodDatabasePage /></PatientRoute>} />
+          <Route path="/chat" element={<PatientRoute><ChatPage /></PatientRoute>} />
+          <Route path="/documenti" element={<PatientRoute><DocumentsPage /></PatientRoute>} />
+          <Route path="/progressi" element={<PatientRoute><ProgressPage /></PatientRoute>} />
+          <Route path="/attivita" element={<PatientRoute><ActivityPage /></PatientRoute>} />
+          <Route path="/statistiche" element={<PatientRoute><StatisticsPage /></PatientRoute>} />
+          <Route path="/benessere" element={<PatientRoute><WellnessPage /></PatientRoute>} />
+          <Route path="/profilo" element={<PatientRoute><ProfilePage /></PatientRoute>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
     </NotificationProvider>
   )
 }

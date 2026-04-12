@@ -395,7 +395,7 @@ create policy "chat visibile ai coinvolti" on chat_messages
 -- patient_documents
 drop policy if exists "paziente vede propri documenti" on patient_documents;
 create policy "paziente vede propri documenti" on patient_documents
-  for select using (auth.uid() = patient_id and visible = true);
+  for select using (auth.uid() = patient_id and visible is not false);
 
 drop policy if exists "dietista gestisce documenti" on patient_documents;
 create policy "dietista gestisce documenti" on patient_documents

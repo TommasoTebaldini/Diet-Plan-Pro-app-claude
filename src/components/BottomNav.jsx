@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart } from 'lucide-react'
+import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
@@ -13,11 +13,23 @@ const badgeStyle = {
   alignItems: 'center', justifyContent: 'center', border: '2px solid white',
 }
 
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 1024)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const handler = (e) => setIsDesktop(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+  return isDesktop
+}
+
 export default function BottomNav() {
   const { pathname } = useLocation()
   const { user } = useAuth()
   const [newDocs, setNewDocs] = useState(0)
   const [unreadChat, setUnreadChat] = useState(0)
+  const isDesktop = useIsDesktop()
 
   // Unread documents badge
   useEffect(() => {
@@ -28,7 +40,7 @@ export default function BottomNav() {
       .from('patient_documents')
       .select('*', { count: 'exact', head: true })
       .eq('patient_id', user.id)
-      .eq('visible', true)
+      .neq('visible', false)
       .gt('created_at', lastSeen)
       .then(({ count }) => setNewDocs(count || 0))
   }, [user])
@@ -43,7 +55,6 @@ export default function BottomNav() {
   // Unread chat badge
   useEffect(() => {
     if (!user) return
-    // Initial count
     supabase
       .from('chat_messages')
       .select('*', { count: 'exact', head: true })
@@ -52,7 +63,6 @@ export default function BottomNav() {
       .is('read_at', null)
       .then(({ count }) => setUnreadChat(count || 0))
 
-    // Realtime subscription for new dietitian messages
     const channel = supabase.channel(`nav-chat-${user.id}`)
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'chat_messages',
@@ -75,7 +85,6 @@ export default function BottomNav() {
     return () => supabase.removeChannel(channel)
   }, [user])
 
-  // Clear chat badge when visiting chat
   useEffect(() => {
     if (pathname === '/chat') setUnreadChat(0)
   }, [pathname])
@@ -93,6 +102,71 @@ export default function BottomNav() {
     { to: '/profilo', icon: User, label: 'Profilo' },
   ]
 
+  if (isDesktop) {
+    // Sidebar layout for desktop
+    return (
+      <nav className="app-sidebar" style={{ display: 'flex', flexDirection: 'column', zIndex: 999 }}>
+        {/* Logo / brand */}
+        <div style={{
+          padding: '20px 16px 16px',
+          borderBottom: '1px solid var(--border-light)',
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: 10,
+            background: 'linear-gradient(135deg, var(--green-main), var(--green-mid))',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <Leaf size={16} color="white" />
+          </div>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.1 }}>Diet Plan Pro</p>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Dashboard</p>
+          </div>
+        </div>
+
+        {/* Nav items */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '10px 10px' }}>
+          {TABS.map(({ to, icon: Icon, label, badge }) => {
+            const active = pathname === to || (to !== '/' && pathname.startsWith(to))
+            return (
+              <Link key={to} to={to} style={{
+                display: 'flex', alignItems: 'center', gap: 11,
+                padding: '9px 12px', borderRadius: 10, marginBottom: 2,
+                textDecoration: 'none',
+                background: active ? 'var(--green-pale)' : 'transparent',
+                color: active ? 'var(--green-main)' : 'var(--text-secondary)',
+                fontWeight: active ? 600 : 400,
+                fontSize: 14,
+                transition: 'background 0.12s, color 0.12s',
+                position: 'relative',
+              }}>
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
+                  {badge > 0 && (
+                    <span style={{ ...badgeStyle, top: -5, right: -5, border: `2px solid ${active ? 'var(--green-pale)' : 'var(--surface)'}` }}>
+                      {badge}
+                    </span>
+                  )}
+                </div>
+                <span>{label}</span>
+                {badge > 0 && (
+                  <span style={{
+                    marginLeft: 'auto', background: '#0891b2', color: 'white',
+                    fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 100,
+                  }}>
+                    {badge}
+                  </span>
+                )}
+              </Link>
+            )
+          })}
+        </div>
+      </nav>
+    )
+  }
+
+  // Bottom nav for mobile
   return (
     <nav style={{
       position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 999,

@@ -81,6 +81,7 @@ export default function DocumentsPage() {
   const { user } = useAuth()
   const [docs, setDocs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(null)
   const [typeFilter, setTypeFilter] = useState('all')
   const [dateFilter, setDateFilter] = useState('all')
   const [sortAsc, setSortAsc] = useState(false)
@@ -97,12 +98,16 @@ export default function DocumentsPage() {
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('patient_documents')
         .select('*')
         .eq('patient_id', user.id)
-        .eq('visible', true)
+        .neq('visible', false)
         .order('created_at', { ascending: false })
+      if (error) {
+        console.error('Documents load error:', error)
+        setLoadError(error.message)
+      }
       setDocs(data || [])
       setLoading(false)
     }
@@ -205,6 +210,12 @@ export default function DocumentsPage() {
           {loading ? (
             <div style={{ textAlign: 'center', padding: 40 }}>
               <div style={{ width: 24, height: 24, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto' }} />
+            </div>
+          ) : loadError ? (
+            <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)' }}>
+              <FileText size={40} style={{ marginBottom: 12, opacity: 0.3 }} />
+              <p style={{ fontSize: 15, fontWeight: 500 }}>Errore nel caricamento</p>
+              <p style={{ fontSize: 13, marginTop: 4, color: 'var(--red)' }}>{loadError}</p>
             </div>
           ) : filtered.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)' }}>
