@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity } from 'lucide-react'
+import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, Heart } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
@@ -46,6 +46,7 @@ export default function BottomNav() {
     { to: '/documenti', icon: FileText, label: 'Documenti', badge: newDocs },
     { to: '/progressi', icon: TrendingUp, label: 'Progressi' },
     { to: '/attivita', icon: Activity, label: 'Attività' },
+    { to: '/benessere', icon: Heart, label: 'Benessere' },
     { to: '/profilo', icon: User, label: 'Profilo' },
   ]
 

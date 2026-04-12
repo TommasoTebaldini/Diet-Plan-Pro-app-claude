@@ -2,6 +2,7 @@
 -- NutriPlan — SQL AGGIORNAMENTO v8
 -- Esegui nel SQL Editor di Supabase
 -- Aggiunge: activity_logs (tracciamento attività fisica)
+--           colonne energia e qualità del sonno a daily_wellness
 -- ============================================================
 
 -- Tabella: registrazioni attività fisica
@@ -31,3 +32,10 @@ create index if not exists activity_logs_user_date_idx on activity_logs (user_id
 -- insert into activity_logs (activity_type, duration_minutes, calories_burned, steps, notes)
 -- values ('corsa', 30, 320, 4200, 'Corsa mattutina al parco');
 -- ============================================================
+
+-- ============================================================
+-- Aggiunge: colonne energia e qualità del sonno a daily_wellness
+-- ============================================================
+
+alter table daily_wellness add column if not exists energy int check (energy between 1 and 5);
+alter table daily_wellness add column if not exists sleep_quality int check (sleep_quality between 1 and 5);

@@ -1,16 +1,37 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Leaf, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { Leaf, Eye, EyeOff, AlertCircle, Fingerprint } from 'lucide-react'
+import {
+  isBiometricSupported,
+  isBiometricAvailable,
+  getBiometricCredentialId,
+  getBiometricUserId,
+  authenticateBiometric,
+} from '../lib/biometric'
+import { supabase } from '../lib/supabase'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [biometricLoading, setBiometricLoading] = useState(false)
   const [error, setError] = useState('')
+  const [hasBiometric, setHasBiometric] = useState(false)
   const { signIn } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    // Show biometric button only if the device supports it AND a credential is stored
+    async function check() {
+      const credId = getBiometricCredentialId()
+      if (!credId) return
+      const available = await isBiometricAvailable()
+      setHasBiometric(available)
+    }
+    if (isBiometricSupported()) check()
+  }, [])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -25,6 +46,28 @@ export default function LoginPage() {
       navigate('/')
     }
     setLoading(false)
+  }
+
+  async function handleBiometricLogin() {
+    setError('')
+    setBiometricLoading(true)
+    try {
+      const ok = await authenticateBiometric()
+      if (!ok) { setError('Autenticazione biometrica annullata.'); return }
+
+      // Re-use the existing Supabase session (user already authenticated before,
+      // the biometric gesture just confirms physical presence).
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        navigate('/')
+      } else {
+        setError('Sessione scaduta. Accedi con email e password.')
+      }
+    } catch (e) {
+      setError(e?.message || 'Autenticazione biometrica non riuscita.')
+    } finally {
+      setBiometricLoading(false)
+    }
   }
 
   return (
@@ -122,6 +165,28 @@ export default function LoginPage() {
                 : 'Accedi'}
             </button>
           </form>
+
+          {hasBiometric && (
+            <>
+              <div className="divider" style={{ margin: '20px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>oppure</span>
+                <span style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
+              </div>
+              <button
+                onClick={handleBiometricLogin}
+                disabled={biometricLoading}
+                className="btn btn-secondary btn-full"
+                style={{ gap: 10 }}
+              >
+                {biometricLoading
+                  ? <span style={{ width: 16, height: 16, border: '2px solid var(--green-main)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                  : <Fingerprint size={20} />
+                }
+                {biometricLoading ? 'Verifica in corso…' : 'Accedi con Face ID / Touch ID'}
+              </button>
+            </>
+          )}
 
           <div className="divider" />
 

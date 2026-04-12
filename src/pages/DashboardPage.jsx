@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
-import { Utensils, Droplets, TrendingUp, Apple, Flame, Leaf, MessageCircle, FileText, BookOpen, User, ChevronRight, Activity, Scale, Calendar, Zap, Award } from 'lucide-react'
+import { Utensils, Droplets, TrendingUp, Apple, Flame, Leaf, MessageCircle, FileText, BookOpen, User, ChevronRight, Activity, Scale, Calendar, Zap, Award, Heart } from 'lucide-react'
 
 // Animated progress ring: starts at 0, transitions to target pct on mount
 function Ring({ pct, color, size = 60, strokeWidth = 7 }) {
@@ -75,6 +75,7 @@ const ACTIONS = [
   { label: 'Acqua', icon: Droplets, to: '/acqua', color: '#2f7de8', bg: '#eff6ff' },
   { label: 'Attività', icon: Activity, to: '/attivita', color: '#f97316', bg: '#fff7ed' },
   { label: 'Progressi', icon: TrendingUp, to: '/progressi', color: '#7c3aed', bg: '#f5f3ff' },
+  { label: 'Benessere', icon: Heart, to: '/benessere', color: '#ec4899', bg: '#fdf2f8' },
   { label: 'Chat', icon: MessageCircle, to: '/chat', color: '#dc4a4a', bg: '#fff0f0' },
   { label: 'Documenti', icon: FileText, to: '/documenti', color: '#0891b2', bg: '#ecfeff' },
   { label: 'Alimenti', icon: BookOpen, to: '/alimenti', color: '#157a4a', bg: '#f0fdf4' },
@@ -272,7 +273,7 @@ export default function DashboardPage() {
         {/* Quick actions 4x2 */}
         <div>
           <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12 }}>Accesso rapido</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
             {ACTIONS.map(({ label, icon: Icon, to, color, bg }) => (
               <Link key={to} to={to} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
                 <div style={{ width: 54, height: 54, borderRadius: 18, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color, boxShadow: 'var(--shadow-xs)', border: '1px solid rgba(0,0,0,.04)', transition: 'transform .15s', position: 'relative' }}>
