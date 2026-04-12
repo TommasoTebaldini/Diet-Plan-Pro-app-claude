@@ -8,6 +8,7 @@ const defaults = {
   darkMode: false,
   highContrast: false,
   textSize: 'normal', // 'normal' | 'large' | 'xlarge'
+  language: 'it',
 }
 
 function loadSettings() {

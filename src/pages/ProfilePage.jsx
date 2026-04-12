@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useAppSettings } from '../context/AppSettingsContext'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { useAppSettings } from '../context/AppSettingsContext'
 import {
   LogOut, User, Mail, ExternalLink, ChevronRight, Bell, Shield, X, Check,
-  Eye, EyeOff, Moon, Sun, Type, Contrast, Fingerprint, Download, Upload,
-  Accessibility, Plus, Trash2, BellOff, BellRing,
+  Eye, EyeOff, Camera, Utensils, AlertCircle, Globe, Moon, Sun, Type, Contrast,
+  Fingerprint, Download, Upload, Accessibility, Plus, Trash2, BellOff, BellRing,
 } from 'lucide-react'
 import {
   isBiometricSupported,
@@ -48,19 +48,27 @@ function PersonalDataModal({ profile, user, onClose, onSaved }) {
     target_weight: profile?.target_weight || '',
     activity_level: profile?.activity_level || '',
   })
+  const [currentWeight, setCurrentWeight] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
 
   async function save() {
     setSaving(true)
-    const { error } = await supabase.from('profiles').upsert({
+    const updates = {
       id: user.id,
       full_name: `${form.first_name} ${form.last_name}`.trim(),
       ...form,
       height_cm: form.height_cm ? parseFloat(form.height_cm) : null,
       target_weight: form.target_weight ? parseFloat(form.target_weight) : null,
-    })
+    }
+    const { error } = await supabase.from('profiles').upsert(updates)
+    if (!error && currentWeight) {
+      const today = new Date().toISOString().split('T')[0]
+      await supabase.from('weight_logs').upsert({
+        user_id: user.id, date: today, weight_kg: parseFloat(currentWeight),
+      }, { onConflict: 'user_id,date' })
+    }
     setSaving(false)
     if (!error) { setSaved(true); setTimeout(() => { onSaved(); onClose() }, 900) }
   }
@@ -106,9 +114,13 @@ function PersonalDataModal({ profile, user, onClose, onSaved }) {
             <input type="number" className="input-field" value={form.height_cm} onChange={set('height_cm')} placeholder="170" inputMode="decimal" />
           </div>
           <div className="input-group">
-            <label className="input-label">Peso obiettivo (kg)</label>
-            <input type="number" className="input-field" value={form.target_weight} onChange={set('target_weight')} placeholder="70" inputMode="decimal" step="0.1" />
+            <label className="input-label">Peso attuale (kg)</label>
+            <input type="number" className="input-field" value={currentWeight} onChange={e => setCurrentWeight(e.target.value)} placeholder="es. 72" inputMode="decimal" step="0.1" />
           </div>
+        </div>
+        <div className="input-group">
+          <label className="input-label">Peso obiettivo (kg)</label>
+          <input type="number" className="input-field" value={form.target_weight} onChange={set('target_weight')} placeholder="70" inputMode="decimal" step="0.1" />
         </div>
         <div className="input-group">
           <label className="input-label">Livello attività fisica</label>
@@ -125,11 +137,146 @@ function PersonalDataModal({ profile, user, onClose, onSaved }) {
   )
 }
 
+// ─── Intolerances & allergies modal ──────────────────────────────────────────
+function IntolerancesModal({ profile, user, onClose, onSaved }) {
+  const ITEMS = [
+    'Glutine (frumento, orzo, segale)',
+    'Lattosio',
+    'Uova',
+    'Arachidi',
+    'Frutta a guscio (noci, mandorle, nocciole…)',
+    'Pesce',
+    'Crostacei e molluschi',
+    'Soia',
+    'Sedano',
+    'Sesamo',
+    'Senape',
+    'Lupini',
+    'Anidride solforosa e solfiti',
+  ]
+  const initial = Array.isArray(profile?.intolerances) ? profile.intolerances : (profile?.intolerances ? JSON.parse(profile.intolerances) : [])
+  const [selected, setSelected] = useState(initial)
+  const [other, setOther] = useState(() => {
+    const custom = initial.filter(x => !ITEMS.includes(x))
+    return custom.join(', ')
+  })
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  function toggle(item) {
+    setSelected(s => s.includes(item) ? s.filter(x => x !== item) : [...s, item])
+  }
+
+  async function save() {
+    setSaving(true)
+    const extras = other.split(',').map(s => s.trim()).filter(Boolean)
+    const all = [...selected.filter(x => ITEMS.includes(x)), ...extras]
+    const { error } = await supabase.from('profiles').upsert({ id: user.id, intolerances: all })
+    setSaving(false)
+    if (!error) { setSaved(true); setTimeout(() => { onSaved(); onClose() }, 900) }
+  }
+
+  return (
+    <Modal title="Intolleranze e allergie" onClose={onClose}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
+          Seleziona le tue intolleranze o allergie alimentari.
+        </p>
+        {ITEMS.map((item, i) => (
+          <div key={item} onClick={() => toggle(item)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 0', borderBottom: i < ITEMS.length - 1 ? '1px solid var(--border-light)' : 'none', cursor: 'pointer' }}>
+            <div style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${selected.includes(item) ? 'var(--green-main)' : 'var(--border)'}`, background: selected.includes(item) ? 'var(--green-main)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
+              {selected.includes(item) && <Check size={13} color="white" strokeWidth={3} />}
+            </div>
+            <span style={{ fontSize: 14, color: 'var(--text-primary)' }}>{item}</span>
+          </div>
+        ))}
+        <div className="input-group" style={{ marginTop: 16 }}>
+          <label className="input-label">Altre intolleranze / allergie</label>
+          <input className="input-field" value={other} onChange={e => setOther(e.target.value)} placeholder="es. nichel, istamina…" />
+        </div>
+        <button className="btn btn-primary btn-full" onClick={save} disabled={saving || saved} style={{ marginTop: 18 }}>
+          {saved ? <><Check size={16} /> Salvato!</> : saving ? 'Salvataggio…' : 'Salva'}
+        </button>
+      </div>
+    </Modal>
+  )
+}
+
+// ─── Food preferences modal ───────────────────────────────────────────────────
+function FoodPrefsModal({ profile, user, onClose, onSaved }) {
+  const DIETS = [
+    { val: 'onnivoro', label: '🍖 Onnivoro', desc: 'Nessuna restrizione' },
+    { val: 'vegetariano', label: '🥗 Vegetariano', desc: 'No carne e pesce' },
+    { val: 'vegano', label: '🌱 Vegano', desc: 'No prodotti animali' },
+    { val: 'pescetariano', label: '🐟 Pescetariano', desc: 'No carne, sì pesce' },
+    { val: 'flexitariano', label: '🥦 Flexitariano', desc: 'Prevalentemente vegetale' },
+  ]
+  const EXTRAS = [
+    'Senza glutine', 'Senza lattosio', 'Low carb', 'Keto', 'Paleo',
+    'Senza zucchero aggiunto', 'Dieta mediterranea', 'Halal', 'Kosher',
+  ]
+  const initial = Array.isArray(profile?.food_preferences) ? profile.food_preferences : (profile?.food_preferences ? JSON.parse(profile.food_preferences) : [])
+  const currentDiet = DIETS.find(d => initial.includes(d.val))?.val || 'onnivoro'
+  const [diet, setDiet] = useState(currentDiet)
+  const [extras, setExtras] = useState(initial.filter(x => EXTRAS.includes(x)))
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  function toggleExtra(item) {
+    setExtras(s => s.includes(item) ? s.filter(x => x !== item) : [...s, item])
+  }
+
+  async function save() {
+    setSaving(true)
+    const all = [diet, ...extras]
+    const { error } = await supabase.from('profiles').upsert({ id: user.id, food_preferences: all })
+    setSaving(false)
+    if (!error) { setSaved(true); setTimeout(() => { onSaved(); onClose() }, 900) }
+  }
+
+  return (
+    <Modal title="Preferenze alimentari" onClose={onClose}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div>
+          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 10 }}>Tipo di dieta</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {DIETS.map(d => (
+              <button key={d.val} onClick={() => setDiet(d.val)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, border: `1.5px solid ${diet === d.val ? 'var(--green-main)' : 'var(--border)'}`, background: diet === d.val ? 'var(--green-pale)' : 'var(--surface)', cursor: 'pointer', font: 'inherit', textAlign: 'left', transition: 'all 0.15s' }}>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: diet === d.val ? 'var(--green-dark)' : 'var(--text-primary)' }}>{d.label}</p>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>{d.desc}</p>
+                </div>
+                {diet === d.val && <Check size={16} color="var(--green-main)" />}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 10 }}>Restrizioni aggiuntive</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {EXTRAS.map(item => {
+              const on = extras.includes(item)
+              return (
+                <button key={item} onClick={() => toggleExtra(item)} style={{ padding: '7px 14px', borderRadius: 100, border: `1.5px solid ${on ? 'var(--green-main)' : 'var(--border)'}`, background: on ? 'var(--green-pale)' : 'var(--surface)', color: on ? 'var(--green-dark)' : 'var(--text-secondary)', fontSize: 13, fontWeight: on ? 600 : 400, cursor: 'pointer', font: 'inherit', transition: 'all 0.15s' }}>
+                  {item}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+        <button className="btn btn-primary btn-full" onClick={save} disabled={saving || saved}>
+          {saved ? <><Check size={16} /> Salvato!</> : saving ? 'Salvataggio…' : 'Salva preferenze'}
+        </button>
+      </div>
+    </Modal>
+  )
+}
+
 // ─── Change password modal ────────────────────────────────────────────────────
 function SecurityModal({ onClose }) {
   const [form, setForm] = useState({ current: '', newPass: '', confirm: '' })
   const [show, setShow] = useState(false)
-  const [status, setStatus] = useState(null) // 'success' | 'error' | null
+  const [status, setStatus] = useState(null)
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
@@ -151,7 +298,7 @@ function SecurityModal({ onClose }) {
           Cambia la password del tuo account. Usa una password di almeno 6 caratteri.
         </p>
         {status && (
-          <div style={{ padding: '12px 14px', borderRadius: 10, background: status === 'success' ? 'var(--green-pale)' : '#fff0f0', color: status === 'success' ? 'var(--green-dark)' : 'var(--red)', fontSize: 14 }}>
+          <div style={{ padding: '12px 14px', borderRadius: 10, background: status === 'success' ? 'var(--green-pale)' : 'rgba(220,74,74,0.08)', color: status === 'success' ? 'var(--green-dark)' : 'var(--red)', fontSize: 14 }}>
             {msg}
           </div>
         )}
@@ -528,6 +675,36 @@ function AppearanceModal({ onClose }) {
   )
 }
 
+// ─── Language modal ───────────────────────────────────────────────────────────
+function LanguageModal({ onClose }) {
+  const { settings, update } = useAppSettings()
+
+  const langs = [
+    { val: 'it', label: 'Italiano', flag: '🇮🇹', available: true },
+    { val: 'en', label: 'English', flag: '🇬🇧', available: false },
+  ]
+
+  return (
+    <Modal title="Lingua" onClose={onClose}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 4, lineHeight: 1.6 }}>
+          Seleziona la lingua dell'app.
+        </p>
+        {langs.map(l => (
+          <button key={l.val} onClick={() => l.available && update({ language: l.val })} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px', borderRadius: 14, border: `2px solid ${settings.language === l.val ? 'var(--green-main)' : 'var(--border)'}`, background: settings.language === l.val ? 'var(--green-pale)' : 'var(--surface)', cursor: l.available ? 'pointer' : 'default', font: 'inherit', textAlign: 'left', opacity: l.available ? 1 : 0.6, transition: 'all 0.15s' }}>
+            <span style={{ fontSize: 28 }}>{l.flag}</span>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 15, fontWeight: 600, color: settings.language === l.val ? 'var(--green-dark)' : 'var(--text-primary)' }}>{l.label}</p>
+              {!l.available && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Disponibile prossimamente</p>}
+            </div>
+            {settings.language === l.val && <Check size={18} color="var(--green-main)" />}
+          </button>
+        ))}
+      </div>
+    </Modal>
+  )
+}
+
 // ─── Biometric modal ──────────────────────────────────────────────────────────
 function BiometricModal({ user, onClose }) {
   const [available, setAvailable] = useState(null) // null=checking, true, false
@@ -730,10 +907,13 @@ function BackupModal({ user, onClose }) {
 // ─── Main Profile page ────────────────────────────────────────────────────────
 export default function ProfilePage() {
   const { user, profile, signOut, refreshProfile } = useAuth()
+  const { settings } = useAppSettings()
   const navigate = useNavigate()
-  const [modal, setModal] = useState(null) // 'personal' | 'security' | 'notifications' | 'appearance' | 'biometric' | 'backup'
+  const fileInputRef = useRef(null)
+  const [modal, setModal] = useState(null) // 'personal' | 'intolerances' | 'foodprefs' | 'security' | 'notifications' | 'appearance' | 'language' | 'biometric' | 'backup'
   const [localProfile, setLocalProfile] = useState(profile)
   const [loggingOut, setLoggingOut] = useState(false)
+  const [avatarUploading, setAvatarUploading] = useState(false)
 
   useEffect(() => { setLocalProfile(profile) }, [profile])
 
@@ -745,18 +925,44 @@ export default function ProfilePage() {
 
   async function reloadProfile() {
     await refreshProfile()
-    // localProfile is synced from global profile via useEffect([profile])
+  }
+
+  async function handleAvatarChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const maxSize = 5 * 1024 * 1024 // 5 MB
+    if (file.size > maxSize) return alert('La foto è troppo grande. Massimo 5 MB.')
+    setAvatarUploading(true)
+    try {
+      const ext = file.name.split('.').pop().toLowerCase()
+      const path = `${user.id}.${ext}`
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+      if (uploadError) throw uploadError
+      const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+      const avatarUrl = `${data.publicUrl}?t=${Date.now()}`
+      await supabase.from('profiles').upsert({ id: user.id, avatar_url: avatarUrl })
+      await refreshProfile()
+    } catch (err) {
+      console.error('Avatar upload error:', err)
+    } finally {
+      setAvatarUploading(false)
+      e.target.value = ''
+    }
   }
 
   const firstName = localProfile?.first_name || localProfile?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'P'
   const fullName = localProfile?.full_name || `${localProfile?.first_name || ''} ${localProfile?.last_name || ''}`.trim() || user?.email?.split('@')[0] || 'Utente'
+  const avatarUrl = localProfile?.avatar_url
 
   const menuItems = [
-    { icon: <User size={18} />, label: 'Dati personali', desc: 'Nome, altezza, peso, obiettivo', color: 'var(--green-main)', bg: 'var(--green-pale)', action: () => setModal('personal') },
+    { icon: <User size={18} />, label: 'Dati personali', desc: 'Nome, data nascita, altezza, peso', color: 'var(--green-main)', bg: 'var(--green-pale)', action: () => setModal('personal') },
+    { icon: <AlertCircle size={18} />, label: 'Intolleranze e allergie', desc: 'Glutine, lattosio e altro', color: '#e8882a', bg: '#fff4e6', action: () => setModal('intolerances') },
+    { icon: <Utensils size={18} />, label: 'Preferenze alimentari', desc: 'Vegetariano, vegano, ecc.', color: '#10b981', bg: '#ecfdf5', action: () => setModal('foodprefs') },
     { icon: <Bell size={18} />, label: 'Notifiche', desc: 'Gestisci gli avvisi', color: '#f0922b', bg: '#fff4e6', action: () => setModal('notifications') },
     { icon: <Shield size={18} />, label: 'Privacy e sicurezza', desc: 'Cambia password', color: '#8b5cf6', bg: '#f5f3ff', action: () => setModal('security') },
     { icon: <Fingerprint size={18} />, label: 'Face ID / Touch ID', desc: 'Accesso rapido biometrico', color: '#0ea5e9', bg: '#e0f2fe', action: () => setModal('biometric') },
-    { icon: <Accessibility size={18} />, label: 'Aspetto e accessibilità', desc: 'Tema, contrasto, dimensione testo', color: '#6366f1', bg: '#eef2ff', action: () => setModal('appearance') },
+    { icon: <Accessibility size={18} />, label: 'Aspetto e accessibilità', desc: settings.darkMode ? 'Tema scuro attivo' : 'Tema chiaro attivo', color: '#6366f1', bg: '#eef2ff', action: () => setModal('appearance') },
+    { icon: <Globe size={18} />, label: 'Lingua', desc: 'Italiano', color: '#0ea5e9', bg: '#f0f9ff', action: () => setModal('language') },
     { icon: <Download size={18} />, label: 'Backup e ripristino', desc: 'Esporta o importa i tuoi dati', color: '#059669', bg: '#d1fae5', action: () => setModal('backup') },
     { icon: <ExternalLink size={18} />, label: 'Piattaforma dietista', desc: 'Accedi al portale professionale', color: '#3b82f6', bg: '#eff6ff', action: () => window.open('https://nutri-plan-pro-cxee.vercel.app', '_blank') },
   ]
@@ -766,10 +972,24 @@ export default function ProfilePage() {
       <div className="page">
         {/* Header */}
         <div style={{ background: 'linear-gradient(160deg, var(--green-dark), var(--green-main))', padding: 'calc(env(safe-area-inset-top) + 24px) 20px 36px', textAlign: 'center' }}>
-          <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', border: '2px solid rgba(255,255,255,0.3)', fontSize: 26, fontWeight: 700, color: 'white' }}>
-            {firstName[0]?.toUpperCase()}
+          {/* Avatar with upload button */}
+          <div style={{ position: 'relative', width: 80, height: 80, margin: '0 auto 12px' }}>
+            <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid rgba(255,255,255,0.3)', fontSize: 28, fontWeight: 700, color: 'white', overflow: 'hidden' }}>
+              {avatarUploading ? (
+                <div style={{ width: 24, height: 24, border: '3px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              ) : avatarUrl ? (
+                <img src={avatarUrl} alt="Foto profilo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                firstName[0]?.toUpperCase()
+              )}
+            </div>
+            <button onClick={() => fileInputRef.current?.click()} style={{ position: 'absolute', bottom: 0, right: 0, width: 26, height: 26, borderRadius: '50%', background: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.25)' }}>
+              <Camera size={13} color="var(--green-dark)" />
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarChange} />
           </div>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'white', fontWeight: 300, marginBottom: 4 }}>{fullName}</h2>
+
+          <h2 style={{ fontFamily: 'var(--font-d)', fontSize: 22, color: 'white', fontWeight: 300, marginBottom: 4 }}>{fullName}</h2>
           <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
             <Mail size={12} />{user?.email}
           </p>
@@ -812,16 +1032,19 @@ export default function ProfilePage() {
           </div>
 
           {/* Sign out */}
-          <button onClick={handleSignOut} disabled={loggingOut} className="btn" style={{ background: '#fff0f0', color: 'var(--red)', border: '1.5px solid #ffd4d4', borderRadius: 'var(--radius-md)', padding: '14px', fontSize: 15, fontWeight: 500, width: '100%', justifyContent: 'center', gap: 8 }}>
+          <button onClick={handleSignOut} disabled={loggingOut} className="btn btn-danger" style={{ borderRadius: 'var(--r-md)', padding: '14px', fontSize: 15, fontWeight: 500, width: '100%', justifyContent: 'center', gap: 8 }}>
             <LogOut size={17} />{loggingOut ? 'Uscita…' : 'Esci dall\'account'}
           </button>
         </div>
       </div>
 
       {modal === 'personal' && <PersonalDataModal profile={localProfile} user={user} onClose={() => setModal(null)} onSaved={reloadProfile} />}
+      {modal === 'intolerances' && <IntolerancesModal profile={localProfile} user={user} onClose={() => setModal(null)} onSaved={reloadProfile} />}
+      {modal === 'foodprefs' && <FoodPrefsModal profile={localProfile} user={user} onClose={() => setModal(null)} onSaved={reloadProfile} />}
       {modal === 'security' && <SecurityModal onClose={() => setModal(null)} />}
       {modal === 'notifications' && <NotificationsModal onClose={() => setModal(null)} />}
       {modal === 'appearance' && <AppearanceModal onClose={() => setModal(null)} />}
+      {modal === 'language' && <LanguageModal onClose={() => setModal(null)} />}
       {modal === 'biometric' && <BiometricModal user={user} onClose={() => setModal(null)} />}
       {modal === 'backup' && <BackupModal user={user} onClose={() => setModal(null)} />}
     </>
