@@ -17,6 +17,7 @@ import WellnessPage from './pages/WellnessPage'
 import BottomNav from './components/BottomNav'
 import LoadingScreen from './components/LoadingScreen'
 import InstallBanner from './components/InstallBanner'
+import { NotificationProvider } from './context/NotificationContext'
 import OfflineBar from './components/OfflineBar'
 
 function PrivateRoute({ children }) {
@@ -42,7 +43,7 @@ function AppInner() {
   }
 
   return (
-    <>
+    <NotificationProvider user={user}>
       <OfflineBar onReconnect={handleReconnect} />
       <InstallBanner />
       <Routes>
@@ -62,7 +63,7 @@ function AppInner() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       {user && <BottomNav />}
-    </>
+    </NotificationProvider>
   )
 }
 
