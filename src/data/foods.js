@@ -236,7 +236,7 @@ export const DIETITIAN_FOODS = [
   { id: 'dt_204', name: 'Cioccolato fondente 70%', category: 'Grassi', kcal_100g: 545, proteins_100g: 6.1, carbs_100g: 46, fats_100g: 38, fiber_100g: 10, sugar_100g: 24, fatSat_100g: 22 },
   { id: 'dt_205', name: 'Cioccolato al latte', category: 'Grassi', kcal_100g: 535, proteins_100g: 7.6, carbs_100g: 59, fats_100g: 30, fiber_100g: 2, sugar_100g: 54, fatSat_100g: 18 },
   { id: 'dt_206', name: 'Cioccolato bianco', category: 'Grassi', kcal_100g: 539, proteins_100g: 6, carbs_100g: 59, fats_100g: 32, fiber_100g: 0, sugar_100g: 59, fatSat_100g: 19 },
-  { id: 'dt_207', name: 'Crema di nocciole (tipo Nutella)', category: 'Grassi', kcal_100g: 547, proteins_100g: 6, carbs_100g: 58, fats_100g: 31, fiber_100g: 3, sugar_100g: 55, fatSat_100g: 11 },
+  { id: 'dt_207', name: 'Crema di nocciole', category: 'Grassi', kcal_100g: 547, proteins_100g: 6, carbs_100g: 58, fats_100g: 31, fiber_100g: 3, sugar_100g: 55, fatSat_100g: 11 },
   { id: 'dt_208', name: 'Maionese', category: 'Grassi', kcal_100g: 680, proteins_100g: 1, carbs_100g: 1.5, fats_100g: 75, fiber_100g: 0, sugar_100g: 1, fatSat_100g: 7 },
   { id: 'dt_209', name: 'Margarina', category: 'Grassi', kcal_100g: 713, proteins_100g: 0.1, carbs_100g: 0.1, fats_100g: 80, fiber_100g: 0, sugar_100g: 0, fatSat_100g: 20 },
 

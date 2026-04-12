@@ -180,7 +180,7 @@ export default function WellnessPage() {
     setSaved(true)
     setShowForm(false)
     setTimeout(() => setSaved(false), 3000)
-    loadData()
+    await loadData()
   }
 
   function toggleSymptom(s) {
