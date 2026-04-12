@@ -17,7 +17,9 @@ export default function BottomNav() {
   const { pathname } = useLocation()
   const { user } = useAuth()
   const [newDocs, setNewDocs] = useState(0)
+  const [unreadChat, setUnreadChat] = useState(0)
 
+  // Unread documents badge
   useEffect(() => {
     if (!user) return
     const key = `docs_last_seen_${user.id}`
@@ -38,11 +40,51 @@ export default function BottomNav() {
     }
   }, [pathname, user])
 
+  // Unread chat badge
+  useEffect(() => {
+    if (!user) return
+    // Initial count
+    supabase
+      .from('chat_messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('patient_id', user.id)
+      .eq('sender_role', 'dietitian')
+      .is('read_at', null)
+      .then(({ count }) => setUnreadChat(count || 0))
+
+    // Realtime subscription for new dietitian messages
+    const channel = supabase.channel(`nav-chat-${user.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'chat_messages',
+        filter: `patient_id=eq.${user.id}`
+      }, payload => {
+        if (payload.new.sender_role === 'dietitian' && !payload.new.read_at) {
+          setUnreadChat(prev => prev + 1)
+        }
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'chat_messages',
+        filter: `patient_id=eq.${user.id}`
+      }, payload => {
+        if (payload.new.sender_role === 'dietitian' && payload.new.read_at && !payload.old?.read_at) {
+          setUnreadChat(prev => Math.max(0, prev - 1))
+        }
+      })
+      .subscribe()
+
+    return () => supabase.removeChannel(channel)
+  }, [user])
+
+  // Clear chat badge when visiting chat
+  useEffect(() => {
+    if (pathname === '/chat') setUnreadChat(0)
+  }, [pathname])
+
   const TABS = [
     { to: '/', icon: Home, label: 'Home' },
     { to: '/dieta', icon: Utensils, label: 'Dieta' },
     { to: '/macro', icon: BookOpen, label: 'Diario' },
-    { to: '/chat', icon: MessageCircle, label: 'Chat' },
+    { to: '/chat', icon: MessageCircle, label: 'Chat', badge: unreadChat },
     { to: '/documenti', icon: FileText, label: 'Documenti', badge: newDocs },
     { to: '/progressi', icon: TrendingUp, label: 'Progressi' },
     { to: '/statistiche', icon: BarChart2, label: 'Report' },
