@@ -121,6 +121,7 @@ export default function WellnessPage() {
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [history, setHistory] = useState([])
   const [macroHistory, setMacroHistory] = useState([])
@@ -172,15 +173,20 @@ export default function WellnessPage() {
 
   async function saveEntry() {
     setSaving(true)
-    await supabase.from('daily_wellness').upsert(
+    setError('')
+    const { error: saveError } = await supabase.from('daily_wellness').upsert(
       { user_id: user.id, date: today, mood, energy, sleep_quality: sleepQuality, sleep_hours: sleepHours, sleep_restedness: sleepRestedness, symptoms, notes },
       { onConflict: 'user_id,date' }
     )
     setSaving(false)
+    if (saveError) {
+      setError('Errore durante il salvataggio. Riprova.')
+      return
+    }
     setSaved(true)
     setShowForm(false)
     setTimeout(() => setSaved(false), 3000)
-    loadData()
+    await loadData()
   }
 
   function toggleSymptom(s) {
@@ -246,7 +252,7 @@ export default function WellnessPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
             <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Come stai?</p>
-            <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300 }}>Benessere & Umore</h1>
+            <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300 }}>Benessere</h1>
           </div>
           <button
             onClick={() => setShowForm(v => !v)}
@@ -285,6 +291,13 @@ export default function WellnessPage() {
           <div className="animate-slideUp" style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--green-pale)', border: '1.5px solid var(--green-light)', borderRadius: 14, padding: '12px 16px', color: 'var(--green-dark)' }}>
             <CheckCircle size={18} />
             <span style={{ fontSize: 14, fontWeight: 500 }}>Check-in salvato con successo!</span>
+          </div>
+        )}
+
+        {/* Error feedback */}
+        {error && (
+          <div className="animate-slideUp" style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fff0f0', border: '1.5px solid #ffd4d4', borderRadius: 14, padding: '12px 16px', color: '#dc2626' }}>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>{error}</span>
           </div>
         )}
 

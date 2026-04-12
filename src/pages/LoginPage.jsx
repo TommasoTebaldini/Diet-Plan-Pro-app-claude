@@ -71,42 +71,50 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--green-mist)' }}>
-      {/* Hero banner */}
+    <div style={{
+      minHeight: '100dvh', display: 'flex', flexDirection: 'column',
+      background: 'linear-gradient(160deg, var(--green-dark) 0%, var(--green-main) 40%, var(--green-mid) 100%)',
+      position: 'relative', overflow: 'hidden',
+    }}>
+      {/* Background decorations */}
       <div style={{
-        background: 'linear-gradient(160deg, var(--green-dark) 0%, var(--green-main) 60%, var(--green-mid) 100%)',
-        padding: '60px 32px 48px',
-        textAlign: 'center',
-        position: 'relative',
-        overflow: 'hidden'
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        backgroundImage: 'radial-gradient(circle at 20% 80%, rgba(255,255,255,0.06) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 50%), radial-gradient(circle at 60% 60%, rgba(255,255,255,0.04) 0%, transparent 40%)'
+      }} />
+
+      {/* Centered content */}
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '40px 20px', position: 'relative', zIndex: 1,
       }}>
-        <div style={{
-          position: 'absolute', inset: 0,
-          backgroundImage: 'radial-gradient(circle at 20% 80%, rgba(255,255,255,0.06) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 50%)'
-        }} />
-        <div style={{ position: 'relative', zIndex: 1 }}>
+        {/* Logo and welcome */}
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{
-            width: 64, height: 64, borderRadius: 20,
+            width: 72, height: 72, borderRadius: 22,
             background: 'rgba(255,255,255,0.15)',
             backdropFilter: 'blur(12px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 20px',
-            border: '1px solid rgba(255,255,255,0.2)'
+            border: '1px solid rgba(255,255,255,0.2)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
           }}>
-            <Leaf size={32} color="white" />
+            <Leaf size={36} color="white" />
           </div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, color: 'white', fontWeight: 300, letterSpacing: '-0.3px', lineHeight: 1.2 }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 32, color: 'white', fontWeight: 300, letterSpacing: '-0.3px', lineHeight: 1.2 }}>
             Bentornato
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 15, marginTop: 8 }}>
             Il tuo piano nutrizionale ti aspetta
           </p>
         </div>
-      </div>
 
-      {/* Form card */}
-      <div style={{ flex: 1, padding: '0 20px 40px', marginTop: -24, position: 'relative' }}>
-        <div className="card animate-slideUp" style={{ borderRadius: 'var(--radius-xl)', padding: 28 }}>
+        {/* Form card */}
+        <div className="card animate-slideUp" style={{
+          borderRadius: 'var(--radius-xl)', padding: 32,
+          width: '100%', maxWidth: 420,
+          boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+        }}>
           <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 24, color: 'var(--text-primary)' }}>
             Accedi
           </h2>
@@ -198,9 +206,9 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-muted)', marginTop: 24 }}>
+        <p style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 24 }}>
           Sei un dietista?{' '}
-          <a href="https://nutri-plan-pro-cxee.vercel.app" style={{ color: 'var(--green-main)', textDecoration: 'none' }}>
+          <a href="https://nutri-plan-pro-cxee.vercel.app" style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>
             Accedi alla piattaforma professionale →
           </a>
         </p>
