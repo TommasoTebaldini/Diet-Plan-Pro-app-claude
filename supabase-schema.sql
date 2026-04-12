@@ -151,6 +151,8 @@ create table if not exists daily_wellness (
   mood int check (mood between 1 and 5),
   energy int check (energy between 1 and 5),
   sleep_quality int check (sleep_quality between 1 and 5),
+  sleep_hours numeric check (sleep_hours >= 0 and sleep_hours <= 24),
+  sleep_restedness int check (sleep_restedness between 1 and 5),
   symptoms text[] default '{}',
   notes text,
   created_at timestamptz default now(),
