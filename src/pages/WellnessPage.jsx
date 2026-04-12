@@ -350,27 +350,30 @@ export default function WellnessPage() {
               {/* Sleep hours */}
               <div>
                 <p className="input-label" style={{ marginBottom: 10 }}>🕐 Quante ore hai dormito?</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <input
-                    type="range"
-                    min="0"
-                    max="14"
-                    step="0.5"
-                    value={sleepHours ?? 7}
-                    onChange={e => setSleepHours(parseFloat(e.target.value))}
-                    style={{ flex: 1, accentColor: '#7c3aed' }}
-                  />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <button
+                    onClick={() => setSleepHours(h => Math.max(0, (h ?? 7) - 0.5))}
+                    style={{
+                      width: 36, height: 36, borderRadius: 10, border: '1.5px solid var(--border)',
+                      background: 'var(--surface-2)', cursor: 'pointer', fontSize: 18, fontWeight: 600,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed',
+                    }}
+                  >−</button>
                   <span style={{
-                    minWidth: 52, textAlign: 'center', fontSize: 18, fontWeight: 700,
-                    color: '#7c3aed', background: '#f5f3ff', borderRadius: 10, padding: '6px 10px',
+                    flex: 1, textAlign: 'center', fontSize: 22, fontWeight: 700,
+                    color: sleepHours != null ? '#7c3aed' : 'var(--text-muted)',
+                    background: '#f5f3ff', borderRadius: 10, padding: '8px 10px',
                   }}>
-                    {sleepHours != null ? `${sleepHours}h` : '–'}
+                    {sleepHours != null ? `${sleepHours}h` : 'Tocca +/−'}
                   </span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)', marginTop: 4, padding: '0 2px' }}>
-                  <span>0h</span>
-                  <span>7h</span>
-                  <span>14h</span>
+                  <button
+                    onClick={() => setSleepHours(h => Math.min(24, (h ?? 7) + 0.5))}
+                    style={{
+                      width: 36, height: 36, borderRadius: 10, border: '1.5px solid var(--border)',
+                      background: 'var(--surface-2)', cursor: 'pointer', fontSize: 18, fontWeight: 600,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed',
+                    }}
+                  >+</button>
                 </div>
               </div>
 
