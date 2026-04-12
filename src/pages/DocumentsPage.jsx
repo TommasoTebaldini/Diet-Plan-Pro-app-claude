@@ -102,7 +102,6 @@ export default function DocumentsPage() {
         .from('patient_documents')
         .select('*')
         .eq('patient_id', user.id)
-        .neq('visible', false)
         .order('created_at', { ascending: false })
       if (error) {
         console.error('Documents load error:', error)

@@ -40,7 +40,6 @@ export default function BottomNav() {
       .from('patient_documents')
       .select('*', { count: 'exact', head: true })
       .eq('patient_id', user.id)
-      .neq('visible', false)
       .gt('created_at', lastSeen)
       .then(({ count }) => setNewDocs(count || 0))
   }, [user])
@@ -120,7 +119,7 @@ export default function BottomNav() {
             <Leaf size={16} color="white" />
           </div>
           <div>
-            <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.1 }}>Diet Plan Pro</p>
+            <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.1 }}>Diet Plan</p>
             <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Dashboard</p>
           </div>
         </div>
