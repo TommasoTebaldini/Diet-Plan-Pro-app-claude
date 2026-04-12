@@ -160,10 +160,18 @@ export default function MacroTrackerPage() {
   async function saveMood(value) {
     const newMood = mood === value ? null : value
     setMood(newMood)
-    await supabase.from('daily_wellness').upsert(
-      { user_id: user.id, date, mood: newMood },
-      { onConflict: 'user_id,date' }
-    )
+    // First check if a wellness entry already exists for this date
+    const { data: existing } = await supabase.from('daily_wellness').select('id')
+      .eq('user_id', user.id).eq('date', date).maybeSingle()
+    if (existing) {
+      // Only update the mood field to preserve other wellness data
+      await supabase.from('daily_wellness').update({ mood: newMood })
+        .eq('user_id', user.id).eq('date', date)
+    } else {
+      await supabase.from('daily_wellness').insert(
+        { user_id: user.id, date, mood: newMood }
+      )
+    }
   }
 
   function changeDate(delta) {
