@@ -5,7 +5,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, ComposedChart, Bar,
 } from 'recharts'
-import { Heart, Zap, Moon, Plus, CheckCircle } from 'lucide-react'
+import { Heart, Zap, Moon, Plus, CheckCircle, Clock, BedDouble } from 'lucide-react'
 
 const MOOD_OPTIONS = [
   { value: 1, emoji: '😞', label: 'Pessimo' },
@@ -29,6 +29,14 @@ const SLEEP_OPTIONS = [
   { value: 3, emoji: '😐', label: 'Discreta' },
   { value: 4, emoji: '😴', label: 'Buona' },
   { value: 5, emoji: '🌟', label: 'Ottima' },
+]
+
+const RESTEDNESS_OPTIONS = [
+  { value: 1, emoji: '🥱', label: 'Esausto' },
+  { value: 2, emoji: '😩', label: 'Stanco' },
+  { value: 3, emoji: '😐', label: 'Così così' },
+  { value: 4, emoji: '😌', label: 'Riposato' },
+  { value: 5, emoji: '💪', label: 'Carico' },
 ]
 
 const SYMPTOM_LIST = [
@@ -71,12 +79,16 @@ function CustomMoodTooltip({ active, payload, label }) {
   const mood = MOOD_OPTIONS.find(o => o.value === payload[0]?.value)
   const energy = ENERGY_OPTIONS.find(o => o.value === payload[1]?.value)
   const sleep = SLEEP_OPTIONS.find(o => o.value === payload[2]?.value)
+  const sleepHoursVal = payload.find(p => p.dataKey === 'sleepHours')?.value
+  const restedness = RESTEDNESS_OPTIONS.find(o => o.value === payload.find(p => p.dataKey === 'restedness')?.value)
   return (
     <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', boxShadow: 'var(--shadow-md)', fontSize: 12 }}>
       <p style={{ color: 'var(--text-muted)', marginBottom: 6 }}>{label}</p>
       {mood && <p style={{ marginBottom: 2 }}>{mood.emoji} Umore: <strong>{mood.label}</strong></p>}
       {energy && <p style={{ marginBottom: 2 }}>{energy.emoji} Energia: <strong>{energy.label}</strong></p>}
-      {sleep && <p>{sleep.emoji} Sonno: <strong>{sleep.label}</strong></p>}
+      {sleep && <p style={{ marginBottom: 2 }}>{sleep.emoji} Sonno: <strong>{sleep.label}</strong></p>}
+      {sleepHoursVal != null && <p style={{ marginBottom: 2 }}>🕐 Ore sonno: <strong>{sleepHoursVal}h</strong></p>}
+      {restedness && <p>😴 Riposo: <strong>{restedness.label}</strong></p>}
     </div>
   )
 }
@@ -103,6 +115,8 @@ export default function WellnessPage() {
   const [mood, setMood] = useState(null)
   const [energy, setEnergy] = useState(null)
   const [sleepQuality, setSleepQuality] = useState(null)
+  const [sleepHours, setSleepHours] = useState(null)
+  const [sleepRestedness, setSleepRestedness] = useState(null)
   const [symptoms, setSymptoms] = useState([])
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
@@ -147,6 +161,8 @@ export default function WellnessPage() {
       setMood(log.mood || null)
       setEnergy(log.energy || null)
       setSleepQuality(log.sleep_quality || null)
+      setSleepHours(log.sleep_hours != null ? log.sleep_hours : null)
+      setSleepRestedness(log.sleep_restedness || null)
       setSymptoms(log.symptoms || [])
       setNotes(log.notes || '')
     } else {
@@ -157,7 +173,7 @@ export default function WellnessPage() {
   async function saveEntry() {
     setSaving(true)
     await supabase.from('daily_wellness').upsert(
-      { user_id: user.id, date: today, mood, energy, sleep_quality: sleepQuality, symptoms, notes },
+      { user_id: user.id, date: today, mood, energy, sleep_quality: sleepQuality, sleep_hours: sleepHours, sleep_restedness: sleepRestedness, symptoms, notes },
       { onConflict: 'user_id,date' }
     )
     setSaving(false)
@@ -177,6 +193,8 @@ export default function WellnessPage() {
     mood: w.mood,
     energy: w.energy,
     sleep: w.sleep_quality,
+    sleepHours: w.sleep_hours,
+    restedness: w.sleep_restedness,
   }))
 
   const macroMap = {}
@@ -205,9 +223,18 @@ export default function WellnessPage() {
     ? (history.reduce((s, w) => s + (w.sleep_quality || 0), 0) / history.filter(w => w.sleep_quality).length).toFixed(1)
     : null
 
+  const sleepHoursAvg = history.filter(w => w.sleep_hours != null).length > 0
+    ? (history.reduce((s, w) => s + (w.sleep_hours || 0), 0) / history.filter(w => w.sleep_hours != null).length).toFixed(1)
+    : null
+
+  const restednessAvg = history.filter(w => w.sleep_restedness).length > 0
+    ? (history.reduce((s, w) => s + (w.sleep_restedness || 0), 0) / history.filter(w => w.sleep_restedness).length).toFixed(1)
+    : null
+
   const todayMoodOpt = MOOD_OPTIONS.find(o => o.value === (todayLog?.mood))
   const todayEnergyOpt = ENERGY_OPTIONS.find(o => o.value === (todayLog?.energy))
   const todaySleepOpt = SLEEP_OPTIONS.find(o => o.value === (todayLog?.sleep_quality))
+  const todayRestednessOpt = RESTEDNESS_OPTIONS.find(o => o.value === (todayLog?.sleep_restedness))
 
   return (
     <div className="page">
@@ -236,6 +263,8 @@ export default function WellnessPage() {
             { label: 'Umore medio', val: moodAvg ? `${moodAvg}/5` : '–', icon: <Heart size={14} />, emoji: MOOD_OPTIONS.find(o => o.value === Math.round(Number(moodAvg)))?.emoji },
             { label: 'Energia media', val: energyAvg ? `${energyAvg}/5` : '–', icon: <Zap size={14} />, emoji: ENERGY_OPTIONS.find(o => o.value === Math.round(Number(energyAvg)))?.emoji },
             { label: 'Sonno medio', val: sleepAvg ? `${sleepAvg}/5` : '–', icon: <Moon size={14} />, emoji: SLEEP_OPTIONS.find(o => o.value === Math.round(Number(sleepAvg)))?.emoji },
+            { label: 'Ore sonno medie', val: sleepHoursAvg ? `${sleepHoursAvg}h` : '–', icon: <Clock size={14} /> },
+            { label: 'Riposo medio', val: restednessAvg ? `${restednessAvg}/5` : '–', icon: <BedDouble size={14} />, emoji: RESTEDNESS_OPTIONS.find(o => o.value === Math.round(Number(restednessAvg)))?.emoji },
           ].map(s => (
             <div key={s.label} style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 14, padding: '12px', border: '1px solid rgba(255,255,255,0.15)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>
@@ -271,6 +300,8 @@ export default function WellnessPage() {
                 { label: 'Umore', emoji: todayMoodOpt?.emoji, text: todayMoodOpt?.label },
                 { label: 'Energia', emoji: todayEnergyOpt?.emoji, text: todayEnergyOpt?.label },
                 { label: 'Sonno', emoji: todaySleepOpt?.emoji, text: todaySleepOpt?.label },
+                { label: 'Ore sonno', emoji: '🕐', text: todayLog?.sleep_hours != null ? `${todayLog.sleep_hours}h` : null },
+                { label: 'Riposo', emoji: todayRestednessOpt?.emoji, text: todayRestednessOpt?.label },
               ].map(item => (
                 <div key={item.label} style={{ background: 'var(--surface-2)', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
                   <p style={{ fontSize: 24, marginBottom: 4 }}>{item.emoji || '–'}</p>
@@ -316,6 +347,42 @@ export default function WellnessPage() {
                 <ScaleSelector options={SLEEP_OPTIONS} value={sleepQuality} onChange={setSleepQuality} />
               </div>
 
+              {/* Sleep hours */}
+              <div>
+                <p className="input-label" style={{ marginBottom: 10 }}>🕐 Quante ore hai dormito?</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <button
+                    onClick={() => setSleepHours(h => Math.max(0, (h ?? 7) - 0.5))}
+                    style={{
+                      width: 36, height: 36, borderRadius: 10, border: '1.5px solid var(--border)',
+                      background: 'var(--surface-2)', cursor: 'pointer', fontSize: 18, fontWeight: 600,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed',
+                    }}
+                  >−</button>
+                  <span style={{
+                    flex: 1, textAlign: 'center', fontSize: 22, fontWeight: 700,
+                    color: sleepHours != null ? '#7c3aed' : 'var(--text-muted)',
+                    background: '#f5f3ff', borderRadius: 10, padding: '8px 10px',
+                  }}>
+                    {sleepHours != null ? `${sleepHours}h` : 'Tocca +/−'}
+                  </span>
+                  <button
+                    onClick={() => setSleepHours(h => Math.min(24, (h ?? 7) + 0.5))}
+                    style={{
+                      width: 36, height: 36, borderRadius: 10, border: '1.5px solid var(--border)',
+                      background: 'var(--surface-2)', cursor: 'pointer', fontSize: 18, fontWeight: 600,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed',
+                    }}
+                  >+</button>
+                </div>
+              </div>
+
+              {/* Restedness */}
+              <div>
+                <p className="input-label" style={{ marginBottom: 12 }}>😴 Quanto ti senti riposato?</p>
+                <ScaleSelector options={RESTEDNESS_OPTIONS} value={sleepRestedness} onChange={setSleepRestedness} />
+              </div>
+
               {/* Symptoms */}
               <div>
                 <p className="input-label" style={{ marginBottom: 10 }}>🔍 Sintomi / sensazioni fisiche</p>
@@ -359,7 +426,7 @@ export default function WellnessPage() {
                 <button
                   className="btn btn-primary"
                   onClick={saveEntry}
-                  disabled={saving || (!mood && !energy && !sleepQuality && !symptoms.length && !notes)}
+                  disabled={saving || (!mood && !energy && !sleepQuality && sleepHours == null && !sleepRestedness && !symptoms.length && !notes)}
                   style={{ flex: 2, background: 'linear-gradient(135deg, #4c1d95, #7c3aed)' }}
                 >
                   {saving ? 'Salvataggio…' : '✓ Salva check-in'}
@@ -430,6 +497,7 @@ export default function WellnessPage() {
                   <span style={{ color: '#7c3aed' }}>● Umore</span>
                   {trendData.some(d => d.energy) && <span style={{ color: '#f59e0b' }}> &nbsp;● Energia</span>}
                   {trendData.some(d => d.sleep) && <span style={{ color: '#06b6d4' }}> &nbsp;● Sonno</span>}
+                  {trendData.some(d => d.restedness) && <span style={{ color: '#10b981' }}> &nbsp;● Riposo</span>}
                 </p>
                 <ResponsiveContainer width="100%" height={200}>
                   <LineChart data={trendData} margin={{ top: 4, right: 8, left: -22, bottom: 0 }}>
@@ -441,6 +509,7 @@ export default function WellnessPage() {
                     <Line type="monotone" dataKey="mood" stroke="#7c3aed" strokeWidth={2.5} dot={{ r: 4, fill: '#7c3aed' }} activeDot={{ r: 6 }} connectNulls />
                     <Line type="monotone" dataKey="energy" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3, fill: '#f59e0b' }} activeDot={{ r: 5 }} connectNulls />
                     <Line type="monotone" dataKey="sleep" stroke="#06b6d4" strokeWidth={2} dot={{ r: 3, fill: '#06b6d4' }} activeDot={{ r: 5 }} connectNulls />
+                    <Line type="monotone" dataKey="restedness" stroke="#10b981" strokeWidth={2} dot={{ r: 3, fill: '#10b981' }} activeDot={{ r: 5 }} connectNulls />
                   </LineChart>
                 </ResponsiveContainer>
               </>
@@ -478,6 +547,7 @@ export default function WellnessPage() {
                 const moodOpt = MOOD_OPTIONS.find(o => o.value === entry.mood)
                 const energyOpt = ENERGY_OPTIONS.find(o => o.value === entry.energy)
                 const sleepOpt = SLEEP_OPTIONS.find(o => o.value === entry.sleep_quality)
+                const restednessOpt = RESTEDNESS_OPTIONS.find(o => o.value === entry.sleep_restedness)
                 const isToday = entry.date === today
                 return (
                   <div key={entry.id} style={{ display: 'flex', gap: 12, padding: '10px 12px', background: isToday ? '#f5f3ff' : 'var(--surface-2)', borderRadius: 12, border: isToday ? '1.5px solid #c4b5fd' : '1px solid transparent' }}>
@@ -492,6 +562,8 @@ export default function WellnessPage() {
                         {moodOpt && <span style={{ fontSize: 11, background: '#f5f3ff', color: '#7c3aed', borderRadius: 100, padding: '2px 8px', fontWeight: 500 }}>😊 {moodOpt.label}</span>}
                         {energyOpt && <span style={{ fontSize: 11, background: '#fffbeb', color: '#b45309', borderRadius: 100, padding: '2px 8px', fontWeight: 500 }}>⚡ {energyOpt.label}</span>}
                         {sleepOpt && <span style={{ fontSize: 11, background: '#ecfeff', color: '#0e7490', borderRadius: 100, padding: '2px 8px', fontWeight: 500 }}>🌙 {sleepOpt.label}</span>}
+                        {entry.sleep_hours != null && <span style={{ fontSize: 11, background: '#f0f0ff', color: '#4338ca', borderRadius: 100, padding: '2px 8px', fontWeight: 500 }}>🕐 {entry.sleep_hours}h</span>}
+                        {restednessOpt && <span style={{ fontSize: 11, background: '#f0fdf4', color: '#166534', borderRadius: 100, padding: '2px 8px', fontWeight: 500 }}>😴 {restednessOpt.label}</span>}
                       </div>
                       {entry.symptoms?.length > 0 && (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 4 }}>
