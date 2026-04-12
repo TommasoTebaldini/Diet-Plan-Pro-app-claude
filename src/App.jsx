@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
+import { AppSettingsProvider } from './context/AppSettingsContext'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
@@ -12,9 +13,11 @@ import ChatPage from './pages/ChatPage'
 import DocumentsPage from './pages/DocumentsPage'
 import ProgressPage from './pages/ProgressPage'
 import StatisticsPage from './pages/StatisticsPage'
+import WellnessPage from './pages/WellnessPage'
 import BottomNav from './components/BottomNav'
 import LoadingScreen from './components/LoadingScreen'
 import InstallBanner from './components/InstallBanner'
+import OfflineBar from './components/OfflineBar'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -30,11 +33,17 @@ function PublicRoute({ children }) {
   return children
 }
 
-export default function App() {
-  const { user } = useAuth()
+function AppInner() {
+  const { user, refreshProfile } = useAuth()
+
+  // When connectivity is restored, refresh profile and let pages react to auth state
+  async function handleReconnect() {
+    if (user) await refreshProfile()
+  }
 
   return (
     <>
+      <OfflineBar onReconnect={handleReconnect} />
       <InstallBanner />
       <Routes>
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
@@ -48,10 +57,19 @@ export default function App() {
         <Route path="/documenti" element={<PrivateRoute><DocumentsPage /></PrivateRoute>} />
         <Route path="/progressi" element={<PrivateRoute><ProgressPage /></PrivateRoute>} />
         <Route path="/statistiche" element={<PrivateRoute><StatisticsPage /></PrivateRoute>} />
+        <Route path="/benessere" element={<PrivateRoute><WellnessPage /></PrivateRoute>} />
         <Route path="/profilo" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       {user && <BottomNav />}
     </>
+  )
+}
+
+export default function App() {
+  return (
+    <AppSettingsProvider>
+      <AppInner />
+    </AppSettingsProvider>
   )
 }
