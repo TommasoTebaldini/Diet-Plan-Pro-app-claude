@@ -45,8 +45,8 @@ export async function compressImage(file, options = {}) {
 
       canvas.toBlob(
         (blob) => {
-          if (!blob || blob.size >= file.size) {
-            // Compression didn't help — return original
+          if (!blob || blob.size > file.size) {
+            // Compression didn't reduce size — return original
             resolve(file)
             return
           }

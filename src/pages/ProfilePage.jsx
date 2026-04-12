@@ -936,7 +936,7 @@ export default function ProfilePage() {
     setAvatarUploading(true)
     try {
       const compressed = await compressImage(file, { maxWidth: 512, maxHeight: 512, quality: 0.8 })
-      const ext = compressed.type === 'image/jpeg' ? 'jpg' : file.name.split('.').pop().toLowerCase()
+      const ext = compressed.type === 'image/png' ? 'png' : compressed.type === 'image/gif' ? 'gif' : 'jpg'
       const path = `${user.id}.${ext}`
       const { error: uploadError } = await supabase.storage.from('avatars').upload(path, compressed, { upsert: true })
       if (uploadError) throw uploadError

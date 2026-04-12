@@ -227,7 +227,7 @@ export default function ProgressPage() {
     setUploadingPhoto(true)
     setPhotoError(null)
     const compressed = await compressImage(photoFile, { maxWidth: 1920, maxHeight: 1920, quality: 0.8 })
-    const ext = compressed.type === 'image/jpeg' ? 'jpg' : photoFile.name.split('.').pop()
+    const ext = compressed.type === 'image/png' ? 'png' : compressed.type === 'image/gif' ? 'gif' : 'jpg'
     const path = `${user.id}/${today}/${Date.now()}.${ext}`
     const { error: upErr } = await supabase.storage
       .from('progress-photos')
