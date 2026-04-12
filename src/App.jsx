@@ -57,7 +57,7 @@ function AppInner() {
       <OfflineBar onReconnect={handleReconnect} />
       <InstallBanner />
       {user && !isDietitian && <BottomNav />}
-      <div className={user && !isDietitian ? 'app-content' : undefined}>
+      <div className={user && !isDietitian ? 'app-content' : 'app-content-public'}>
         <Routes>
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
