@@ -4,7 +4,7 @@ import { useAppSettings } from '../context/AppSettingsContext'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import {
-  LogOut, User, Mail, ExternalLink, ChevronRight, Bell, Shield, X, Check,
+  LogOut, User, Mail, ChevronRight, Bell, Shield, X, Check,
   Eye, EyeOff, Camera, Utensils, AlertCircle, Globe, Moon, Sun, Type, Contrast,
   Fingerprint, Download, Upload, Accessibility, Plus, Trash2, BellOff, BellRing,
 } from 'lucide-react'
@@ -964,7 +964,6 @@ export default function ProfilePage() {
     { icon: <Accessibility size={18} />, label: 'Aspetto e accessibilità', desc: settings.darkMode ? 'Tema scuro attivo' : 'Tema chiaro attivo', color: '#6366f1', bg: '#eef2ff', action: () => setModal('appearance') },
     { icon: <Globe size={18} />, label: 'Lingua', desc: 'Italiano', color: '#0ea5e9', bg: '#f0f9ff', action: () => setModal('language') },
     { icon: <Download size={18} />, label: 'Backup e ripristino', desc: 'Esporta o importa i tuoi dati', color: '#059669', bg: '#d1fae5', action: () => setModal('backup') },
-    { icon: <ExternalLink size={18} />, label: 'Piattaforma dietista', desc: 'Accedi al portale professionale', color: '#3b82f6', bg: '#eff6ff', action: () => window.open('https://nutri-plan-pro-cxee.vercel.app', '_blank') },
   ]
 
   return (

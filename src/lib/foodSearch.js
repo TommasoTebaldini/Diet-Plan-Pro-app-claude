@@ -107,7 +107,7 @@ async function searchCustomMeals(query) {
   } catch { return [] }
 }
 
-// Open Food Facts — uses Meilisearch-based API for accurate, relevant results
+// Open Food Facts — Italian-first search with multiple endpoint fallbacks
 function mapOFFProduct(p) {
   const n = p.nutriments || {}
   // Try kcal directly, then convert from kJ (1 kcal ≈ 4.184 kJ)
@@ -115,8 +115,9 @@ function mapOFFProduct(p) {
     || (n['energy_100g'] ? Math.round(n['energy_100g'] / 4.184) : 0)
     || n['energy-kcal']
     || 0
+  const name = p.product_name_it || p.product_name || p.product_name_en || ''
   return {
-    id: p.code || p._id, name: p.product_name, brand: p.brands || '',
+    id: p.code || p._id, name, brand: p.brands || '',
     kcal_100g: Math.round(kcal),
     proteins_100g: Math.round((n['proteins_100g'] || 0) * 10) / 10,
     carbs_100g: Math.round((n['carbohydrates_100g'] || 0) * 10) / 10,
@@ -126,37 +127,59 @@ function mapOFFProduct(p) {
   }
 }
 
-function hasEnergyData(p) {
+function hasUsefulData(p) {
   const n = p.nutriments || {}
-  return p.product_name && (n['energy-kcal_100g'] || n['energy_100g'] || n['energy-kcal'])
+  const name = p.product_name_it || p.product_name || p.product_name_en || ''
+  if (!name) return false
+  return (
+    n['energy-kcal_100g'] || n['energy_100g'] || n['energy-kcal'] ||
+    n['proteins_100g'] || n['carbohydrates_100g'] || n['fat_100g']
+  )
 }
 
 export async function searchOpenFoodFacts(query) {
-  const fields = 'code,product_name,brands,nutriments'
-  // Primary: Meilisearch-based API — returns results ranked by relevance to product name
-  try {
-    const res = await fetch(
-      `https://search.openfoodfacts.org/search?q=${encodeURIComponent(query)}&page_size=24&fields=${fields}`,
-      { signal: AbortSignal.timeout(9000) }
-    )
-    const data = await res.json()
-    const hits = (data.hits || [])
-      .filter(hasEnergyData)
-      .map(mapOFFProduct)
-    if (hits.length > 0) return hits
-  } catch { /* fall through to legacy API */ }
+  const fields = 'code,product_name,product_name_it,product_name_en,brands,nutriments'
+  const q = encodeURIComponent(query)
 
-  // Fallback: legacy CGI search
+  // Primary: legacy CGI — most reliable, Italian language preference
   try {
     const res = await fetch(
-      `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&fields=${fields}&page_size=24`,
-      { signal: AbortSignal.timeout(9000) }
+      `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${q}&search_simple=1&action=process&json=1&fields=${fields}&page_size=24&lc=it`,
+      { signal: AbortSignal.timeout(8000) }
     )
-    const data = await res.json()
-    return (data.products || [])
-      .filter(hasEnergyData)
-      .map(mapOFFProduct)
-  } catch { return [] }
+    if (res.ok) {
+      const data = await res.json()
+      const hits = (data.products || []).filter(hasUsefulData).map(mapOFFProduct).filter(p => p.name)
+      if (hits.length > 0) return hits
+    }
+  } catch { /* fall through */ }
+
+  // Secondary: Meilisearch-based API — ranked by product name relevance
+  try {
+    const res = await fetch(
+      `https://search.openfoodfacts.org/search?q=${q}&page_size=24&fields=${fields}`,
+      { signal: AbortSignal.timeout(8000) }
+    )
+    if (res.ok) {
+      const data = await res.json()
+      const hits = (data.hits || []).filter(hasUsefulData).map(mapOFFProduct).filter(p => p.name)
+      if (hits.length > 0) return hits
+    }
+  } catch { /* fall through */ }
+
+  // Tertiary: legacy CGI without language filter
+  try {
+    const res = await fetch(
+      `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${q}&search_simple=1&action=process&json=1&fields=${fields}&page_size=24`,
+      { signal: AbortSignal.timeout(8000) }
+    )
+    if (res.ok) {
+      const data = await res.json()
+      return (data.products || []).filter(hasUsefulData).map(mapOFFProduct).filter(p => p.name)
+    }
+  } catch { /* ignore */ }
+
+  return []
 }
 
 export async function searchFoods(query) {
