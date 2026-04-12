@@ -6,7 +6,7 @@ import { useAppSettings } from '../context/AppSettingsContext'
 import {
   LogOut, User, Mail, ExternalLink, ChevronRight, Bell, Shield, X, Check,
   Eye, EyeOff, Moon, Sun, Type, Contrast, Fingerprint, Download, Upload,
-  Accessibility,
+  Accessibility, Plus, Trash2, BellOff, BellRing,
 } from 'lucide-react'
 import {
   isBiometricSupported,
@@ -15,6 +15,10 @@ import {
   registerBiometric,
   clearBiometricCredential,
 } from '../lib/biometric'
+import {
+  loadPrefs, savePrefs, getPermissionStatus, requestPermission, initScheduledNotifications,
+  DEFAULT_PREFS,
+} from '../lib/notifications'
 
 // ─── Modal wrapper ────────────────────────────────────────────────────────────
 function Modal({ title, onClose, children }) {
@@ -173,55 +177,260 @@ function SecurityModal({ onClose }) {
 }
 
 // ─── Notifications modal ──────────────────────────────────────────────────────
-function NotificationsModal({ onClose }) {
-  const PREFS_KEY = 'nutriplan_notif_prefs'
-  const defaults = { newMessage: true, newDocument: true, dietUpdate: true, waterReminder: false, mealReminder: false }
-  const [prefs, setPrefs] = useState(() => {
-    try { return { ...defaults, ...JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') } }
-    catch { return defaults }
-  })
+function Toggle({ on, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      width: 48, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer',
+      background: on ? 'var(--green-main)' : 'var(--border)',
+      transition: 'background 0.2s', position: 'relative', flexShrink: 0,
+    }}>
+      <div style={{
+        width: 22, height: 22, borderRadius: '50%', background: 'white',
+        position: 'absolute', top: 3, left: on ? 23 : 3,
+        transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+      }} />
+    </button>
+  )
+}
 
-  const toggle = k => {
-    const next = { ...prefs, [k]: !prefs[k] }
-    setPrefs(next)
-    localStorage.setItem(PREFS_KEY, JSON.stringify(next))
+const WEEK_DAYS = [
+  { val: 1, label: 'Lunedì' },
+  { val: 2, label: 'Martedì' },
+  { val: 3, label: 'Mercoledì' },
+  { val: 4, label: 'Giovedì' },
+  { val: 5, label: 'Venerdì' },
+  { val: 6, label: 'Sabato' },
+  { val: 0, label: 'Domenica' },
+]
+
+const WATER_INTERVALS = [
+  { val: 0.5, label: 'Ogni 30 min' },
+  { val: 1, label: 'Ogni ora' },
+  { val: 1.5, label: 'Ogni 1h 30min' },
+  { val: 2, label: 'Ogni 2 ore' },
+  { val: 3, label: 'Ogni 3 ore' },
+  { val: 4, label: 'Ogni 4 ore' },
+]
+
+function NotificationsModal({ onClose }) {
+  const [prefs, setPrefs] = useState(loadPrefs)
+  const [permStatus, setPermStatus] = useState(getPermissionStatus)
+  const [requesting, setRequesting] = useState(false)
+
+  function update(patch) {
+    setPrefs(prev => {
+      const next = { ...prev, ...patch }
+      savePrefs(next)
+      initScheduledNotifications(next)
+      return next
+    })
   }
 
-  const items = [
-    { key: 'newMessage', label: 'Nuovo messaggio dal dietista', desc: 'Avvisami quando il dietista ti scrive' },
-    { key: 'newDocument', label: 'Nuovo documento condiviso', desc: 'Avvisami quando viene aggiunto un documento' },
-    { key: 'dietUpdate', label: 'Aggiornamento piano alimentare', desc: 'Avvisami quando la dieta viene modificata' },
-    { key: 'waterReminder', label: 'Promemoria acqua', desc: 'Ricordami di bere durante la giornata' },
-    { key: 'mealReminder', label: 'Promemoria pasti', desc: 'Ricordami di registrare i pasti' },
-  ]
+  async function handleRequestPermission() {
+    setRequesting(true)
+    const result = await requestPermission()
+    setPermStatus(result)
+    setRequesting(false)
+    if (result === 'granted') initScheduledNotifications(prefs)
+  }
+
+  // Meal time helpers
+  function updateMealTime(index, val) {
+    const times = [...prefs.mealTimes]
+    times[index] = val
+    update({ mealTimes: times })
+  }
+  function addMealTime() {
+    update({ mealTimes: [...prefs.mealTimes, '12:00'] })
+  }
+  function removeMealTime(index) {
+    update({ mealTimes: prefs.mealTimes.filter((_, i) => i !== index) })
+  }
+
+  const permGranted = permStatus === 'granted'
+  const permDenied = permStatus === 'denied'
+  const notSupported = permStatus === 'not-supported'
+
+  const sectionStyle = { marginBottom: 0 }
+  const sectionHeaderStyle = { fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', padding: '18px 0 8px', borderBottom: '1px solid var(--border-light)', marginBottom: 0 }
+  const rowStyle = { display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0', borderBottom: '1px solid var(--border-light)' }
+  const inputStyle = { background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 10, padding: '8px 12px', fontSize: 14, color: 'var(--text-primary)', font: 'inherit', width: '100%' }
 
   return (
-    <Modal title="Notifiche" onClose={onClose}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-        {items.map((item, i) => (
-          <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 0', borderBottom: i < items.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+    <Modal title="Notifiche e promemoria" onClose={onClose}>
+      {/* Permission banner */}
+      {!permGranted && !notSupported && (
+        <div style={{ background: permDenied ? '#fff0f0' : 'var(--green-pale)', border: `1.5px solid ${permDenied ? '#ffd4d4' : 'var(--green-light)'}`, borderRadius: 14, padding: '14px 16px', marginBottom: 20 }}>
+          {permDenied ? (
+            <>
+              <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--red)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <BellOff size={16} /> Notifiche bloccate
+              </p>
+              <p style={{ fontSize: 13, color: '#c0392b', lineHeight: 1.6 }}>
+                Hai bloccato le notifiche. Per attivarle vai nelle impostazioni del browser e concedi il permesso a questo sito.
+              </p>
+            </>
+          ) : (
+            <>
+              <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--green-dark)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <BellRing size={16} /> Attiva le notifiche
+              </p>
+              <p style={{ fontSize: 13, color: 'var(--green-dark)', lineHeight: 1.6, marginBottom: 10 }}>
+                Permetti all'app di mostrare notifiche per ricevere promemoria e avvisi.
+              </p>
+              <button onClick={handleRequestPermission} disabled={requesting} className="btn btn-primary" style={{ fontSize: 14, padding: '10px 18px', gap: 6 }}>
+                <Bell size={15} />{requesting ? 'In attesa…' : 'Attiva notifiche'}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {notSupported && (
+        <div style={{ background: '#fff4e6', border: '1.5px solid #f0922b', borderRadius: 14, padding: '14px 16px', marginBottom: 20 }}>
+          <p style={{ fontSize: 13, color: '#b45309', lineHeight: 1.6 }}>⚠️ Il tuo browser non supporta le notifiche push. Installa l'app per ricevere le notifiche.</p>
+        </div>
+      )}
+
+      {/* ── Event-based notifications ───────────────────────────── */}
+      <div style={sectionStyle}>
+        <p style={sectionHeaderStyle}>Avvisi dal dietista</p>
+
+        {[
+          { key: 'newMessage', label: 'Nuovo messaggio', desc: 'Avvisami quando il dietista ti scrive' },
+          { key: 'newDocument', label: 'Nuovo documento condiviso', desc: 'Avvisami quando viene aggiunto un documento' },
+          { key: 'dietUpdate', label: 'Aggiornamento piano alimentare', desc: 'Avvisami quando la dieta viene modificata' },
+        ].map(item => (
+          <div key={item.key} style={rowStyle}>
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 2 }}>{item.label}</p>
+              <p style={{ fontSize: 14, fontWeight: 500 }}>{item.label}</p>
               <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{item.desc}</p>
             </div>
-            <button onClick={() => toggle(item.key)} style={{
-              width: 48, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer',
-              background: prefs[item.key] ? 'var(--green-main)' : 'var(--border)',
-              transition: 'background 0.2s', position: 'relative', flexShrink: 0
-            }}>
-              <div style={{
-                width: 22, height: 22, borderRadius: '50%', background: 'white',
-                position: 'absolute', top: 3,
-                left: prefs[item.key] ? 23 : 3,
-                transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.2)'
-              }} />
-            </button>
+            <Toggle on={prefs[item.key]} onClick={() => update({ [item.key]: !prefs[item.key] })} />
           </div>
         ))}
-        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 16, lineHeight: 1.6 }}>
-          ℹ️ Le notifiche push richiedono che l'app sia installata sul dispositivo.
-        </p>
       </div>
+
+      {/* ── Meal reminders ─────────────────────────────────────── */}
+      <div style={sectionStyle}>
+        <p style={sectionHeaderStyle}>Promemoria pasti</p>
+        <div style={{ ...rowStyle, borderBottom: prefs.mealReminder ? '1px solid var(--border-light)' : 'none' }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 14, fontWeight: 500 }}>Promemoria pasti</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Ricordami di registrare i pasti</p>
+          </div>
+          <Toggle on={prefs.mealReminder} onClick={() => update({ mealReminder: !prefs.mealReminder })} />
+        </div>
+        {prefs.mealReminder && (
+          <div style={{ padding: '10px 0 4px' }}>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>Orari promemoria</p>
+            {prefs.mealTimes.map((t, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <input
+                  type="time"
+                  value={t}
+                  onChange={e => updateMealTime(i, e.target.value)}
+                  style={{ ...inputStyle, flex: 1 }}
+                />
+                {prefs.mealTimes.length > 1 && (
+                  <button onClick={() => removeMealTime(i)} style={{ background: '#fff0f0', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)', cursor: 'pointer', flexShrink: 0 }}>
+                    <Trash2 size={15} />
+                  </button>
+                )}
+              </div>
+            ))}
+            {prefs.mealTimes.length < 6 && (
+              <button onClick={addMealTime} style={{ background: 'var(--green-pale)', border: '1.5px dashed var(--green-light)', borderRadius: 10, width: '100%', padding: '9px', fontSize: 13, color: 'var(--green-main)', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, font: 'inherit', marginTop: 2 }}>
+                <Plus size={14} />Aggiungi orario
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Water reminders ────────────────────────────────────── */}
+      <div style={sectionStyle}>
+        <p style={sectionHeaderStyle}>Promemoria acqua</p>
+        <div style={{ ...rowStyle, borderBottom: prefs.waterReminder ? '1px solid var(--border-light)' : 'none' }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 14, fontWeight: 500 }}>Promemoria acqua</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Ricordami di bere durante la giornata</p>
+          </div>
+          <Toggle on={prefs.waterReminder} onClick={() => update({ waterReminder: !prefs.waterReminder })} />
+        </div>
+        {prefs.waterReminder && (
+          <div style={{ padding: '10px 0 4px' }}>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>Frequenza</p>
+            <select
+              value={prefs.waterIntervalHours}
+              onChange={e => update({ waterIntervalHours: parseFloat(e.target.value) })}
+              style={inputStyle}
+            >
+              {WATER_INTERVALS.map(w => (
+                <option key={w.val} value={w.val}>{w.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+
+      {/* ── Weigh-in reminder ──────────────────────────────────── */}
+      <div style={sectionStyle}>
+        <p style={sectionHeaderStyle}>Promemoria pesarsi</p>
+        <div style={{ ...rowStyle, borderBottom: prefs.weighReminder ? '1px solid var(--border-light)' : 'none' }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 14, fontWeight: 500 }}>Promemoria settimanale</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Ricordami di pesarmi una volta a settimana</p>
+          </div>
+          <Toggle on={prefs.weighReminder} onClick={() => update({ weighReminder: !prefs.weighReminder })} />
+        </div>
+        {prefs.weighReminder && (
+          <div style={{ padding: '10px 0 4px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>Giorno</p>
+              <select
+                value={prefs.weighDay}
+                onChange={e => update({ weighDay: parseInt(e.target.value) })}
+                style={inputStyle}
+              >
+                {WEEK_DAYS.map(d => <option key={d.val} value={d.val}>{d.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>Orario</p>
+              <input type="time" value={prefs.weighTime} onChange={e => update({ weighTime: e.target.value })} style={inputStyle} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Appointment reminder ───────────────────────────────── */}
+      <div style={sectionStyle}>
+        <p style={sectionHeaderStyle}>Promemoria appuntamento</p>
+        <div style={{ ...rowStyle, borderBottom: prefs.appointmentReminder ? '1px solid var(--border-light)' : 'none' }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 14, fontWeight: 500 }}>Promemoria visita</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Avvisami 1 ora prima dell'appuntamento</p>
+          </div>
+          <Toggle on={prefs.appointmentReminder} onClick={() => update({ appointmentReminder: !prefs.appointmentReminder })} />
+        </div>
+        {prefs.appointmentReminder && (
+          <div style={{ padding: '10px 0 4px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>Data visita</p>
+              <input type="date" value={prefs.appointmentDate} onChange={e => update({ appointmentDate: e.target.value })} style={inputStyle} min={new Date().toISOString().split('T')[0]} />
+            </div>
+            <div>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>Orario</p>
+              <input type="time" value={prefs.appointmentTime} onChange={e => update({ appointmentTime: e.target.value })} style={inputStyle} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 20, lineHeight: 1.6 }}>
+        ℹ️ I promemoria schedulati (pasti, acqua, pesata) funzionano quando l'app è aperta o installata come PWA.
+      </p>
     </Modal>
   )
 }
