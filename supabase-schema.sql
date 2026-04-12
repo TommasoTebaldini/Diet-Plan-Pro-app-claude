@@ -298,7 +298,63 @@ alter table note_specialistiche add column if not exists visible_to_patient bool
 -- INDICI
 -- ============================================================
 
+-- Diario alimentare: ricerche per utente + data
+create index if not exists food_logs_user_date_idx on food_logs (user_id, date desc);
+
+-- Totali giornalieri: già ha PK composita (user_id, date), ma indice desc per range queries
+create index if not exists daily_logs_date_desc_idx on daily_logs (user_id, date desc);
+
+-- Registro acqua: ricerche per utente + data
+create index if not exists water_logs_user_date_idx on water_logs (user_id, date desc);
+
+-- Progressi peso: ricerche per utente + data
+create index if not exists weight_logs_user_date_idx on weight_logs (user_id, date desc);
+
+-- Wellness giornaliero: ricerche per utente + data
+create index if not exists daily_wellness_user_date_idx on daily_wellness (user_id, date desc);
+
+-- Chat: ricerche per paziente + ordine cronologico
+create index if not exists chat_messages_patient_created_idx on chat_messages (patient_id, created_at desc);
+
+-- Chat: messaggi non letti per paziente
+create index if not exists chat_messages_unread_idx on chat_messages (patient_id, sender_role) where read_at is null;
+
+-- Misurazioni corporee: ricerche per utente + data
+create index if not exists body_measurements_user_date_idx on body_measurements (user_id, date desc);
+
+-- Foto progressi: ricerche per utente + data
+create index if not exists progress_photos_user_date_idx on progress_photos (user_id, date desc);
+
+-- Completamenti pasti: ricerche per utente + data
+create index if not exists meal_completions_user_date_idx on meal_completions (user_id, date desc);
+
+-- Attività fisica: ricerche per utente + data
 create index if not exists activity_logs_user_date_idx on activity_logs (user_id, date desc);
+
+-- Diete paziente: ricerca dieta attiva per utente
+create index if not exists patient_diets_user_active_idx on patient_diets (user_id, is_active) where is_active = true;
+
+-- Pasti dieta: ricerca per diet_id
+create index if not exists diet_meals_diet_idx on diet_meals (diet_id);
+
+-- Relazione paziente-dietista: lookup bidirezionale
+create index if not exists patient_dietitian_patient_idx on patient_dietitian (patient_id);
+create index if not exists patient_dietitian_dietitian_idx on patient_dietitian (dietitian_id);
+
+-- Appuntamenti: ricerca per paziente + data
+create index if not exists appointments_patient_date_idx on appointments (patient_id, appointment_date desc);
+
+-- Documenti: ricerca per paziente
+create index if not exists patient_documents_patient_idx on patient_documents (patient_id);
+
+-- Alimenti personalizzati: ricerca per utente
+create index if not exists custom_foods_user_idx on custom_foods (user_id);
+
+-- Pasti personalizzati: ricerca per utente
+create index if not exists custom_meals_user_idx on custom_meals (user_id);
+
+-- Ricette: ricerca per utente
+create index if not exists ricette_user_idx on ricette (user_id);
 
 
 -- ============================================================

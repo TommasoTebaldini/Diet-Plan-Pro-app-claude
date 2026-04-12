@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { compressImage } from '../lib/imageCompressor'
 import { useAuth } from '../context/AuthContext'
 import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { TrendingDown, TrendingUp, Minus, Target, Plus, Scale, Activity, Flame, Camera, Ruler, X } from 'lucide-react'
@@ -225,11 +226,12 @@ export default function ProgressPage() {
     if (!photoFile) return
     setUploadingPhoto(true)
     setPhotoError(null)
-    const ext = photoFile.name.split('.').pop()
+    const compressed = await compressImage(photoFile, { maxWidth: 1920, maxHeight: 1920, quality: 0.8 })
+    const ext = compressed.type === 'image/jpeg' ? 'jpg' : photoFile.name.split('.').pop()
     const path = `${user.id}/${today}/${Date.now()}.${ext}`
     const { error: upErr } = await supabase.storage
       .from('progress-photos')
-      .upload(path, photoFile, { upsert: false })
+      .upload(path, compressed, { upsert: false })
     if (upErr) {
       setPhotoError('Errore upload: ' + upErr.message)
       setUploadingPhoto(false)

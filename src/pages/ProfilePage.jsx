@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { useAppSettings } from '../context/AppSettingsContext'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { compressImage } from '../lib/imageCompressor'
 import {
   LogOut, User, Mail, ChevronRight, Bell, Shield, X, Check,
   Eye, EyeOff, Camera, Utensils, AlertCircle, Globe, Moon, Sun, Type, Contrast,
@@ -934,9 +935,10 @@ export default function ProfilePage() {
     if (file.size > maxSize) return alert('La foto è troppo grande. Massimo 5 MB.')
     setAvatarUploading(true)
     try {
-      const ext = file.name.split('.').pop().toLowerCase()
+      const compressed = await compressImage(file, { maxWidth: 512, maxHeight: 512, quality: 0.8 })
+      const ext = compressed.type === 'image/jpeg' ? 'jpg' : file.name.split('.').pop().toLowerCase()
       const path = `${user.id}.${ext}`
-      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, compressed, { upsert: true })
       if (uploadError) throw uploadError
       const { data } = supabase.storage.from('avatars').getPublicUrl(path)
       const avatarUrl = `${data.publicUrl}?t=${Date.now()}`

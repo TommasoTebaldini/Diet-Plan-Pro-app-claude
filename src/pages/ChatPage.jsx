@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { compressImage } from '../lib/imageCompressor'
 import { useAuth } from '../context/AuthContext'
 import {
   Send, CheckCheck, Check, MessageCircle,
@@ -292,15 +293,16 @@ export default function ChatPage() {
     if (!file) return
     e.target.value = ''
     setSending(true)
+    const compressed = await compressImage(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.75 })
     const optimistic = {
       id: `opt_${Date.now()}`, patient_id: user.id,
       sender_role: 'patient', sender_id: user.id,
-      content: '', message_type: 'image', file_url: URL.createObjectURL(file),
+      content: '', message_type: 'image', file_url: URL.createObjectURL(compressed),
       file_name: file.name, created_at: new Date().toISOString(), read_at: null
     }
     setMessages(prev => [...prev, optimistic])
     try {
-      const fileUrl = await uploadToStorage(file, 'img')
+      const fileUrl = await uploadToStorage(compressed, 'img')
       const { data, error } = await supabase.from('chat_messages').insert({
         patient_id: user.id, sender_role: 'patient', sender_id: user.id,
         content: '', message_type: 'image', file_url: fileUrl, file_name: file.name
