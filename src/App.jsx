@@ -12,10 +12,12 @@ import ProfilePage from './pages/ProfilePage'
 import ChatPage from './pages/ChatPage'
 import DocumentsPage from './pages/DocumentsPage'
 import ProgressPage from './pages/ProgressPage'
+import StatisticsPage from './pages/StatisticsPage'
 import WellnessPage from './pages/WellnessPage'
 import BottomNav from './components/BottomNav'
 import LoadingScreen from './components/LoadingScreen'
 import InstallBanner from './components/InstallBanner'
+import { NotificationProvider } from './context/NotificationContext'
 import OfflineBar from './components/OfflineBar'
 
 function PrivateRoute({ children }) {
@@ -41,7 +43,7 @@ function AppInner() {
   }
 
   return (
-    <>
+    <NotificationProvider user={user}>
       <OfflineBar onReconnect={handleReconnect} />
       <InstallBanner />
       <Routes>
@@ -55,12 +57,13 @@ function AppInner() {
         <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
         <Route path="/documenti" element={<PrivateRoute><DocumentsPage /></PrivateRoute>} />
         <Route path="/progressi" element={<PrivateRoute><ProgressPage /></PrivateRoute>} />
+        <Route path="/statistiche" element={<PrivateRoute><StatisticsPage /></PrivateRoute>} />
         <Route path="/benessere" element={<PrivateRoute><WellnessPage /></PrivateRoute>} />
         <Route path="/profilo" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       {user && <BottomNav />}
-    </>
+    </NotificationProvider>
   )
 }
 

@@ -1,54 +1,88 @@
 -- ============================================================
 -- NutriPlan — SQL AGGIORNAMENTO v9
 -- Esegui nel SQL Editor di Supabase
--- Aggiunge: avatar_url, intolerances, food_preferences in profiles
---           storage bucket per foto profilo
+-- Aggiunge: supporto media nella chat (foto, audio)
+--           stato online/offline (last_seen_at in profiles)
+--           storage bucket per i media della chat
 -- ============================================================
 
--- Colonna URL avatar (foto profilo)
-alter table profiles add column if not exists avatar_url text;
+-- ── 1. Colonne aggiuntive in chat_messages ──────────────────
+ALTER TABLE chat_messages
+  ADD COLUMN IF NOT EXISTS message_type text NOT NULL DEFAULT 'text'
+    CHECK (message_type IN ('text', 'image', 'audio'));
 
--- Colonna intolleranze e allergie (array JSON di stringhe)
-alter table profiles add column if not exists intolerances jsonb default '[]'::jsonb;
+ALTER TABLE chat_messages
+  ADD COLUMN IF NOT EXISTS file_url text;
 
--- Colonna preferenze alimentari (array JSON di stringhe)
-alter table profiles add column if not exists food_preferences jsonb default '[]'::jsonb;
+ALTER TABLE chat_messages
+  ADD COLUMN IF NOT EXISTS file_name text;
+
+-- Durata in secondi (per i messaggi vocali)
+ALTER TABLE chat_messages
+  ADD COLUMN IF NOT EXISTS duration_seconds numeric;
+
+-- ── 2. Stato online in profiles ─────────────────────────────
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS last_seen_at timestamptz;
+
+-- Abilita realtime su profiles (per aggiornamenti stato online)
+ALTER PUBLICATION supabase_realtime ADD TABLE profiles;
+
+-- ── 3. Storage bucket per i media della chat ────────────────
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'chat-media',
+  'chat-media',
+  false,
+  52428800,  -- 50 MB
+  ARRAY[
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+    'audio/webm', 'audio/ogg', 'audio/mp4', 'audio/mpeg', 'audio/wav'
+  ]
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- RLS Storage: il paziente può caricare file nella propria cartella
+DROP POLICY IF EXISTS "chat media upload" ON storage.objects;
+CREATE POLICY "chat media upload" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'chat-media'
+    AND auth.uid() IS NOT NULL
+    AND auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+-- RLS Storage: il paziente e il suo dietista possono leggere i file
+DROP POLICY IF EXISTS "chat media select" ON storage.objects;
+CREATE POLICY "chat media select" ON storage.objects
+  FOR SELECT USING (
+    bucket_id = 'chat-media'
+    AND (
+      -- Il proprietario del file (cartella = patient_id)
+      auth.uid()::text = (storage.foldername(name))[1]
+      -- Il dietista collegato al paziente
+      OR EXISTS (
+        SELECT 1 FROM patient_dietitian pd
+        WHERE pd.patient_id::text = (storage.foldername(name))[1]
+          AND pd.dietitian_id = auth.uid()
+      )
+    )
+  );
+
+-- RLS Storage: solo il proprietario può eliminare i propri file
+DROP POLICY IF EXISTS "chat media delete" ON storage.objects;
+CREATE POLICY "chat media delete" ON storage.objects
+  FOR DELETE USING (
+    bucket_id = 'chat-media'
+    AND auth.uid()::text = (storage.foldername(name))[1]
+  );
 
 -- ============================================================
--- STORAGE: bucket per le foto profilo
--- Esegui queste istruzioni nella sezione Storage del dashboard Supabase
--- oppure via SQL come segue:
+-- NOTE
+-- 1. message_type: 'text' (default), 'image', 'audio'
+-- 2. file_url: URL firmato (signed URL) generato dall'app al momento
+--    dell'upload, valido 10 anni. Viene salvato direttamente nel campo.
+-- 3. last_seen_at: aggiornato dall'app ogni 60s mentre l'utente è
+--    sulla pagina chat. Dietista "online" se last_seen_at < 5 minuti.
+-- 4. Il bucket 'chat-media' è privato. I file sono accessibili solo
+--    tramite signed URL generato dall'app.
 -- ============================================================
-
--- Crea il bucket "avatars" (pubblico, per permettere la visualizzazione diretta)
-insert into storage.buckets (id, name, public)
-values ('avatars', 'avatars', true)
-on conflict (id) do nothing;
-
--- Policy: ogni utente può caricare/aggiornare solo la propria foto
-drop policy if exists "utente carica avatar" on storage.objects;
-create policy "utente carica avatar" on storage.objects
-  for insert with check (
-    bucket_id = 'avatars' and
-    auth.uid()::text = split_part(name, '.', 1)
-  );
-
-drop policy if exists "utente aggiorna avatar" on storage.objects;
-create policy "utente aggiorna avatar" on storage.objects
-  for update using (
-    bucket_id = 'avatars' and
-    auth.uid()::text = split_part(name, '.', 1)
-  );
-
--- Policy: chiunque può leggere gli avatar (bucket pubblico)
-drop policy if exists "avatar pubblici" on storage.objects;
-create policy "avatar pubblici" on storage.objects
-  for select using (bucket_id = 'avatars');
-
--- Policy: ogni utente può eliminare il proprio avatar
-drop policy if exists "utente elimina avatar" on storage.objects;
-create policy "utente elimina avatar" on storage.objects
-  for delete using (
-    bucket_id = 'avatars' and
-    auth.uid()::text = split_part(name, '.', 1)
-  );
