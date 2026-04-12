@@ -1,54 +1,46 @@
 -- ============================================================
 -- NutriPlan — SQL AGGIORNAMENTO v10
 -- Esegui nel SQL Editor di Supabase
--- Aggiunge: avatar_url, intolerances, food_preferences in profiles
---           storage bucket per foto profilo
+-- Aggiunge: meal_completions — traccia i pasti completati dal paziente
 -- ============================================================
 
--- Colonna URL avatar (foto profilo)
-alter table profiles add column if not exists avatar_url text;
+-- Tabella: pasti segnati come completati
+create table if not exists meal_completions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users not null default auth.uid(),
+  diet_meal_id uuid references diet_meals not null,
+  date date not null,
+  completed_at timestamptz default now(),
+  unique(user_id, diet_meal_id, date)
+);
 
--- Colonna intolleranze e allergie (array JSON di stringhe)
-alter table profiles add column if not exists intolerances jsonb default '[]'::jsonb;
+alter table meal_completions enable row level security;
 
--- Colonna preferenze alimentari (array JSON di stringhe)
-alter table profiles add column if not exists food_preferences jsonb default '[]'::jsonb;
+-- Il paziente può leggere e gestire i propri completamenti
+drop policy if exists "paziente gestisce completamenti" on meal_completions;
+create policy "paziente gestisce completamenti" on meal_completions
+  for all using (auth.uid() = user_id);
+
+-- Il dietista può leggere i completamenti dei propri pazienti
+drop policy if exists "dietista legge completamenti" on meal_completions;
+create policy "dietista legge completamenti" on meal_completions
+  for select using (
+    exists (
+      select 1 from patient_dietitian pd
+      where pd.patient_id = meal_completions.user_id
+        and pd.dietitian_id = auth.uid()
+    )
+  );
 
 -- ============================================================
--- STORAGE: bucket per le foto profilo
--- Esegui queste istruzioni nella sezione Storage del dashboard Supabase
--- oppure via SQL come segue:
+-- NOTA SCHEMA: sostituti degli alimenti
+-- Il campo diet_meals.foods è jsonb con struttura:
+--   [{"name": "Pasta", "quantity": 80, "unit": "g"}]
+--
+-- Per aggiungere sostituti, estendi ogni alimento con:
+--   [{"name": "Pasta", "quantity": 80, "unit": "g",
+--     "substitutes": [{"name": "Riso", "quantity": 70, "unit": "g"}]}]
+--
+-- Nessuna modifica allo schema è necessaria: il campo foods
+-- è già jsonb e l'app legge automaticamente i sostituti.
 -- ============================================================
-
--- Crea il bucket "avatars" (pubblico, per permettere la visualizzazione diretta)
-insert into storage.buckets (id, name, public)
-values ('avatars', 'avatars', true)
-on conflict (id) do nothing;
-
--- Policy: ogni utente può caricare/aggiornare solo la propria foto
-drop policy if exists "utente carica avatar" on storage.objects;
-create policy "utente carica avatar" on storage.objects
-  for insert with check (
-    bucket_id = 'avatars' and
-    auth.uid()::text = split_part(name, '.', 1)
-  );
-
-drop policy if exists "utente aggiorna avatar" on storage.objects;
-create policy "utente aggiorna avatar" on storage.objects
-  for update using (
-    bucket_id = 'avatars' and
-    auth.uid()::text = split_part(name, '.', 1)
-  );
-
--- Policy: chiunque può leggere gli avatar (bucket pubblico)
-drop policy if exists "avatar pubblici" on storage.objects;
-create policy "avatar pubblici" on storage.objects
-  for select using (bucket_id = 'avatars');
-
--- Policy: ogni utente può eliminare il proprio avatar
-drop policy if exists "utente elimina avatar" on storage.objects;
-create policy "utente elimina avatar" on storage.objects
-  for delete using (
-    bucket_id = 'avatars' and
-    auth.uid()::text = split_part(name, '.', 1)
-  );
