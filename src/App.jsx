@@ -11,6 +11,7 @@ import ProfilePage from './pages/ProfilePage'
 import ChatPage from './pages/ChatPage'
 import DocumentsPage from './pages/DocumentsPage'
 import ProgressPage from './pages/ProgressPage'
+import WellnessPage from './pages/WellnessPage'
 import DietitianChatPage from './pages/DietitianChatPage'
 import BottomNav from './components/BottomNav'
 import LoadingScreen from './components/LoadingScreen'
@@ -56,6 +57,7 @@ export default function App() {
         <Route path="/chat" element={<PatientRoute><ChatPage /></PatientRoute>} />
         <Route path="/documenti" element={<PatientRoute><DocumentsPage /></PatientRoute>} />
         <Route path="/progressi" element={<PatientRoute><ProgressPage /></PatientRoute>} />
+        <Route path="/benessere" element={<PatientRoute><WellnessPage /></PatientRoute>} />
         <Route path="/profilo" element={<PatientRoute><ProfilePage /></PatientRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
