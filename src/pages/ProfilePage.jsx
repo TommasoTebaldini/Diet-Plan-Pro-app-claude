@@ -5,8 +5,16 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import {
   LogOut, User, Mail, ExternalLink, ChevronRight, Bell, Shield, X, Check,
-  Eye, EyeOff, Camera, Utensils, AlertCircle, Palette, Globe, Sun, Moon,
+  Eye, EyeOff, Camera, Utensils, AlertCircle, Globe, Moon, Sun, Type, Contrast,
+  Fingerprint, Download, Upload, Accessibility,
 } from 'lucide-react'
+import {
+  isBiometricSupported,
+  isBiometricAvailable,
+  getBiometricCredentialId,
+  registerBiometric,
+  clearBiometricCredential,
+} from '../lib/biometric'
 
 // ─── Modal wrapper ────────────────────────────────────────────────────────────
 function Modal({ title, onClose, children }) {
@@ -372,33 +380,94 @@ function NotificationsModal({ onClose }) {
   )
 }
 
-// ─── Appearance (theme) modal ─────────────────────────────────────────────────
+// ─── Appearance & Accessibility modal ────────────────────────────────────────
 function AppearanceModal({ onClose }) {
-  const { theme, setTheme } = useAppSettings()
+  const { settings, update } = useAppSettings()
 
-  const options = [
-    { val: 'light', label: 'Chiaro', desc: 'Sfondo bianco, testo scuro', icon: <Sun size={20} /> },
-    { val: 'dark', label: 'Scuro', desc: 'Sfondo scuro, testo chiaro', icon: <Moon size={20} /> },
+  const textSizes = [
+    { val: 'normal', label: 'Normale' },
+    { val: 'large', label: 'Grande' },
+    { val: 'xlarge', label: 'Extra grande' },
   ]
 
   return (
-    <Modal title="Aspetto" onClose={onClose}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 4, lineHeight: 1.6 }}>
-          Scegli il tema visivo dell'app.
-        </p>
-        {options.map(opt => (
-          <button key={opt.val} onClick={() => setTheme(opt.val)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px', borderRadius: 14, border: `2px solid ${theme === opt.val ? 'var(--green-main)' : 'var(--border)'}`, background: theme === opt.val ? 'var(--green-pale)' : 'var(--surface)', cursor: 'pointer', font: 'inherit', textAlign: 'left', transition: 'all 0.15s' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: theme === opt.val ? 'var(--green-main)' : 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: theme === opt.val ? 'white' : 'var(--text-muted)', flexShrink: 0 }}>
-              {opt.icon}
-            </div>
-            <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 15, fontWeight: 600, color: theme === opt.val ? 'var(--green-dark)' : 'var(--text-primary)' }}>{opt.label}</p>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{opt.desc}</p>
-            </div>
-            {theme === opt.val && <Check size={18} color="var(--green-main)" />}
+    <Modal title="Aspetto e accessibilità" onClose={onClose}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        {/* Dark mode */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 0', borderBottom: '1px solid var(--border-light)' }}>
+          <div style={{ width: 38, height: 38, borderRadius: 12, background: 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            {settings.darkMode ? <Moon size={18} color="var(--text-secondary)" /> : <Sun size={18} color="var(--orange)" />}
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 14, fontWeight: 500 }}>Modalità scura</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Riduci l'affaticamento degli occhi</p>
+          </div>
+          <button onClick={() => update({ darkMode: !settings.darkMode })} style={{
+            width: 48, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer',
+            background: settings.darkMode ? 'var(--green-main)' : 'var(--border)',
+            transition: 'background 0.2s', position: 'relative', flexShrink: 0
+          }}>
+            <div style={{
+              width: 22, height: 22, borderRadius: '50%', background: 'white',
+              position: 'absolute', top: 3,
+              left: settings.darkMode ? 23 : 3,
+              transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.2)'
+            }} />
           </button>
-        ))}
+        </div>
+
+        {/* High contrast */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 0', borderBottom: '1px solid var(--border-light)' }}>
+          <div style={{ width: 38, height: 38, borderRadius: 12, background: 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Contrast size={18} color="var(--text-secondary)" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 14, fontWeight: 500 }}>Alto contrasto</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Migliora la leggibilità del testo</p>
+          </div>
+          <button onClick={() => update({ highContrast: !settings.highContrast })} style={{
+            width: 48, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer',
+            background: settings.highContrast ? 'var(--green-main)' : 'var(--border)',
+            transition: 'background 0.2s', position: 'relative', flexShrink: 0
+          }}>
+            <div style={{
+              width: 22, height: 22, borderRadius: '50%', background: 'white',
+              position: 'absolute', top: 3,
+              left: settings.highContrast ? 23 : 3,
+              transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.2)'
+            }} />
+          </button>
+        </div>
+
+        {/* Text size */}
+        <div style={{ padding: '16px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 12, background: 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Type size={18} color="var(--text-secondary)" />
+            </div>
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 500 }}>Dimensione testo</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Adatta la leggibilità</p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {textSizes.map(ts => (
+              <button
+                key={ts.val}
+                onClick={() => update({ textSize: ts.val })}
+                style={{
+                  flex: 1, padding: '10px 4px', borderRadius: 10,
+                  background: settings.textSize === ts.val ? 'var(--green-main)' : 'var(--surface-2)',
+                  color: settings.textSize === ts.val ? 'white' : 'var(--text-secondary)',
+                  border: `1.5px solid ${settings.textSize === ts.val ? 'transparent' : 'var(--border)'}`,
+                  font: 'inherit', fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                }}
+              >
+                {ts.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </Modal>
   )
@@ -406,7 +475,7 @@ function AppearanceModal({ onClose }) {
 
 // ─── Language modal ───────────────────────────────────────────────────────────
 function LanguageModal({ onClose }) {
-  const { language, setLanguage } = useAppSettings()
+  const { settings, update } = useAppSettings()
 
   const langs = [
     { val: 'it', label: 'Italiano', flag: '🇮🇹', available: true },
@@ -420,15 +489,214 @@ function LanguageModal({ onClose }) {
           Seleziona la lingua dell'app.
         </p>
         {langs.map(l => (
-          <button key={l.val} onClick={() => l.available && setLanguage(l.val)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px', borderRadius: 14, border: `2px solid ${language === l.val ? 'var(--green-main)' : 'var(--border)'}`, background: language === l.val ? 'var(--green-pale)' : 'var(--surface)', cursor: l.available ? 'pointer' : 'default', font: 'inherit', textAlign: 'left', opacity: l.available ? 1 : 0.6, transition: 'all 0.15s' }}>
+          <button key={l.val} onClick={() => l.available && update({ language: l.val })} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px', borderRadius: 14, border: `2px solid ${settings.language === l.val ? 'var(--green-main)' : 'var(--border)'}`, background: settings.language === l.val ? 'var(--green-pale)' : 'var(--surface)', cursor: l.available ? 'pointer' : 'default', font: 'inherit', textAlign: 'left', opacity: l.available ? 1 : 0.6, transition: 'all 0.15s' }}>
             <span style={{ fontSize: 28 }}>{l.flag}</span>
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 15, fontWeight: 600, color: language === l.val ? 'var(--green-dark)' : 'var(--text-primary)' }}>{l.label}</p>
+              <p style={{ fontSize: 15, fontWeight: 600, color: settings.language === l.val ? 'var(--green-dark)' : 'var(--text-primary)' }}>{l.label}</p>
               {!l.available && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Disponibile prossimamente</p>}
             </div>
-            {language === l.val && <Check size={18} color="var(--green-main)" />}
+            {settings.language === l.val && <Check size={18} color="var(--green-main)" />}
           </button>
         ))}
+      </div>
+    </Modal>
+  )
+}
+
+// ─── Biometric modal ──────────────────────────────────────────────────────────
+function BiometricModal({ user, onClose }) {
+  const [available, setAvailable] = useState(null) // null=checking, true, false
+  const [hasCredential, setHasCredential] = useState(false)
+  const [status, setStatus] = useState(null) // 'success'|'error'|null
+  const [msg, setMsg] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    setHasCredential(!!getBiometricCredentialId())
+    if (!isBiometricSupported()) { setAvailable(false); return }
+    isBiometricAvailable().then(setAvailable)
+  }, [])
+
+  async function handleRegister() {
+    setStatus(null); setLoading(true)
+    try {
+      const ok = await registerBiometric(user.id, user.email)
+      if (ok) { setHasCredential(true); setStatus('success'); setMsg('Face ID / Touch ID attivato!') }
+      else setStatus('error'), setMsg('Registrazione annullata o non supportata.')
+    } catch (e) {
+      setStatus('error'); setMsg(e?.message || 'Errore durante la registrazione.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function handleRemove() {
+    clearBiometricCredential()
+    setHasCredential(false)
+    setStatus('success'); setMsg('Autenticazione biometrica rimossa.')
+  }
+
+  return (
+    <Modal title="Face ID / Touch ID" onClose={onClose}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ textAlign: 'center', padding: '24px 0' }}>
+          <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <Fingerprint size={36} color="var(--green-main)" />
+          </div>
+          <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Accesso rapido biometrico</h3>
+          <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+            Usa Face ID, Touch ID o impronta digitale per accedere senza digitare la password.
+          </p>
+        </div>
+
+        {available === null && (
+          <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 14 }}>Verifica disponibilità…</p>
+        )}
+
+        {available === false && (
+          <div style={{ background: '#fff4e6', border: '1px solid #fed7aa', borderRadius: 10, padding: '12px 14px', fontSize: 14, color: '#92400e' }}>
+            Il tuo dispositivo o browser non supporta l'autenticazione biometrica.
+          </div>
+        )}
+
+        {status && (
+          <div style={{ padding: '12px 14px', borderRadius: 10, background: status === 'success' ? 'var(--green-pale)' : '#fff0f0', color: status === 'success' ? 'var(--green-dark)' : 'var(--red)', fontSize: 14 }}>
+            {msg}
+          </div>
+        )}
+
+        {available === true && !hasCredential && (
+          <button className="btn btn-primary btn-full" onClick={handleRegister} disabled={loading} style={{ gap: 10 }}>
+            {loading
+              ? <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+              : <Fingerprint size={18} />
+            }
+            {loading ? 'Registrazione…' : 'Attiva Face ID / Touch ID'}
+          </button>
+        )}
+
+        {available === true && hasCredential && (
+          <button className="btn btn-danger btn-full" onClick={handleRemove}>
+            Rimuovi autenticazione biometrica
+          </button>
+        )}
+      </div>
+    </Modal>
+  )
+}
+
+// ─── Backup & Restore modal ───────────────────────────────────────────────────
+function BackupModal({ user, onClose }) {
+  const [exporting, setExporting] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [status, setStatus] = useState(null)
+  const [msg, setMsg] = useState('')
+
+  async function handleExport() {
+    setExporting(true); setStatus(null)
+    try {
+      const [profile, dietLogs, waterLogs, measurements] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', user.id).single(),
+        supabase.from('diet_logs').select('*').eq('user_id', user.id),
+        supabase.from('water_logs').select('*').eq('user_id', user.id),
+        supabase.from('measurements').select('*').eq('user_id', user.id),
+      ])
+
+      const backup = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        userId: user.id,
+        email: user.email,
+        data: {
+          profile: profile.data,
+          dietLogs: dietLogs.data || [],
+          waterLogs: waterLogs.data || [],
+          measurements: measurements.data || [],
+        },
+      }
+
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `nutriplan-backup-${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      setStatus('success'); setMsg('Backup esportato con successo!')
+    } catch (e) {
+      setStatus('error'); setMsg(e?.message || 'Errore durante l\'esportazione.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  async function handleImport(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImporting(true); setStatus(null)
+    try {
+      const text = await file.text()
+      const backup = JSON.parse(text)
+      if (!backup.data || backup.version !== 1) throw new Error('File di backup non valido.')
+
+      const { profile, dietLogs, waterLogs, measurements } = backup.data
+
+      const ops = []
+      if (profile) ops.push(supabase.from('profiles').upsert({ ...profile, id: user.id }))
+      if (dietLogs?.length) ops.push(supabase.from('diet_logs').upsert(dietLogs.map(r => ({ ...r, user_id: user.id }))))
+      if (waterLogs?.length) ops.push(supabase.from('water_logs').upsert(waterLogs.map(r => ({ ...r, user_id: user.id }))))
+      if (measurements?.length) ops.push(supabase.from('measurements').upsert(measurements.map(r => ({ ...r, user_id: user.id }))))
+
+      await Promise.all(ops)
+      setStatus('success'); setMsg('Ripristino completato!')
+    } catch (e) {
+      setStatus('error'); setMsg(e?.message || 'Errore durante il ripristino.')
+    } finally {
+      setImporting(false)
+      e.target.value = ''
+    }
+  }
+
+  return (
+    <Modal title="Backup e ripristino" onClose={onClose}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          Esporta tutti i tuoi dati (profilo, diario alimentare, acqua, misurazioni) in un file JSON. Puoi reimportarlo in qualsiasi momento.
+        </p>
+
+        {status && (
+          <div style={{ padding: '12px 14px', borderRadius: 10, background: status === 'success' ? 'var(--green-pale)' : '#fff0f0', color: status === 'success' ? 'var(--green-dark)' : 'var(--red)', fontSize: 14 }}>
+            {msg}
+          </div>
+        )}
+
+        <button className="btn btn-primary btn-full" onClick={handleExport} disabled={exporting} style={{ gap: 10 }}>
+          {exporting
+            ? <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+            : <Download size={18} />
+          }
+          {exporting ? 'Esportazione…' : 'Esporta backup'}
+        </button>
+
+        <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 16 }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>
+            Ripristina da un backup precedente:
+          </p>
+          <label style={{ display: 'block' }}>
+            <input type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} />
+            <span className="btn btn-secondary btn-full" style={{ gap: 10, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+              {importing
+                ? <span style={{ width: 16, height: 16, border: '2px solid var(--green-main)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                : <Upload size={18} />
+              }
+              {importing ? 'Ripristino…' : 'Importa backup'}
+            </span>
+          </label>
+        </div>
+
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+          ⚠️ Il ripristino sovrascrive i dati esistenti con quelli del file selezionato.
+        </p>
       </div>
     </Modal>
   )
@@ -437,10 +705,10 @@ function LanguageModal({ onClose }) {
 // ─── Main Profile page ────────────────────────────────────────────────────────
 export default function ProfilePage() {
   const { user, profile, signOut, refreshProfile } = useAuth()
-  const { theme } = useAppSettings()
+  const { settings } = useAppSettings()
   const navigate = useNavigate()
   const fileInputRef = useRef(null)
-  const [modal, setModal] = useState(null)
+  const [modal, setModal] = useState(null) // 'personal' | 'intolerances' | 'foodprefs' | 'security' | 'notifications' | 'appearance' | 'language' | 'biometric' | 'backup'
   const [localProfile, setLocalProfile] = useState(profile)
   const [loggingOut, setLoggingOut] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
@@ -490,9 +758,11 @@ export default function ProfilePage() {
     { icon: <Utensils size={18} />, label: 'Preferenze alimentari', desc: 'Vegetariano, vegano, ecc.', color: '#10b981', bg: '#ecfdf5', action: () => setModal('foodprefs') },
     { icon: <Bell size={18} />, label: 'Notifiche', desc: 'Gestisci gli avvisi', color: '#f0922b', bg: '#fff4e6', action: () => setModal('notifications') },
     { icon: <Shield size={18} />, label: 'Privacy e sicurezza', desc: 'Cambia password', color: '#8b5cf6', bg: '#f5f3ff', action: () => setModal('security') },
-    { icon: <Palette size={18} />, label: 'Aspetto', desc: theme === 'dark' ? 'Tema scuro attivo' : 'Tema chiaro attivo', color: '#3b82f6', bg: '#eff6ff', action: () => setModal('appearance') },
+    { icon: <Fingerprint size={18} />, label: 'Face ID / Touch ID', desc: 'Accesso rapido biometrico', color: '#0ea5e9', bg: '#e0f2fe', action: () => setModal('biometric') },
+    { icon: <Accessibility size={18} />, label: 'Aspetto e accessibilità', desc: settings.darkMode ? 'Tema scuro attivo' : 'Tema chiaro attivo', color: '#6366f1', bg: '#eef2ff', action: () => setModal('appearance') },
     { icon: <Globe size={18} />, label: 'Lingua', desc: 'Italiano', color: '#0ea5e9', bg: '#f0f9ff', action: () => setModal('language') },
-    { icon: <ExternalLink size={18} />, label: 'Piattaforma dietista', desc: 'Accedi al portale professionale', color: '#64748b', bg: '#f8fafc', action: () => window.open('https://nutri-plan-pro-cxee.vercel.app', '_blank') },
+    { icon: <Download size={18} />, label: 'Backup e ripristino', desc: 'Esporta o importa i tuoi dati', color: '#059669', bg: '#d1fae5', action: () => setModal('backup') },
+    { icon: <ExternalLink size={18} />, label: 'Piattaforma dietista', desc: 'Accedi al portale professionale', color: '#3b82f6', bg: '#eff6ff', action: () => window.open('https://nutri-plan-pro-cxee.vercel.app', '_blank') },
   ]
 
   return (
@@ -573,6 +843,8 @@ export default function ProfilePage() {
       {modal === 'notifications' && <NotificationsModal onClose={() => setModal(null)} />}
       {modal === 'appearance' && <AppearanceModal onClose={() => setModal(null)} />}
       {modal === 'language' && <LanguageModal onClose={() => setModal(null)} />}
+      {modal === 'biometric' && <BiometricModal user={user} onClose={() => setModal(null)} />}
+      {modal === 'backup' && <BackupModal user={user} onClose={() => setModal(null)} />}
     </>
   )
 }
