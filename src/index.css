@@ -157,5 +157,5 @@ select.input-field{cursor:pointer}
 @media(min-width:1024px){
   #root{flex-direction:row;height:100dvh;overflow:hidden}
   .app-sidebar{width:220px;flex-shrink:0;height:100dvh;position:sticky;top:0;overflow-y:auto;border-right:1px solid var(--border-light);background:var(--surface)}
-  .app-content{flex:1;min-width:0;height:100dvh;overflow-y:auto;display:flex;flex-direction:column}
+  .app-content,.app-content-public{flex:1;min-width:0;height:100dvh;overflow-y:auto;display:flex;flex-direction:column}
 }
