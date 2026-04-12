@@ -110,9 +110,14 @@ async function searchCustomMeals(query) {
 // Open Food Facts — uses Meilisearch-based API for accurate, relevant results
 function mapOFFProduct(p) {
   const n = p.nutriments || {}
+  // Try kcal directly, then convert from kJ (1 kcal ≈ 4.184 kJ)
+  const kcal = n['energy-kcal_100g']
+    || (n['energy_100g'] ? Math.round(n['energy_100g'] / 4.184) : 0)
+    || n['energy-kcal']
+    || 0
   return {
     id: p.code || p._id, name: p.product_name, brand: p.brands || '',
-    kcal_100g: Math.round(n['energy-kcal_100g'] || 0),
+    kcal_100g: Math.round(kcal),
     proteins_100g: Math.round((n['proteins_100g'] || 0) * 10) / 10,
     carbs_100g: Math.round((n['carbohydrates_100g'] || 0) * 10) / 10,
     fats_100g: Math.round((n['fat_100g'] || 0) * 10) / 10,
@@ -121,17 +126,22 @@ function mapOFFProduct(p) {
   }
 }
 
+function hasEnergyData(p) {
+  const n = p.nutriments || {}
+  return p.product_name && (n['energy-kcal_100g'] || n['energy_100g'] || n['energy-kcal'])
+}
+
 export async function searchOpenFoodFacts(query) {
   const fields = 'code,product_name,brands,nutriments'
   // Primary: Meilisearch-based API — returns results ranked by relevance to product name
   try {
     const res = await fetch(
-      `https://search.openfoodfacts.org/search?q=${encodeURIComponent(query)}&page_size=20&fields=${fields}&langs=it`,
+      `https://search.openfoodfacts.org/search?q=${encodeURIComponent(query)}&page_size=24&fields=${fields}`,
       { signal: AbortSignal.timeout(9000) }
     )
     const data = await res.json()
     const hits = (data.hits || [])
-      .filter(p => p.product_name && p.nutriments?.['energy-kcal_100g'])
+      .filter(hasEnergyData)
       .map(mapOFFProduct)
     if (hits.length > 0) return hits
   } catch { /* fall through to legacy API */ }
@@ -139,12 +149,12 @@ export async function searchOpenFoodFacts(query) {
   // Fallback: legacy CGI search
   try {
     const res = await fetch(
-      `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&fields=${fields}&page_size=20&lc=it&cc=it`,
+      `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&fields=${fields}&page_size=24`,
       { signal: AbortSignal.timeout(9000) }
     )
     const data = await res.json()
     return (data.products || [])
-      .filter(p => p.product_name && p.nutriments?.['energy-kcal_100g'])
+      .filter(hasEnergyData)
       .map(mapOFFProduct)
   } catch { return [] }
 }
