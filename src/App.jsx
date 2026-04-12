@@ -12,6 +12,7 @@ import ProfilePage from './pages/ProfilePage'
 import ChatPage from './pages/ChatPage'
 import DocumentsPage from './pages/DocumentsPage'
 import ProgressPage from './pages/ProgressPage'
+import ActivityPage from './pages/ActivityPage'
 import StatisticsPage from './pages/StatisticsPage'
 import WellnessPage from './pages/WellnessPage'
 import DietitianChatPage from './pages/DietitianChatPage'
@@ -67,6 +68,7 @@ function AppInner() {
         <Route path="/chat" element={<PatientRoute><ChatPage /></PatientRoute>} />
         <Route path="/documenti" element={<PatientRoute><DocumentsPage /></PatientRoute>} />
         <Route path="/progressi" element={<PatientRoute><ProgressPage /></PatientRoute>} />
+        <Route path="/attivita" element={<PatientRoute><ActivityPage /></PatientRoute>} />
         <Route path="/statistiche" element={<PatientRoute><StatisticsPage /></PatientRoute>} />
         <Route path="/benessere" element={<PatientRoute><WellnessPage /></PatientRoute>} />
         <Route path="/profilo" element={<PatientRoute><ProfilePage /></PatientRoute>} />

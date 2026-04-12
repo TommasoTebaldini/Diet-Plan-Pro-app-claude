@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
-import { Utensils, Droplets, TrendingUp, Apple, Flame, Leaf, MessageCircle, FileText, BookOpen, User, ChevronRight, Activity, Scale, Calendar, Zap, Award } from 'lucide-react'
+import { Utensils, Droplets, TrendingUp, Apple, Flame, Leaf, MessageCircle, FileText, BookOpen, User, ChevronRight, Activity, Scale, Calendar, Zap, Award, Heart, BarChart2 } from 'lucide-react'
 
 // Animated progress ring: starts at 0, transitions to target pct on mount
 function Ring({ pct, color, size = 60, strokeWidth = 7 }) {
@@ -73,7 +73,10 @@ const ACTIONS = [
   { label: 'Dieta', icon: Utensils, to: '/dieta', color: '#157a4a', bg: '#e6f5ee' },
   { label: 'Pasti', icon: Apple, to: '/macro', color: '#e8882a', bg: '#fff4e6' },
   { label: 'Acqua', icon: Droplets, to: '/acqua', color: '#2f7de8', bg: '#eff6ff' },
+  { label: 'Attività', icon: Activity, to: '/attivita', color: '#f97316', bg: '#fff7ed' },
   { label: 'Progressi', icon: TrendingUp, to: '/progressi', color: '#7c3aed', bg: '#f5f3ff' },
+  { label: 'Benessere', icon: Heart, to: '/benessere', color: '#ec4899', bg: '#fdf2f8' },
+  { label: 'Report', icon: BarChart2, to: '/statistiche', color: '#0f766e', bg: '#f0fdfa' },
   { label: 'Chat', icon: MessageCircle, to: '/chat', color: '#dc4a4a', bg: '#fff0f0' },
   { label: 'Documenti', icon: FileText, to: '/documenti', color: '#0891b2', bg: '#ecfeff' },
   { label: 'Alimenti', icon: BookOpen, to: '/alimenti', color: '#157a4a', bg: '#f0fdf4' },
