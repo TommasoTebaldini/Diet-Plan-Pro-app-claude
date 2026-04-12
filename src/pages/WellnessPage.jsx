@@ -174,13 +174,44 @@ export default function WellnessPage() {
   async function saveEntry() {
     setSaving(true)
     setError('')
-    const { error: saveError } = await supabase.from('daily_wellness').upsert(
-      { user_id: user.id, date: today, mood, energy, sleep_quality: sleepQuality, sleep_hours: sleepHours, sleep_restedness: sleepRestedness, symptoms, notes },
+    const payload = { user_id: user.id, date: today }
+    if (mood != null) payload.mood = mood
+    if (energy != null) payload.energy = energy
+    if (sleepQuality != null) payload.sleep_quality = sleepQuality
+    if (sleepHours != null) payload.sleep_hours = sleepHours
+    if (sleepRestedness != null) payload.sleep_restedness = sleepRestedness
+    if (symptoms.length > 0) payload.symptoms = symptoms
+    if (notes) payload.notes = notes
+
+    // Try upsert first, fall back to separate insert/update if needed
+    let saveError = null
+    const { error: upsertError } = await supabase.from('daily_wellness').upsert(
+      payload,
       { onConflict: 'user_id,date' }
     )
+    if (upsertError) {
+      // Fallback: try update if record exists, otherwise insert
+      const { data: existing } = await supabase.from('daily_wellness')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .maybeSingle()
+      if (existing) {
+        const { user_id: _userId, date: _date, ...updateFields } = payload
+        const { error: updateError } = await supabase.from('daily_wellness')
+          .update(updateFields)
+          .eq('id', existing.id)
+        saveError = updateError
+      } else {
+        const { error: insertError } = await supabase.from('daily_wellness')
+          .insert(payload)
+        saveError = insertError
+      }
+    }
     setSaving(false)
     if (saveError) {
-      setError('Errore durante il salvataggio. Riprova.')
+      console.error('Wellness save error:', saveError)
+      setError(`Errore: ${saveError.message || 'Salvataggio fallito. Riprova.'}`)
       return
     }
     setSaved(true)
@@ -217,24 +248,29 @@ export default function WellnessPage() {
       }
     })
 
-  const moodAvg = history.length > 0
-    ? (history.reduce((s, w) => s + (w.mood || 0), 0) / history.filter(w => w.mood).length).toFixed(1)
+  const moodEntries = history.filter(w => w.mood)
+  const moodAvg = moodEntries.length > 0
+    ? (moodEntries.reduce((s, w) => s + w.mood, 0) / moodEntries.length).toFixed(1)
     : null
 
-  const energyAvg = history.length > 0
-    ? (history.reduce((s, w) => s + (w.energy || 0), 0) / history.filter(w => w.energy).length).toFixed(1)
+  const energyEntries = history.filter(w => w.energy)
+  const energyAvg = energyEntries.length > 0
+    ? (energyEntries.reduce((s, w) => s + w.energy, 0) / energyEntries.length).toFixed(1)
     : null
 
-  const sleepAvg = history.length > 0
-    ? (history.reduce((s, w) => s + (w.sleep_quality || 0), 0) / history.filter(w => w.sleep_quality).length).toFixed(1)
+  const sleepEntries = history.filter(w => w.sleep_quality)
+  const sleepAvg = sleepEntries.length > 0
+    ? (sleepEntries.reduce((s, w) => s + w.sleep_quality, 0) / sleepEntries.length).toFixed(1)
     : null
 
-  const sleepHoursAvg = history.filter(w => w.sleep_hours != null).length > 0
-    ? (history.reduce((s, w) => s + (w.sleep_hours || 0), 0) / history.filter(w => w.sleep_hours != null).length).toFixed(1)
+  const sleepHoursEntries = history.filter(w => w.sleep_hours != null)
+  const sleepHoursAvg = sleepHoursEntries.length > 0
+    ? (sleepHoursEntries.reduce((s, w) => s + w.sleep_hours, 0) / sleepHoursEntries.length).toFixed(1)
     : null
 
-  const restednessAvg = history.filter(w => w.sleep_restedness).length > 0
-    ? (history.reduce((s, w) => s + (w.sleep_restedness || 0), 0) / history.filter(w => w.sleep_restedness).length).toFixed(1)
+  const restednessEntries = history.filter(w => w.sleep_restedness)
+  const restednessAvg = restednessEntries.length > 0
+    ? (restednessEntries.reduce((s, w) => s + w.sleep_restedness, 0) / restednessEntries.length).toFixed(1)
     : null
 
   const todayMoodOpt = MOOD_OPTIONS.find(o => o.value === (todayLog?.mood))
