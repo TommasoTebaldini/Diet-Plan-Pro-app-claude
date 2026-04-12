@@ -161,7 +161,7 @@ export default function MacroTrackerPage() {
     const newMood = mood === value ? null : value
     setMood(newMood)
     // First check if a wellness entry already exists for this date
-    const { data: existing } = await supabase.from('daily_wellness').select('*')
+    const { data: existing } = await supabase.from('daily_wellness').select('id')
       .eq('user_id', user.id).eq('date', date).maybeSingle()
     if (existing) {
       // Only update the mood field to preserve other wellness data
