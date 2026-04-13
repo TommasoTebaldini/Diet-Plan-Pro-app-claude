@@ -65,6 +65,7 @@ export default function MacroTrackerPage() {
   const [activeMealAdd, setActiveMealAdd] = useState(null)
   const [mood, setMood] = useState(null)
   const [addedFood, setAddedFood] = useState(null)
+  const [addFoodError, setAddFoodError] = useState('')
   const [showScanner, setShowScanner] = useState(false)
   const [scanningBarcode, setScanningBarcode] = useState(false)
   const [barcodeError, setBarcodeError] = useState('')
@@ -142,6 +143,7 @@ export default function MacroTrackerPage() {
   async function addFood() {
     if (!selected) return
     setSaving(true)
+    setAddFoodError('')
     const m = calcMacros(selected, grams)
     let savedName = null
     try {
@@ -153,6 +155,7 @@ export default function MacroTrackerPage() {
       }).select().single()
       if (error || !data) {
         console.error('Errore salvataggio alimento:', error)
+        setAddFoodError('Errore nel salvataggio. Riprova.')
         return
       }
       setLog(l => [...l, data])
@@ -328,7 +331,7 @@ export default function MacroTrackerPage() {
                   className="input-field"
                   placeholder="Cerca alimento (es. pollo, pasta, mela…)"
                   value={query}
-                  onChange={e => { setQuery(e.target.value); setSelected(null) }}
+                  onChange={e => { setQuery(e.target.value); setSelected(null); setAddFoodError('') }}
                   autoComplete="off"
                   style={{ flex: 1, paddingRight: searching ? 40 : 14 }}
                 />
@@ -410,6 +413,12 @@ export default function MacroTrackerPage() {
                 <button className="btn btn-primary btn-full" onClick={addFood} disabled={saving}>
                   {saving ? '…' : 'Aggiungi al diario'}
                 </button>
+                {addFoodError && (
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', background: '#fff0f0', padding: '8px 12px', borderRadius: 8, marginTop: 8, color: '#dc4a4a', fontSize: 12 }}>
+                    <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                    <span>{addFoodError}</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
