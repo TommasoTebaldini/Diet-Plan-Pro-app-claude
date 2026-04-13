@@ -94,11 +94,21 @@ create table if not exists custom_foods (
   created_at timestamptz default now()
 );
 
+-- Cartelle pazienti
+create table if not exists cartelle (
+  id uuid primary key default gen_random_uuid(),
+  nome text not null,
+  cognome text not null,
+  codice_fiscale text unique,
+  created_at timestamptz default now()
+);
+
 -- Relazione paziente ↔ dietista
 create table if not exists patient_dietitian (
   id uuid primary key default gen_random_uuid(),
   patient_id uuid references auth.users not null,
   dietitian_id uuid references auth.users not null,
+  cartella_id uuid references cartelle(id) on delete set null,
   created_at timestamptz default now(),
   unique(patient_id, dietitian_id)
 );
@@ -326,6 +336,7 @@ alter table food_logs enable row level security;
 alter table daily_logs enable row level security;
 alter table water_logs enable row level security;
 alter table custom_foods enable row level security;
+alter table cartelle enable row level security;
 alter table patient_dietitian enable row level security;
 alter table chat_messages enable row level security;
 alter table patient_documents enable row level security;
@@ -420,6 +431,20 @@ create policy "visibile ai coinvolti" on patient_dietitian
 drop policy if exists "dietista crea relazioni" on patient_dietitian;
 create policy "dietista crea relazioni" on patient_dietitian
   for insert with check (auth.uid() = dietitian_id);
+
+drop policy if exists "dietista aggiorna relazioni" on patient_dietitian;
+create policy "dietista aggiorna relazioni" on patient_dietitian
+  for update using (auth.uid() = dietitian_id);
+
+-- cartelle (dietista può leggere le cartelle)
+drop policy if exists "dietista legge cartelle" on cartelle;
+create policy "dietista legge cartelle" on cartelle
+  for select using (
+    exists (
+      select 1 from profiles p
+      where p.id = auth.uid() and p.role = 'dietitian'
+    )
+  );
 
 -- chat_messages
 drop policy if exists "chat visibile ai coinvolti" on chat_messages;

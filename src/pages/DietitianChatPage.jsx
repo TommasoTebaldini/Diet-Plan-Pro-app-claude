@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { Send, CheckCheck, Check, MessageCircle, LogOut, Users, ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Apple, Clock } from 'lucide-react'
+import { Send, CheckCheck, Check, MessageCircle, LogOut, Users, ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Apple, Clock, UserPlus, Search, X, FolderOpen } from 'lucide-react'
 
 const MEALS = [
   { key: 'colazione', label: 'Colazione', emoji: '☀️' },
@@ -52,9 +52,370 @@ function groupByDate(msgs) {
   return groups
 }
 
+// ─── Link Patient Modal (2-step flow) ─────────────────────────────────────────
+
+function LinkPatientModal({ dietitianId, onClose, onLinked }) {
+  const [step, setStep] = useState(1)
+  const [email, setEmail] = useState('')
+  const [searching, setSearching] = useState(false)
+  const [foundPatient, setFoundPatient] = useState(null)
+  const [error, setError] = useState('')
+  const [linking, setLinking] = useState(false)
+  // Step 2 state
+  const [newLinkId, setNewLinkId] = useState(null)
+  const [cartelle, setCartelle] = useState([])
+  const [cartelleLoading, setCartelleLoading] = useState(false)
+  const [selectedCartella, setSelectedCartella] = useState('')
+  const [cartellaSearch, setCartellaSearch] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  async function searchPatient() {
+    const trimmed = email.trim()
+    if (!trimmed) return
+    setSearching(true)
+    setError('')
+    setFoundPatient(null)
+
+    const { data, error: err } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, email')
+      .eq('email', trimmed)
+      .eq('role', 'patient')
+      .maybeSingle()
+
+    if (err) {
+      setError('Errore nella ricerca.')
+      setSearching(false)
+      return
+    }
+    if (!data) {
+      setError('Nessun paziente trovato con questa email.')
+      setSearching(false)
+      return
+    }
+
+    // Check if already linked
+    const { data: existing } = await supabase
+      .from('patient_dietitian')
+      .select('id, cartella_id')
+      .eq('patient_id', data.id)
+      .eq('dietitian_id', dietitianId)
+      .maybeSingle()
+
+    if (existing) {
+      if (existing.cartella_id) {
+        setError('Questo paziente è già collegato e ha una cartella associata.')
+      } else {
+        // Already linked but no cartella – go to step 2
+        setFoundPatient(data)
+        setNewLinkId(existing.id)
+        setStep(2)
+        loadCartelle()
+      }
+      setSearching(false)
+      return
+    }
+
+    setFoundPatient(data)
+    setSearching(false)
+  }
+
+  async function linkPatient() {
+    if (!foundPatient) return
+    setLinking(true)
+    setError('')
+
+    const { data, error: err } = await supabase
+      .from('patient_dietitian')
+      .insert({ patient_id: foundPatient.id, dietitian_id: dietitianId })
+      .select('id')
+      .single()
+
+    if (err) {
+      setError(err.message.includes('duplicate')
+        ? 'Questo paziente è già collegato.'
+        : 'Errore nel collegamento: ' + err.message)
+      setLinking(false)
+      return
+    }
+
+    setNewLinkId(data.id)
+    setLinking(false)
+    setStep(2)
+    loadCartelle()
+  }
+
+  async function loadCartelle() {
+    setCartelleLoading(true)
+    const { data, error: err } = await supabase
+      .from('cartelle')
+      .select('id, nome, cognome, codice_fiscale')
+      .order('cognome', { ascending: true })
+    if (err) {
+      setError('Errore nel caricamento delle cartelle.')
+      setCartelleLoading(false)
+      return
+    }
+    setCartelle(data || [])
+    setCartelleLoading(false)
+  }
+
+  async function saveCartella() {
+    if (!selectedCartella || !newLinkId) return
+    setSaving(true)
+    setError('')
+
+    const { error: err } = await supabase
+      .from('patient_dietitian')
+      .update({ cartella_id: selectedCartella })
+      .eq('id', newLinkId)
+      .eq('dietitian_id', dietitianId)
+
+    if (err) {
+      setError('Errore nel salvataggio della cartella: ' + err.message)
+      setSaving(false)
+      return
+    }
+
+    setSaving(false)
+    onLinked()
+    onClose()
+  }
+
+  function skipCartella() {
+    onLinked()
+    onClose()
+  }
+
+  const filteredCartelle = cartelle.filter(c => {
+    if (!cartellaSearch.trim()) return true
+    const q = cartellaSearch.toLowerCase()
+    return (
+      (c.nome || '').toLowerCase().includes(q) ||
+      (c.cognome || '').toLowerCase().includes(q) ||
+      (c.codice_fiscale || '').toLowerCase().includes(q)
+    )
+  })
+
+  const overlayStyle = {
+    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    zIndex: 9999, padding: 16,
+  }
+  const modalStyle = {
+    background: 'white', borderRadius: 16, width: '100%', maxWidth: 420,
+    maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+  }
+  const headerStyle = {
+    background: 'linear-gradient(160deg, var(--green-dark), var(--green-main))',
+    padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+  }
+  const bodyStyle = { padding: '20px', overflowY: 'auto', flex: 1 }
+  const inputStyle = {
+    width: '100%', padding: '11px 14px', borderRadius: 10, border: '1.5px solid var(--border)',
+    fontSize: 14, fontFamily: 'var(--font-body)', outline: 'none', background: 'var(--surface-2)',
+    boxSizing: 'border-box',
+  }
+  const btnPrimary = {
+    width: '100%', padding: '12px', borderRadius: 10, border: 'none',
+    background: 'var(--green-main)', color: 'white', fontSize: 14, fontWeight: 600,
+    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+  }
+  const btnSecondary = {
+    width: '100%', padding: '10px', borderRadius: 10, border: '1.5px solid var(--border)',
+    background: 'white', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500,
+    cursor: 'pointer', marginTop: 8,
+  }
+
+  return (
+    <div style={overlayStyle} onClick={onClose}>
+      <div style={modalStyle} onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div style={headerStyle}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {step === 1
+              ? <UserPlus size={18} color="white" />
+              : <FolderOpen size={18} color="white" />
+            }
+            <span style={{ color: 'white', fontSize: 16, fontWeight: 600 }}>
+              {step === 1 ? 'Collega paziente' : 'Seleziona cartella'}
+            </span>
+          </div>
+          <button onClick={onClose} style={{
+            background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8,
+            width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+          }}>
+            <X size={16} color="white" />
+          </button>
+        </div>
+
+        <div style={bodyStyle}>
+          {step === 1 ? (
+            <>
+              {/* Step 1: Search and link */}
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 14, lineHeight: 1.5 }}>
+                Cerca il paziente tramite email per collegarlo al tuo profilo.
+              </p>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                <div style={{ flex: 1, position: 'relative' }}>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => { setEmail(e.target.value); setError(''); setFoundPatient(null) }}
+                    onKeyDown={e => { if (e.key === 'Enter') searchPatient() }}
+                    placeholder="Email del paziente…"
+                    style={inputStyle}
+                  />
+                </div>
+                <button onClick={searchPatient} disabled={searching || !email.trim()} style={{
+                  padding: '10px 14px', borderRadius: 10, border: 'none',
+                  background: email.trim() ? 'var(--green-main)' : 'var(--border)',
+                  color: 'white', cursor: email.trim() ? 'pointer' : 'default',
+                  display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 500,
+                  flexShrink: 0,
+                }}>
+                  <Search size={14} />
+                  {searching ? 'Cerco…' : 'Cerca'}
+                </button>
+              </div>
+
+              {error && (
+                <p style={{ fontSize: 13, color: '#dc2626', background: '#fef2f2', padding: '10px 12px', borderRadius: 8, marginBottom: 12 }}>
+                  {error}
+                </p>
+              )}
+
+              {foundPatient && (
+                <div style={{ background: 'var(--green-pale)', borderRadius: 12, padding: '14px 16px', marginBottom: 14 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+                    Paziente trovato
+                  </p>
+                  <p style={{ fontSize: 14, fontWeight: 500 }}>
+                    {foundPatient.first_name || ''} {foundPatient.last_name || ''}
+                  </p>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                    {foundPatient.email}
+                  </p>
+                </div>
+              )}
+
+              {foundPatient && (
+                <button onClick={linkPatient} disabled={linking} style={{
+                  ...btnPrimary,
+                  opacity: linking ? 0.7 : 1,
+                }}>
+                  <UserPlus size={15} />
+                  {linking ? 'Collegamento…' : 'Collega paziente'}
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              {/* Step 2: Select cartella */}
+              <div style={{ background: 'var(--green-pale)', borderRadius: 12, padding: '12px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green-main)', flexShrink: 0 }} />
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 600 }}>✓ Paziente collegato</p>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                    {foundPatient?.first_name || ''} {foundPatient?.last_name || ''} — {foundPatient?.email}
+                  </p>
+                </div>
+              </div>
+
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
+                Seleziona la cartella del paziente dalla tabella cartelle.
+              </p>
+
+              {/* Search field for cartelle */}
+              <div style={{ position: 'relative', marginBottom: 10 }}>
+                <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="text"
+                  value={cartellaSearch}
+                  onChange={e => setCartellaSearch(e.target.value)}
+                  placeholder="Cerca per nome, cognome o codice fiscale…"
+                  style={{ ...inputStyle, paddingLeft: 34 }}
+                />
+              </div>
+
+              {error && (
+                <p style={{ fontSize: 13, color: '#dc2626', background: '#fef2f2', padding: '10px 12px', borderRadius: 8, marginBottom: 10 }}>
+                  {error}
+                </p>
+              )}
+
+              {cartelleLoading ? (
+                <div style={{ textAlign: 'center', padding: 30 }}>
+                  <div style={{ width: 22, height: 22, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto 8px' }} />
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Caricamento cartelle…</p>
+                </div>
+              ) : filteredCartelle.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>
+                  <FolderOpen size={28} style={{ marginBottom: 6, opacity: 0.3 }} />
+                  <p style={{ fontSize: 13 }}>
+                    {cartellaSearch ? 'Nessuna cartella trovata' : 'Nessuna cartella disponibile'}
+                  </p>
+                </div>
+              ) : (
+                <div style={{ maxHeight: 220, overflowY: 'auto', borderRadius: 10, border: '1px solid var(--border)', marginBottom: 14 }}>
+                  {filteredCartelle.map(c => {
+                    const isSelected = selectedCartella === c.id
+                    return (
+                      <button key={c.id} onClick={() => setSelectedCartella(c.id)} style={{
+                        width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '11px 14px', background: isSelected ? 'var(--green-pale)' : 'white',
+                        border: 'none', borderBottom: '1px solid var(--border-light)',
+                        cursor: 'pointer', textAlign: 'left', transition: 'background 0.12s',
+                      }}>
+                        <div style={{
+                          width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+                          border: isSelected ? 'none' : '2px solid var(--border)',
+                          background: isSelected ? 'var(--green-main)' : 'white',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          {isSelected && <Check size={11} color="white" />}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {c.cognome || ''} {c.nome || ''}
+                          </p>
+                          {c.codice_fiscale && (
+                            <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                              CF: {c.codice_fiscale}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
+              <button onClick={saveCartella} disabled={!selectedCartella || saving} style={{
+                ...btnPrimary,
+                opacity: !selectedCartella || saving ? 0.5 : 1,
+                cursor: !selectedCartella || saving ? 'default' : 'pointer',
+              }}>
+                <FolderOpen size={15} />
+                {saving ? 'Salvataggio…' : 'Salva cartella'}
+              </button>
+
+              <button onClick={skipCartella} style={btnSecondary}>
+                Salta per ora
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── PatientList sidebar ──────────────────────────────────────────────────────
 
-function PatientList({ patients, loading, selected, onSelect, onSignOut }) {
+function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkPatient }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'white' }}>
       {/* Header */}
@@ -72,13 +433,22 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut }) {
             <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>Vista dietista</p>
           </div>
         </div>
-        <button onClick={onSignOut} style={{
-          background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10,
-          padding: '7px 10px', cursor: 'pointer', color: 'white',
-          display: 'flex', alignItems: 'center', gap: 5, fontSize: 12,
-        }}>
-          <LogOut size={14} /> Esci
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button onClick={onLinkPatient} style={{
+            background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10,
+            padding: '7px 10px', cursor: 'pointer', color: 'white',
+            display: 'flex', alignItems: 'center', gap: 5, fontSize: 12,
+          }}>
+            <UserPlus size={14} /> Collega
+          </button>
+          <button onClick={onSignOut} style={{
+            background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10,
+            padding: '7px 10px', cursor: 'pointer', color: 'white',
+            display: 'flex', alignItems: 'center', gap: 5, fontSize: 12,
+          }}>
+            <LogOut size={14} /> Esci
+          </button>
+        </div>
       </div>
 
       {/* Patient list */}
@@ -419,6 +789,7 @@ export default function DietitianChatPage() {
   const [loadingList, setLoadingList] = useState(true)
   const [sending, setSending] = useState(false)
   const [mobilePanel, setMobilePanel] = useState('list')
+  const [showLinkModal, setShowLinkModal] = useState(false)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
 
@@ -548,7 +919,7 @@ export default function DietitianChatPage() {
 
   const currentPatient = patients.find(p => p.id === selected) ?? null
 
-  const listProps = { patients, loading: loadingList, selected, onSelect: openChat, onSignOut: signOut }
+  const listProps = { patients, loading: loadingList, selected, onSelect: openChat, onSignOut: signOut, onLinkPatient: () => setShowLinkModal(true) }
   const chatProps = { currentPatient, messages, text, setText, sending, bottomRef, inputRef, onSend: sendMessage, onBack: () => setMobilePanel('list') }
 
   return (
@@ -585,6 +956,15 @@ export default function DietitianChatPage() {
           : <ChatView {...chatProps} />
         }
       </div>
+
+      {/* Link Patient Modal */}
+      {showLinkModal && (
+        <LinkPatientModal
+          dietitianId={user.id}
+          onClose={() => setShowLinkModal(false)}
+          onLinked={loadPatients}
+        />
+      )}
     </>
   )
 }
