@@ -270,6 +270,7 @@ create table if not exists progress_photos (
 -- ============================================================
 
 -- Profili utente: colonne estese
+alter table profiles add column if not exists role text default 'patient';
 alter table profiles add column if not exists full_name text;
 alter table profiles add column if not exists first_name text;
 alter table profiles add column if not exists last_name text;
