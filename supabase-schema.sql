@@ -699,6 +699,49 @@ $$;
 
 
 -- ============================================================
+-- MIGRAZIONI (sicure da eseguire su database già esistenti)
+-- Aggiungono colonne e policy mancanti senza toccare i dati.
+-- ============================================================
+
+-- Colonna orario pasto nel diario alimentare
+ALTER TABLE food_logs ADD COLUMN IF NOT EXISTS meal_time text;
+
+-- Colonna qualità del riposo nel benessere giornaliero
+ALTER TABLE daily_wellness ADD COLUMN IF NOT EXISTS sleep_restedness int;
+ALTER TABLE daily_wellness DROP CONSTRAINT IF EXISTS chk_sleep_restedness_range;
+ALTER TABLE daily_wellness ADD CONSTRAINT chk_sleep_restedness_range
+  CHECK (sleep_restedness between 1 and 5);
+
+-- Assicura che le policy RLS per patient_documents siano attive
+-- (necessario se lo schema è stato applicato parzialmente)
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where tablename = 'patient_documents'
+      and policyname = 'paziente vede propri documenti'
+  ) then
+    execute $p$
+      create policy "paziente vede propri documenti" on patient_documents
+        for select using (auth.uid() = patient_id and visible is not false)
+    $p$;
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where tablename = 'patient_documents'
+      and policyname = 'dietista gestisce documenti'
+  ) then
+    execute $p$
+      create policy "dietista gestisce documenti" on patient_documents
+        for all using (auth.uid() = dietitian_id)
+    $p$;
+  end if;
+end;
+$$;
+
+
+-- ============================================================
 -- NOTE PER IL DIETISTA
 --
 -- Assegnare una dieta a un paziente:
@@ -712,6 +755,9 @@ $$;
 -- Condividere un documento:
 --   insert into patient_documents (patient_id, dietitian_id, title, type, content, visible)
 --   values ('UUID-PAZIENTE', auth.uid(), 'Titolo', 'advice', 'Testo...', true);
+--
+--   IMPORTANTE: UUID-PAZIENTE deve essere l'UUID di autenticazione del paziente,
+--   visibile in Supabase → Authentication → Users (colonna "User UID").
 --
 -- Creare un appuntamento:
 --   insert into appointments (patient_id, dietitian_id, title, appointment_date, notes)
