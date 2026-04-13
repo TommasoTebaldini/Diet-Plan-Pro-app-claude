@@ -335,10 +335,30 @@ drop policy if exists "utenti vedono i propri dati" on food_logs;
 create policy "utenti vedono i propri dati" on food_logs
   for all using (auth.uid() = user_id);
 
+drop policy if exists "dietista legge diario pazienti" on food_logs;
+create policy "dietista legge diario pazienti" on food_logs
+  for select using (
+    exists (
+      select 1 from patient_dietitian pd
+      where pd.patient_id = food_logs.user_id
+        and pd.dietitian_id = auth.uid()
+    )
+  );
+
 -- daily_logs
 drop policy if exists "utenti vedono i propri dati" on daily_logs;
 create policy "utenti vedono i propri dati" on daily_logs
   for all using (auth.uid() = user_id);
+
+drop policy if exists "dietista legge totali giornalieri pazienti" on daily_logs;
+create policy "dietista legge totali giornalieri pazienti" on daily_logs
+  for select using (
+    exists (
+      select 1 from patient_dietitian pd
+      where pd.patient_id = daily_logs.user_id
+        and pd.dietitian_id = auth.uid()
+    )
+  );
 
 -- water_logs
 drop policy if exists "utenti vedono i propri dati" on water_logs;

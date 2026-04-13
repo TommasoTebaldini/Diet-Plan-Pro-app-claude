@@ -61,7 +61,8 @@ export default function MacroTrackerPage() {
   const [diet, setDiet] = useState(null)
   const [saving, setSaving] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
-  const [expandedMeal, setExpandedMeal] = useState(null)
+  const [expandedMeal, setExpandedMeal] = useState('colazione')
+  const [activeMealAdd, setActiveMealAdd] = useState(null)
   const [mood, setMood] = useState(null)
   const [addedFood, setAddedFood] = useState(null)
   const [showScanner, setShowScanner] = useState(false)
@@ -104,6 +105,22 @@ export default function MacroTrackerPage() {
     if (def) setMealTime(def.defaultTime)
   }
 
+  function openMealSearch(mealKey) {
+    selectMealType(mealKey)
+    setActiveMealAdd(mealKey)
+    setShowSearch(true)
+    setSelected(null)
+    setQuery('')
+    setResults([])
+  }
+
+  function closeSearch() {
+    setShowSearch(false)
+    setActiveMealAdd(null)
+    setSelected(null)
+    setResults([])
+  }
+
   async function handleBarcodeFound(barcode) {
     setShowScanner(false)
     setScanningBarcode(true)
@@ -126,16 +143,21 @@ export default function MacroTrackerPage() {
     if (!selected) return
     setSaving(true)
     const m = calcMacros(selected, grams)
-    const { data } = await supabase.from('food_logs').insert({
+    const { data, error } = await supabase.from('food_logs').insert({
+      user_id: user.id,
       date, meal_type: meal, meal_time: mealTime || null, food_name: selected.name,
       grams: parseFloat(grams) || 100, ...m,
       food_data: { ...selected, meal_time: mealTime || null },
     }).select().single()
-    if (data) setLog(l => [...l, data])
+    setSaving(false)
+    if (error || !data) {
+      console.error('Errore salvataggio alimento:', error)
+      return
+    }
+    setLog(l => [...l, data])
     await updateDailyLog()
     const justAdded = selected.name
     setSelected(null); setQuery(''); setResults([])
-    setSaving(false)
     // Show brief confirmation and keep search panel open for more items
     setAddedFood(justAdded)
     setTimeout(() => setAddedFood(null), 2000)
@@ -180,10 +202,11 @@ export default function MacroTrackerPage() {
     const next = d.toISOString().split('T')[0]
     setDate(next)
     setShowSearch(false)
+    setActiveMealAdd(null)
     setSelected(null)
     setQuery('')
     setResults([])
-    setExpandedMeal(null)
+    setExpandedMeal('colazione')
   }
 
   const totals = log.reduce((a, f) => ({
@@ -216,7 +239,7 @@ export default function MacroTrackerPage() {
             <button onClick={() => changeDate(1)} disabled={isToday} style={{ background: isToday ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isToday ? 'default' : 'pointer', color: isToday ? 'rgba(255,255,255,0.3)' : 'white' }}>
               <ChevronRight size={18} />
             </button>
-            <button onClick={() => { setShowSearch(v => !v); setSelected(null); setResults([]) }}
+            <button onClick={() => { if (showSearch) { closeSearch() } else { setShowSearch(true); setActiveMealAdd(null) } }}
               style={{ background: showSearch ? 'rgba(255,255,255,0.2)' : 'white', color: showSearch ? 'white' : 'var(--green-main)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
               {showSearch ? <X size={16} /> : <Plus size={16} />}
             </button>
@@ -266,6 +289,13 @@ export default function MacroTrackerPage() {
         {/* ── Add food panel ── */}
         {showSearch && (
           <div className="card animate-slideUp" style={{ padding: 14 }}>
+            {/* Panel header with close */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                Aggiungi alimento
+              </p>
+              <button onClick={closeSearch} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}><X size={15} /></button>
+            </div>
             {/* Success confirmation */}
             {addedFood && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--green-pale)', borderRadius: 10, padding: '9px 12px', marginBottom: 12, color: 'var(--green-dark)', fontSize: 13, fontWeight: 500 }}>
@@ -395,29 +425,42 @@ export default function MacroTrackerPage() {
         {/* ── Meal cards ── */}
         {MEALS.map(m => {
           const mealFoods = log.filter(f => f.meal_type === m.key)
-          if (!mealFoods.length) return null
           const mealKcal = mealFoods.reduce((s, f) => s + (f.kcal || 0), 0)
           const isOpen = expandedMeal === m.key
           const times = mealFoods.map(f => f.food_data?.meal_time).filter(Boolean).sort()
           const timeLabel = times.length > 0 ? times[0] : null
           return (
             <div key={m.key} className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <button onClick={() => setExpandedMeal(isOpen ? null : m.key)} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '13px 14px', display: 'flex', alignItems: 'center', gap: 9, font: 'inherit' }}>
-                <span style={{ fontSize: 20 }}>{m.emoji}</span>
-                <div style={{ flex: 1, textAlign: 'left' }}>
-                  <span style={{ fontSize: 14, fontWeight: 600 }}>{m.label}</span>
-                  {timeLabel && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 1 }}>
-                      <Clock size={10} color="var(--text-muted)" />
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{timeLabel}</span>
-                    </div>
-                  )}
-                </div>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{mealKcal} kcal</span>
-                {isOpen ? <ChevronUp size={15} color="var(--text-muted)" /> : <ChevronDown size={15} color="var(--text-muted)" />}
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', padding: '13px 14px', gap: 9 }}>
+                <button onClick={() => setExpandedMeal(isOpen ? null : m.key)} style={{ display: 'flex', alignItems: 'center', gap: 9, flex: 1, background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', padding: 0, textAlign: 'left' }}>
+                  <span style={{ fontSize: 20 }}>{m.emoji}</span>
+                  <div style={{ flex: 1, textAlign: 'left' }}>
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>{m.label}</span>
+                    {timeLabel && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 1 }}>
+                        <Clock size={10} color="var(--text-muted)" />
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{timeLabel}</span>
+                      </div>
+                    )}
+                  </div>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)', marginRight: 4 }}>{mealKcal > 0 ? `${mealKcal} kcal` : ''}</span>
+                  {isOpen ? <ChevronUp size={15} color="var(--text-muted)" /> : <ChevronDown size={15} color="var(--text-muted)" />}
+                </button>
+                <button
+                  onClick={() => { openMealSearch(m.key); setExpandedMeal(m.key) }}
+                  title={`Aggiungi a ${m.label}`}
+                  style={{ flexShrink: 0, width: 30, height: 30, borderRadius: 8, background: activeMealAdd === m.key && showSearch ? 'var(--green-main)' : 'var(--green-pale)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: activeMealAdd === m.key && showSearch ? 'white' : 'var(--green-main)' }}
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
               {isOpen && (
                 <div style={{ borderTop: '1px solid var(--border-light)', padding: '10px 14px 12px' }}>
+                  {mealFoods.length === 0 && !(activeMealAdd === m.key && showSearch) && (
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '8px 0' }}>
+                      Nessun alimento — tocca + per aggiungere
+                    </p>
+                  )}
                   {mealFoods.map(f => (
                     <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 9, paddingBottom: 9 }}>
                       <div style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -440,14 +483,6 @@ export default function MacroTrackerPage() {
             </div>
           )
         })}
-
-        {log.length === 0 && !showSearch && (
-          <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-muted)' }}>
-            <Apple size={38} style={{ marginBottom: 10, opacity: 0.25 }} />
-            <p style={{ fontSize: 15, fontWeight: 500 }}>Nessun alimento registrato</p>
-            <p style={{ fontSize: 13, marginTop: 4 }}>Tocca + per aggiungere i tuoi pasti</p>
-          </div>
-        )}
       </div>
 
       {showScanner && (
