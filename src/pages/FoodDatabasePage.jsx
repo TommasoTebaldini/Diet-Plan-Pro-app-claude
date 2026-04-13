@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 import { searchFoods } from '../lib/foodSearch'
 import { Search, Plus, X, BookOpen, Star, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 
@@ -86,6 +87,7 @@ function IngredientSearch({ onAdd }) {
 }
 
 export default function FoodDatabasePage() {
+  const { user } = useAuth()
   const [tab, setTab] = useState('search')
   // ── Search tab ──
   const [query, setQuery] = useState('')
@@ -112,7 +114,7 @@ export default function FoodDatabasePage() {
     supabase.from('custom_meals').select('*').order('created_at', { ascending: false }).then(({ data }) => setMeals(data || []))
     supabase.from('ricette').select('*').order('created_at', { ascending: false }).then(({ data }) => setRicette(data || []))
     // Load recent / frequent foods
-    supabase.from('food_logs').select('food_name, kcal, proteins, carbs, fats, grams, food_data').order('created_at', { ascending: false }).limit(100)
+    supabase.from('food_logs').select('food_name, kcal, proteins, carbs, fats, grams, food_data').eq('user_id', user.id).order('created_at', { ascending: false }).limit(100)
       .then(({ data }) => {
         if (!data?.length) return
         const seen = new Map()

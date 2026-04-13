@@ -333,7 +333,8 @@ alter table profiles enable row level security;
 -- food_logs
 drop policy if exists "utenti vedono i propri dati" on food_logs;
 create policy "utenti vedono i propri dati" on food_logs
-  for all using (auth.uid() = user_id);
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 drop policy if exists "dietista legge diario pazienti" on food_logs;
 create policy "dietista legge diario pazienti" on food_logs
@@ -348,7 +349,8 @@ create policy "dietista legge diario pazienti" on food_logs
 -- daily_logs
 drop policy if exists "utenti vedono i propri dati" on daily_logs;
 create policy "utenti vedono i propri dati" on daily_logs
-  for all using (auth.uid() = user_id);
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 drop policy if exists "dietista legge totali giornalieri pazienti" on daily_logs;
 create policy "dietista legge totali giornalieri pazienti" on daily_logs
@@ -363,12 +365,14 @@ create policy "dietista legge totali giornalieri pazienti" on daily_logs
 -- water_logs
 drop policy if exists "utenti vedono i propri dati" on water_logs;
 create policy "utenti vedono i propri dati" on water_logs
-  for all using (auth.uid() = user_id);
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 -- custom_foods
 drop policy if exists "utenti vedono i propri dati" on custom_foods;
 create policy "utenti vedono i propri dati" on custom_foods
-  for all using (auth.uid() = user_id);
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 -- patient_diets
 drop policy if exists "pazienti leggono la propria dieta" on patient_diets;
@@ -412,6 +416,14 @@ create policy "chat visibile ai coinvolti" on chat_messages
       where pd.patient_id = chat_messages.patient_id
         and pd.dietitian_id = auth.uid()
     )
+  )
+  with check (
+    auth.uid() = patient_id or
+    exists (
+      select 1 from patient_dietitian pd
+      where pd.patient_id = chat_messages.patient_id
+        and pd.dietitian_id = auth.uid()
+    )
   );
 
 -- patient_documents
@@ -421,12 +433,14 @@ create policy "paziente vede propri documenti" on patient_documents
 
 drop policy if exists "dietista gestisce documenti" on patient_documents;
 create policy "dietista gestisce documenti" on patient_documents
-  for all using (auth.uid() = dietitian_id);
+  for all using (auth.uid() = dietitian_id)
+  with check (auth.uid() = dietitian_id);
 
 -- weight_logs
 drop policy if exists "utente gestisce proprio peso" on weight_logs;
 create policy "utente gestisce proprio peso" on weight_logs
-  for all using (auth.uid() = user_id);
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 drop policy if exists "dietista legge peso pazienti" on weight_logs;
 create policy "dietista legge peso pazienti" on weight_logs
@@ -441,7 +455,8 @@ create policy "dietista legge peso pazienti" on weight_logs
 -- daily_wellness
 drop policy if exists "utente gestisce proprio wellness" on daily_wellness;
 create policy "utente gestisce proprio wellness" on daily_wellness
-  for all using (auth.uid() = user_id);
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 drop policy if exists "dietista legge wellness pazienti" on daily_wellness;
 create policy "dietista legge wellness pazienti" on daily_wellness
@@ -480,12 +495,14 @@ create policy "dietista legge profili pazienti" on profiles
 -- custom_meals
 drop policy if exists "utente gestisce propri pasti" on custom_meals;
 create policy "utente gestisce propri pasti" on custom_meals
-  for all using (auth.uid() = user_id);
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 -- ricette
 drop policy if exists "utente gestisce proprie ricette" on ricette;
 create policy "utente gestisce proprie ricette" on ricette
-  for all using (auth.uid() = user_id);
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 -- appointments
 drop policy if exists "paziente vede i propri appuntamenti" on appointments;
@@ -506,12 +523,14 @@ create policy "dietista gestisce appuntamenti" on appointments
 -- activity_logs
 drop policy if exists "utente gestisce proprie attività" on activity_logs;
 create policy "utente gestisce proprie attività" on activity_logs
-  for all using (auth.uid() = user_id);
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 -- meal_completions
 drop policy if exists "paziente gestisce completamenti" on meal_completions;
 create policy "paziente gestisce completamenti" on meal_completions
-  for all using (auth.uid() = user_id);
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 drop policy if exists "dietista legge completamenti" on meal_completions;
 create policy "dietista legge completamenti" on meal_completions
@@ -526,12 +545,14 @@ create policy "dietista legge completamenti" on meal_completions
 -- body_measurements
 drop policy if exists "utenti vedono le proprie misurazioni" on body_measurements;
 create policy "utenti vedono le proprie misurazioni" on body_measurements
-  for all using (auth.uid() = user_id);
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 -- progress_photos
 drop policy if exists "utenti vedono le proprie foto" on progress_photos;
 create policy "utenti vedono le proprie foto" on progress_photos
-  for all using (auth.uid() = user_id);
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 
 -- ============================================================

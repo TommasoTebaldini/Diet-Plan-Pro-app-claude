@@ -111,14 +111,14 @@ export default function StatisticsPage() {
     const pwe = isoDate(prevWeekEnd)
 
     const [macroRes, waterRes, weightRes, pMacroRes, pWaterRes, pWeightRes, dietRes, adherenceRes] = await Promise.all([
-      supabase.from('daily_logs').select('date,kcal,proteins,carbs,fats').gte('date', ws).lte('date', we).order('date'),
-      supabase.from('water_logs').select('date,amount_ml').gte('date', ws).lte('date', we),
+      supabase.from('daily_logs').select('date,kcal,proteins,carbs,fats').eq('user_id', user.id).gte('date', ws).lte('date', we).order('date'),
+      supabase.from('water_logs').select('date,amount_ml').eq('user_id', user.id).gte('date', ws).lte('date', we),
       supabase.from('weight_logs').select('date,weight_kg').eq('user_id', user.id).gte('date', ws).lte('date', we),
-      supabase.from('daily_logs').select('date,kcal,proteins,carbs,fats').gte('date', pws).lte('date', pwe).order('date'),
-      supabase.from('water_logs').select('date,amount_ml').gte('date', pws).lte('date', pwe),
+      supabase.from('daily_logs').select('date,kcal,proteins,carbs,fats').eq('user_id', user.id).gte('date', pws).lte('date', pwe).order('date'),
+      supabase.from('water_logs').select('date,amount_ml').eq('user_id', user.id).gte('date', pws).lte('date', pwe),
       supabase.from('weight_logs').select('date,weight_kg').eq('user_id', user.id).gte('date', pws).lte('date', pwe),
-      supabase.from('patient_diets').select('kcal_target,protein_target,carbs_target,fats_target,meals_count').eq('is_active', true).maybeSingle(),
-      supabase.from('food_logs').select('date,meal_type').gte('date', pws).lte('date', we),
+      supabase.from('patient_diets').select('kcal_target,protein_target,carbs_target,fats_target,meals_count').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
+      supabase.from('food_logs').select('date,meal_type').eq('user_id', user.id).gte('date', pws).lte('date', we),
     ])
 
     setDietTarget(dietRes.data || null)

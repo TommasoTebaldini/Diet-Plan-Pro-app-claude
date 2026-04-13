@@ -98,7 +98,7 @@ export default function WaterPage() {
   useEffect(() => {
     async function load() {
       const [logsRes, weightRes] = await Promise.all([
-        supabase.from('water_logs').select('*').eq('date', today).order('created_at'),
+        supabase.from('water_logs').select('*').eq('user_id', user.id).eq('date', today).order('created_at'),
         supabase.from('weight_logs').select('weight_kg').eq('user_id', user.id).order('date', { ascending: false }).limit(1).maybeSingle(),
       ])
       if (!logsRes.error) setLogs(logsRes.data || [])
@@ -150,7 +150,8 @@ export default function WaterPage() {
 
   async function addWater(ml) {
     setLoading(true)
-    const { data } = await supabase.from('water_logs').insert({ date: today, amount_ml: ml }).select().single()
+    const { data, error } = await supabase.from('water_logs').insert({ user_id: user.id, date: today, amount_ml: ml }).select().single()
+    if (error) console.error('Errore salvataggio acqua:', error)
     if (data) setLogs(l => [...l, data])
     setCustom('')
     setLoading(false)

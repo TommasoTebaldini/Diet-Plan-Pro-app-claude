@@ -105,9 +105,9 @@ export default function DashboardPage() {
 
       // Base data
       const [log, water, activeDiet, w, chat] = await Promise.allSettled([
-        supabase.from('daily_logs').select('*').eq('date', today).maybeSingle(),
-        supabase.from('water_logs').select('amount_ml').eq('date', today),
-        supabase.from('patient_diets').select('*').eq('is_active', true).maybeSingle(),
+        supabase.from('daily_logs').select('*').eq('user_id', user.id).eq('date', today).maybeSingle(),
+        supabase.from('water_logs').select('amount_ml').eq('user_id', user.id).eq('date', today),
+        supabase.from('patient_diets').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
         supabase.from('weight_logs').select('weight_kg').eq('user_id', user.id).order('date', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('chat_messages').select('id', { count: 'exact' }).eq('patient_id', user.id).eq('sender_role', 'dietitian').is('read_at', null),
       ])
