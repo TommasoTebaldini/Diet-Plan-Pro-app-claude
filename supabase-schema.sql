@@ -286,6 +286,13 @@ where
   and full_name is not null
   and full_name <> '';
 
+-- Tabelle cliniche del portale dietista: colonna patient_id (necessaria per RLS)
+alter table piani add column if not exists patient_id uuid references auth.users;
+alter table ncpt add column if not exists patient_id uuid references auth.users;
+alter table schede_valutazione add column if not exists patient_id uuid references auth.users;
+alter table bia_records add column if not exists patient_id uuid references auth.users;
+alter table note_specialistiche add column if not exists patient_id uuid references auth.users;
+
 -- Tabelle cliniche del portale dietista: visibilità per il paziente
 -- (Le tabelle sono create dal portale dietista e potrebbero non esistere ancora)
 do $$
