@@ -174,50 +174,67 @@ export default function WellnessPage() {
   async function saveEntry() {
     setSaving(true)
     setError('')
-    const payload = { user_id: user.id, date: today }
-    if (mood != null) payload.mood = mood
-    if (energy != null) payload.energy = energy
-    if (sleepQuality != null) payload.sleep_quality = sleepQuality
-    if (sleepHours != null) payload.sleep_hours = sleepHours
-    if (sleepRestedness != null) payload.sleep_restedness = sleepRestedness
-    if (symptoms.length > 0) payload.symptoms = symptoms
-    if (notes) payload.notes = notes
 
-    // Try upsert first, fall back to separate insert/update if needed
-    let saveError = null
-    const { error: upsertError } = await supabase.from('daily_wellness').upsert(
-      payload,
-      { onConflict: 'user_id,date' }
-    )
-    if (upsertError) {
-      // Fallback: try update if record exists, otherwise insert
-      const { data: existing } = await supabase.from('daily_wellness')
+    try {
+      // Build the full field set so updates properly clear deselected values
+      const fields = {
+        mood: mood ?? null,
+        energy: energy ?? null,
+        sleep_quality: sleepQuality ?? null,
+        sleep_hours: sleepHours ?? null,
+        sleep_restedness: sleepRestedness ?? null,
+        symptoms: symptoms.length > 0 ? symptoms : [],
+        notes: notes || null,
+      }
+
+      // Check if a record already exists for today (avoids upsert + RLS issues)
+      const { data: existing, error: selectError } = await supabase
+        .from('daily_wellness')
         .select('id')
         .eq('user_id', user.id)
         .eq('date', today)
         .maybeSingle()
-      if (existing) {
-        const { user_id: _userId, date: _date, ...updateFields } = payload
-        const { error: updateError } = await supabase.from('daily_wellness')
-          .update(updateFields)
-          .eq('id', existing.id)
-        saveError = updateError
-      } else {
-        const { error: insertError } = await supabase.from('daily_wellness')
-          .insert(payload)
-        saveError = insertError
+
+      if (selectError) {
+        console.error('Wellness select error:', selectError)
+        setSaving(false)
+        setError('Errore durante il salvataggio. Riprova.')
+        return
       }
+
+      let opError = null
+      if (existing) {
+        // Update existing record
+        const { error } = await supabase
+          .from('daily_wellness')
+          .update(fields)
+          .eq('id', existing.id)
+        opError = error
+      } else {
+        // Insert new record
+        const { error } = await supabase
+          .from('daily_wellness')
+          .insert({ user_id: user.id, date: today, ...fields })
+        opError = error
+      }
+
+      setSaving(false)
+
+      if (opError) {
+        console.error('Wellness save error:', opError)
+        setError('Errore durante il salvataggio. Riprova.')
+        return
+      }
+
+      setSaved(true)
+      setShowForm(false)
+      setTimeout(() => setSaved(false), 3000)
+      await loadData()
+    } catch (err) {
+      console.error('Wellness unexpected error:', err)
+      setSaving(false)
+      setError('Errore durante il salvataggio. Riprova.')
     }
-    setSaving(false)
-    if (saveError) {
-      console.error('Wellness save error:', saveError)
-      setError(`Errore: ${saveError.message || 'Salvataggio fallito. Riprova.'}`)
-      return
-    }
-    setSaved(true)
-    setShowForm(false)
-    setTimeout(() => setSaved(false), 3000)
-    await loadData()
   }
 
   function toggleSymptom(s) {
