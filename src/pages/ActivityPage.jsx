@@ -46,7 +46,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 }
 
 // ─── Log activity bottom-sheet ────────────────────────────────────────────────
-function LogForm({ onClose, onSaved, userWeight }) {
+function LogForm({ onClose, onSaved, userWeight, userId }) {
   const today = new Date().toISOString().split('T')[0]
   const [form, setForm] = useState({
     activity_type: 'camminata',
@@ -70,6 +70,7 @@ function LogForm({ onClose, onSaved, userWeight }) {
     const stepsVal = form.steps ? parseInt(form.steps, 10) : null
     try {
       await supabase.from('activity_logs').insert({
+        user_id: userId,
         date: today,
         activity_type: form.activity_type,
         duration_minutes: durationNum,
@@ -561,6 +562,7 @@ export default function ActivityPage() {
           onClose={() => setShowForm(false)}
           onSaved={reloadToday}
           userWeight={userWeight}
+          userId={user.id}
         />
       )}
     </div>

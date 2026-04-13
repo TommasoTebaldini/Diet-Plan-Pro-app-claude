@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 import { Clock, ChevronDown, ChevronUp, Flame, Leaf, FileText, CheckCircle2, Circle, History, RefreshCw, TrendingUp, Calendar } from 'lucide-react'
 
 const DAYS = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
@@ -262,6 +263,7 @@ function HistoryDietCard({ diet, onSelect, selected, meals }) {
 }
 
 export default function DietPage() {
+  const { user } = useAuth()
   const [diet, setDiet] = useState(null)
   const [meals, setMeals] = useState([])
   const [loading, setLoading] = useState(true)
@@ -277,8 +279,8 @@ export default function DietPage() {
   useEffect(() => {
     async function load() {
       const [{ data: activeDiet }, { data: allDiets }] = await Promise.all([
-        supabase.from('patient_diets').select('*').eq('is_active', true).maybeSingle(),
-        supabase.from('patient_diets').select('id, name, created_at, kcal_target, duration_weeks').order('created_at', { ascending: false }),
+        supabase.from('patient_diets').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
+        supabase.from('patient_diets').select('id, name, created_at, kcal_target, duration_weeks').eq('user_id', user.id).order('created_at', { ascending: false }),
       ])
       setDiet(activeDiet)
       setHistory((allDiets || []).filter(d => !activeDiet || d.id !== activeDiet.id))
@@ -286,7 +288,7 @@ export default function DietPage() {
       if (activeDiet) {
         const [{ data: mealData }, { data: completionData }] = await Promise.all([
           supabase.from('diet_meals').select('*').eq('diet_id', activeDiet.id).order('day_number').order('meal_order'),
-          supabase.from('meal_completions').select('diet_meal_id').eq('date', today),
+          supabase.from('meal_completions').select('diet_meal_id').eq('user_id', user.id).eq('date', today),
         ])
         setMeals(mealData || [])
         setCompletions(new Set((completionData || []).map(c => c.diet_meal_id)))
@@ -306,9 +308,12 @@ export default function DietPage() {
     })
     try {
       if (isCompleted) {
-        await supabase.from('meal_completions').delete().eq('diet_meal_id', mealId).eq('date', today)
+        await supabase.from('meal_completions').delete().eq('user_id', user.id).eq('diet_meal_id', mealId).eq('date', today)
       } else {
-        await supabase.from('meal_completions').upsert({ diet_meal_id: mealId, date: today })
+        await supabase.from('meal_completions').upsert(
+          { user_id: user.id, diet_meal_id: mealId, date: today },
+          { onConflict: 'user_id,diet_meal_id,date' }
+        )
       }
     } catch {
       setCompletions(prev => {

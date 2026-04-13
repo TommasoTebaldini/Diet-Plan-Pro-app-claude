@@ -8,10 +8,10 @@ import BarcodeScanner from '../components/BarcodeScanner'
 function calcMacros(food, grams) {
   const f = (parseFloat(grams) || 100) / 100
   return {
-    kcal: Math.round(food.kcal_100g * f),
-    proteins: Math.round(food.proteins_100g * f * 10) / 10,
-    carbs: Math.round(food.carbs_100g * f * 10) / 10,
-    fats: Math.round(food.fats_100g * f * 10) / 10,
+    kcal: Math.round((food.kcal_100g || 0) * f),
+    proteins: Math.round((food.proteins_100g || 0) * f * 10) / 10,
+    carbs: Math.round((food.carbs_100g || 0) * f * 10) / 10,
+    fats: Math.round((food.fats_100g || 0) * f * 10) / 10,
   }
 }
 
@@ -75,9 +75,9 @@ export default function MacroTrackerPage() {
 
   async function loadLog() {
     const [foodRes, dietRes, wellnessRes] = await Promise.all([
-      supabase.from('food_logs').select('*').eq('date', date).order('created_at'),
-      supabase.from('patient_diets').select('*').eq('is_active', true).maybeSingle(),
-      supabase.from('daily_wellness').select('mood').eq('date', date).maybeSingle(),
+      supabase.from('food_logs').select('*').eq('user_id', user.id).eq('date', date).order('created_at'),
+      supabase.from('patient_diets').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
+      supabase.from('daily_wellness').select('mood').eq('user_id', user.id).eq('date', date).maybeSingle(),
     ])
     setLog(foodRes.data || [])
     setDiet(dietRes.data)
@@ -149,14 +149,26 @@ export default function MacroTrackerPage() {
     const m = calcMacros(selected, grams)
     let savedName = null
     try {
+      // Build food_data with only defined values
+      const foodData = {
+        id: selected.id, name: selected.name, brand: selected.brand || '',
+        kcal_100g: selected.kcal_100g || 0, proteins_100g: selected.proteins_100g || 0,
+        carbs_100g: selected.carbs_100g || 0, fats_100g: selected.fats_100g || 0,
+        fiber_100g: selected.fiber_100g || 0, source: selected.source || '',
+        meal_time: mealTime || null,
+      }
       const { data, error } = await supabase.from('food_logs').insert({
         user_id: user.id,
         date, meal_type: meal, meal_time: mealTime || null, food_name: selected.name,
         grams: parseFloat(grams) || 100, ...m,
-        food_data: { ...selected, meal_time: mealTime || null },
+        food_data: foodData,
       }).select().single()
-      if (error || !data) {
+      if (error) {
         console.error('Errore salvataggio alimento:', error)
+        setSaveError(`Errore nel salvare l'alimento: ${error.message || 'errore sconosciuto'}. Riprova.`)
+        return
+      }
+      if (!data) {
         setSaveError("Errore nel salvare l'alimento. Riprova.")
         return
       }
@@ -169,6 +181,9 @@ export default function MacroTrackerPage() {
         setShowSearch(false)
         setActiveMealAdd(null)
       }
+    } catch (e) {
+      console.error('Errore imprevisto salvataggio:', e)
+      setSaveError("Errore imprevisto nel salvare l'alimento. Riprova.")
     } finally {
       setSaving(false)
     }
