@@ -1,7 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { Send, CheckCheck, Check, MessageCircle, LogOut, Users, ArrowLeft } from 'lucide-react'
+import { Send, CheckCheck, Check, MessageCircle, LogOut, Users, ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Apple, Clock } from 'lucide-react'
+
+const MEALS = [
+  { key: 'colazione', label: 'Colazione', emoji: '☀️' },
+  { key: 'spuntino_mattina', label: 'Spuntino', emoji: '🍎' },
+  { key: 'pranzo', label: 'Pranzo', emoji: '🍽️' },
+  { key: 'spuntino_pomeriggio', label: 'Merenda', emoji: '🥤' },
+  { key: 'cena', label: 'Cena', emoji: '🌙' },
+]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -149,40 +157,172 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut }) {
   )
 }
 
+// ─── Patient Diary view ───────────────────────────────────────────────────────
+
+function PatientDiary({ patientId }) {
+  const todayStr = new Date().toISOString().split('T')[0]
+  const [date, setDate] = useState(todayStr)
+  const [foodLog, setFoodLog] = useState([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!patientId) return
+    loadDiary()
+  }, [patientId, date])
+
+  async function loadDiary() {
+    setLoading(true)
+    const { data } = await supabase
+      .from('food_logs')
+      .select('*')
+      .eq('user_id', patientId)
+      .eq('date', date)
+      .order('created_at')
+    setFoodLog(data || [])
+    setLoading(false)
+  }
+
+  function changeDate(delta) {
+    const d = new Date(date)
+    d.setDate(d.getDate() + delta)
+    setDate(d.toISOString().split('T')[0])
+  }
+
+  const totals = foodLog.reduce((a, f) => ({
+    kcal: a.kcal + (f.kcal || 0),
+    proteins: a.proteins + (f.proteins || 0),
+    carbs: a.carbs + (f.carbs || 0),
+    fats: a.fats + (f.fats || 0),
+  }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
+
+  const displayDate = new Date(date + 'T12:00:00')
+  const isToday = date === todayStr
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: 14 }}>
+      {/* Date navigation */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <button onClick={() => changeDate(-1)} style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+          <ChevronLeft size={16} />
+        </button>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+            {isToday ? 'Oggi · ' : ''}{displayDate.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </p>
+          {foodLog.length > 0 && (
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+              {totals.kcal} kcal · P:{Math.round(totals.proteins)}g · C:{Math.round(totals.carbs)}g · G:{Math.round(totals.fats)}g
+            </p>
+          )}
+        </div>
+        <button onClick={() => changeDate(1)} disabled={isToday} style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isToday ? 'default' : 'pointer', color: isToday ? 'var(--border)' : 'var(--text-secondary)' }}>
+          <ChevronRight size={16} />
+        </button>
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: 40 }}>
+          <div style={{ width: 22, height: 22, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto 10px' }} />
+          <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Caricamento…</p>
+        </div>
+      ) : foodLog.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
+          <Apple size={36} style={{ marginBottom: 10, opacity: 0.2 }} />
+          <p style={{ fontSize: 14, fontWeight: 500 }}>Nessun alimento registrato</p>
+          <p style={{ fontSize: 12, marginTop: 4 }}>Il paziente non ha registrato pasti per questa data.</p>
+        </div>
+      ) : (
+        MEALS.map(m => {
+          const mealFoods = foodLog.filter(f => f.meal_type === m.key)
+          if (!mealFoods.length) return null
+          const mealKcal = mealFoods.reduce((s, f) => s + (f.kcal || 0), 0)
+          return (
+            <div key={m.key} className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 10 }}>
+              <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8, background: 'var(--green-pale)', borderBottom: '1px solid var(--border-light)' }}>
+                <span style={{ fontSize: 18 }}>{m.emoji}</span>
+                <span style={{ fontSize: 14, fontWeight: 600, flex: 1 }}>{m.label}</span>
+                <span style={{ fontSize: 12, color: 'var(--green-dark)', fontWeight: 500 }}>{mealKcal} kcal</span>
+              </div>
+              <div style={{ padding: '8px 14px 10px' }}>
+                {mealFoods.map(f => (
+                  <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 9, paddingBottom: 8 }}>
+                    <div style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Apple size={13} color="var(--green-main)" />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.food_name}</p>
+                      <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                        {f.grams}g · {f.kcal} kcal · P:{f.proteins}g · C:{f.carbs}g · G:{f.fats}g
+                        {f.food_data?.meal_time && <> · <Clock size={9} style={{ display: 'inline', verticalAlign: 'middle' }} /> {f.food_data.meal_time}</>}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })
+      )}
+    </div>
+  )
+}
+
 // ─── Chat view ────────────────────────────────────────────────────────────────
 
 function ChatView({ currentPatient, messages, text, setText, sending, bottomRef, inputRef, onSend, onBack }) {
   const groups = groupByDate(messages)
+  const [tab, setTab] = useState('chat')
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--surface-2)' }}>
       {/* Header */}
       <div style={{
         background: 'linear-gradient(160deg, var(--green-dark), var(--green-main))',
-        padding: 'calc(env(safe-area-inset-top) + 14px) 16px 14px',
-        display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
+        padding: 'calc(env(safe-area-inset-top) + 14px) 16px 0',
+        flexShrink: 0,
       }}>
-        <button onClick={onBack} className="dietitian-back-btn" style={{
-          background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10,
-          width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', color: 'white', flexShrink: 0,
-        }} aria-label="Torna alla lista">
-          <ArrowLeft size={18} />
-        </button>
-        {currentPatient ? (
-          <>
-            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'white', flexShrink: 0, border: '2px solid rgba(255,255,255,0.3)' }}>
-              {avatarInitials(currentPatient.profile)}
-            </div>
-            <div>
-              <p style={{ color: 'white', fontSize: 16, fontWeight: 600 }}>
-                {patientDisplayName(currentPatient.profile)}
-              </p>
-              <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>Paziente</p>
-            </div>
-          </>
-        ) : (
-          <p style={{ color: 'white', fontSize: 15 }}>Seleziona un paziente</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+          <button onClick={onBack} className="dietitian-back-btn" style={{
+            background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10,
+            width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', color: 'white', flexShrink: 0,
+          }} aria-label="Torna alla lista">
+            <ArrowLeft size={18} />
+          </button>
+          {currentPatient ? (
+            <>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'white', flexShrink: 0, border: '2px solid rgba(255,255,255,0.3)' }}>
+                {avatarInitials(currentPatient.profile)}
+              </div>
+              <div>
+                <p style={{ color: 'white', fontSize: 16, fontWeight: 600 }}>
+                  {patientDisplayName(currentPatient.profile)}
+                </p>
+                <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>Paziente</p>
+              </div>
+            </>
+          ) : (
+            <p style={{ color: 'white', fontSize: 15 }}>Seleziona un paziente</p>
+          )}
+        </div>
+        {/* Tabs */}
+        {currentPatient && (
+          <div style={{ display: 'flex', gap: 0 }}>
+            {[
+              { key: 'chat', label: 'Chat', icon: <MessageCircle size={13} /> },
+              { key: 'diario', label: 'Diario alimentare', icon: <BookOpen size={13} /> },
+            ].map(t => (
+              <button key={t.key} onClick={() => setTab(t.key)} style={{
+                flex: 1, background: 'none', border: 'none', cursor: 'pointer', padding: '8px 10px',
+                color: tab === t.key ? 'white' : 'rgba(255,255,255,0.55)',
+                borderBottom: `2px solid ${tab === t.key ? 'white' : 'transparent'}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                fontSize: 12, fontWeight: tab === t.key ? 600 : 400, transition: 'all 0.15s',
+              }}>
+                {t.icon} {t.label}
+              </button>
+            ))}
+          </div>
         )}
       </div>
 
@@ -194,6 +334,8 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
             Clicca su un paziente nella lista per leggere e rispondere ai messaggi.
           </p>
         </div>
+      ) : tab === 'diario' ? (
+        <PatientDiary patientId={currentPatient.id} />
       ) : (
         <>
           {/* Messages */}
