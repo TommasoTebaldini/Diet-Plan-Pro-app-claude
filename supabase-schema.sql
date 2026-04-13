@@ -287,11 +287,19 @@ where
   and full_name <> '';
 
 -- Tabelle cliniche del portale dietista: visibilità per il paziente
-alter table piani add column if not exists visible_to_patient boolean not null default true;
-alter table ncpt add column if not exists visible_to_patient boolean not null default true;
-alter table schede_valutazione add column if not exists visible_to_patient boolean not null default true;
-alter table bia_records add column if not exists visible_to_patient boolean not null default true;
-alter table note_specialistiche add column if not exists visible_to_patient boolean not null default true;
+-- (Le tabelle sono create dal portale dietista e potrebbero non esistere ancora)
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['piani','ncpt','schede_valutazione','bia_records','note_specialistiche']
+  loop
+    if exists (select 1 from information_schema.tables where table_name = t and table_schema = 'public') then
+      execute format('alter table %I add column if not exists visible_to_patient boolean not null default true', t);
+    end if;
+  end loop;
+end;
+$$;
 
 
 -- ============================================================
@@ -771,7 +779,10 @@ $$;
 -- piani (piani alimentari clinici)
 do $$
 begin
-  if exists (select 1 from information_schema.tables where table_name = 'piani' and table_schema = 'public') then
+  if exists (select 1 from information_schema.tables where table_name = 'piani' and table_schema = 'public')
+     and exists (select 1 from information_schema.columns where table_name = 'piani' and table_schema = 'public' and column_name = 'patient_id')
+     and exists (select 1 from information_schema.columns where table_name = 'piani' and table_schema = 'public' and column_name = 'visible_to_patient')
+  then
     execute $p$ alter table piani enable row level security $p$;
     if not exists (select 1 from pg_policies where tablename = 'piani' and policyname = 'paziente legge propri piani') then
       execute $p$
@@ -786,7 +797,10 @@ $$;
 -- schede_valutazione (schede di valutazione clinica)
 do $$
 begin
-  if exists (select 1 from information_schema.tables where table_name = 'schede_valutazione' and table_schema = 'public') then
+  if exists (select 1 from information_schema.tables where table_name = 'schede_valutazione' and table_schema = 'public')
+     and exists (select 1 from information_schema.columns where table_name = 'schede_valutazione' and table_schema = 'public' and column_name = 'patient_id')
+     and exists (select 1 from information_schema.columns where table_name = 'schede_valutazione' and table_schema = 'public' and column_name = 'visible_to_patient')
+  then
     execute $p$ alter table schede_valutazione enable row level security $p$;
     if not exists (select 1 from pg_policies where tablename = 'schede_valutazione' and policyname = 'paziente legge proprie schede') then
       execute $p$
@@ -801,7 +815,10 @@ $$;
 -- bia_records (analisi composizione corporea BIA)
 do $$
 begin
-  if exists (select 1 from information_schema.tables where table_name = 'bia_records' and table_schema = 'public') then
+  if exists (select 1 from information_schema.tables where table_name = 'bia_records' and table_schema = 'public')
+     and exists (select 1 from information_schema.columns where table_name = 'bia_records' and table_schema = 'public' and column_name = 'patient_id')
+     and exists (select 1 from information_schema.columns where table_name = 'bia_records' and table_schema = 'public' and column_name = 'visible_to_patient')
+  then
     execute $p$ alter table bia_records enable row level security $p$;
     if not exists (select 1 from pg_policies where tablename = 'bia_records' and policyname = 'paziente legge propri bia') then
       execute $p$
@@ -816,7 +833,10 @@ $$;
 -- note_specialistiche (note cliniche del dietista)
 do $$
 begin
-  if exists (select 1 from information_schema.tables where table_name = 'note_specialistiche' and table_schema = 'public') then
+  if exists (select 1 from information_schema.tables where table_name = 'note_specialistiche' and table_schema = 'public')
+     and exists (select 1 from information_schema.columns where table_name = 'note_specialistiche' and table_schema = 'public' and column_name = 'patient_id')
+     and exists (select 1 from information_schema.columns where table_name = 'note_specialistiche' and table_schema = 'public' and column_name = 'visible_to_patient')
+  then
     execute $p$ alter table note_specialistiche enable row level security $p$;
     if not exists (select 1 from pg_policies where tablename = 'note_specialistiche' and policyname = 'paziente legge proprie note') then
       execute $p$
