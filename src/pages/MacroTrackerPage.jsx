@@ -8,10 +8,10 @@ import BarcodeScanner from '../components/BarcodeScanner'
 function calcMacros(food, grams) {
   const f = (parseFloat(grams) || 100) / 100
   return {
-    kcal: Math.round((food.kcal_100g || 0) * f) || 0,
-    proteins: Math.round((food.proteins_100g || 0) * f * 10) / 10 || 0,
-    carbs: Math.round((food.carbs_100g || 0) * f * 10) / 10 || 0,
-    fats: Math.round((food.fats_100g || 0) * f * 10) / 10 || 0,
+    kcal: Math.round((food.kcal_100g || 0) * f),
+    proteins: Math.round((food.proteins_100g || 0) * f * 10) / 10,
+    carbs: Math.round((food.carbs_100g || 0) * f * 10) / 10,
+    fats: Math.round((food.fats_100g || 0) * f * 10) / 10,
   }
 }
 
@@ -149,8 +149,14 @@ export default function MacroTrackerPage() {
     const m = calcMacros(selected, grams)
     let savedName = null
     try {
-      // Sanitize food_data to avoid storing undefined values
-      const foodData = JSON.parse(JSON.stringify({ ...selected, meal_time: mealTime || null }))
+      // Build food_data with only defined values
+      const foodData = {
+        id: selected.id, name: selected.name, brand: selected.brand || '',
+        kcal_100g: selected.kcal_100g || 0, proteins_100g: selected.proteins_100g || 0,
+        carbs_100g: selected.carbs_100g || 0, fats_100g: selected.fats_100g || 0,
+        fiber_100g: selected.fiber_100g || 0, source: selected.source || '',
+        meal_time: mealTime || null,
+      }
       const { data, error } = await supabase.from('food_logs').insert({
         user_id: user.id,
         date, meal_type: meal, meal_time: mealTime || null, food_name: selected.name,
