@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { searchFoods, searchByBarcode } from '../lib/foodSearch'
+import { searchFoods, searchByBarcode, searchDietitianFoods } from '../lib/foodSearch'
 import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle } from 'lucide-react'
 import BarcodeScanner from '../components/BarcodeScanner'
 
@@ -90,10 +90,14 @@ export default function MacroTrackerPage() {
       setSearching(false)
       return
     }
+    // Show local dietitian results instantly (no debounce needed)
+    const localResults = searchDietitianFoods(query.trim())
+    setResults(localResults)
     setSearching(true)
+    // Then fetch remote results in the background
     const timer = setTimeout(async () => {
-      const foods = await searchFoods(query.trim())
-      setResults(foods)
+      const allFoods = await searchFoods(query.trim())
+      setResults(allFoods)
       setSearching(false)
     }, 350)
     return () => clearTimeout(timer)
@@ -324,7 +328,7 @@ export default function MacroTrackerPage() {
           const times = mealFoods.map(f => f.food_data?.meal_time).filter(Boolean).sort()
           const timeLabel = times.length > 0 ? times[0] : null
           return (
-            <div key={m.key} className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div key={m.key} className="card" style={{ padding: 0, overflow: isSearching ? 'visible' : 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', padding: '13px 14px', gap: 9 }}>
                 <button onClick={() => { setExpandedMeal(isOpen ? null : m.key); if (isOpen && isSearching) closeSearch() }} style={{ display: 'flex', alignItems: 'center', gap: 9, flex: 1, background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', padding: 0, textAlign: 'left' }}>
                   <span style={{ fontSize: 20 }}>{m.emoji}</span>
@@ -424,7 +428,7 @@ export default function MacroTrackerPage() {
 
                         {/* Dropdown results */}
                         {!selected && results.length > 0 && (
-                          <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 200, background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 12, boxShadow: 'var(--shadow-md)', maxHeight: 260, overflowY: 'auto' }}>
+                          <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 9999, background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 12, boxShadow: '0 8px 30px rgba(0,0,0,0.18)', maxHeight: 340, overflowY: 'auto' }}>
                             {results.map((f, i) => (
                               <button key={`${f.id}_${i}`} onClick={() => { setSelected(f); setGrams(f.default_grams ? String(f.default_grams) : '100'); setResults([]) }} style={{
                                 width: '100%', background: 'none', border: 'none', borderBottom: i < results.length - 1 ? '1px solid var(--border-light)' : 'none',
@@ -433,7 +437,7 @@ export default function MacroTrackerPage() {
                                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
                                   <p style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.3, flex: 1 }}>{f.name}</p>
                                   {(() => {
-                                    const badges = { recent: ['🕐', '#fff4e6', '#c45e00'], diet: ['🥗', 'var(--green-pale)', 'var(--green-main)'], recipe: ['🍳', '#fff4e6', '#c45e00'], custom_meal: ['🍽️', '#f0fdf4', 'var(--green-dark)'], openfoodfacts: ['🌍', '#f1f5f9', 'var(--text-muted)'], database: ['DB', 'var(--green-pale)', 'var(--green-main)'] }
+                                    const badges = { dietitian: ['📋', 'var(--green-pale)', 'var(--green-main)'], recent: ['🕐', '#fff4e6', '#c45e00'], diet: ['🥗', 'var(--green-pale)', 'var(--green-main)'], recipe: ['🍳', '#fff4e6', '#c45e00'], custom_meal: ['🍽️', '#f0fdf4', 'var(--green-dark)'], openfoodfacts: ['🌍', '#f1f5f9', 'var(--text-muted)'], database: ['DB', 'var(--green-pale)', 'var(--green-main)'] }
                                     const [label, bg, color] = badges[f.source] || badges.openfoodfacts
                                     return <span style={{ fontSize: 9, background: bg, color, padding: '2px 5px', borderRadius: 100, fontWeight: 700, flexShrink: 0 }}>{label}</span>
                                   })()}

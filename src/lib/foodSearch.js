@@ -6,7 +6,7 @@ import { DIETITIAN_FOODS } from '../data/foods'
 // This is prioritised over OpenFoodFacts as it contains professionally
 // curated nutritional values per 100 g.
 
-function searchDietitianFoods(query) {
+export function searchDietitianFoods(query) {
   const q = query.toLowerCase().trim()
   if (!q) return []
   const tokens = q.split(/\s+/)
