@@ -61,7 +61,6 @@ export default function MacroTrackerPage() {
   const [diet, setDiet] = useState(null)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
-  const [showSearch, setShowSearch] = useState(false)
   const [expandedMeal, setExpandedMeal] = useState('colazione')
   const [activeMealAdd, setActiveMealAdd] = useState(null)
   const [mood, setMood] = useState(null)
@@ -109,14 +108,12 @@ export default function MacroTrackerPage() {
   function openMealSearch(mealKey) {
     selectMealType(mealKey)
     setActiveMealAdd(mealKey)
-    setShowSearch(true)
     setSelected(null)
     setQuery('')
     setResults([])
   }
 
   function closeSearch() {
-    setShowSearch(false)
     setActiveMealAdd(null)
     setSelected(null)
     setResults([])
@@ -128,7 +125,6 @@ export default function MacroTrackerPage() {
     setShowScanner(false)
     setScanningBarcode(true)
     setBarcodeError('')
-    setShowSearch(true)
     const food = await searchByBarcode(barcode)
     setScanningBarcode(false)
     if (food) {
@@ -177,10 +173,6 @@ export default function MacroTrackerPage() {
       savedName = selected.name
       setSelected(null); setQuery(''); setResults([])
       setExpandedMeal(meal)
-      if (activeMealAdd) {
-        setShowSearch(false)
-        setActiveMealAdd(null)
-      }
     } catch (e) {
       console.error('Errore imprevisto salvataggio:', e)
       setSaveError("Errore imprevisto nel salvare l'alimento. Riprova.")
@@ -231,7 +223,6 @@ export default function MacroTrackerPage() {
     d.setDate(d.getDate() + delta)
     const next = d.toISOString().split('T')[0]
     setDate(next)
-    setShowSearch(false)
     setActiveMealAdd(null)
     setSelected(null)
     setQuery('')
@@ -268,10 +259,6 @@ export default function MacroTrackerPage() {
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
             <button onClick={() => changeDate(1)} disabled={isToday} style={{ background: isToday ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isToday ? 'default' : 'pointer', color: isToday ? 'rgba(255,255,255,0.3)' : 'white' }}>
               <ChevronRight size={18} />
-            </button>
-            <button onClick={() => { if (showSearch) { closeSearch() } else { setShowSearch(true); setActiveMealAdd(null) } }}
-              style={{ background: showSearch ? 'rgba(255,255,255,0.2)' : 'white', color: showSearch ? 'white' : 'var(--green-main)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-              {showSearch ? <X size={16} /> : <Plus size={16} />}
             </button>
           </div>
         </div>
@@ -316,145 +303,6 @@ export default function MacroTrackerPage() {
       </div>
 
       <div style={{ padding: '14px 14px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {/* ── Add food panel ── */}
-        {showSearch && (
-          <div className="card animate-slideUp" style={{ padding: 14 }}>
-            {/* Panel header with close */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>
-                Aggiungi alimento
-              </p>
-              <button onClick={closeSearch} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}><X size={15} /></button>
-            </div>
-            {/* Success confirmation */}
-            {addedFood && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--green-pale)', borderRadius: 10, padding: '9px 12px', marginBottom: 12, color: 'var(--green-dark)', fontSize: 13, fontWeight: 500 }}>
-                <span>✅</span> <span>"{addedFood}" aggiunto!</span>
-              </div>
-            )}
-            {/* Error feedback */}
-            {saveError && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff0f0', borderRadius: 10, padding: '9px 12px', marginBottom: 12, color: '#dc4a4a', fontSize: 13, fontWeight: 500 }}>
-                <span>⚠️</span> <span>{saveError}</span>
-              </div>
-            )}
-            {/* Meal type selector — shown only when opened from global + button */}
-            {activeMealAdd ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-                <span style={{ fontSize: 16 }}>{MEALS.find(m => m.key === activeMealAdd)?.emoji}</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  {MEALS.find(m => m.key === activeMealAdd)?.label}
-                </span>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 12, paddingBottom: 2 }}>
-                {MEALS.map(m => (
-                  <button key={m.key} onClick={() => selectMealType(m.key)} style={{
-                    flexShrink: 0, padding: '5px 10px', borderRadius: 100,
-                    background: meal === m.key ? 'var(--green-main)' : 'var(--surface-2)',
-                    color: meal === m.key ? 'white' : 'var(--text-secondary)',
-                    border: `1.5px solid ${meal === m.key ? 'transparent' : 'var(--border)'}`,
-                    font: 'inherit', fontSize: 12, fontWeight: 500, cursor: 'pointer'
-                  }}>{m.emoji} {m.label}</button>
-                ))}
-              </div>
-            )}
-
-            {/* Live search input */}
-            <div style={{ position: 'relative', marginBottom: 10 }} ref={searchRef}>
-              <div style={{ position: 'relative', display: 'flex', gap: 8 }}>
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="Cerca alimento (es. pollo, pasta, mela…)"
-                  value={query}
-                  onChange={e => { setQuery(e.target.value); setSelected(null); setSaveError('') }}
-                  autoComplete="off"
-                  style={{ flex: 1, paddingRight: searching ? 40 : 14 }}
-                />
-                {searching && (
-                  <span style={{ position: 'absolute', right: 52, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, border: '2px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'block' }} />
-                )}
-                {scanningBarcode && (
-                  <span style={{ position: 'absolute', right: 52, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, border: '2px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'block' }} />
-                )}
-                <button
-                  type="button"
-                  onClick={() => setShowScanner(true)}
-                  title="Scansiona codice a barre"
-                  style={{ flexShrink: 0, width: 42, height: 42, background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)' }}
-                >
-                  <ScanLine size={18} />
-                </button>
-              </div>
-
-              {/* Barcode error */}
-              {barcodeError && (
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center', background: '#fff0f0', padding: '8px 12px', borderRadius: 8, marginTop: 8, color: '#dc4a4a', fontSize: 12 }}>
-                  <AlertCircle size={14} style={{ flexShrink: 0 }} />
-                  <span>{barcodeError}</span>
-                </div>
-              )}
-
-              {/* Dropdown results */}
-              {!selected && results.length > 0 && (
-                <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 200, background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 12, boxShadow: 'var(--shadow-md)', maxHeight: 260, overflowY: 'auto' }}>
-                  {results.map((f, i) => (
-                    <button key={`${f.id}_${i}`} onClick={() => { setSelected(f); setGrams(f.default_grams ? String(f.default_grams) : '100'); setResults([]) }} style={{
-                      width: '100%', background: 'none', border: 'none', borderBottom: i < results.length - 1 ? '1px solid var(--border-light)' : 'none',
-                      padding: '10px 13px', textAlign: 'left', cursor: 'pointer', font: 'inherit',
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
-                        <p style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.3, flex: 1 }}>{f.name}</p>
-                        {(() => {
-                          const badges = { recent: ['🕐', '#fff4e6', '#c45e00'], diet: ['🥗', 'var(--green-pale)', 'var(--green-main)'], recipe: ['🍳', '#fff4e6', '#c45e00'], custom_meal: ['🍽️', '#f0fdf4', 'var(--green-dark)'], openfoodfacts: ['🌍', '#f1f5f9', 'var(--text-muted)'], database: ['DB', 'var(--green-pale)', 'var(--green-main)'] }
-                          const [label, bg, color] = badges[f.source] || badges.openfoodfacts
-                          return <span style={{ fontSize: 9, background: bg, color, padding: '2px 5px', borderRadius: 100, fontWeight: 700, flexShrink: 0 }}>{label}</span>
-                        })()}
-                      </div>
-                      <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                        {f.brand ? `${f.brand} · ` : ''}{f.kcal_100g} kcal · P:{f.proteins_100g} C:{f.carbs_100g} G:{f.fats_100g}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {!selected && !searching && query.trim().length >= 2 && results.length === 0 && (
-                <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-muted)', padding: '10px 0' }}>
-                  Nessun risultato per "{query}". Prova con un termine diverso.
-                </p>
-              )}
-            </div>
-
-            {/* Selected food + grams + time */}
-            {selected && (
-              <div>
-                <div style={{ background: 'var(--green-pale)', borderRadius: 12, padding: '11px 13px', marginBottom: 11, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>{selected.name}</p>
-                    {preview && <p style={{ fontSize: 12, color: 'var(--green-dark)' }}>{preview.kcal} kcal · P:{preview.proteins}g · C:{preview.carbs}g · G:{preview.fats}g</p>}
-                  </div>
-                  <button onClick={() => { setSelected(null); setQuery('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-muted)' }}><X size={15} /></button>
-                </div>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                  <div className="input-group" style={{ flex: 1 }}>
-                    <label className="input-label">Quantità (g)</label>
-                    <input type="number" className="input-field" value={grams} onChange={e => setGrams(e.target.value)} min={1} inputMode="decimal" />
-                  </div>
-                  <div className="input-group" style={{ width: 110 }}>
-                    <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={11} />Orario</label>
-                    <input type="time" className="input-field" value={mealTime} onChange={e => setMealTime(e.target.value)} />
-                  </div>
-                </div>
-                <button className="btn btn-primary btn-full" onClick={addFood} disabled={saving}>
-                  {saving ? '…' : 'Aggiungi al diario'}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* ── Macro targets ── */}
         {diet && (
           <div className="card" style={{ padding: 14 }}>
@@ -472,12 +320,13 @@ export default function MacroTrackerPage() {
           const mealFoods = log.filter(f => f.meal_type === m.key)
           const mealKcal = mealFoods.reduce((s, f) => s + (f.kcal || 0), 0)
           const isOpen = expandedMeal === m.key
+          const isSearching = activeMealAdd === m.key
           const times = mealFoods.map(f => f.food_data?.meal_time).filter(Boolean).sort()
           const timeLabel = times.length > 0 ? times[0] : null
           return (
             <div key={m.key} className="card" style={{ padding: 0, overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', padding: '13px 14px', gap: 9 }}>
-                <button onClick={() => setExpandedMeal(isOpen ? null : m.key)} style={{ display: 'flex', alignItems: 'center', gap: 9, flex: 1, background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', padding: 0, textAlign: 'left' }}>
+                <button onClick={() => { setExpandedMeal(isOpen ? null : m.key); if (isOpen && isSearching) closeSearch() }} style={{ display: 'flex', alignItems: 'center', gap: 9, flex: 1, background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', padding: 0, textAlign: 'left' }}>
                   <span style={{ fontSize: 20 }}>{m.emoji}</span>
                   <div style={{ flex: 1, textAlign: 'left' }}>
                     <span style={{ fontSize: 14, fontWeight: 600 }}>{m.label}</span>
@@ -492,20 +341,15 @@ export default function MacroTrackerPage() {
                   {isOpen ? <ChevronUp size={15} color="var(--text-muted)" /> : <ChevronDown size={15} color="var(--text-muted)" />}
                 </button>
                 <button
-                  onClick={() => { openMealSearch(m.key); setExpandedMeal(m.key) }}
+                  onClick={() => { if (isSearching) { closeSearch() } else { openMealSearch(m.key); setExpandedMeal(m.key) } }}
                   title={`Aggiungi a ${m.label}`}
-                  style={{ flexShrink: 0, width: 30, height: 30, borderRadius: 8, background: activeMealAdd === m.key && showSearch ? 'var(--green-main)' : 'var(--green-pale)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: activeMealAdd === m.key && showSearch ? 'white' : 'var(--green-main)' }}
+                  style={{ flexShrink: 0, width: 30, height: 30, borderRadius: 8, background: isSearching ? 'var(--green-main)' : 'var(--green-pale)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isSearching ? 'white' : 'var(--green-main)' }}
                 >
-                  <Plus size={14} />
+                  {isSearching ? <X size={14} /> : <Plus size={14} />}
                 </button>
               </div>
               {isOpen && (
                 <div style={{ borderTop: '1px solid var(--border-light)', padding: '10px 14px 12px' }}>
-                  {mealFoods.length === 0 && !(activeMealAdd === m.key && showSearch) && (
-                    <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '8px 0' }}>
-                      Nessun alimento — tocca + per aggiungere
-                    </p>
-                  )}
                   {mealFoods.map(f => (
                     <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 9, paddingBottom: 9 }}>
                       <div style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -523,6 +367,119 @@ export default function MacroTrackerPage() {
                       </button>
                     </div>
                   ))}
+                  {mealFoods.length === 0 && !isSearching && (
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '8px 0' }}>
+                      Nessun alimento — tocca + per aggiungere
+                    </p>
+                  )}
+
+                  {/* ── Inline search form ── */}
+                  {isSearching && (
+                    <div className="animate-slideUp" style={{ marginTop: mealFoods.length > 0 ? 6 : 0, padding: '10px 0 0' }}>
+                      {/* Success confirmation */}
+                      {addedFood && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--green-pale)', borderRadius: 10, padding: '9px 12px', marginBottom: 10, color: 'var(--green-dark)', fontSize: 13, fontWeight: 500 }}>
+                          <span>✅</span> <span>"{addedFood}" aggiunto!</span>
+                        </div>
+                      )}
+                      {/* Error feedback */}
+                      {saveError && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff0f0', borderRadius: 10, padding: '9px 12px', marginBottom: 10, color: '#dc4a4a', fontSize: 13, fontWeight: 500 }}>
+                          <span>⚠️</span> <span>{saveError}</span>
+                        </div>
+                      )}
+
+                      {/* Live search input */}
+                      <div style={{ position: 'relative', marginBottom: 8 }} ref={searchRef}>
+                        <div style={{ position: 'relative', display: 'flex', gap: 8 }}>
+                          <input
+                            type="text"
+                            className="input-field"
+                            placeholder="Cerca alimento (es. pollo, pasta, mela…)"
+                            value={query}
+                            onChange={e => { setQuery(e.target.value); setSelected(null); setSaveError('') }}
+                            autoComplete="off"
+                            style={{ flex: 1, paddingRight: searching ? 40 : 14 }}
+                          />
+                          {(searching || scanningBarcode) && (
+                            <span style={{ position: 'absolute', right: 52, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, border: '2px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'block' }} />
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setShowScanner(true)}
+                            title="Scansiona codice a barre"
+                            style={{ flexShrink: 0, width: 42, height: 42, background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                          >
+                            <ScanLine size={18} />
+                          </button>
+                        </div>
+
+                        {/* Barcode error */}
+                        {barcodeError && (
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center', background: '#fff0f0', padding: '8px 12px', borderRadius: 8, marginTop: 8, color: '#dc4a4a', fontSize: 12 }}>
+                            <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                            <span>{barcodeError}</span>
+                          </div>
+                        )}
+
+                        {/* Dropdown results */}
+                        {!selected && results.length > 0 && (
+                          <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 200, background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 12, boxShadow: 'var(--shadow-md)', maxHeight: 260, overflowY: 'auto' }}>
+                            {results.map((f, i) => (
+                              <button key={`${f.id}_${i}`} onClick={() => { setSelected(f); setGrams(f.default_grams ? String(f.default_grams) : '100'); setResults([]) }} style={{
+                                width: '100%', background: 'none', border: 'none', borderBottom: i < results.length - 1 ? '1px solid var(--border-light)' : 'none',
+                                padding: '10px 13px', textAlign: 'left', cursor: 'pointer', font: 'inherit',
+                              }}>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
+                                  <p style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.3, flex: 1 }}>{f.name}</p>
+                                  {(() => {
+                                    const badges = { recent: ['🕐', '#fff4e6', '#c45e00'], diet: ['🥗', 'var(--green-pale)', 'var(--green-main)'], recipe: ['🍳', '#fff4e6', '#c45e00'], custom_meal: ['🍽️', '#f0fdf4', 'var(--green-dark)'], openfoodfacts: ['🌍', '#f1f5f9', 'var(--text-muted)'], database: ['DB', 'var(--green-pale)', 'var(--green-main)'] }
+                                    const [label, bg, color] = badges[f.source] || badges.openfoodfacts
+                                    return <span style={{ fontSize: 9, background: bg, color, padding: '2px 5px', borderRadius: 100, fontWeight: 700, flexShrink: 0 }}>{label}</span>
+                                  })()}
+                                </div>
+                                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                                  {f.brand ? `${f.brand} · ` : ''}{f.kcal_100g} kcal · P:{f.proteins_100g} C:{f.carbs_100g} G:{f.fats_100g}
+                                </p>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {!selected && !searching && query.trim().length >= 2 && results.length === 0 && (
+                          <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-muted)', padding: '10px 0' }}>
+                            Nessun risultato per "{query}". Prova con un termine diverso.
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Selected food + grams + time */}
+                      {selected && (
+                        <div>
+                          <div style={{ background: 'var(--green-pale)', borderRadius: 12, padding: '11px 13px', marginBottom: 11, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                            <div style={{ flex: 1 }}>
+                              <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>{selected.name}</p>
+                              {preview && <p style={{ fontSize: 12, color: 'var(--green-dark)' }}>{preview.kcal} kcal · P:{preview.proteins}g · C:{preview.carbs}g · G:{preview.fats}g</p>}
+                            </div>
+                            <button onClick={() => { setSelected(null); setQuery('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-muted)' }}><X size={15} /></button>
+                          </div>
+                          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                            <div className="input-group" style={{ flex: 1 }}>
+                              <label className="input-label">Quantità (g)</label>
+                              <input type="number" className="input-field" value={grams} onChange={e => setGrams(e.target.value)} min={1} inputMode="decimal" />
+                            </div>
+                            <div className="input-group" style={{ width: 110 }}>
+                              <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={11} />Orario</label>
+                              <input type="time" className="input-field" value={mealTime} onChange={e => setMealTime(e.target.value)} />
+                            </div>
+                          </div>
+                          <button className="btn btn-primary btn-full" onClick={addFood} disabled={saving}>
+                            {saving ? '…' : 'Aggiungi al diario'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
