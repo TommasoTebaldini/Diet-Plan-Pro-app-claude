@@ -262,6 +262,117 @@ function HistoryDietCard({ diet, onSelect, selected, meals }) {
   )
 }
 
+const MEAL_PRINT_LABELS = {
+  colazione: { label: 'Colazione', emoji: '☀️' },
+  spuntino_mattina: { label: 'Spuntino mattina', emoji: '🍎' },
+  pranzo: { label: 'Pranzo', emoji: '🍽️' },
+  spuntino_pomeriggio: { label: 'Spuntino pomeriggio', emoji: '🥤' },
+  cena: { label: 'Cena', emoji: '🌙' },
+}
+
+function PianoAlimentareRenderer({ piano }) {
+  const [expanded, setExpanded] = useState(false)
+  let days = []
+  try {
+    const raw = typeof piano.meals === 'string' ? JSON.parse(piano.meals) : piano.meals
+    days = Array.isArray(raw) ? raw : []
+  } catch { days = [] }
+
+  const title = piano.nome || 'Piano alimentare'
+  const dataStr = piano.data_piano ? new Date(piano.data_piano).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) : ''
+  const savedStr = piano.saved_at ? new Date(piano.saved_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) : ''
+
+  return (
+    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      {/* Header row */}
+      <button
+        onClick={() => setExpanded(v => !v)}
+        style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left' }}
+      >
+        <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg, var(--green-pale), #c8f5e2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <ClipboardList size={20} color="var(--green-main)" />
+        </div>
+        <div style={{ flex: 1 }}>
+          <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{title}</p>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+            {days.length > 0 ? `${days.length} giorni` : 'Piano alimentare'}{savedStr ? ` · ${savedStr}` : ''}
+          </p>
+        </div>
+        {expanded ? <ChevronUp size={16} color="var(--text-muted)" /> : <ChevronDown size={16} color="var(--text-muted)" />}
+      </button>
+
+      {expanded && (
+        <div style={{ borderTop: '1px solid var(--border-light)', padding: '16px 18px 20px' }}>
+          {/* Print-style header */}
+          <div style={{ textAlign: 'center', marginBottom: 24, paddingBottom: 16, borderBottom: '2px solid var(--green-main)' }}>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 4 }}>Piano Alimentare Personalizzato</p>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--green-dark)', margin: '0 0 4px' }}>{title}</h2>
+            {dataStr && <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{dataStr}</p>}
+          </div>
+
+          {days.length > 0 ? days.map((day, di) => (
+            <div key={day.id || di} style={{ marginBottom: 24 }}>
+              {/* Day header */}
+              <div style={{ background: 'var(--green-main)', color: 'white', padding: '8px 14px', borderRadius: 10, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>📅</span>
+                <span style={{ fontWeight: 700, fontSize: 15 }}>{day.nome || `Giorno ${di + 1}`}</span>
+              </div>
+
+              {/* Meals */}
+              {(day.meals || []).map((meal, mi) => {
+                const mealKey = meal.id || meal.tipo || ''
+                const meta = MEAL_PRINT_LABELS[mealKey] || { label: meal.nome || meal.id || 'Pasto', emoji: '🍴' }
+                const foods = meal.foods || meal.alimenti || []
+                const kcal = meal.kcal || meal.calorie || null
+                const note = meal.note || meal.notes || ''
+
+                return (
+                  <div key={meal.id || mi} style={{ border: '1px solid var(--border-light)', borderRadius: 10, overflow: 'hidden', marginBottom: 8 }}>
+                    <div style={{ background: 'var(--green-mist)', padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-light)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 18 }}>{meta.emoji}</span>
+                        <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--green-dark)' }}>{meta.label}</span>
+                      </div>
+                      {kcal && <span style={{ fontSize: 12, color: 'var(--text-muted)', background: 'white', padding: '2px 8px', borderRadius: 100, border: '1px solid var(--border-light)' }}>🔥 {kcal} kcal</span>}
+                    </div>
+
+                    <div style={{ padding: '10px 14px' }}>
+                      {foods.length > 0 ? (
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                          <tbody>
+                            {foods.map((food, fi) => (
+                              <tr key={fi} style={{ borderBottom: fi < foods.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                                <td style={{ padding: '5px 0', color: 'var(--text-primary)' }}>{food.nome || food.name || food.alimento || ''}</td>
+                                <td style={{ padding: '5px 0', textAlign: 'right', color: 'var(--green-main)', fontWeight: 500 }}>
+                                  {food.quantita || food.quantity || food.grammi || food.grams || ''}{food.unita || food.unit || 'g'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : (meal.descrizione || meal.description) ? (
+                        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{meal.descrizione || meal.description}</p>
+                      ) : null}
+
+                      {note && (
+                        <div style={{ marginTop: 8, padding: '6px 10px', background: '#fffbeb', borderRadius: 6, borderLeft: '3px solid #f59e0b', fontSize: 12, color: '#92400e' }}>
+                          💡 {note}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )) : (
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 14 }}>Nessun dettaglio disponibile per questo piano.</p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function DietPage() {
   const { user } = useAuth()
   const [diet, setDiet] = useState(null)
@@ -296,17 +407,25 @@ export default function DietPage() {
         setCompletions(new Set((completionData || []).map(c => c.diet_meal_id)))
       }
 
-      // Load clinical diet plans from dietitian portal (piani table)
+      // Load clinical diet plans from dietitian portal (piani table via cartella_id)
       try {
-        const { data: pianiData } = await supabase
-          .from('piani')
-          .select('*')
+        const { data: link } = await supabase
+          .from('patient_dietitian')
+          .select('cartella_id')
           .eq('patient_id', user.id)
-          .eq('visible_to_patient', true)
-          .order('created_at', { ascending: false })
-        setClinicalPlans(pianiData || [])
+          .maybeSingle()
+
+        if (link?.cartella_id) {
+          const { data: pianiData } = await supabase
+            .from('piani')
+            .select('*')
+            .eq('cartella_id', link.cartella_id)
+            .eq('visible_to_patient', true)
+            .order('saved_at', { ascending: false })
+          setClinicalPlans(pianiData || [])
+        }
       } catch {
-        // Table may not exist in some deployments
+        // Table may not exist
       }
 
       setLoading(false)
@@ -428,48 +547,9 @@ export default function DietPage() {
               <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Piani dal dietista</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {clinicalPlans.map(plan => {
-                const isExpanded = expandedPlan === plan.id
-                const title = plan.titolo || plan.nome || plan.name || plan.title || 'Piano alimentare'
-                const content = plan.contenuto || plan.content || plan.descrizione || plan.description || ''
-                const fileUrl = plan.file_url || plan.pdf_url || null
-                const createdAt = plan.created_at ? new Date(plan.created_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) : ''
-                return (
-                  <div key={plan.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                    <button
-                      onClick={() => setExpandedPlan(isExpanded ? null : plan.id)}
-                      style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left' }}
-                    >
-                      <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <ClipboardList size={18} color="var(--green-main)" />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{title}</p>
-                        {createdAt && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{createdAt}</p>}
-                      </div>
-                      {isExpanded ? <ChevronUp size={16} color="var(--text-muted)" /> : <ChevronDown size={16} color="var(--text-muted)" />}
-                    </button>
-                    {isExpanded && (
-                      <div style={{ borderTop: '1px solid var(--border-light)', padding: '14px 16px 16px' }}>
-                        {content && (
-                          <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, whiteSpace: 'pre-wrap', marginBottom: fileUrl ? 14 : 0 }}>
-                            {content}
-                          </div>
-                        )}
-                        {fileUrl && (
-                          <a href={fileUrl} target="_blank" rel="noopener noreferrer" download
-                            className="btn btn-secondary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                            <Download size={14} /> Scarica PDF
-                          </a>
-                        )}
-                        {!content && !fileUrl && (
-                          <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center' }}>Nessun contenuto disponibile</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
+              {clinicalPlans.map(plan => (
+                <PianoAlimentareRenderer key={plan.id} piano={plan} />
+              ))}
             </div>
           </div>
         )}
