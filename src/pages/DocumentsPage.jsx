@@ -98,6 +98,7 @@ export default function DocumentsPage() {
 
   useEffect(() => {
     async function load() {
+      // Load patient_documents
       const { data, error } = await supabase
         .from('patient_documents')
         .select('*')
@@ -107,7 +108,47 @@ export default function DocumentsPage() {
         console.error('Documents load error:', error)
         setLoadError(error.message)
       }
-      setDocs(data || [])
+      const allDocs = [...(data || [])]
+
+      // Load clinical documents from dietitian portal tables
+      const clinicalTables = [
+        { table: 'schede_valutazione', type: 'document', label: 'Scheda di valutazione' },
+        { table: 'bia_records', type: 'document', label: 'Analisi BIA' },
+        { table: 'note_specialistiche', type: 'advice', label: 'Note specialistiche' },
+      ]
+      for (const { table, type, label } of clinicalTables) {
+        try {
+          const { data: clinicalData } = await supabase
+            .from(table)
+            .select('*')
+            .eq('patient_id', user.id)
+            .eq('visible_to_patient', true)
+            .order('created_at', { ascending: false })
+          if (clinicalData && clinicalData.length > 0) {
+            for (const item of clinicalData) {
+              allDocs.push({
+                id: `${table}_${item.id}`,
+                patient_id: user.id,
+                dietitian_id: item.dietitian_id,
+                title: item.titolo || item.nome || item.title || item.name || label,
+                type,
+                content: item.contenuto || item.content || item.descrizione || item.description || item.note || '',
+                file_url: item.file_url || item.pdf_url || null,
+                tags: item.tags || [],
+                visible: true,
+                published_at: item.published_at || item.data || item.date || item.created_at,
+                created_at: item.created_at,
+                _source: table,
+                _sourceLabel: label,
+              })
+            }
+          }
+        } catch {
+          // Table may not exist in some deployments
+        }
+      }
+
+      setDocs(allDocs)
       setLoading(false)
     }
     load()

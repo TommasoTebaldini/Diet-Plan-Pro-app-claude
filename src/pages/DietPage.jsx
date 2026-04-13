@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { Clock, ChevronDown, ChevronUp, Flame, Leaf, FileText, CheckCircle2, Circle, History, RefreshCw, TrendingUp, Calendar } from 'lucide-react'
+import { Clock, ChevronDown, ChevronUp, Flame, Leaf, FileText, CheckCircle2, Circle, History, RefreshCw, TrendingUp, Calendar, Download, ClipboardList } from 'lucide-react'
 
 const DAYS = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
 
@@ -273,6 +273,8 @@ export default function DietPage() {
   const [showHistory, setShowHistory] = useState(false)
   const [selectedHistoryId, setSelectedHistoryId] = useState(null)
   const [historyMeals, setHistoryMeals] = useState([])
+  const [clinicalPlans, setClinicalPlans] = useState([])
+  const [expandedPlan, setExpandedPlan] = useState(null)
 
   const today = useMemo(() => new Date().toISOString().split('T')[0], [])
 
@@ -293,6 +295,20 @@ export default function DietPage() {
         setMeals(mealData || [])
         setCompletions(new Set((completionData || []).map(c => c.diet_meal_id)))
       }
+
+      // Load clinical diet plans from dietitian portal (piani table)
+      try {
+        const { data: pianiData } = await supabase
+          .from('piani')
+          .select('*')
+          .eq('patient_id', user.id)
+          .eq('visible_to_patient', true)
+          .order('created_at', { ascending: false })
+        setClinicalPlans(pianiData || [])
+      } catch {
+        // Table may not exist in some deployments
+      }
+
       setLoading(false)
     }
     load()
@@ -342,7 +358,7 @@ export default function DietPage() {
     </div>
   )
 
-  if (!diet) return (
+  if (!diet && clinicalPlans.length === 0) return (
     <div className="page" style={{ padding: 32 }}>
       <div style={{ textAlign: 'center', paddingTop: 40, paddingBottom: 32 }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>🥗</div>
@@ -369,8 +385,8 @@ export default function DietPage() {
     </div>
   )
 
-  const dayMeals = meals.filter(m => m.day_number === tab + 1 || !m.day_number)
-  const hasWeekly = meals.some(m => m.day_number)
+  const dayMeals = diet ? meals.filter(m => m.day_number === tab + 1 || !m.day_number) : []
+  const hasWeekly = diet ? meals.some(m => m.day_number) : false
   const completedCount = dayMeals.filter(m => completions.has(m.id)).length
   const allDone = dayMeals.length > 0 && completedCount === dayMeals.length
 
@@ -383,83 +399,149 @@ export default function DietPage() {
             <Leaf size={20} color="white" />
           </div>
           <div>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>Piano attivo</p>
-            <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 20, color: 'white', fontWeight: 300 }}>{diet.name || 'Piano personalizzato'}</h1>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>{diet ? 'Piano attivo' : 'La mia dieta'}</p>
+            <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 20, color: 'white', fontWeight: 300 }}>{diet ? (diet.name || 'Piano personalizzato') : 'Piani alimentari'}</h1>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          {[
-            { label: `${diet.kcal_target || '–'} kcal`, sub: 'obiettivo' },
-            { label: `${diet.protein_target || '–'}g`, sub: 'proteine' },
-            { label: `${diet.duration_weeks || '–'} sett.`, sub: 'durata' },
-          ].map(s => (
-            <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.15)' }}>
-              <p style={{ color: 'white', fontSize: 15, fontWeight: 600 }}>{s.label}</p>
-              <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>{s.sub}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {/* Day tabs */}
-        {hasWeekly && (
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, WebkitOverflowScrolling: 'touch' }}>
-            {DAYS.map((d, i) => (
-              <button key={d} onClick={() => setTab(i)} style={{
-                flexShrink: 0, padding: '8px 16px', borderRadius: 100,
-                background: tab === i ? 'var(--green-main)' : 'var(--surface)',
-                color: tab === i ? 'white' : 'var(--text-secondary)',
-                border: `1.5px solid ${tab === i ? 'transparent' : 'var(--border)'}`,
-                font: 'inherit', fontSize: 13, fontWeight: 500, cursor: 'pointer'
-              }}>
-                {d.slice(0, 3)}
-              </button>
+        {diet && (
+          <div style={{ display: 'flex', gap: 10 }}>
+            {[
+              { label: `${diet.kcal_target || '–'} kcal`, sub: 'obiettivo' },
+              { label: `${diet.protein_target || '–'}g`, sub: 'proteine' },
+              { label: `${diet.duration_weeks || '–'} sett.`, sub: 'durata' },
+            ].map(s => (
+              <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.15)' }}>
+                <p style={{ color: 'white', fontSize: 15, fontWeight: 600 }}>{s.label}</p>
+                <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>{s.sub}</p>
+              </div>
             ))}
           </div>
         )}
+      </div>
 
-        {/* Diet notes */}
-        {diet.notes && (
-          <div style={{ background: 'var(--green-pale)', borderRadius: 14, padding: '14px 16px', display: 'flex', gap: 10 }}>
-            <FileText size={16} color="var(--green-main)" style={{ flexShrink: 0, marginTop: 2 }} />
-            <p style={{ fontSize: 13, color: 'var(--green-dark)', lineHeight: 1.6 }}>{diet.notes}</p>
-          </div>
-        )}
-
-        {/* Daily nutrition summary */}
-        {dayMeals.length > 0 && dayMeals.some(m => m.kcal) && (
-          <DailyNutritionSummary meals={dayMeals} diet={diet} />
-        )}
-
-        {/* Meal completion progress */}
-        {dayMeals.length > 0 && (
-          <div style={{ background: 'var(--surface)', borderRadius: 14, padding: '12px 16px', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>Pasti completati oggi</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: allDone ? 'var(--green-main)' : 'var(--text-muted)' }}>{completedCount}/{dayMeals.length}</span>
-              </div>
-              <div style={{ height: 6, background: 'var(--surface-3)', borderRadius: 3, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${(completedCount / dayMeals.length) * 100}%`, background: 'var(--green-main)', borderRadius: 3, transition: 'width 0.3s ease' }} />
-              </div>
+      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* Clinical plans from dietitian portal */}
+        {clinicalPlans.length > 0 && (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <ClipboardList size={16} color="var(--green-main)" />
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Piani dal dietista</span>
             </div>
-            {allDone && <span style={{ fontSize: 22 }}>🎉</span>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {clinicalPlans.map(plan => {
+                const isExpanded = expandedPlan === plan.id
+                const title = plan.titolo || plan.nome || plan.name || plan.title || 'Piano alimentare'
+                const content = plan.contenuto || plan.content || plan.descrizione || plan.description || ''
+                const fileUrl = plan.file_url || plan.pdf_url || null
+                const createdAt = plan.created_at ? new Date(plan.created_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) : ''
+                return (
+                  <div key={plan.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                    <button
+                      onClick={() => setExpandedPlan(isExpanded ? null : plan.id)}
+                      style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left' }}
+                    >
+                      <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <ClipboardList size={18} color="var(--green-main)" />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{title}</p>
+                        {createdAt && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{createdAt}</p>}
+                      </div>
+                      {isExpanded ? <ChevronUp size={16} color="var(--text-muted)" /> : <ChevronDown size={16} color="var(--text-muted)" />}
+                    </button>
+                    {isExpanded && (
+                      <div style={{ borderTop: '1px solid var(--border-light)', padding: '14px 16px 16px' }}>
+                        {content && (
+                          <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, whiteSpace: 'pre-wrap', marginBottom: fileUrl ? 14 : 0 }}>
+                            {content}
+                          </div>
+                        )}
+                        {fileUrl && (
+                          <a href={fileUrl} target="_blank" rel="noopener noreferrer" download
+                            className="btn btn-secondary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+                            <Download size={14} /> Scarica PDF
+                          </a>
+                        )}
+                        {!content && !fileUrl && (
+                          <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center' }}>Nessun contenuto disponibile</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 
-        {/* Meals */}
-        {dayMeals.length > 0
-          ? dayMeals.map((m, i) => (
-            <MealCard
-              key={m.id || i}
-              meal={m}
-              completed={completions.has(m.id)}
-              onToggleComplete={toggleComplete}
-            />
-          ))
-          : <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)' }}>Nessun pasto per questo giorno</div>
-        }
+        {diet && (
+          <>
+            {/* Day tabs */}
+            {hasWeekly && (
+              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, WebkitOverflowScrolling: 'touch' }}>
+                {DAYS.map((d, i) => (
+                  <button key={d} onClick={() => setTab(i)} style={{
+                    flexShrink: 0, padding: '8px 16px', borderRadius: 100,
+                    background: tab === i ? 'var(--green-main)' : 'var(--surface)',
+                    color: tab === i ? 'white' : 'var(--text-secondary)',
+                    border: `1.5px solid ${tab === i ? 'transparent' : 'var(--border)'}`,
+                    font: 'inherit', fontSize: 13, fontWeight: 500, cursor: 'pointer'
+                  }}>
+                    {d.slice(0, 3)}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Diet notes */}
+            {diet.notes && (
+              <div style={{ background: 'var(--green-pale)', borderRadius: 14, padding: '14px 16px', display: 'flex', gap: 10 }}>
+                <FileText size={16} color="var(--green-main)" style={{ flexShrink: 0, marginTop: 2 }} />
+                <p style={{ fontSize: 13, color: 'var(--green-dark)', lineHeight: 1.6 }}>{diet.notes}</p>
+              </div>
+            )}
+
+            {/* Daily nutrition summary */}
+            {dayMeals.length > 0 && dayMeals.some(m => m.kcal) && (
+              <DailyNutritionSummary meals={dayMeals} diet={diet} />
+            )}
+
+            {/* Meal completion progress */}
+            {dayMeals.length > 0 && (
+              <div style={{ background: 'var(--surface)', borderRadius: 14, padding: '12px 16px', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>Pasti completati oggi</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: allDone ? 'var(--green-main)' : 'var(--text-muted)' }}>{completedCount}/{dayMeals.length}</span>
+                  </div>
+                  <div style={{ height: 6, background: 'var(--surface-3)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${(completedCount / dayMeals.length) * 100}%`, background: 'var(--green-main)', borderRadius: 3, transition: 'width 0.3s ease' }} />
+                  </div>
+                </div>
+                {allDone && <span style={{ fontSize: 22 }}>🎉</span>}
+              </div>
+            )}
+
+            {/* Meals */}
+            {dayMeals.length > 0
+              ? dayMeals.map((m, i) => (
+                <MealCard
+                  key={m.id || i}
+                  meal={m}
+                  completed={completions.has(m.id)}
+                  onToggleComplete={toggleComplete}
+                />
+              ))
+              : <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)' }}>Nessun pasto per questo giorno</div>
+            }
+          </>
+        )}
+
+        {!diet && clinicalPlans.length > 0 && (
+          <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--text-muted)' }}>
+            <p style={{ fontSize: 13 }}>Non è presente un piano alimentare dettagliato con i pasti. Consulta i piani del dietista sopra.</p>
+          </div>
+        )}
 
         {/* History section */}
         {history.length > 0 && (

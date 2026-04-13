@@ -763,6 +763,73 @@ $$;
 
 
 -- ============================================================
+-- POLICY RLS: Tabelle cliniche del portale dietista
+-- Permettono ai pazienti di leggere i propri dati quando
+-- visible_to_patient = true.
+-- ============================================================
+
+-- piani (piani alimentari clinici)
+do $$
+begin
+  if exists (select 1 from information_schema.tables where table_name = 'piani' and table_schema = 'public') then
+    execute $p$ alter table piani enable row level security $p$;
+    if not exists (select 1 from pg_policies where tablename = 'piani' and policyname = 'paziente legge propri piani') then
+      execute $p$
+        create policy "paziente legge propri piani" on piani
+          for select using (auth.uid() = patient_id and visible_to_patient = true)
+      $p$;
+    end if;
+  end if;
+end;
+$$;
+
+-- schede_valutazione (schede di valutazione clinica)
+do $$
+begin
+  if exists (select 1 from information_schema.tables where table_name = 'schede_valutazione' and table_schema = 'public') then
+    execute $p$ alter table schede_valutazione enable row level security $p$;
+    if not exists (select 1 from pg_policies where tablename = 'schede_valutazione' and policyname = 'paziente legge proprie schede') then
+      execute $p$
+        create policy "paziente legge proprie schede" on schede_valutazione
+          for select using (auth.uid() = patient_id and visible_to_patient = true)
+      $p$;
+    end if;
+  end if;
+end;
+$$;
+
+-- bia_records (analisi composizione corporea BIA)
+do $$
+begin
+  if exists (select 1 from information_schema.tables where table_name = 'bia_records' and table_schema = 'public') then
+    execute $p$ alter table bia_records enable row level security $p$;
+    if not exists (select 1 from pg_policies where tablename = 'bia_records' and policyname = 'paziente legge propri bia') then
+      execute $p$
+        create policy "paziente legge propri bia" on bia_records
+          for select using (auth.uid() = patient_id and visible_to_patient = true)
+      $p$;
+    end if;
+  end if;
+end;
+$$;
+
+-- note_specialistiche (note cliniche del dietista)
+do $$
+begin
+  if exists (select 1 from information_schema.tables where table_name = 'note_specialistiche' and table_schema = 'public') then
+    execute $p$ alter table note_specialistiche enable row level security $p$;
+    if not exists (select 1 from pg_policies where tablename = 'note_specialistiche' and policyname = 'paziente legge proprie note') then
+      execute $p$
+        create policy "paziente legge proprie note" on note_specialistiche
+          for select using (auth.uid() = patient_id and visible_to_patient = true)
+      $p$;
+    end if;
+  end if;
+end;
+$$;
+
+
+-- ============================================================
 -- NOTE PER IL DIETISTA
 --
 -- Assegnare una dieta a un paziente:
