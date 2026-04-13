@@ -127,7 +127,7 @@ export default function MacroTrackerPage() {
     setSaving(true)
     const m = calcMacros(selected, grams)
     const { data } = await supabase.from('food_logs').insert({
-      date, meal_type: meal, food_name: selected.name,
+      date, meal_type: meal, meal_time: mealTime || null, food_name: selected.name,
       grams: parseFloat(grams) || 100, ...m,
       food_data: { ...selected, meal_time: mealTime || null },
     }).select().single()
@@ -148,7 +148,7 @@ export default function MacroTrackerPage() {
       kcal: a.kcal + (f.kcal || 0), proteins: a.proteins + (f.proteins || 0),
       carbs: a.carbs + (f.carbs || 0), fats: a.fats + (f.fats || 0),
     }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
-    await supabase.from('daily_logs').upsert({ date, ...t }, { onConflict: 'date' })
+    await supabase.from('daily_logs').upsert({ user_id: user.id, date, ...t }, { onConflict: 'user_id,date' })
   }
 
   async function removeFood(id) {
