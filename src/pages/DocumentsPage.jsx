@@ -28,6 +28,8 @@ const TYPE_META = {
   // Education
   education:     { label: 'Materiale educativo',    icon: <BookOpen size={18} />, color: '#8b5cf6', bg: '#f5f3ff' },
   educazione:    { label: 'Materiale educativo',    icon: <BookOpen size={18} />, color: '#8b5cf6', bg: '#f5f3ff' },
+  // Catering/Ristorazione
+  ristorazione:  { label: 'Menu ristorazione',      icon: <Utensils size={18} />, color: '#0891b2', bg: '#ecfeff' },
   // Recipes
   recipe:        { label: 'Ricetta',                icon: <Apple size={18} />,    color: '#f0922b', bg: '#fff4e6' },
   ricetta:       { label: 'Ricetta',                icon: <Apple size={18} />,    color: '#f0922b', bg: '#fff4e6' },
@@ -48,89 +50,183 @@ function isNew(doc, lastSeen) {
 
 
 function PrintDocRenderer({ doc }) {
+  // Robust: detect from BOTH tipo AND dati shape
   const tipo = (doc.tipo || doc.type || '').toLowerCase()
-  const dati = doc.dati_raw || {}
-  const meta = TYPE_META[tipo] || TYPE_META[doc.type] || TYPE_META.document
+  let dati = doc.dati_raw || {}
+  // Parse if string
+  if (typeof dati === 'string') { try { dati = JSON.parse(dati) } catch { dati = {} } }
 
-  // MUST Questionario
-  if (tipo === 'questionario' && dati.questionario) {
+  // ── MUST / Questionario ─────────────────────────────────────────────────────
+  const isQuestionario = tipo === 'questionario' || (dati.questionario && dati.score !== undefined)
+  if (isQuestionario) {
+    const scoreColor = dati.score >= 3 ? '#dc2626' : dati.score >= 1 ? '#d97706' : '#16a34a'
     return (
       <div>
-        <div style={{ background: '#f5f3ff', border: '1px solid #d8b4fe', borderRadius: 12, padding: 16, marginBottom: 20 }}>
-          <div style={{ fontSize: 12, color: '#7c3aed', fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Questionario {dati.questionario}</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: dati.score >= 2 ? '#dc2626' : '#16a34a' }}>
-            Score: {dati.score} — {dati.label}
+        <div style={{ background: '#f5f3ff', border: '2px solid #d8b4fe', borderRadius: 14, padding: 20, marginBottom: 20, textAlign: 'center' }}>
+          <div style={{ fontSize: 12, color: '#7c3aed', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+            Questionario {dati.questionario || 'Clinico'}
           </div>
+          <div style={{ fontSize: 32, fontWeight: 800, color: scoreColor, marginBottom: 6 }}>
+            Score: {dati.score ?? '—'}
+          </div>
+          {dati.label && <div style={{ fontSize: 16, fontWeight: 600, color: scoreColor }}>{dati.label}</div>}
         </div>
-        {dati.desc && <p style={{ fontSize: 14, lineHeight: 1.8 }}>{dati.desc}</p>}
+        {dati.desc && <p style={{ fontSize: 14, lineHeight: 1.8, color: '#333', whiteSpace: 'pre-wrap' }}>{dati.desc}</p>}
+        {doc.nota && doc.nota !== doc.title && <p style={{ marginTop: 12, fontSize: 14, color: '#666', fontStyle: 'italic' }}>{doc.nota}</p>}
       </div>
     )
   }
 
-  // Consiglio nutrizionale
-  if (tipo === 'consiglio') {
+  // ── Consiglio nutrizionale ───────────────────────────────────────────────────
+  const isConsiglio = tipo === 'consiglio' || dati.consiglio_id || dati.consiglio_nome
+  if (isConsiglio) {
     return (
       <div>
-        <div style={{ background: '#fff0f0', border: '1px solid #fecaca', borderRadius: 12, padding: 16, marginBottom: 20 }}>
-          <div style={{ fontSize: 12, color: '#dc2626', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Consiglio Nutrizionale</div>
+        <div style={{ background: 'linear-gradient(135deg, #fff0f0, #fff5f5)', border: '2px solid #fecaca', borderRadius: 14, padding: 20, marginBottom: 20 }}>
+          <div style={{ fontSize: 11, color: '#dc2626', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Consiglio Nutrizionale</div>
           <div style={{ fontSize: 20, fontWeight: 700, color: '#991b1b' }}>{dati.consiglio_nome || doc.title}</div>
         </div>
-        {dati.descrizione && <p style={{ fontSize: 14, lineHeight: 1.8 }}>{dati.descrizione}</p>}
-        {dati.consigli && Array.isArray(dati.consigli) && (
-          <ul style={{ paddingLeft: 20, fontSize: 14, lineHeight: 2 }}>
-            {dati.consigli.map((c, i) => <li key={i}>{c}</li>)}
-          </ul>
+        {dati.indicazioni && <div style={{ marginBottom: 14 }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: '#1a7f5a', marginBottom: 8, textTransform: 'uppercase', letterSpacing: .5 }}>Indicazioni</p>
+          <p style={{ fontSize: 14, lineHeight: 1.8 }}>{dati.indicazioni}</p>
+        </div>}
+        {dati.alimenti_consentiti && Array.isArray(dati.alimenti_consentiti) && dati.alimenti_consentiti.length > 0 && (
+          <div style={{ marginBottom: 14 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#16a34a', marginBottom: 8, textTransform: 'uppercase', letterSpacing: .5 }}>✅ Alimenti consentiti</p>
+            <ul style={{ paddingLeft: 20, fontSize: 14, lineHeight: 2 }}>{dati.alimenti_consentiti.map((a, i) => <li key={i}>{a}</li>)}</ul>
+          </div>
         )}
-        {doc.content && !dati.descrizione && <p style={{ fontSize: 14, lineHeight: 1.8 }}>{doc.content}</p>}
+        {dati.alimenti_limitare && Array.isArray(dati.alimenti_limitare) && dati.alimenti_limitare.length > 0 && (
+          <div style={{ marginBottom: 14 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#d97706', marginBottom: 8, textTransform: 'uppercase', letterSpacing: .5 }}>⚠️ Da limitare</p>
+            <ul style={{ paddingLeft: 20, fontSize: 14, lineHeight: 2 }}>{dati.alimenti_limitare.map((a, i) => <li key={i}>{a}</li>)}</ul>
+          </div>
+        )}
+        {dati.alimenti_evitare && Array.isArray(dati.alimenti_evitare) && dati.alimenti_evitare.length > 0 && (
+          <div style={{ marginBottom: 14 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#dc2626', marginBottom: 8, textTransform: 'uppercase', letterSpacing: .5 }}>🚫 Da evitare</p>
+            <ul style={{ paddingLeft: 20, fontSize: 14, lineHeight: 2 }}>{dati.alimenti_evitare.map((a, i) => <li key={i}>{a}</li>)}</ul>
+          </div>
+        )}
+        {dati.note && <div style={{ padding: '10px 14px', background: '#fffbeb', borderRadius: 8, borderLeft: '3px solid #f59e0b', fontSize: 13, color: '#92400e' }}>💡 {dati.note}</div>}
+        {doc.content && !dati.indicazioni && <p style={{ fontSize: 14, lineHeight: 1.8 }}>{doc.content}</p>}
       </div>
     )
   }
 
-  // Calcoli (chetogenica, renale, diabete, dca)
-  if (dati.calcolo || dati.rapporto_ic || dati.panoramica) {
-    const calcolo = dati.calcolo || dati.rapporto_ic || {}
-    const entries = Object.entries(calcolo).filter(([, v]) => v !== "" && v !== null && v !== undefined)
-    const labelMap = {
-      peso: 'Peso (kg)', altezza: 'Altezza (cm)', eta: 'Età', sesso: 'Sesso',
-      peso_ideale: 'Peso ideale', imc: 'IMC', bmi: 'BMI',
-      fabbisogno: 'Fabbisogno', kcal: 'Calorie',
-      proteine: 'Proteine', carboidrati: 'Carboidrati', grassi: 'Grassi',
-      tipo: 'Tipo diabete', tdd: 'TDD (UI)', metodo: 'Metodo',
+  // ── Calcoli clinici (DCA, diabete, chetogenica, renale, ecc.) ──────────────
+  const calcData = dati.calcolo || dati.rapporto_ic || dati.panoramica || null
+  const isCalcolo = calcData || tipo === 'dca' || tipo === 'diabete' || tipo === 'chetogenica' || tipo === 'renale' || tipo === 'pediatria' || tipo === 'disfagia' || tipo === 'pancreas' || tipo === 'sport'
+  if (isCalcolo) {
+    const LABEL_MAP = {
+      peso: 'Peso (kg)', altezza: 'Altezza (cm)', eta: 'Età',
+      sesso: 'Sesso', peso_ideale: 'Peso ideale (kg)',
+      imc: 'IMC', bmi: 'BMI',
+      fabbisogno: 'Fabbisogno calorico', kcal: 'Calorie',
+      proteine: 'Proteine (g)', carboidrati: 'Carboidrati (g)', grassi: 'Grassi (g)',
+      tipo: 'Tipo', tdd: 'TDD (UI)', metodo: 'Metodo',
       attivita: 'Attività fisica', storia_paziente: 'Anamnesi',
-      storia_peso: 'Storia peso', famiglia: 'Storia familiare',
+      storia_peso: 'Storia peso', famiglia: 'Anamnesi familiare',
+      npasti: 'N° pasti', luogo: 'Luogo pasti', appetito: 'Appetito',
     }
-    return (
-      <div>
-        {doc.nota && (
-          <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 12, padding: 14, marginBottom: 16 }}>
-            <p style={{ fontSize: 15, fontWeight: 600, color: '#0369a1' }}>{doc.nota}</p>
-          </div>
-        )}
-        {entries.length > 0 && (
-          <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
-            <div style={{ background: '#1a7f5a', color: 'white', padding: '10px 16px', fontSize: 13, fontWeight: 700 }}>Dati clinici</div>
+    const renderCalcTable = (obj, label) => {
+      if (!obj || typeof obj !== 'object') return null
+      const entries = Object.entries(obj).filter(([, v]) => v !== '' && v !== null && v !== undefined && typeof v !== 'object')
+      const nested = Object.entries(obj).filter(([, v]) => v && typeof v === 'object')
+      if (entries.length === 0 && nested.length === 0) return null
+      return (
+        <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', marginBottom: 14 }}>
+          {label && <div style={{ background: '#1a7f5a', color: 'white', padding: '9px 16px', fontSize: 13, fontWeight: 700 }}>{label}</div>}
+          {entries.length > 0 && (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <tbody>
                 {entries.map(([k, v], i) => (
                   <tr key={k} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
-                    <td style={{ padding: '8px 16px', fontSize: 13, color: '#666', fontWeight: 600, width: '45%' }}>
-                      {labelMap[k] || k.replace(/_/g, ' ')}
+                    <td style={{ padding: '8px 16px', fontSize: 13, color: '#555', fontWeight: 600, width: '45%' }}>
+                      {LABEL_MAP[k] || k.replace(/_/g, ' ').replace(/\w/g, l => l.toUpperCase())}
                     </td>
-                    <td style={{ padding: '8px 16px', fontSize: 13, color: '#1a1a1a' }}>
-                      {typeof v === 'object' ? JSON.stringify(v) : String(v)}
-                    </td>
+                    <td style={{ padding: '8px 16px', fontSize: 13, color: '#1a1a1a' }}>{String(v)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {nested.map(([k, v]) => (
+            <div key={k} style={{ padding: '0 0 8px 0' }}>
+              {renderCalcTable(v, LABEL_MAP[k] || k.replace(/_/g, ' ').replace(/\w/g, l => l.toUpperCase()))}
+            </div>
+          ))}
+        </div>
+      )
+    }
+    return (
+      <div>
+        {doc.nota && (
+          <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 12, padding: 14, marginBottom: 18 }}>
+            <p style={{ fontSize: 15, fontWeight: 600, color: '#0369a1' }}>{doc.nota}</p>
+          </div>
+        )}
+        {calcData ? renderCalcTable(calcData, '📊 Dati clinici') : renderCalcTable(dati, '📊 Dati clinici')}
+      </div>
+    )
+  }
+
+  // ── Ristorazione / menu scolastico ──────────────────────────────────────────
+  const ristData = dati.valutazione || dati
+  const isRistorazione = tipo === 'ristorazione' || ristData?.portate?.length > 0
+  if (isRistorazione && ristData?.portate) {
+    const portate = ristData.portate || []
+    return (
+      <div>
+        {doc.nota && (
+          <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 12, padding: 14, marginBottom: 18 }}>
+            <p style={{ fontSize: 15, fontWeight: 600, color: '#0369a1' }}>{doc.nota}</p>
+          </div>
+        )}
+        {(ristData.tipo || ristData.utenza || ristData.coperti) && (
+          <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', marginBottom: 14 }}>
+            <div style={{ background: '#1a7f5a', color: 'white', padding: '9px 16px', fontSize: 13, fontWeight: 700 }}>📋 Informazioni struttura</div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <tbody>
+                {[['Tipo', ristData.tipo], ['Utenza', ristData.utenza], ['Coperti', ristData.coperti], ['Kcal', ristData.kcal], ['Diete speciali', ristData.diete], ['Allergeni', ristData.allergeni]].filter(([, v]) => v).map(([k, v], i) => (
+                  <tr key={k} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
+                    <td style={{ padding: '8px 16px', fontSize: 13, color: '#555', fontWeight: 600, width: '40%' }}>{k}</td>
+                    <td style={{ padding: '8px 16px', fontSize: 13 }}>{v}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-        {doc.content && <p style={{ fontSize: 14, lineHeight: 1.8 }}>{doc.content}</p>}
+        {portate.length > 0 && (
+          <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', marginBottom: 14 }}>
+            <div style={{ background: '#1a7f5a', color: 'white', padding: '9px 16px', fontSize: 13, fontWeight: 700 }}>🍽️ Portate</div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                  {['Portata', 'Porzione', 'Note'].map(h => (
+                    <th key={h} style={{ padding: '8px 14px', fontSize: 12, color: '#666', textAlign: 'left', fontWeight: 600 }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {portate.map((p, i) => (
+                  <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
+                    <td style={{ padding: '8px 14px', fontSize: 13, fontWeight: 600, color: '#1a7f5a' }}>{p.nome || ''}</td>
+                    <td style={{ padding: '8px 14px', fontSize: 13 }}>{p.porzione || ''}</td>
+                    <td style={{ padding: '8px 14px', fontSize: 12, color: '#666', fontStyle: p.note ? 'normal' : 'italic' }}>{p.note || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {ristData.note_generali && <div style={{ padding: '10px 14px', background: '#fffbeb', borderRadius: 8, borderLeft: '3px solid #f59e0b', fontSize: 13, color: '#92400e' }}>💡 {ristData.note_generali}</div>}
       </div>
     )
   }
 
-  // Generic
+  // ── Generic fallback: smart formatted renderer ──────────────────────────────
   return (
     <div>
       {doc.nota && doc.nota !== doc.title && (
@@ -140,10 +236,89 @@ function PrintDocRenderer({ doc }) {
       )}
       {doc.content
         ? <p style={{ fontSize: 15, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{doc.content}</p>
-        : dati && Object.keys(dati).length > 0
-          ? <pre style={{ fontSize: 13, background: '#f9fafb', padding: 16, borderRadius: 12, overflow: 'auto', lineHeight: 1.6 }}>{JSON.stringify(dati, null, 2)}</pre>
+        : Object.keys(dati).length > 0
+          ? <SmartJsonRenderer data={dati} />
           : <p style={{ color: '#999', textAlign: 'center', marginTop: 40 }}>Nessun contenuto disponibile</p>
       }
+    </div>
+  )
+}
+
+// ─── Smart renderer: formats any JSON object in a human-readable way ──────────
+function SmartJsonRenderer({ data, depth = 0 }) {
+  if (!data || typeof data !== 'object') {
+    return <span style={{ fontSize: 14 }}>{String(data)}</span>
+  }
+
+  if (Array.isArray(data)) {
+    if (data.length === 0) return null
+    // Array of objects → table
+    if (typeof data[0] === 'object' && data[0] !== null) {
+      const keys = Object.keys(data[0]).filter(k => data.some(r => r[k] !== '' && r[k] !== null && r[k] !== undefined))
+      if (keys.length > 0) {
+        return (
+          <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, overflow: 'hidden', marginBottom: 12 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#f9fafb' }}>
+                  {keys.map(k => (
+                    <th key={k} style={{ padding: '7px 12px', fontSize: 11, color: '#666', textAlign: 'left', fontWeight: 600, textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb' }}>
+                      {k.replace(/_/g, ' ')}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((row, i) => (
+                  <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
+                    {keys.map(k => (
+                      <td key={k} style={{ padding: '7px 12px', fontSize: 13 }}>
+                        {typeof row[k] === 'object' ? JSON.stringify(row[k]) : String(row[k] ?? '—')}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      }
+    }
+    // Array of primitives → list
+    return (
+      <ul style={{ paddingLeft: 20, fontSize: 14, lineHeight: 2 }}>
+        {data.map((item, i) => <li key={i}>{String(item)}</li>)}
+      </ul>
+    )
+  }
+
+  // Object → key-value table
+  const entries = Object.entries(data).filter(([, v]) => v !== '' && v !== null && v !== undefined)
+  if (entries.length === 0) return null
+
+  return (
+    <div style={{ marginBottom: depth === 0 ? 0 : 12 }}>
+      {entries.map(([k, v]) => (
+        <div key={k} style={{ marginBottom: 10 }}>
+          {typeof v === 'object' ? (
+            <>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#1a7f5a', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
+                {k.replace(/_/g, ' ')}
+              </p>
+              <div style={{ paddingLeft: 12, borderLeft: '3px solid #e6f5ee' }}>
+                <SmartJsonRenderer data={v} depth={depth + 1} />
+              </div>
+            </>
+          ) : (
+            <div style={{ display: 'flex', gap: 12, padding: '6px 0', borderBottom: '1px solid #f3f4f6' }}>
+              <span style={{ fontSize: 12, color: '#666', fontWeight: 600, width: '40%', flexShrink: 0 }}>
+                {k.replace(/_/g, ' ').replace(/\w/g, l => l.toUpperCase())}
+              </span>
+              <span style={{ fontSize: 13, color: '#1a1a1a' }}>{String(v)}</span>
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   )
 }
