@@ -98,54 +98,87 @@ export default function DocumentsPage() {
 
   useEffect(() => {
     async function load() {
-      // Load patient_documents
-      const { data, error } = await supabase
-        .from('patient_documents')
-        .select('*')
-        .eq('patient_id', user.id)
-        .order('created_at', { ascending: false })
-      if (error) {
-        console.error('Documents load error:', error)
-        setLoadError(error.message)
-      }
-      const allDocs = [...(data || [])]
+      setLoadError(null)
+      const allDocs = []
 
-      // Load clinical documents from dietitian portal tables
-      const clinicalTables = [
-        { table: 'schede_valutazione', type: 'document', label: 'Scheda di valutazione' },
-        { table: 'bia_records', type: 'document', label: 'Analisi BIA' },
-        { table: 'note_specialistiche', type: 'advice', label: 'Note specialistiche' },
-      ]
-      for (const { table, type, label } of clinicalTables) {
-        try {
-          const { data: clinicalData } = await supabase
-            .from(table)
-            .select('*')
-            .eq('patient_id', user.id)
+      try {
+        // Step 1: get cartella_id linked to this patient via patient_dietitian
+        const { data: link } = await supabase
+          .from('patient_dietitian')
+          .select('cartella_id')
+          .eq('patient_id', user.id)
+          .maybeSingle()
+
+        const cartellaId = link?.cartella_id
+
+        if (cartellaId) {
+          // Step 2a: load note_specialistiche visible to patient
+          const { data: notes } = await supabase
+            .from('note_specialistiche')
+            .select('id, tipo, nota, dati, created_at')
+            .eq('cartella_id', cartellaId)
             .eq('visible_to_patient', true)
             .order('created_at', { ascending: false })
-          if (clinicalData && clinicalData.length > 0) {
-            for (const item of clinicalData) {
-              allDocs.push({
-                id: `${table}_${item.id}`,
-                patient_id: user.id,
-                dietitian_id: item.dietitian_id,
-                title: item.titolo || item.nome || item.title || item.name || label,
-                type,
-                content: item.contenuto || item.content || item.descrizione || item.description || item.note || '',
-                file_url: item.file_url || item.pdf_url || null,
-                tags: item.tags || [],
-                visible: true,
-                published_at: item.published_at || item.data || item.date || item.created_at,
-                created_at: item.created_at,
-                _source: table,
-                _sourceLabel: label,
-              })
+
+          for (const n of notes || []) {
+            const tipoMap = {
+              dieta: 'diet', piano: 'diet',
+              consiglio: 'advice', nota: 'advice', referto: 'document',
+              ricetta: 'recipe', educazione: 'education',
             }
+            const tipo = (n.tipo || '').toLowerCase()
+            const type = tipoMap[tipo] || 'advice'
+            allDocs.push({
+              id: `note_${n.id}`,
+              title: n.tipo ? n.tipo.charAt(0).toUpperCase() + n.tipo.slice(1) : 'Nota del dietista',
+              type,
+              content: n.nota || (typeof n.dati === 'string' ? n.dati : n.dati ? JSON.stringify(n.dati, null, 2) : ''),
+              file_url: null,
+              tags: [],
+              visible: true,
+              published_at: n.created_at,
+              created_at: n.created_at,
+            })
           }
-        } catch {
-          // Table may not exist in some deployments
+
+          // Step 2b: load piani visible to patient
+          const { data: piani } = await supabase
+            .from('piani')
+            .select('id, nome, data_piano, meals, saved_at')
+            .eq('cartella_id', cartellaId)
+            .eq('visible_to_patient', true)
+            .order('saved_at', { ascending: false })
+
+          for (const p of piani || []) {
+            allDocs.push({
+              id: `piano_${p.id}`,
+              title: p.nome || 'Piano alimentare',
+              type: 'diet',
+              content: p.data_piano || (p.meals ? `Pasti: ${p.meals}` : ''),
+              file_url: null,
+              tags: [],
+              visible: true,
+              published_at: p.saved_at,
+              created_at: p.saved_at,
+            })
+          }
         }
+
+        // Step 3 (fallback): also check patient_documents directly
+        const { data: patientDocs } = await supabase
+          .from('patient_documents')
+          .select('*')
+          .eq('patient_id', user.id)
+          .eq('visible', true)
+          .order('created_at', { ascending: false })
+
+        for (const d of patientDocs || []) {
+          allDocs.push({ ...d, published_at: d.published_at || d.created_at })
+        }
+
+      } catch (e) {
+        console.error('Documents load error:', e)
+        setLoadError(e.message)
       }
 
       setDocs(allDocs)
