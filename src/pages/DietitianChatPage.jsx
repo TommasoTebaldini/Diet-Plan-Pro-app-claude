@@ -215,7 +215,7 @@ function PatientDiary({ patientId }) {
             </p>
           )}
         </div>
-        <button onClick={() => changeDate(1)} disabled={isToday} style={{ background: isToday ? 'var(--surface-2)' : 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isToday ? 'default' : 'pointer', color: isToday ? 'var(--border)' : 'var(--text-secondary)' }}>
+        <button onClick={() => changeDate(1)} disabled={isToday} style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isToday ? 'default' : 'pointer', color: isToday ? 'var(--border)' : 'var(--text-secondary)' }}>
           <ChevronRight size={16} />
         </button>
       </div>

@@ -143,28 +143,33 @@ export default function MacroTrackerPage() {
     if (!selected) return
     setSaving(true)
     const m = calcMacros(selected, grams)
-    const { data, error } = await supabase.from('food_logs').insert({
-      user_id: user.id,
-      date, meal_type: meal, meal_time: mealTime || null, food_name: selected.name,
-      grams: parseFloat(grams) || 100, ...m,
-      food_data: { ...selected, meal_time: mealTime || null },
-    }).select().single()
-    setSaving(false)
-    if (error || !data) {
-      console.error('Errore salvataggio alimento:', error)
-      return
+    let savedName = null
+    try {
+      const { data, error } = await supabase.from('food_logs').insert({
+        user_id: user.id,
+        date, meal_type: meal, meal_time: mealTime || null, food_name: selected.name,
+        grams: parseFloat(grams) || 100, ...m,
+        food_data: { ...selected, meal_time: mealTime || null },
+      }).select().single()
+      if (error || !data) {
+        console.error('Errore salvataggio alimento:', error)
+        return
+      }
+      setLog(l => [...l, data])
+      await updateDailyLog()
+      savedName = selected.name
+      setSelected(null); setQuery(''); setResults([])
+    } finally {
+      setSaving(false)
     }
-    setLog(l => [...l, data])
-    await updateDailyLog()
-    const justAdded = selected.name
-    setSelected(null); setQuery(''); setResults([])
-    // Show brief confirmation and keep search panel open for more items
-    setAddedFood(justAdded)
-    setTimeout(() => setAddedFood(null), 2000)
+    if (savedName) {
+      setAddedFood(savedName)
+      setTimeout(() => setAddedFood(null), 2000)
+    }
   }
 
   async function updateDailyLog() {
-    const { data } = await supabase.from('food_logs').select('*').eq('date', date)
+    const { data } = await supabase.from('food_logs').select('*').eq('user_id', user.id).eq('date', date)
     if (!data) return
     const t = data.reduce((a, f) => ({
       kcal: a.kcal + (f.kcal || 0), proteins: a.proteins + (f.proteins || 0),
