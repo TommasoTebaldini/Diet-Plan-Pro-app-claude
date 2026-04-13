@@ -60,12 +60,12 @@ export default function MacroTrackerPage() {
   const [log, setLog] = useState([])
   const [diet, setDiet] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [showSearch, setShowSearch] = useState(false)
   const [expandedMeal, setExpandedMeal] = useState('colazione')
   const [activeMealAdd, setActiveMealAdd] = useState(null)
   const [mood, setMood] = useState(null)
   const [addedFood, setAddedFood] = useState(null)
-  const [addFoodError, setAddFoodError] = useState('')
   const [showScanner, setShowScanner] = useState(false)
   const [scanningBarcode, setScanningBarcode] = useState(false)
   const [barcodeError, setBarcodeError] = useState('')
@@ -120,6 +120,8 @@ export default function MacroTrackerPage() {
     setActiveMealAdd(null)
     setSelected(null)
     setResults([])
+    setSaveError('')
+    setAddedFood(null)
   }
 
   async function handleBarcodeFound(barcode) {
@@ -143,7 +145,7 @@ export default function MacroTrackerPage() {
   async function addFood() {
     if (!selected) return
     setSaving(true)
-    setAddFoodError('')
+    setSaveError('')
     const m = calcMacros(selected, grams)
     let savedName = null
     try {
@@ -155,19 +157,24 @@ export default function MacroTrackerPage() {
       }).select().single()
       if (error || !data) {
         console.error('Errore salvataggio alimento:', error)
-        setAddFoodError('Errore nel salvataggio. Riprova.')
+        setSaveError("Errore nel salvare l'alimento. Riprova.")
         return
       }
       setLog(l => [...l, data])
       await updateDailyLog()
       savedName = selected.name
       setSelected(null); setQuery(''); setResults([])
+      setExpandedMeal(meal)
+      if (activeMealAdd) {
+        setShowSearch(false)
+        setActiveMealAdd(null)
+      }
     } finally {
       setSaving(false)
     }
     if (savedName) {
       setAddedFood(savedName)
-      setTimeout(() => setAddedFood(null), 2000)
+      setTimeout(() => setAddedFood(null), 2500)
     }
   }
 
@@ -307,21 +314,36 @@ export default function MacroTrackerPage() {
             {/* Success confirmation */}
             {addedFood && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--green-pale)', borderRadius: 10, padding: '9px 12px', marginBottom: 12, color: 'var(--green-dark)', fontSize: 13, fontWeight: 500 }}>
-                <span>✅</span> <span>"{addedFood}" aggiunto! Puoi aggiungere un altro alimento.</span>
+                <span>✅</span> <span>"{addedFood}" aggiunto!</span>
               </div>
             )}
-            {/* Meal type selector */}
-            <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 12, paddingBottom: 2 }}>
-              {MEALS.map(m => (
-                <button key={m.key} onClick={() => selectMealType(m.key)} style={{
-                  flexShrink: 0, padding: '5px 10px', borderRadius: 100,
-                  background: meal === m.key ? 'var(--green-main)' : 'var(--surface-2)',
-                  color: meal === m.key ? 'white' : 'var(--text-secondary)',
-                  border: `1.5px solid ${meal === m.key ? 'transparent' : 'var(--border)'}`,
-                  font: 'inherit', fontSize: 12, fontWeight: 500, cursor: 'pointer'
-                }}>{m.emoji} {m.label}</button>
-              ))}
-            </div>
+            {/* Error feedback */}
+            {saveError && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff0f0', borderRadius: 10, padding: '9px 12px', marginBottom: 12, color: '#dc4a4a', fontSize: 13, fontWeight: 500 }}>
+                <span>⚠️</span> <span>{saveError}</span>
+              </div>
+            )}
+            {/* Meal type selector — shown only when opened from global + button */}
+            {activeMealAdd ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+                <span style={{ fontSize: 16 }}>{MEALS.find(m => m.key === activeMealAdd)?.emoji}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  {MEALS.find(m => m.key === activeMealAdd)?.label}
+                </span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 12, paddingBottom: 2 }}>
+                {MEALS.map(m => (
+                  <button key={m.key} onClick={() => selectMealType(m.key)} style={{
+                    flexShrink: 0, padding: '5px 10px', borderRadius: 100,
+                    background: meal === m.key ? 'var(--green-main)' : 'var(--surface-2)',
+                    color: meal === m.key ? 'white' : 'var(--text-secondary)',
+                    border: `1.5px solid ${meal === m.key ? 'transparent' : 'var(--border)'}`,
+                    font: 'inherit', fontSize: 12, fontWeight: 500, cursor: 'pointer'
+                  }}>{m.emoji} {m.label}</button>
+                ))}
+              </div>
+            )}
 
             {/* Live search input */}
             <div style={{ position: 'relative', marginBottom: 10 }} ref={searchRef}>
@@ -331,7 +353,7 @@ export default function MacroTrackerPage() {
                   className="input-field"
                   placeholder="Cerca alimento (es. pollo, pasta, mela…)"
                   value={query}
-                  onChange={e => { setQuery(e.target.value); setSelected(null); setAddFoodError('') }}
+                  onChange={e => { setQuery(e.target.value); setSelected(null); setSaveError('') }}
                   autoComplete="off"
                   style={{ flex: 1, paddingRight: searching ? 40 : 14 }}
                 />
@@ -413,12 +435,6 @@ export default function MacroTrackerPage() {
                 <button className="btn btn-primary btn-full" onClick={addFood} disabled={saving}>
                   {saving ? '…' : 'Aggiungi al diario'}
                 </button>
-                {addFoodError && (
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', background: '#fff0f0', padding: '8px 12px', borderRadius: 8, marginTop: 8, color: '#dc4a4a', fontSize: 12 }}>
-                    <AlertCircle size={14} style={{ flexShrink: 0 }} />
-                    <span>{addFoodError}</span>
-                  </div>
-                )}
               </div>
             )}
           </div>
