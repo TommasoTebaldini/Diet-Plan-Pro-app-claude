@@ -97,9 +97,9 @@ create table if not exists custom_foods (
 -- Cartelle pazienti
 create table if not exists cartelle (
   id uuid primary key default gen_random_uuid(),
-  nome text,
-  cognome text,
-  codice_fiscale text,
+  nome text not null,
+  cognome text not null,
+  codice_fiscale text unique,
   created_at timestamptz default now()
 );
 
@@ -108,7 +108,7 @@ create table if not exists patient_dietitian (
   id uuid primary key default gen_random_uuid(),
   patient_id uuid references auth.users not null,
   dietitian_id uuid references auth.users not null,
-  cartella_id uuid references cartelle(id),
+  cartella_id uuid references cartelle(id) on delete set null,
   created_at timestamptz default now(),
   unique(patient_id, dietitian_id)
 );

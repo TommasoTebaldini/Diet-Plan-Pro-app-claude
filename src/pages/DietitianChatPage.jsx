@@ -110,7 +110,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
         setFoundPatient(data)
         setNewLinkId(existing.id)
         setStep(2)
-        loadCartelle(data)
+        loadCartelle()
       }
       setSearching(false)
       return
@@ -142,15 +142,20 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
     setNewLinkId(data.id)
     setLinking(false)
     setStep(2)
-    loadCartelle(foundPatient)
+    loadCartelle()
   }
 
-  async function loadCartelle(patient) {
+  async function loadCartelle() {
     setCartelleLoading(true)
-    const { data } = await supabase
+    const { data, error: err } = await supabase
       .from('cartelle')
       .select('id, nome, cognome, codice_fiscale')
       .order('cognome', { ascending: true })
+    if (err) {
+      setError('Errore nel caricamento delle cartelle.')
+      setCartelleLoading(false)
+      return
+    }
     setCartelle(data || [])
     setCartelleLoading(false)
   }
@@ -164,6 +169,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
       .from('patient_dietitian')
       .update({ cartella_id: selectedCartella })
       .eq('id', newLinkId)
+      .eq('dietitian_id', dietitianId)
 
     if (err) {
       setError('Errore nel salvataggio della cartella: ' + err.message)
