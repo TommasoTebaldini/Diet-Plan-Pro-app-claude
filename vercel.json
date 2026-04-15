@@ -4,6 +4,7 @@
   "installCommand": "npm install",
   "framework": null,
   "rewrites": [
+    { "source": "/patient-view.html", "destination": "/patient-view.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
@@ -12,6 +13,14 @@
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
         { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    },
+    {
+      "source": "/patient-view.html",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
       ]
     },
     {
