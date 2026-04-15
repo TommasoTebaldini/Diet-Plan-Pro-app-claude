@@ -187,31 +187,24 @@ export default function WellnessPage() {
         notes: notes || null,
       }
 
-      // Check if a record already exists for today (avoids upsert + RLS issues)
-      const { data: existing, error: selectError } = await supabase
+      // Try update first: this handles both the normal case and duplicate legacy rows.
+      const { data: updatedRows, error: updateError } = await supabase
         .from('daily_wellness')
-        .select('id')
+        .update(fields)
         .eq('user_id', user.id)
         .eq('date', today)
-        .maybeSingle()
+        .select('id')
 
-      if (selectError) {
-        console.error('Wellness select error:', selectError)
+      if (updateError) {
+        console.error('Wellness update error:', updateError)
         setSaving(false)
         setError('Errore durante il salvataggio. Riprova.')
         return
       }
 
       let opError = null
-      if (existing) {
-        // Update existing record
-        const { error } = await supabase
-          .from('daily_wellness')
-          .update(fields)
-          .eq('id', existing.id)
-        opError = error
-      } else {
-        // Insert new record
+      if (!updatedRows || updatedRows.length === 0) {
+        // No row for today: create one.
         const { error } = await supabase
           .from('daily_wellness')
           .insert({ user_id: user.id, date: today, ...fields })
