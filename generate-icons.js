@@ -1,62 +1,116 @@
 #!/usr/bin/env node
 // Run: node generate-icons.js
-// Generates all required PWA icon sizes as PNG files
+// Generates all required PWA icon sizes as PNG files (no external dependencies)
 
-const { createCanvas } = require('canvas')
-const fs = require('fs')
-const path = require('path')
+import zlib from 'zlib'
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const SIZES = [72, 96, 128, 144, 152, 192, 384, 512]
 
-function drawIcon(size) {
-  const canvas = createCanvas(size, size)
-  const ctx = canvas.getContext('2d')
-  const r = size * 0.18  // corner radius
+// Brand colors: #0d5c3a → #2da06e gradient approximated as midpoint #1a7f5a
+const BG_R = 26, BG_G = 127, BG_B = 90      // #1a7f5a (green background)
+const FG_R = 255, FG_G = 255, FG_B = 255    // white leaf
 
-  // Background rounded rect
-  ctx.beginPath()
-  ctx.moveTo(r, 0)
-  ctx.lineTo(size - r, 0)
-  ctx.quadraticCurveTo(size, 0, size, r)
-  ctx.lineTo(size, size - r)
-  ctx.quadraticCurveTo(size, size, size - r, size)
-  ctx.lineTo(r, size)
-  ctx.quadraticCurveTo(0, size, 0, size - r)
-  ctx.lineTo(0, r)
-  ctx.quadraticCurveTo(0, 0, r, 0)
-  ctx.closePath()
-  const grad = ctx.createLinearGradient(0, 0, size, size)
-  grad.addColorStop(0, '#0d5c3a')
-  grad.addColorStop(1, '#2da06e')
-  ctx.fillStyle = grad
-  ctx.fill()
+function uint32BE(n) {
+  const b = Buffer.alloc(4)
+  b.writeUInt32BE(n >>> 0)
+  return b
+}
 
-  // Leaf
-  const cx = size / 2, cy = size / 2, lh = size * 0.62
-  ctx.beginPath()
-  ctx.moveTo(cx, cy - lh / 2)
-  ctx.bezierCurveTo(cx + lh * 0.45, cy - lh * 0.35, cx + lh * 0.45, cy + lh * 0.35, cx, cy + lh / 2)
-  ctx.bezierCurveTo(cx - lh * 0.45, cy + lh * 0.35, cx - lh * 0.45, cy - lh * 0.35, cx, cy - lh / 2)
-  ctx.closePath()
-  ctx.fillStyle = 'rgba(255,255,255,0.92)'
-  ctx.fill()
+function crc32(buf) {
+  const t = new Uint32Array(256)
+  for (let n = 0; n < 256; n++) {
+    let c = n
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1)
+    t[n] = c
+  }
+  let crc = 0xffffffff
+  for (let i = 0; i < buf.length; i++) crc = t[(crc ^ buf[i]) & 0xff] ^ (crc >>> 8)
+  return (crc ^ 0xffffffff) >>> 0
+}
 
-  // Vein
-  ctx.beginPath()
-  ctx.moveTo(cx, cy - lh / 2)
-  ctx.lineTo(cx, cy + lh / 2)
-  ctx.strokeStyle = 'rgba(13,92,58,0.3)'
-  ctx.lineWidth = size * 0.025
-  ctx.stroke()
+function pngChunk(type, data) {
+  const tb = Buffer.from(type, 'ascii')
+  const combined = Buffer.concat([tb, data])
+  return Buffer.concat([uint32BE(data.length), combined, uint32BE(crc32(combined))])
+}
 
-  return canvas.toBuffer('image/png')
+// Returns true if pixel (x,y) in a size×size icon is inside the leaf shape
+function isLeaf(x, y, size) {
+  const cx = size / 2, cy = size / 2
+  const lh = size * 0.60
+  // Normalise to [-1, 1] range relative to leaf bounding box
+  const nx = (x - cx) / (lh * 0.45)
+  const ny = (y - cy) / (lh * 0.5)
+  // Leaf: ellipse-like shape |nx| < sqrt(1 - ny²)
+  if (Math.abs(ny) > 1) return false
+  return Math.abs(nx) < Math.sqrt(1 - ny * ny) * 0.85
+}
+
+function isVein(x, y, size) {
+  const cx = size / 2, cy = size / 2
+  const lh = size * 0.60
+  const ny = (y - cy) / (lh * 0.5)
+  if (Math.abs(ny) > 0.9) return false
+  return Math.abs(x - cx) < Math.max(1, size * 0.018)
+}
+
+function createIconPNG(size) {
+  const raw = Buffer.alloc(size * (1 + size * 3))
+
+  for (let y = 0; y < size; y++) {
+    const rowOff = y * (1 + size * 3)
+    raw[rowOff] = 0 // filter type None
+    for (let x = 0; x < size; x++) {
+      const off = rowOff + 1 + x * 3
+      const leaf = isLeaf(x, y, size)
+      const vein = leaf && isVein(x, y, size)
+
+      if (vein) {
+        // Darker green vein line
+        raw[off]     = Math.round(BG_R * 0.6)
+        raw[off + 1] = Math.round(BG_G * 0.6)
+        raw[off + 2] = Math.round(BG_B * 0.6)
+      } else if (leaf) {
+        raw[off]     = FG_R
+        raw[off + 1] = FG_G
+        raw[off + 2] = FG_B
+      } else {
+        // Background: simple top-left → bottom-right gradient from #0d5c3a to #2da06e
+        const t = (x + y) / (2 * size)
+        raw[off]     = Math.round(13  + (45  - 13)  * t)  // R: 0d → 2d
+        raw[off + 1] = Math.round(92  + (160 - 92)  * t)  // G: 5c → a0
+        raw[off + 2] = Math.round(58  + (110 - 58)  * t)  // B: 3a → 6e
+      }
+    }
+  }
+
+  const ihdr = Buffer.alloc(13)
+  ihdr.writeUInt32BE(size, 0)
+  ihdr.writeUInt32BE(size, 4)
+  ihdr[8] = 8   // bit depth
+  ihdr[9] = 2   // RGB
+  // bytes 10-12 are 0 (compression, filter, interlace)
+
+  const idat = zlib.deflateSync(raw)
+  const sig = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])
+
+  return Buffer.concat([
+    sig,
+    pngChunk('IHDR', ihdr),
+    pngChunk('IDAT', idat),
+    pngChunk('IEND', Buffer.alloc(0)),
+  ])
 }
 
 const iconsDir = path.join(__dirname, 'public', 'icons')
 if (!fs.existsSync(iconsDir)) fs.mkdirSync(iconsDir, { recursive: true })
 
 SIZES.forEach(size => {
-  const buf = drawIcon(size)
+  const buf = createIconPNG(size)
   fs.writeFileSync(path.join(iconsDir, `icon-${size}x${size}.png`), buf)
   console.log(`✓ icon-${size}x${size}.png`)
 })
