@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import patientViewHtml from '../assets/patient-view.html?raw'
 import { FileText, Download, Calendar, ChevronRight, BookOpen, Utensils, Apple, Heart, Bookmark, BookmarkCheck, ArrowUpDown, Star, Printer } from 'lucide-react'
 
 const TYPE_META = {
@@ -402,9 +401,10 @@ function MealPlanRenderer({ mealsData, title, dataString }) {
   )
 }
 
-// ─── Inietta i dati del documento in patient-view.html e restituisce blob URL ──
-// patient-view.html è il file esatto del sito dietista (src/assets/patient-view.html)
-function buildPatientViewBlobUrl(doc, withPrint = false) {
+// ─── Fetch patient-view.html (file esatto del sito dietista), inietta i dati
+// del documento e restituisce un blob URL caricabile nell'iframe senza header
+// X-Frame-Options (i blob URL non hanno restrizioni di framing).
+async function buildPatientViewBlobUrl(doc, withPrint = false) {
   const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
   const nota = doc.nota || doc.title || ''
 
@@ -422,19 +422,19 @@ function buildPatientViewBlobUrl(doc, withPrint = false) {
   const dataB64 = btoa(encodeURIComponent(JSON.stringify(dati)))
   const paramsStr = `tipo=${encodeURIComponent(tipo)}&nota=${encodeURIComponent(nota)}&data=${dataB64}`
 
-  // Sostituisce la lettura da location.search con i dati iniettati direttamente
-  // Usa regex per ignorare spazi/indentazione e CRLF/LF
-  let html = patientViewHtml.replace(
+  // Scarica il file esatto del sito dietista (servito da /public)
+  const res = await fetch('/patient-view.html')
+  if (!res.ok) throw new Error(`Fetch patient-view.html failed: ${res.status}`)
+  const rawHtml = await res.text()
+
+  // Inietta i parametri sostituendo la lettura da location.search
+  let html = rawHtml.replace(
     /const params\s*=\s*new URLSearchParams\(location\.search\)/,
     `const params = new URLSearchParams(${JSON.stringify(paramsStr)})`
   )
 
-  // Aggiunge auto-print se richiesto (sostituisce la chiamata finale a render())
   if (withPrint) {
-    html = html.replace(
-      /\nrender\(\)/,
-      '\nrender()\nsetTimeout(function(){window.print();},500)'
-    )
+    html = html.replace(/\nrender\(\)/, '\nrender()\nsetTimeout(function(){window.print();},500)')
   }
 
   const blob = new Blob([html], { type: 'text/html; charset=utf-8' })
@@ -619,10 +619,13 @@ ${withPrint ? 'setTimeout(function(){window.print();},500);' : ''}
 }
 
 function handlePrint(doc) {
-  const url = buildPatientViewBlobUrl(doc, true)
-  const win = window.open(url, '_blank')
-  if (!win) { URL.revokeObjectURL(url); alert('Abilita i popup per stampare il documento.'); return }
-  setTimeout(() => URL.revokeObjectURL(url), 60000)
+  buildPatientViewBlobUrl(doc, true)
+    .then(url => {
+      const win = window.open(url, '_blank')
+      if (!win) { URL.revokeObjectURL(url); alert('Abilita i popup per stampare il documento.'); return }
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
+    })
+    .catch(err => console.error('[handlePrint] error:', err))
 }
 
 function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
@@ -630,15 +633,21 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
   const blobUrlRef = useRef(null)
 
   useEffect(() => {
-    // Revoca il blob URL precedente
     if (blobUrlRef.current) { URL.revokeObjectURL(blobUrlRef.current); blobUrlRef.current = null }
     if (!doc || doc.file_url) { setIframeSrc(null); return }
 
-    const url = buildPatientViewBlobUrl(doc)
-    blobUrlRef.current = url
-    setIframeSrc(url)
+    let cancelled = false
+
+    buildPatientViewBlobUrl(doc)
+      .then(url => {
+        if (cancelled) { URL.revokeObjectURL(url); return }
+        blobUrlRef.current = url
+        setIframeSrc(url)
+      })
+      .catch(err => console.error('[DocModal] patient-view load error:', err))
 
     return () => {
+      cancelled = true
       if (blobUrlRef.current) { URL.revokeObjectURL(blobUrlRef.current); blobUrlRef.current = null }
     }
   }, [doc?.id])
