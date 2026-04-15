@@ -43,9 +43,275 @@ const DATE_FILTERS = [
 ]
 
 const DOCS_EPOCH = '1970-01-01T00:00:00Z'
+const DIETITIAN_APP_ORIGIN = 'https://nutri-plan-pro-cxee.vercel.app'
 
 function isNew(doc, lastSeen) {
   return new Date(doc.created_at) > new Date(lastSeen)
+}
+
+function safeParseJson(value) {
+  if (!value) return {}
+  if (typeof value === 'object') return value
+  if (typeof value !== 'string') return {}
+  try {
+    return JSON.parse(value)
+  } catch {
+    return {}
+  }
+}
+
+function toAbsoluteDietitianUrl(url) {
+  if (!url || typeof url !== 'string') return null
+  if (/^https?:\/\//i.test(url)) return url
+  if (url.startsWith('/')) return `${DIETITIAN_APP_ORIGIN}${url}`
+  return null
+}
+
+function guessTitleFromData(dati) {
+  return dati?.titolo || dati?.title || dati?.nome || dati?.consiglio_nome || dati?.questionario || ''
+}
+
+async function resolveDocumentUrl(rawValue) {
+  if (!rawValue || typeof rawValue !== 'string') return null
+
+  const absolute = toAbsoluteDietitianUrl(rawValue)
+  if (absolute) return absolute
+
+  const cleaned = rawValue.trim().replace(/^\/+/, '')
+  if (!cleaned) return null
+
+  const directBucketPath = cleaned.match(/^([^/]+)\/(.+)$/)
+  if (directBucketPath) {
+    const [, bucket, objectPath] = directBucketPath
+    const { data: signedData } = await supabase.storage.from(bucket).createSignedUrl(objectPath, 60 * 60 * 24)
+    if (signedData?.signedUrl) return signedData.signedUrl
+    const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(objectPath)
+    if (publicData?.publicUrl) return publicData.publicUrl
+  }
+
+  const apiPathMatch = cleaned.match(/^storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+)$/)
+  if (apiPathMatch) {
+    const [, bucket, objectPath] = apiPathMatch
+    const { data: signedData } = await supabase.storage.from(bucket).createSignedUrl(objectPath, 60 * 60 * 24)
+    if (signedData?.signedUrl) return signedData.signedUrl
+    const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(objectPath)
+    if (publicData?.publicUrl) return publicData.publicUrl
+  }
+
+  return `${DIETITIAN_APP_ORIGIN}/${cleaned}`
+}
+
+function toLabel(key) {
+  return String(key || '')
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, c => c.toUpperCase())
+}
+
+function printableValue(value) {
+  if (value === null || value === undefined || value === '') return '—'
+  if (typeof value === 'boolean') return value ? 'Sì' : 'No'
+  if (Array.isArray(value)) return value.length ? value.map(v => printableValue(v)).join(', ') : '—'
+  if (typeof value === 'object') return ''
+  return String(value)
+}
+
+function cleanEntries(data) {
+  if (!data || typeof data !== 'object') return []
+  return Object.entries(data).filter(([, v]) => v !== null && v !== undefined && v !== '')
+}
+
+function isQuestionarioData(dati, lowerString) {
+  return Boolean(
+    dati.questionari ||
+    dati.screening ||
+    (dati.questionario && (dati.risposte || dati.domande || dati.score !== undefined)) ||
+    lowerString.includes('malnutrition universal screening tool') ||
+    lowerString.includes('punteggio must')
+  )
+}
+
+function A4LikeSheet({ children }) {
+  return (
+    <div style={{ background: '#dbe1e8', padding: 18, borderRadius: 12 }}>
+      <div style={{ maxWidth: 860, margin: '0 auto', background: '#f8fafc', border: '1px solid #cfd8e3', boxShadow: '0 2px 10px rgba(15, 23, 42, 0.12)', padding: 18 }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function PrintFieldGrid({ data, columns = 2 }) {
+  const rows = cleanEntries(data)
+  if (!rows.length) return null
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap: 16 }}>
+      {rows.map(([k, v]) => (
+        <div key={k}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 7 }}>
+            {toLabel(k)}
+          </div>
+          {typeof v === 'object' && !Array.isArray(v)
+            ? <PrintFieldGrid data={v} columns={1} />
+            : <div style={{ fontSize: 15, color: '#1e293b', lineHeight: 1.45 }}>{printableValue(v)}</div>}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function PrintSection({ title, icon, children }) {
+  return (
+    <div style={{ border: '1px solid #b8c7d8', borderRadius: 14, background: '#f8fafc', padding: 18, marginBottom: 14 }}>
+      <div style={{ borderBottom: '2px solid #cbd5e1', paddingBottom: 10, marginBottom: 14, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 13 }}>{icon}</span>
+        <span style={{ fontSize: 24, fontWeight: 700 }}>{title}</span>
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function AssessmentPrintRenderer({ doc, dati }) {
+  const root = dati.valutazione_nutrizionale || dati
+  const anagrafica = root.anagrafica || root.dati_anagrafici_clinici || root.dati_anagrafici || {}
+  const antropometrica = root.antropometrica || root.valutazione_antropometrica || {}
+  const biochimici = root.biochimici || root.esami_biochimici || {}
+  const recall = root.recall_24h || root.recall_alimentare_24h || {}
+  const idratazione = root.idratazione || root.idratazione_bevande || {}
+  const abitudini = root.abitudini || root.abitudini_comportamento_alimentare || {}
+  const allergie = root.allergie || root.intolleranze_farmaci_attivita || {}
+  const fabbisogno = root.fabbisogno || root.fabbisogno_energetico || {}
+  const diagnosi = dati.diagnosi_nutrizionale || dati.diagnosi_pes || {}
+  const intervento = dati.intervento_nutrizionale || {}
+  const monitoraggio = dati.monitoraggio || {}
+
+  const sectionTitle = (n, title) => (
+    <h3 style={{ margin: '18px 0 10px', fontSize: 34, color: '#0f766e', borderBottom: '3px solid #0f766e', paddingBottom: 6, letterSpacing: 0.2 }}>
+      {n}. {title}
+    </h3>
+  )
+
+  return (
+    <A4LikeSheet>
+      <div style={{ fontFamily: 'Inter, Arial, sans-serif', color: '#1f2937' }}>
+        <div style={{ border: '2px solid #2dd4bf', borderRadius: 12, padding: '10px 12px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+          <strong style={{ color: '#0f766e', fontSize: 25 }}>{doc.title}</strong>
+          <span style={{ background: '#0f766e', color: '#fff', borderRadius: 999, padding: '3px 10px', fontSize: 12, fontWeight: 700 }}>{new Date(doc.created_at).toLocaleDateString('it-IT')}</span>
+        </div>
+
+        {sectionTitle(1, 'Valutazione Nutrizionale')}
+        <PrintSection title="Dati Anagrafici e Clinici" icon="👤"><PrintFieldGrid data={anagrafica} /></PrintSection>
+        <PrintSection title="Valutazione Antropometrica" icon="📏"><PrintFieldGrid data={antropometrica} /></PrintSection>
+        <PrintSection title="Esami Biochimici" icon="🧪"><PrintFieldGrid data={biochimici} /></PrintSection>
+        <PrintSection title="Recall Alimentare 24h" icon="📋"><PrintFieldGrid data={recall} columns={1} /></PrintSection>
+        <PrintSection title="Idratazione e Bevande" icon="🥤"><PrintFieldGrid data={idratazione} /></PrintSection>
+        <PrintSection title="Abitudini e Comportamento Alimentare" icon="🍽️"><PrintFieldGrid data={abitudini} /></PrintSection>
+        <PrintSection title="Allergie, Intolleranze, Farmaci e Attività Fisica" icon="⚠️"><PrintFieldGrid data={allergie} columns={1} /></PrintSection>
+        <PrintSection title="Fabbisogno Energetico Stimato" icon="⚡"><PrintFieldGrid data={fabbisogno} /></PrintSection>
+
+        {sectionTitle(2, 'Diagnosi Nutrizionale (PES)')}
+        <PrintSection title="Diagnosi Nutrizionale - Formato PES" icon="📝">
+          {Array.isArray(diagnosi.problemi) && diagnosi.problemi.length > 0 ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {diagnosi.problemi.map((p, i) => (
+                <span key={i} style={{ background: '#dbeafe', color: '#1d4ed8', border: '1px solid #93c5fd', borderRadius: 999, padding: '4px 10px', fontSize: 12, fontWeight: 600 }}>{p}</span>
+              ))}
+            </div>
+          ) : <PrintFieldGrid data={diagnosi} columns={1} />}
+        </PrintSection>
+
+        {sectionTitle(3, 'Intervento Nutrizionale')}
+        <PrintSection title="Piano Dietetico Prescritto" icon="🍲"><PrintFieldGrid data={intervento.piano_dietetico || intervento} /></PrintSection>
+        <PrintSection title="Educazione Alimentare e Counseling" icon="📚"><PrintFieldGrid data={intervento.educazione || intervento.counseling || {}} columns={1} /></PrintSection>
+        <PrintSection title="Supplementazione e Coordinamento" icon="💊"><PrintFieldGrid data={intervento.supplementazione || {}} columns={1} /></PrintSection>
+
+        {sectionTitle(4, 'Monitoraggio')}
+        <PrintSection title="Pianificazione Follow-up" icon="🗓️"><PrintFieldGrid data={monitoraggio.followup || monitoraggio} /></PrintSection>
+        <PrintSection title="Parametri da Monitorare" icon="📊"><PrintFieldGrid data={monitoraggio.parametri || monitoraggio.parametri_monitorare || {}} /></PrintSection>
+        <PrintSection title="Verifica Obiettivi e Esito" icon="✅"><PrintFieldGrid data={monitoraggio.esito || {}} columns={1} /></PrintSection>
+      </div>
+    </A4LikeSheet>
+  )
+}
+
+function BiaPrintRenderer({ doc, dati }) {
+  const source = dati.bia || dati
+  return (
+    <A4LikeSheet>
+      <div style={{ fontFamily: 'Inter, Arial, sans-serif' }}>
+        <div style={{ background: 'linear-gradient(135deg, #1e3a8a, #3b82f6)', color: '#fff', borderRadius: 16, padding: 18, marginBottom: 14 }}>
+          <div style={{ fontSize: 34, fontWeight: 700, marginBottom: 6 }}>Bioimpedenziometria (BIA)</div>
+          <div style={{ opacity: 0.92, fontSize: 14 }}>{doc.nota || 'Inserisci i dati del report BIA per analizzare composizione corporea e metabolismo basale.'}</div>
+        </div>
+        <div style={{ border: '1px solid #cbd5e1', borderRadius: 12, background: '#fff', padding: 10, marginBottom: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {['Inserimento Dati', 'Analisi Composizione', 'Storico & Trend', 'Valori di Riferimento'].map(t => (
+            <span key={t} style={{ padding: '6px 10px', borderRadius: 10, border: '1px solid #dbeafe', background: t === 'Inserimento Dati' ? '#eef2ff' : '#f8fafc', color: t === 'Inserimento Dati' ? '#1d4ed8' : '#334155', fontSize: 12, fontWeight: 600 }}>{t}</span>
+          ))}
+        </div>
+        <PrintSection title="Inserimento Manuale Parametri BIA" icon="🧪"><PrintFieldGrid data={source.parametri_bia || source.parametri || source} /></PrintSection>
+        <PrintSection title="Analisi Composizione" icon="📊"><PrintFieldGrid data={source.analisi_composizione || source.composizione || {}} /></PrintSection>
+        <PrintSection title="Storico e Trend" icon="📈"><PrintFieldGrid data={source.storico || source.trend || {}} columns={1} /></PrintSection>
+      </div>
+    </A4LikeSheet>
+  )
+}
+
+function QuestionariPrintRenderer({ doc, dati }) {
+  const q = dati.questionari || dati
+  const tool = q.tool || q.questionario || doc.title
+  return (
+    <A4LikeSheet>
+      <div style={{ fontFamily: 'Inter, Arial, sans-serif' }}>
+        <div style={{ background: 'linear-gradient(135deg, #0369a1, #38bdf8)', color: '#fff', borderRadius: 16, padding: 18, marginBottom: 16 }}>
+          <div style={{ fontSize: 34, fontWeight: 700 }}>Questionari Nutrizionali Validati</div>
+          <div style={{ opacity: 0.95, fontSize: 13, marginTop: 4 }}>{tool}</div>
+        </div>
+        <PrintSection title={q.titolo || 'Screening dello stato nutrizionale'} icon="🔎">
+          <PrintFieldGrid data={q.domande || q.risposte || q} columns={1} />
+        </PrintSection>
+        <div style={{ background: '#fee2e2', border: '1px solid #fecaca', borderRadius: 12, padding: 14 }}>
+          <div style={{ fontSize: 12, color: '#9f1239', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Punteggio</div>
+          <div style={{ fontSize: 40, fontWeight: 800, color: '#991b1b' }}>{q.score ?? dati.score ?? '—'}</div>
+          <div style={{ marginTop: 6, color: '#7f1d1d', fontSize: 14 }}>{q.interpretazione || dati.label || 'Interpretazione non disponibile'}</div>
+        </div>
+      </div>
+    </A4LikeSheet>
+  )
+}
+
+function PathologyAdvicePrintRenderer({ doc, dati }) {
+  const d = dati.consiglio || dati
+  const allowed = d.alimenti_consentiti || d.consigliati || []
+  const limited = d.alimenti_limitare || d.moderazione || []
+  const avoid = d.alimenti_evitare || d.evitare || []
+  return (
+    <A4LikeSheet>
+      <div style={{ fontFamily: 'Inter, Arial, sans-serif' }}>
+        <div style={{ background: 'linear-gradient(135deg, #2563eb, #60a5fa)', color: '#fff', borderRadius: 16, padding: 18, marginBottom: 16 }}>
+          <div style={{ fontSize: 36, fontWeight: 800 }}>{d.titolo || doc.title}</div>
+          <div style={{ opacity: 0.92, fontSize: 13 }}>{d.sottotitolo || 'Consigli Nutrizionali - DietPlan Pro'}</div>
+        </div>
+        {d.punti_chiave && <PrintSection title="Indicazioni principali" icon="📌"><PrintFieldGrid data={d.punti_chiave} columns={1} /></PrintSection>}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+          <div style={{ border: '1px solid #bbf7d0', borderRadius: 12, padding: 12, background: '#f0fdf4' }}>
+            <div style={{ color: '#166534', fontWeight: 700, marginBottom: 8 }}>Alimenti consigliati</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>{allowed.map((a, i) => <span key={i} style={{ background: '#dcfce7', color: '#166534', borderRadius: 999, padding: '4px 8px', fontSize: 12 }}>{a}</span>)}</div>
+          </div>
+          <div style={{ border: '1px solid #fecaca', borderRadius: 12, padding: 12, background: '#fef2f2' }}>
+            <div style={{ color: '#991b1b', fontWeight: 700, marginBottom: 8 }}>Da evitare / limitare</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>{[...avoid, ...limited].map((a, i) => <span key={i} style={{ background: '#fee2e2', color: '#991b1b', borderRadius: 999, padding: '4px 8px', fontSize: 12 }}>{a}</span>)}</div>
+          </div>
+        </div>
+        <PrintSection title="Consigli pratici" icon="💡">
+          {Array.isArray(d.indicazioni)
+            ? <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.8 }}>{d.indicazioni.map((x, i) => <li key={i}>{x}</li>)}</ul>
+            : <p style={{ margin: 0, lineHeight: 1.8 }}>{d.indicazioni || d.note || doc.content || 'Nessuna indicazione disponibile.'}</p>}
+        </PrintSection>
+      </div>
+    </A4LikeSheet>
+  )
 }
 
 
@@ -55,6 +321,22 @@ function PrintDocRenderer({ doc }) {
   let dati = doc.dati_raw || {}
   // Parse if string
   if (typeof dati === 'string') { try { dati = JSON.parse(dati) } catch { dati = {} } }
+
+  const lowerString = JSON.stringify(dati).toLowerCase()
+  const isAssessment =
+    tipo === 'dca' ||
+    Boolean(dati.valutazione_nutrizionale || dati.diagnosi_nutrizionale || dati.intervento_nutrizionale || dati.monitoraggio) ||
+    ['valutazione antropometrica', 'recall alimentare', 'fabbisogno energetico', 'diagnosi pes'].some(k => lowerString.includes(k))
+  if (isAssessment) return <AssessmentPrintRenderer doc={doc} dati={dati} />
+
+  const isBia = tipo === 'bia' || Boolean(dati.bia || dati.parametri_bia || lowerString.includes('bioimpedenziometr'))
+  if (isBia) return <BiaPrintRenderer doc={doc} dati={dati} />
+
+  const isQuestionariAdvanced = isQuestionarioData(dati, lowerString)
+  if (isQuestionariAdvanced) return <QuestionariPrintRenderer doc={doc} dati={dati} />
+
+  const isPathologyAdvice = ['diabete', 'renale', 'chetogenica', 'sport', 'pancreas'].includes(tipo) && (Array.isArray(dati.alimenti_consentiti) || Array.isArray(dati.alimenti_evitare))
+  if (isPathologyAdvice) return <PathologyAdvicePrintRenderer doc={doc} dati={dati} />
 
   // ── MUST / Questionario ─────────────────────────────────────────────────────
   const isQuestionario = tipo === 'questionario' || (dati.questionario && dati.score !== undefined)
@@ -440,20 +722,25 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark }) {
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 40px', maxWidth: 800, width: '100%', margin: '0 auto' }}>
-        {doc.meals_data ? (
-          <MealPlanRenderer mealsData={doc.meals_data} title={doc.title} dataString={doc.data_piano} />
-        ) : doc.file_url ? (
-          <div style={{ textAlign: 'center', padding: '40px 0' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>📄</div>
-            <p style={{ marginBottom: 16, color: '#666' }}>Documento allegato</p>
-            <a href={doc.file_url} target="_blank" rel="noopener noreferrer" download style={{ background: '#1a7f5a', color: 'white', padding: '12px 24px', borderRadius: 12, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              <Download size={16} />Scarica documento
-            </a>
-          </div>
-        ) : (
-          <PrintDocRenderer doc={doc} />
-        )}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 40px', maxWidth: 900, width: '100%', margin: '0 auto' }}>
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, boxShadow: '0 8px 24px rgba(0,0,0,0.06)', padding: 28 }}>
+          {doc.meals_data ? (
+            <MealPlanRenderer mealsData={doc.meals_data} title={doc.title} dataString={doc.data_piano} />
+          ) : doc.file_url ? (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>📄</div>
+              <p style={{ marginBottom: 14, color: '#666' }}>Documento allegato</p>
+              <a href={doc.file_url} target="_blank" rel="noopener noreferrer" style={{ background: '#1a7f5a', color: 'white', padding: '12px 24px', borderRadius: 12, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <Download size={16} />Apri documento
+              </a>
+              <div style={{ marginTop: 20, border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', minHeight: 500 }}>
+                <iframe title={doc.title} src={doc.file_url} style={{ width: '100%', minHeight: 500, border: 'none' }} />
+              </div>
+            </div>
+          ) : (
+            <PrintDocRenderer doc={doc} />
+          )}
+        </div>
 
         {doc.tags && doc.tags.length > 0 && (
           <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -532,6 +819,9 @@ export default function DocumentsPage() {
             }
             // Use tipo directly if it has a TYPE_META entry, otherwise lookup, otherwise use tipo itself
             const type = TYPE_META_KEYS_SET.has(tipo) ? tipo : (tipoToKey[tipo] || tipo || 'document')
+            const parsedDati = safeParseJson(n.dati)
+            const titleFromDati = guessTitleFromData(parsedDati)
+            const resolvedFileUrl = await resolveDocumentUrl(parsedDati?.file_url || parsedDati?.pdf_url || null)
             const title = n.nota || titleFromDati ||
               (n.tipo ? n.tipo.charAt(0).toUpperCase() + n.tipo.slice(1) : 'Documento')
 
@@ -539,16 +829,14 @@ export default function DocumentsPage() {
             let content = ''
             let mealsData = null
 
-            if (n.dati) {
-              if (typeof n.dati === 'string') {
-                content = n.dati
-              } else if (typeof n.dati === 'object') {
-                content = n.dati.content || n.dati.contenuto || n.dati.testo ||
-                          n.dati.descrizione || n.dati.text || n.dati.desc || ''
-                if (n.dati.meals || n.dati.giorni) {
-                  mealsData = n.dati.meals || n.dati.giorni
-                }
+            if (parsedDati && Object.keys(parsedDati).length > 0) {
+              content = parsedDati.content || parsedDati.contenuto || parsedDati.testo ||
+                        parsedDati.descrizione || parsedDati.text || parsedDati.desc || ''
+              if (parsedDati.meals || parsedDati.giorni) {
+                mealsData = parsedDati.meals || parsedDati.giorni
               }
+            } else if (typeof n.dati === 'string') {
+              content = n.dati
             }
 
             allDocs.push({
@@ -559,10 +847,10 @@ export default function DocumentsPage() {
               tipo: n.tipo,
               nota: n.nota,
               content,
-              dati_raw: n.dati,
+              dati_raw: parsedDati,
               meals_data: mealsData,
-              file_url: n.dati?.file_url || n.dati?.pdf_url || null,
-              tags: n.dati?.tags || [],
+              file_url: resolvedFileUrl,
+              tags: parsedDati?.tags || [],
               visible: true,
               published_at: n.created_at,
               created_at: n.created_at,
@@ -604,7 +892,8 @@ export default function DocumentsPage() {
           .order('created_at', { ascending: false })
 
         for (const d of patientDocs || []) {
-          allDocs.push({ ...d, published_at: d.published_at || d.created_at })
+          const fallbackResolvedUrl = await resolveDocumentUrl(d.file_url || d.pdf_url || d.path || d.url || null)
+          allDocs.push({ ...d, file_url: fallbackResolvedUrl || d.file_url || null, published_at: d.published_at || d.created_at })
         }
 
       } catch (e) {
