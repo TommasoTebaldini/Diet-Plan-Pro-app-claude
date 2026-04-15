@@ -579,12 +579,24 @@ ${withPrint ? 'setTimeout(function(){window.print();},500);' : ''}
 }
 
 function handlePrint(doc) {
-  const html = buildDocumentHTML(doc, true)
-  const blob = new Blob([html], { type: 'text/html; charset=utf-8' })
-  const url = URL.createObjectURL(blob)
+  const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
+  const nota = doc.nota || doc.title || ''
+
+  let dati = {}
+  if (doc.dati_raw) {
+    try { dati = typeof doc.dati_raw === 'string' ? JSON.parse(doc.dati_raw) : (doc.dati_raw || {}) } catch { dati = {} }
+  }
+  if (doc.meals_data) {
+    try {
+      const m = typeof doc.meals_data === 'string' ? JSON.parse(doc.meals_data) : doc.meals_data
+      if (Array.isArray(m)) dati = { ...dati, meals: m }
+    } catch { /* ignore */ }
+  }
+
+  const dataB64 = btoa(encodeURIComponent(JSON.stringify(dati)))
+  const url = `/patient-view.html?tipo=${encodeURIComponent(tipo)}&nota=${encodeURIComponent(nota)}&data=${dataB64}&print=1`
   const win = window.open(url, '_blank')
-  if (!win) { URL.revokeObjectURL(url); alert('Abilita i popup per stampare il documento.'); return }
-  setTimeout(() => URL.revokeObjectURL(url), 60000)
+  if (!win) alert('Abilita i popup per stampare il documento.')
 }
 
 function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
@@ -592,11 +604,24 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
 
   useEffect(() => {
     if (!doc || doc.file_url) { setIframeSrc(null); return }
-    const html = buildDocumentHTML(doc)
-    const blob = new Blob([html], { type: 'text/html; charset=utf-8' })
-    const url = URL.createObjectURL(blob)
+
+    const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
+    const nota = doc.nota || doc.title || ''
+
+    let dati = {}
+    if (doc.dati_raw) {
+      try { dati = typeof doc.dati_raw === 'string' ? JSON.parse(doc.dati_raw) : (doc.dati_raw || {}) } catch { dati = {} }
+    }
+    if (doc.meals_data) {
+      try {
+        const m = typeof doc.meals_data === 'string' ? JSON.parse(doc.meals_data) : doc.meals_data
+        if (Array.isArray(m)) dati = { ...dati, meals: m }
+      } catch { /* ignore */ }
+    }
+
+    const dataB64 = btoa(encodeURIComponent(JSON.stringify(dati)))
+    const url = `/patient-view.html?tipo=${encodeURIComponent(tipo)}&nota=${encodeURIComponent(nota)}&data=${dataB64}`
     setIframeSrc(url)
-    return () => URL.revokeObjectURL(url)
   }, [doc?.id])
 
   if (!doc) return null
