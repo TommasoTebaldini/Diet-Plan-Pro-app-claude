@@ -196,7 +196,7 @@ export default function WellnessPage() {
         .select('id')
 
       if (updateError) {
-        console.error('Wellness update error:', updateError)
+        console.error('Wellness update error:', updateError.message, updateError.details, updateError.hint, updateError.code)
         setSaving(false)
         setError('Errore durante il salvataggio. Riprova.')
         return

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { FileText, Download, Calendar, ChevronRight, BookOpen, Utensils, Apple, Heart, Bookmark, BookmarkCheck, ArrowUpDown, Star } from 'lucide-react'
+import { FileText, Download, Calendar, ChevronRight, BookOpen, Utensils, Apple, Heart, Bookmark, BookmarkCheck, ArrowUpDown, Star, Printer } from 'lucide-react'
 
 const TYPE_META = {
   // Diet plans
@@ -297,6 +297,16 @@ function PrintDocRenderer({ doc }) {
 }
 
 
+const MEAL_LABELS = {
+  colazione:           { label: 'Colazione',           emoji: '☀️' },
+  spuntino1:           { label: 'Spuntino mattina',    emoji: '🍎' },
+  spuntino_mattina:    { label: 'Spuntino mattina',    emoji: '🍎' },
+  pranzo:              { label: 'Pranzo',               emoji: '🍽️' },
+  spuntino2:           { label: 'Spuntino pomeriggio', emoji: '🥤' },
+  spuntino_pomeriggio: { label: 'Spuntino pomeriggio', emoji: '🥤' },
+  cena:                { label: 'Cena',                 emoji: '🌙' },
+}
+
 function MealPlanRenderer({ mealsData, title, dataString }) {
   let days = []
   try {
@@ -391,7 +401,192 @@ function MealPlanRenderer({ mealsData, title, dataString }) {
   )
 }
 
-function DocModal({ doc, onClose, bookmarked, onToggleBookmark }) {
+// ─── Print function: genera una finestra identica a patient-view.html ────────
+function handlePrint(doc) {
+  const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
+  const nota = doc.nota || doc.title || ''
+
+  let dati = {}
+  if (doc.dati_raw) {
+    try { dati = typeof doc.dati_raw === 'string' ? JSON.parse(doc.dati_raw) : (doc.dati_raw || {}) } catch { dati = {} }
+  }
+  if (doc.meals_data) {
+    try {
+      const m = typeof doc.meals_data === 'string' ? JSON.parse(doc.meals_data) : doc.meals_data
+      if (Array.isArray(m)) dati = { ...dati, meals: m }
+    } catch { /* ignore */ }
+  }
+
+  const datiSafe = JSON.stringify(dati).replace(/<\/script>/gi, '<\\/script>')
+  const tipoSafe = JSON.stringify(tipo)
+  const notaSafe = JSON.stringify(nota)
+  const titleEsc = (nota || 'Documento').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+  const html = `<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>NutriPlan – ${titleEsc}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f8fafc; color: #1a1a1a; min-height: 100vh; }
+  .doc-wrap { max-width: 800px; margin: 0 auto; padding: 24px 20px 60px; }
+  .doc-header { background: linear-gradient(135deg, #0d5c3a, #1a7f5a); color: white; border-radius: 16px; padding: 24px; margin-bottom: 28px; }
+  .doc-header .category { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.75; margin-bottom: 8px; }
+  .doc-header .title { font-size: 22px; font-weight: 700; line-height: 1.2; }
+  .doc-header .subtitle { font-size: 13px; opacity: 0.8; margin-top: 6px; }
+  .section { background: white; border: 1px solid #e5e7eb; border-radius: 14px; overflow: hidden; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+  .section-head { background: #1a7f5a; color: white; padding: 10px 18px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { padding: 8px 16px; font-size: 11px; color: #666; text-align: left; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+  td { padding: 9px 16px; font-size: 13px; border-bottom: 1px solid #f3f4f6; }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .key-col { color: #555; font-weight: 600; width: 45%; }
+  .score-box { background: white; border-radius: 14px; padding: 28px; text-align: center; margin-bottom: 18px; border: 2px solid #e5e7eb; }
+  .score-num { font-size: 56px; font-weight: 900; line-height: 1; }
+  .score-label { font-size: 16px; font-weight: 700; margin-top: 6px; }
+  .score-desc { margin-top: 16px; font-size: 14px; line-height: 1.8; color: #444; text-align: left; background: #f9fafb; border-radius: 10px; padding: 14px; }
+  .day-block { margin-bottom: 24px; }
+  .day-head { background: #1a7f5a; color: white; padding: 10px 16px; border-radius: 10px; margin-bottom: 10px; font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .meal-block { border: 1px solid #e8f2ec; border-radius: 10px; overflow: hidden; margin-bottom: 8px; }
+  .meal-head { background: #f0faf5; padding: 8px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e8f2ec; }
+  .meal-name { font-weight: 600; font-size: 14px; color: #0d5c3a; display: flex; align-items: center; gap: 8px; }
+  .meal-kcal { font-size: 12px; color: #666; background: white; padding: 2px 8px; border-radius: 100px; border: 1px solid #e8f2ec; }
+  .food-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .food-table td { padding: 6px 14px; border-bottom: 1px solid #f5f5f5; }
+  .food-table tr:last-child td { border-bottom: none; }
+  .food-qty { text-align: right; color: #1a7f5a; font-weight: 500; }
+  .alt-row td { font-size: 11px; color: #999; font-style: italic; padding: 4px 14px 8px; }
+  .note-box { padding: 10px 14px; background: #fffbeb; border-left: 3px solid #f59e0b; font-size: 13px; color: #92400e; margin: 8px 14px; border-radius: 0 6px 6px 0; }
+  .info-box { border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; font-size: 14px; line-height: 1.7; }
+  .info-box.green { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+  .info-box.red   { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+  .info-box.blue  { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+  .info-box.amber { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+  .list-section { margin-bottom: 16px; }
+  .list-head { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; padding: 6px 12px; border-radius: 8px; }
+  .list-head.green  { background: #f0fdf4; color: #16a34a; }
+  .list-head.yellow { background: #fffbeb; color: #d97706; }
+  .list-head.red    { background: #fef2f2; color: #dc2626; }
+  ul.items { padding-left: 22px; font-size: 14px; line-height: 2; }
+  .doc-footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 11px; color: #aaa; text-align: center; }
+  @media print {
+    body { background: white; }
+    .doc-wrap { padding: 0; max-width: 100%; }
+    .doc-header { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .section-head { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .day-head { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .meal-head { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="doc-wrap" id="app"></div>
+<script>
+var TIPO=${tipoSafe};
+var NOTA=${notaSafe};
+var DATI=${datiSafe};
+
+var META={
+  piano:{icon:'🥗',cat:'Piano Alimentare'},dieta:{icon:'🥗',cat:'Piano Alimentare'},diet:{icon:'🥗',cat:'Piano Alimentare'},
+  ristorazione:{icon:'🍽️',cat:'Menu Ristorazione Collettiva'},
+  pediatria:{icon:'👶',cat:'Schema Nutrizionale Pediatrico'},
+  questionario:{icon:'📋',cat:'Questionario Clinico'},
+  consiglio:{icon:'💊',cat:'Consiglio Nutrizionale'},
+  chetogenica:{icon:'🥑',cat:'Dieta Chetogenica'},
+  renale:{icon:'🫘',cat:'Nefropatia / IRC'},
+  diabete:{icon:'💉',cat:'Gestione Diabete'},
+  dca:{icon:'🧠',cat:'DCA - Sessione'},
+  sport:{icon:'🏋️',cat:'Nutrizione Sportiva'},
+  pancreas:{icon:'🫀',cat:'Insufficienza Pancreatica'},
+  disfagia:{icon:'🍵',cat:'Disfagia'}
+};
+var MEAL_LABELS={
+  colazione:{label:'Colazione',emoji:'☀️'},
+  spuntino1:{label:'Spuntino mattina',emoji:'🍎'},spuntino_mattina:{label:'Spuntino mattina',emoji:'🍎'},
+  pranzo:{label:'Pranzo',emoji:'🍽️'},
+  spuntino2:{label:'Spuntino pomeriggio',emoji:'🥤'},spuntino_pomeriggio:{label:'Spuntino pomeriggio',emoji:'🥤'},
+  cena:{label:'Cena',emoji:'🌙'}
+};
+var CALC_LABELS={
+  peso:'Peso (kg)',altezza:'Altezza (cm)',eta:'Età',sesso:'Sesso',
+  peso_ideale:'Peso ideale (kg)',imc:'IMC',bmi:'BMI',
+  fabbisogno:'Fabbisogno kcal',kcal:'Kcal/die',
+  proteine:'Proteine (g)',carboidrati:'Carboidrati (g)',grassi:'Grassi (g)',
+  tipo:'Tipo',tdd:'TDD (UI)',metodo:'Metodo',
+  attivita:'Attività fisica',npasti:'N° pasti',luogo:'Luogo pasti',
+  appetito:'Appetito',allergie:'Allergie'
+};
+
+function deepParse(v,max){max=max||4;for(var i=0;i<max;i++){if(typeof v!=='string')break;try{v=JSON.parse(v);}catch(e){break;}}if(!v||typeof v!=='object')return null;var r={};for(var k in v){if(!Object.prototype.hasOwnProperty.call(v,k))continue;var val=v[k];if(typeof val==='string'&&(val.startsWith('[')||val.startsWith('{'))){try{r[k]=JSON.parse(val);}catch(e){r[k]=val;}}else{r[k]=val;}}return r;}
+function parseArr(v){if(Array.isArray(v))return v;if(typeof v==='string'){try{var p=JSON.parse(v);return Array.isArray(p)?p:[];}catch(e){}}return [];}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function el(tag,attrs,children){var e=document.createElement(tag);attrs=attrs||{};for(var k in attrs){if(k==='class')e.className=attrs[k];else if(k==='style')e.style.cssText=attrs[k];else e.setAttribute(k,attrs[k]);}children=children||[];if(!Array.isArray(children))children=[children];children.forEach(function(c){if(c==null||c===false)return;if(typeof c==='string')e.appendChild(document.createTextNode(c));else e.appendChild(c);});return e;}
+
+function secTable(title,rows,icon){icon=icon||'';var validRows=rows.filter(function(r){var v=r[1];return v!==''&&v!==null&&v!==undefined&&!Array.isArray(v)&&typeof v!=='object';});if(!validRows.length)return null;var tbody=el('tbody',{},validRows.map(function(r){return el('tr',{},[el('td',{class:'key-col'},[esc(r[0])]),el('td',{},[esc(String(r[1]))])]);} ));return el('div',{class:'section'},[el('div',{class:'section-head'},[icon+' '+title]),el('table',{},[tbody])]);}
+
+function renderPiano(dati){var days=parseArr(dati.meals||dati.giorni);var frag=document.createDocumentFragment();if(!days.length){frag.appendChild(el('div',{class:'info-box blue'},['Nessun dettaglio pasti disponibile.']));return frag;}days.forEach(function(day){var meals=parseArr(day.meals);var dayEl=el('div',{class:'day-block'},[el('div',{class:'day-head'},['📅 '+esc(day.nome||'Giorno')])]);meals.forEach(function(meal){var mKey=meal.id||meal.tipo||'';var m=MEAL_LABELS[mKey]||{label:meal.nome||mKey||'Pasto',emoji:'🍴'};var items=parseArr(meal.items||meal.foods||meal.alimenti||[]);var kcal=meal.kcal||meal.calorie||null;var note=meal.note||meal.notes||'';var mealEl=el('div',{class:'meal-block'},[el('div',{class:'meal-head'},[el('span',{class:'meal-name'},[(meal.emoji||m.emoji)+' '+esc(meal.nome||m.label)]),kcal?el('span',{class:'meal-kcal'},['🔥 '+kcal+' kcal']):null])]);if(items.length){var rows=[];items.forEach(function(food){rows.push(el('tr',{},[el('td',{},[esc(food.nome||food.name||food.alimento||'')]),el('td',{class:'food-qty'},[esc(String(food.qt||food.quantita||food.quantity||''))+esc(food.misura||food.unita||food.unit||'g')])]));if(food.altPrint&&food.altPrint.length){rows.push(el('tr',{class:'alt-row'},[el('td',{colspan:'2'},['Alt: '+food.altPrint.map(function(a){return esc(a.nome)+' '+(a.qt||'')+'g';}).join(' / ')])]));}});mealEl.appendChild(el('table',{class:'food-table'},[el('tbody',{},rows)]));}if(note){mealEl.appendChild(el('div',{class:'note-box'},['💡 '+esc(note)]));}dayEl.appendChild(mealEl);});frag.appendChild(dayEl);});return frag;}
+
+function renderRistorazione(dati){var val=deepParse(dati.valutazione)||{};var piano=deepParse(dati.piano)||{};var portate=parseArr(piano.portate||val.portate||[]);var frag=document.createDocumentFragment();var infoRows=[['Tipo utenza',piano.tipo||val.tipo],['Utenza',piano.utenza||val.utenza],['Coperti',piano.coperti||val.coperti],['Kcal',piano.kcal||val.kcal],['Diete speciali',piano.diete||val.diete],['Allergeni',piano.allergeni||val.allergeni],['Note struttura',piano.note_struttura||val.note_struttura]];var infoTable=secTable('Struttura',infoRows,'📋');if(infoTable)frag.appendChild(infoTable);if(portate.length){var tbody=el('tbody',{},portate.map(function(p){return el('tr',{},[el('td',{style:'font-weight:600;color:#1a7f5a'},[esc(p.nome||'')]),el('td',{},[esc(p.porzione||'')]),el('td',{style:'font-size:12px;color:#666'},[esc(p.note||'—')])]);} ));frag.appendChild(el('div',{class:'section'},[el('div',{class:'section-head'},['🍽️ Portate']),el('table',{},[el('thead',{},[el('tr',{},['Portata','Porzione','Note'].map(function(h){return el('th',{},[h]);}))]),tbody])]));}var noteGen=piano.note_generali||val.note_generali;if(noteGen)frag.appendChild(el('div',{class:'note-box',style:'margin:0 0 16px'},['💡 '+esc(noteGen)]));return frag;}
+
+function renderPediatria(dati){var paz=deepParse(dati.paziente)||{};var pianoRaw=deepParse(dati.piano)||{};var pasti=parseArr(dati.pasti||pianoRaw.pasti||[]);var piano={};Object.keys(pianoRaw).forEach(function(k){if(k!=='pasti')piano[k]=pianoRaw[k];});var frag=document.createDocumentFragment();var pazTable=secTable('Dati paziente',Object.entries(paz),'👶');if(pazTable)frag.appendChild(pazTable);var pianoTable=secTable('Piano',Object.entries(piano),'📋');if(pianoTable)frag.appendChild(pianoTable);if(pasti.length){var tbody=el('tbody',{},pasti.map(function(p){var alimText=Array.isArray(p.items)?p.items.map(function(it){return(it.nome||'')+' '+(it.qt||'')+(it.misura||'g');}).join(', '):Array.isArray(p.alimenti)?p.alimenti.join(', '):p.descrizione||p.alimenti||'';return el('tr',{},[el('td',{style:'font-weight:600;color:#1a7f5a'},[esc(p.nome||'')]),el('td',{style:'color:#666'},[esc(p.ora||'')]),el('td',{},[esc(alimText)])]);} ));frag.appendChild(el('div',{class:'section'},[el('div',{class:'section-head'},['🍼 Schema pasti']),el('table',{},[el('thead',{},[el('tr',{},['Pasto','Orario','Descrizione'].map(function(h){return el('th',{},[h]);}))]),tbody])]));}return frag;}
+
+function renderConsiglio(dati){var frag=document.createDocumentFragment();if(dati.descrizione||dati.indicazioni)frag.appendChild(el('div',{class:'info-box blue'},[esc(dati.descrizione||dati.indicazioni)]));if(dati.alimenti_consentiti&&dati.alimenti_consentiti.length)frag.appendChild(el('div',{class:'list-section'},[el('div',{class:'list-head green'},['✅ Alimenti consentiti']),el('ul',{class:'items'},dati.alimenti_consentiti.map(function(a){return el('li',{},[esc(a)]);})) ]));if(dati.alimenti_limitare&&dati.alimenti_limitare.length)frag.appendChild(el('div',{class:'list-section'},[el('div',{class:'list-head yellow'},['⚠️ Da limitare']),el('ul',{class:'items'},dati.alimenti_limitare.map(function(a){return el('li',{},[esc(a)]);})) ]));if(dati.alimenti_evitare&&dati.alimenti_evitare.length)frag.appendChild(el('div',{class:'list-section'},[el('div',{class:'list-head red'},['🚫 Da evitare']),el('ul',{class:'items'},dati.alimenti_evitare.map(function(a){return el('li',{},[esc(a)]);})) ]));if(dati.note)frag.appendChild(el('div',{class:'note-box',style:'margin:0 0 16px'},['💡 '+esc(dati.note)]));return frag;}
+
+function renderCalcolo(tipo,dati){var calcData=dati.calcolo||dati.rapporto_ic||dati.panoramica||dati;var frag=document.createDocumentFragment();if(!calcData||typeof calcData!=='object')return frag;var flatRows=Object.keys(calcData).filter(function(k){var v=calcData[k];return v!==''&&v!==null&&v!==undefined&&typeof v!=='object';}).map(function(k){return[CALC_LABELS[k]||k.replace(/_/g,' '),calcData[k]];});var t=secTable('Dati clinici',flatRows,'📊');if(t)frag.appendChild(t);Object.keys(calcData).forEach(function(k){var v=calcData[k];if(!v||typeof v!=='object'||Array.isArray(v))return;var nested=Object.keys(v).filter(function(kk){var vv=v[kk];return vv!==''&&vv!==null&&vv!==undefined&&typeof vv!=='object';}).map(function(kk){return[CALC_LABELS[kk]||kk.replace(/_/g,' '),v[kk]];});var nt=secTable(k.replace(/_/g,' '),nested);if(nt)frag.appendChild(nt);});return frag;}
+
+function render(){
+  var tipo=TIPO,nota=NOTA,dati=DATI;
+  var m=META[tipo]||{icon:'📄',cat:'Documento Clinico'};
+  var wrap=document.getElementById('app');
+  wrap.innerHTML='';
+  wrap.appendChild(el('div',{class:'doc-header'},[
+    el('div',{class:'category'},[m.icon+' '+m.cat]),
+    el('div',{class:'title'},[esc(nota||m.cat)]),
+    el('div',{class:'subtitle'},[new Date().toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'})])
+  ]));
+  var content;
+  if(tipo==='piano'||tipo==='dieta'||tipo==='diet'||dati.meals||dati.giorni){content=renderPiano(dati);}
+  else if(tipo==='ristorazione'){content=renderRistorazione(dati);}
+  else if(tipo==='pediatria'){content=renderPediatria(dati);}
+  else if(tipo==='questionario'||dati.questionario!==undefined){
+    var score=dati.score||0;
+    var scoreColor=score>=3?'#dc2626':score>=1?'#d97706':'#16a34a';
+    var fr=document.createDocumentFragment();
+    fr.appendChild(el('div',{class:'score-box',style:'border-color:'+scoreColor+'30'},[
+      el('div',{class:'score-num',style:'color:'+scoreColor},[String(dati.score!=null?dati.score:'—')]),
+      el('div',{class:'score-label',style:'color:'+scoreColor},[esc(dati.label||'')]),
+      dati.desc?el('div',{class:'score-desc'},[esc(dati.desc)]):null
+    ]));
+    content=fr;
+  } else if(tipo==='consiglio'||dati.consiglio_id||dati.consiglio_nome){
+    var fr2=document.createDocumentFragment();
+    fr2.appendChild(el('div',{class:'info-box red',style:'font-size:18px;font-weight:700;margin-bottom:16px'},[esc(dati.consiglio_nome||nota)]));
+    fr2.appendChild(renderConsiglio(dati));
+    content=fr2;
+  } else {content=renderCalcolo(tipo,dati);}
+  if(content)wrap.appendChild(content);
+  wrap.appendChild(el('div',{class:'doc-footer'},['Documento generato da NutriPlan Pro \u2022 '+new Date().toLocaleDateString('it-IT')]));
+}
+render();
+setTimeout(function(){window.print();},500);
+<\/script>
+</body>
+</html>`
+
+  const blob = new Blob([html], { type: 'text/html; charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const win = window.open(url, '_blank')
+  if (!win) {
+    URL.revokeObjectURL(url)
+    alert('Abilita i popup per stampare il documento.')
+    return
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 60000)
+}
+
+function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
   if (!doc) return null
   const meta = TYPE_META[doc.type] || TYPE_META.document
   const isPiano = doc.source === 'piano'
@@ -405,6 +600,15 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark }) {
           <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, margin: 0 }}>{meta.label}</p>
           <h2 style={{ color: 'white', fontSize: 17, fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.title}</h2>
         </div>
+        {!doc.file_url && (
+          <button
+            onClick={() => onPrint(doc)}
+            title="Stampa documento"
+            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0 }}
+          >
+            <Printer size={18} />
+          </button>
+        )}
         <button
           onClick={() => onToggleBookmark(doc.id)}
           style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0 }}
@@ -769,6 +973,7 @@ export default function DocumentsPage() {
           onClose={() => setSelected(null)}
           bookmarked={bookmarks.has(selected.id)}
           onToggleBookmark={toggleBookmark}
+          onPrint={handlePrint}
         />
       )}
     </>
