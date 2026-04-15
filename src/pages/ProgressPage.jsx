@@ -33,13 +33,13 @@ export default function ProgressPage() {
   const [symptoms, setSymptoms] = useState([])
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState(null)
+  const [saveOk, setSaveOk] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
   const [range, setRange] = useState(30)
   const today = new Date().toISOString().split('T')[0]
 
-  useEffect(() => {
-    loadData()
-  }, [])
+  useEffect(() => { loadData() }, [])
 
   async function loadData() {
     const { data: wData } = await supabase
@@ -49,40 +49,65 @@ export default function ProgressPage() {
       .order('date', { ascending: true })
     setWeights(wData || [])
 
+    // FIX: include user_id filter
     const { data: log } = await supabase
       .from('daily_wellness')
-      .select('*').eq('date', today).maybeSingle()
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('date', today)
+      .maybeSingle()
     setTodayLog(log)
     if (log) {
       setMood(log.mood)
-      setSymptoms(log.symptoms || [])
+      setSymptoms(Array.isArray(log.symptoms) ? log.symptoms : [])
       setNotes(log.notes || '')
     }
   }
 
   async function saveEntry() {
     setSaving(true)
-    // Save weight
-    if (newWeight) {
-      const w = parseFloat(newWeight)
-      if (!isNaN(w)) {
-        const { data } = await supabase.from('weight_logs')
-          .upsert({ user_id: user.id, date: today, weight_kg: w }, { onConflict: 'user_id,date' })
-          .select().single()
-        if (data) setWeights(prev => {
-          const filtered = prev.filter(x => x.date !== today)
-          return [...filtered, data].sort((a, b) => a.date.localeCompare(b.date))
-        })
+    setSaveError(null)
+    setSaveOk(false)
+
+    try {
+      // Save weight
+      if (newWeight) {
+        const w = parseFloat(newWeight)
+        if (!isNaN(w)) {
+          const { data, error } = await supabase.from('weight_logs')
+            .upsert({ user_id: user.id, date: today, weight_kg: w }, { onConflict: 'user_id,date' })
+            .select().single()
+          if (error) throw new Error('Errore peso: ' + error.message)
+          if (data) setWeights(prev => {
+            const filtered = prev.filter(x => x.date !== today)
+            return [...filtered, data].sort((a, b) => a.date.localeCompare(b.date))
+          })
+        }
       }
+
+      // Save wellness — symptoms must be text[] for Supabase
+      if (mood || symptoms.length || notes) {
+        const wellnessData = {
+          user_id: user.id,
+          date: today,
+          mood: mood || null,
+          symptoms: symptoms,   // array di stringhe
+          notes: notes || null,
+        }
+        const { error } = await supabase.from('daily_wellness')
+          .upsert(wellnessData, { onConflict: 'user_id,date' })
+        if (error) throw new Error('Errore benessere: ' + error.message)
+      }
+
+      setSaveOk(true)
+      setShowAdd(false)
+      setTimeout(() => setSaveOk(false), 3000)
+      loadData()
+    } catch (e) {
+      setSaveError(e.message)
+    } finally {
+      setSaving(false)
     }
-    // Save wellness
-    if (mood || symptoms.length || notes) {
-      await supabase.from('daily_wellness')
-        .upsert({ user_id: user.id, date: today, mood, symptoms, notes }, { onConflict: 'user_id,date' })
-    }
-    setShowAdd(false)
-    setSaving(false)
-    loadData()
   }
 
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - range)
@@ -98,7 +123,6 @@ export default function ProgressPage() {
   const diff = latest && previous ? (latest - previous).toFixed(1) : null
   const target = profile?.target_weight
   const initial = weights[0]?.weight_kg
-
   const totalChange = latest && initial ? (latest - initial).toFixed(1) : null
 
   return (
@@ -116,7 +140,7 @@ export default function ProgressPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
           {[
             { label: 'Peso attuale', val: latest ? `${latest} kg` : '–', sub: diff ? `${diff > 0 ? '+' : ''}${diff} kg` : '', icon: <Scale size={14} /> },
-            { label: 'Cambiamento', val: totalChange ? `${totalChange > 0 ? '+' : ''}${totalChange} kg` : '–', sub: 'dall\'inizio', icon: <Activity size={14} /> },
+            { label: 'Cambiamento', val: totalChange ? `${totalChange > 0 ? '+' : ''}${totalChange} kg` : '–', sub: "dall'inizio", icon: <Activity size={14} /> },
             { label: 'Obiettivo', val: target ? `${target} kg` : '–', sub: latest && target ? `Mancano ${Math.abs(latest - target).toFixed(1)} kg` : '', icon: <Target size={14} /> },
           ].map(s => (
             <div key={s.label} style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 14, padding: '12px', border: '1px solid rgba(255,255,255,0.15)' }}>
@@ -131,6 +155,44 @@ export default function ProgressPage() {
       </div>
 
       <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+        {/* Success / Error feedback */}
+        {saveOk && (
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '12px 16px', fontSize: 14, color: '#166534', display: 'flex', alignItems: 'center', gap: 8 }}>
+            ✅ Dati salvati con successo!
+          </div>
+        )}
+        {saveError && (
+          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, padding: '12px 16px', fontSize: 13, color: '#991b1b' }}>
+            ⚠️ {saveError}
+            <p style={{ fontSize: 11, marginTop: 4, opacity: 0.8 }}>
+              Se l'errore persiste, esegui questo SQL su Supabase:<br />
+              <code style={{ fontFamily: 'monospace', fontSize: 10 }}>
+                ALTER TABLE daily_wellness ENABLE ROW LEVEL SECURITY;<br />
+                CREATE POLICY "utenti wellness" ON daily_wellness FOR ALL USING (auth.uid() = user_id);
+              </code>
+            </p>
+          </div>
+        )}
+
+        {/* Today's wellness summary */}
+        {todayLog && !showAdd && (
+          <div className="card" style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ fontSize: 28 }}>
+              {MOOD_OPTIONS.find(m => m.value === todayLog.mood)?.emoji || '😐'}
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>Benessere di oggi registrato</p>
+              {todayLog.symptoms?.length > 0 && (
+                <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{todayLog.symptoms.join(', ')}</p>
+              )}
+            </div>
+            <button onClick={() => setShowAdd(true)} style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, padding: '6px 12px', fontSize: 12, cursor: 'pointer', color: 'var(--text-secondary)' }}>
+              Modifica
+            </button>
+          </div>
+        )}
+
         {/* Add entry panel */}
         {showAdd && (
           <div className="card animate-slideUp" style={{ padding: 20 }}>

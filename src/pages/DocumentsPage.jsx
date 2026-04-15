@@ -49,184 +49,237 @@ function isNew(doc, lastSeen) {
 }
 
 
-function PrintDocRenderer({ doc }) {
-  // Robust: detect from BOTH tipo AND dati shape
-  const tipo = (doc.tipo || doc.type || '').toLowerCase()
-  let dati = doc.dati_raw || {}
-  // Parse if string
-  if (typeof dati === 'string') { try { dati = JSON.parse(dati) } catch { dati = {} } }
+// ─── Helper: parse JSON safely, handling double-encoded strings ────────────────
+function deepParse(value, maxDepth = 3) {
+  let v = value
+  for (let i = 0; i < maxDepth; i++) {
+    if (typeof v !== 'string') break
+    try { v = JSON.parse(v) } catch { break }
+  }
+  return (v && typeof v === 'object') ? v : {}
+}
 
-  // ── MUST / Questionario ─────────────────────────────────────────────────────
-  const isQuestionario = tipo === 'questionario' || (dati.questionario && dati.score !== undefined)
-  if (isQuestionario) {
-    const scoreColor = dati.score >= 3 ? '#dc2626' : dati.score >= 1 ? '#d97706' : '#16a34a'
+// ─── Print-style header used by all document types ────────────────────────────
+function DocHeader({ color, bg, icon, category, title, subtitle }) {
+  return (
+    <div style={{ background: bg, border: `2px solid ${color}30`, borderRadius: 14, padding: '16px 20px', marginBottom: 20 }}>
+      <div style={{ fontSize: 11, color: color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span>{icon}</span>{category}
+      </div>
+      {title && <div style={{ fontSize: 20, fontWeight: 700, color: '#1a1a1a', lineHeight: 1.2 }}>{title}</div>}
+      {subtitle && <div style={{ fontSize: 13, color: '#666', marginTop: 4 }}>{subtitle}</div>}
+    </div>
+  )
+}
+
+// ─── Reusable data table ──────────────────────────────────────────────────────
+function DataTable({ title, rows }) {
+  const validRows = rows.filter(([, v]) => v !== '' && v !== null && v !== undefined && v !== false)
+  if (!validRows.length) return null
+  return (
+    <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', marginBottom: 14 }}>
+      {title && <div style={{ background: '#1a7f5a', color: 'white', padding: '9px 16px', fontSize: 13, fontWeight: 700 }}>{title}</div>}
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <tbody>
+          {validRows.map(([k, v], i) => (
+            <tr key={k} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
+              <td style={{ padding: '8px 16px', fontSize: 13, color: '#555', fontWeight: 600, width: '45%' }}>{k}</td>
+              <td style={{ padding: '8px 16px', fontSize: 13, color: '#1a1a1a' }}>{typeof v === 'object' ? JSON.stringify(v) : String(v)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// ─── Reusable portate / items table ──────────────────────────────────────────
+function PortateTable({ portate }) {
+  if (!portate?.length) return null
+  return (
+    <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', marginBottom: 14 }}>
+      <div style={{ background: '#1a7f5a', color: 'white', padding: '9px 16px', fontSize: 13, fontWeight: 700 }}>🍽️ Portate / Menu</div>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+            {['Portata', 'Porzione', 'Note'].map(h => (
+              <th key={h} style={{ padding: '8px 14px', fontSize: 12, color: '#666', textAlign: 'left', fontWeight: 600 }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {portate.map((p, i) => (
+            <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
+              <td style={{ padding: '8px 14px', fontSize: 13, fontWeight: 600, color: '#1a7f5a' }}>{p.nome || ''}</td>
+              <td style={{ padding: '8px 14px', fontSize: 13 }}>{p.porzione || ''}</td>
+              <td style={{ padding: '8px 14px', fontSize: 12, color: p.note ? '#444' : '#bbb', fontStyle: p.note ? 'normal' : 'italic' }}>{p.note || '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// ─── MAIN DOCUMENT RENDERER ──────────────────────────────────────────────────
+function PrintDocRenderer({ doc }) {
+  const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
+  const dati = deepParse(doc.dati_raw)
+
+  // ── Questionario MUST / clinico ───────────────────────────────────────────
+  if (tipo === 'questionario' || dati.questionario !== undefined) {
+    const scoreColor = (dati.score ?? 0) >= 3 ? '#dc2626' : (dati.score ?? 0) >= 1 ? '#d97706' : '#16a34a'
+    const scoreBg   = (dati.score ?? 0) >= 3 ? '#fef2f2' : (dati.score ?? 0) >= 1 ? '#fffbeb' : '#f0fdf4'
     return (
       <div>
-        <div style={{ background: '#f5f3ff', border: '2px solid #d8b4fe', borderRadius: 14, padding: 20, marginBottom: 20, textAlign: 'center' }}>
-          <div style={{ fontSize: 12, color: '#7c3aed', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
-            Questionario {dati.questionario || 'Clinico'}
-          </div>
-          <div style={{ fontSize: 32, fontWeight: 800, color: scoreColor, marginBottom: 6 }}>
-            Score: {dati.score ?? '—'}
-          </div>
-          {dati.label && <div style={{ fontSize: 16, fontWeight: 600, color: scoreColor }}>{dati.label}</div>}
+        <DocHeader color={scoreColor} bg={scoreBg} icon="📋" category={`Questionario ${dati.questionario || ''}`} title={doc.nota || doc.title} />
+        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+          <div style={{ fontSize: 48, fontWeight: 900, color: scoreColor, lineHeight: 1 }}>{dati.score ?? '—'}</div>
+          <div style={{ fontSize: 14, color: scoreColor, fontWeight: 700, marginTop: 4 }}>{dati.label || ''}</div>
         </div>
-        {dati.desc && <p style={{ fontSize: 14, lineHeight: 1.8, color: '#333', whiteSpace: 'pre-wrap' }}>{dati.desc}</p>}
-        {doc.nota && doc.nota !== doc.title && <p style={{ marginTop: 12, fontSize: 14, color: '#666', fontStyle: 'italic' }}>{doc.nota}</p>}
+        {dati.desc && <p style={{ fontSize: 14, lineHeight: 1.8, color: '#333', background: '#f9fafb', borderRadius: 10, padding: 14 }}>{dati.desc}</p>}
       </div>
     )
   }
 
-  // ── Consiglio nutrizionale ───────────────────────────────────────────────────
-  const isConsiglio = tipo === 'consiglio' || dati.consiglio_id || dati.consiglio_nome
-  if (isConsiglio) {
+  // ── Consiglio nutrizionale ────────────────────────────────────────────────
+  if (tipo === 'consiglio' || dati.consiglio_id || dati.consiglio_nome) {
+    const nome = dati.consiglio_nome || doc.title
     return (
       <div>
-        <div style={{ background: 'linear-gradient(135deg, #fff0f0, #fff5f5)', border: '2px solid #fecaca', borderRadius: 14, padding: 20, marginBottom: 20 }}>
-          <div style={{ fontSize: 11, color: '#dc2626', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Consiglio Nutrizionale</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#991b1b' }}>{dati.consiglio_nome || doc.title}</div>
-        </div>
-        {dati.indicazioni && <div style={{ marginBottom: 14 }}>
-          <p style={{ fontSize: 13, fontWeight: 700, color: '#1a7f5a', marginBottom: 8, textTransform: 'uppercase', letterSpacing: .5 }}>Indicazioni</p>
-          <p style={{ fontSize: 14, lineHeight: 1.8 }}>{dati.indicazioni}</p>
-        </div>}
-        {dati.alimenti_consentiti && Array.isArray(dati.alimenti_consentiti) && dati.alimenti_consentiti.length > 0 && (
+        <DocHeader color="#dc2626" bg="#fff0f0" icon="💊" category="Consiglio Nutrizionale" title={nome} />
+        {dati.descrizione && <p style={{ fontSize: 14, lineHeight: 1.8, marginBottom: 12 }}>{dati.descrizione}</p>}
+        {dati.indicazioni && <p style={{ fontSize: 14, lineHeight: 1.8, marginBottom: 12 }}>{dati.indicazioni}</p>}
+        {dati.alimenti_consentiti?.length > 0 && (
           <div style={{ marginBottom: 14 }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: '#16a34a', marginBottom: 8, textTransform: 'uppercase', letterSpacing: .5 }}>✅ Alimenti consentiti</p>
             <ul style={{ paddingLeft: 20, fontSize: 14, lineHeight: 2 }}>{dati.alimenti_consentiti.map((a, i) => <li key={i}>{a}</li>)}</ul>
           </div>
         )}
-        {dati.alimenti_limitare && Array.isArray(dati.alimenti_limitare) && dati.alimenti_limitare.length > 0 && (
+        {dati.alimenti_limitare?.length > 0 && (
           <div style={{ marginBottom: 14 }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: '#d97706', marginBottom: 8, textTransform: 'uppercase', letterSpacing: .5 }}>⚠️ Da limitare</p>
             <ul style={{ paddingLeft: 20, fontSize: 14, lineHeight: 2 }}>{dati.alimenti_limitare.map((a, i) => <li key={i}>{a}</li>)}</ul>
           </div>
         )}
-        {dati.alimenti_evitare && Array.isArray(dati.alimenti_evitare) && dati.alimenti_evitare.length > 0 && (
+        {dati.alimenti_evitare?.length > 0 && (
           <div style={{ marginBottom: 14 }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: '#dc2626', marginBottom: 8, textTransform: 'uppercase', letterSpacing: .5 }}>🚫 Da evitare</p>
             <ul style={{ paddingLeft: 20, fontSize: 14, lineHeight: 2 }}>{dati.alimenti_evitare.map((a, i) => <li key={i}>{a}</li>)}</ul>
           </div>
         )}
         {dati.note && <div style={{ padding: '10px 14px', background: '#fffbeb', borderRadius: 8, borderLeft: '3px solid #f59e0b', fontSize: 13, color: '#92400e' }}>💡 {dati.note}</div>}
-        {doc.content && !dati.indicazioni && <p style={{ fontSize: 14, lineHeight: 1.8 }}>{doc.content}</p>}
       </div>
     )
   }
 
-  // ── Calcoli clinici (DCA, diabete, chetogenica, renale, ecc.) ──────────────
-  const calcData = dati.calcolo || dati.rapporto_ic || dati.panoramica || null
-  const isCalcolo = calcData || tipo === 'dca' || tipo === 'diabete' || tipo === 'chetogenica' || tipo === 'renale' || tipo === 'pediatria' || tipo === 'disfagia' || tipo === 'pancreas' || tipo === 'sport'
-  if (isCalcolo) {
-    const LABEL_MAP = {
-      peso: 'Peso (kg)', altezza: 'Altezza (cm)', eta: 'Età',
-      sesso: 'Sesso', peso_ideale: 'Peso ideale (kg)',
-      imc: 'IMC', bmi: 'BMI',
-      fabbisogno: 'Fabbisogno calorico', kcal: 'Calorie',
-      proteine: 'Proteine (g)', carboidrati: 'Carboidrati (g)', grassi: 'Grassi (g)',
-      tipo: 'Tipo', tdd: 'TDD (UI)', metodo: 'Metodo',
-      attivita: 'Attività fisica', storia_paziente: 'Anamnesi',
-      storia_peso: 'Storia peso', famiglia: 'Anamnesi familiare',
-      npasti: 'N° pasti', luogo: 'Luogo pasti', appetito: 'Appetito',
-    }
-    const renderCalcTable = (obj, label) => {
-      if (!obj || typeof obj !== 'object') return null
-      const entries = Object.entries(obj).filter(([, v]) => v !== '' && v !== null && v !== undefined && typeof v !== 'object')
-      const nested = Object.entries(obj).filter(([, v]) => v && typeof v === 'object')
-      if (entries.length === 0 && nested.length === 0) return null
-      return (
-        <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', marginBottom: 14 }}>
-          {label && <div style={{ background: '#1a7f5a', color: 'white', padding: '9px 16px', fontSize: 13, fontWeight: 700 }}>{label}</div>}
-          {entries.length > 0 && (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <tbody>
-                {entries.map(([k, v], i) => (
-                  <tr key={k} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
-                    <td style={{ padding: '8px 16px', fontSize: 13, color: '#555', fontWeight: 600, width: '45%' }}>
-                      {LABEL_MAP[k] || k.replace(/_/g, ' ').replace(/\w/g, l => l.toUpperCase())}
-                    </td>
-                    <td style={{ padding: '8px 16px', fontSize: 13, color: '#1a1a1a' }}>{String(v)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          {nested.map(([k, v]) => (
-            <div key={k} style={{ padding: '0 0 8px 0' }}>
-              {renderCalcTable(v, LABEL_MAP[k] || k.replace(/_/g, ' ').replace(/\w/g, l => l.toUpperCase()))}
-            </div>
-          ))}
-        </div>
-      )
-    }
+  // ── Ristorazione / menu scolastico ────────────────────────────────────────
+  // Struttura reale: dati.piano.portate[], dati.valutazione.{tipo,coperti,...}
+  if (tipo === 'ristorazione') {
+    const val = deepParse(dati.valutazione) || {}
+    const piano = deepParse(dati.piano) || {}
+    const portate = piano.portate || val.portate || []
     return (
       <div>
-        {doc.nota && (
-          <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 12, padding: 14, marginBottom: 18 }}>
-            <p style={{ fontSize: 15, fontWeight: 600, color: '#0369a1' }}>{doc.nota}</p>
+        <DocHeader color="#0891b2" bg="#ecfeff" icon="🍽️" category="Menu Ristorazione" title={doc.nota || doc.title} />
+        <DataTable title="📋 Struttura" rows={[
+          ['Tipo utenza', piano.tipo || val.tipo],
+          ['Utenza', piano.utenza || val.utenza],
+          ['Coperti', piano.coperti || val.coperti],
+          ['Kcal stimate', piano.kcal || val.kcal],
+          ['Diete speciali', piano.diete || val.diete],
+          ['Allergeni', piano.allergeni || val.allergeni],
+          ['Note struttura', piano.note_struttura || val.note_struttura],
+        ]} />
+        <PortateTable portate={portate} />
+        {(piano.note_generali || val.note_generali) && (
+          <div style={{ padding: '10px 14px', background: '#fffbeb', borderRadius: 8, borderLeft: '3px solid #f59e0b', fontSize: 13, color: '#92400e' }}>
+            💡 {piano.note_generali || val.note_generali}
           </div>
         )}
-        {calcData ? renderCalcTable(calcData, '📊 Dati clinici') : renderCalcTable(dati, '📊 Dati clinici')}
       </div>
     )
   }
 
-  // ── Ristorazione / menu scolastico ──────────────────────────────────────────
-  const ristData = dati.valutazione || dati
-  const isRistorazione = tipo === 'ristorazione' || ristData?.portate?.length > 0
-  if (isRistorazione && ristData?.portate) {
-    const portate = ristData.portate || []
+  // ── Pediatria ─────────────────────────────────────────────────────────────
+  if (tipo === 'pediatria') {
+    const paz = deepParse(dati.paziente) || {}
+    const piano = deepParse(dati.piano) || {}
+    const pasti = Array.isArray(dati.pasti) ? dati.pasti : []
     return (
       <div>
-        {doc.nota && (
-          <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 12, padding: 14, marginBottom: 18 }}>
-            <p style={{ fontSize: 15, fontWeight: 600, color: '#0369a1' }}>{doc.nota}</p>
-          </div>
-        )}
-        {(ristData.tipo || ristData.utenza || ristData.coperti) && (
+        <DocHeader color="#7c3aed" bg="#f5f3ff" icon="👶" category="Schema Nutrizionale Pediatrico" title={doc.nota || doc.title} />
+        <DataTable title="👤 Dati paziente" rows={Object.entries(paz).filter(([, v]) => v)} />
+        <DataTable title="📋 Piano" rows={Object.entries(piano).filter(([, v]) => v)} />
+        {pasti.length > 0 && (
           <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', marginBottom: 14 }}>
-            <div style={{ background: '#1a7f5a', color: 'white', padding: '9px 16px', fontSize: 13, fontWeight: 700 }}>📋 Informazioni struttura</div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <tbody>
-                {[['Tipo', ristData.tipo], ['Utenza', ristData.utenza], ['Coperti', ristData.coperti], ['Kcal', ristData.kcal], ['Diete speciali', ristData.diete], ['Allergeni', ristData.allergeni]].filter(([, v]) => v).map(([k, v], i) => (
-                  <tr key={k} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
-                    <td style={{ padding: '8px 16px', fontSize: 13, color: '#555', fontWeight: 600, width: '40%' }}>{k}</td>
-                    <td style={{ padding: '8px 16px', fontSize: 13 }}>{v}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {portate.length > 0 && (
-          <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', marginBottom: 14 }}>
-            <div style={{ background: '#1a7f5a', color: 'white', padding: '9px 16px', fontSize: 13, fontWeight: 700 }}>🍽️ Portate</div>
+            <div style={{ background: '#1a7f5a', color: 'white', padding: '9px 16px', fontSize: 13, fontWeight: 700 }}>🍼 Schema pasti</div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                  {['Portata', 'Porzione', 'Note'].map(h => (
+                  {['Pasto', 'Orario', 'Alimenti'].map(h => (
                     <th key={h} style={{ padding: '8px 14px', fontSize: 12, color: '#666', textAlign: 'left', fontWeight: 600 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {portate.map((p, i) => (
+                {pasti.map((p, i) => (
                   <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
                     <td style={{ padding: '8px 14px', fontSize: 13, fontWeight: 600, color: '#1a7f5a' }}>{p.nome || ''}</td>
-                    <td style={{ padding: '8px 14px', fontSize: 13 }}>{p.porzione || ''}</td>
-                    <td style={{ padding: '8px 14px', fontSize: 12, color: '#666', fontStyle: p.note ? 'normal' : 'italic' }}>{p.note || '—'}</td>
+                    <td style={{ padding: '8px 14px', fontSize: 13, color: '#666' }}>{p.ora || ''}</td>
+                    <td style={{ padding: '8px 14px', fontSize: 13 }}>
+                      {Array.isArray(p.items) ? p.items.map(it => `${it.nome} ${it.qt || ''}${it.misura || 'g'}`).join(', ') :
+                       Array.isArray(p.alimenti) ? p.alimenti.join(', ') :
+                       p.descrizione || ''}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-        {ristData.note_generali && <div style={{ padding: '10px 14px', background: '#fffbeb', borderRadius: 8, borderLeft: '3px solid #f59e0b', fontSize: 13, color: '#92400e' }}>💡 {ristData.note_generali}</div>}
       </div>
     )
   }
 
-  // ── Generic fallback: smart formatted renderer ──────────────────────────────
+  // ── Calcoli clinici: chetogenica, renale, diabete, dca, sport, pancreas, disfagia ──
+  const CALCOLO_LABELS = {
+    peso: 'Peso (kg)', altezza: 'Altezza (cm)', eta: 'Età', sesso: 'Sesso',
+    peso_ideale: 'Peso ideale (kg)', imc: 'IMC', bmi: 'BMI',
+    fabbisogno: 'Fabbisogno kcal', kcal: 'Kcal/die',
+    proteine: 'Proteine (g)', carboidrati: 'Carboidrati (g)', grassi: 'Grassi (g)',
+    tipo: 'Tipo', tdd: 'TDD (UI)', metodo: 'Metodo',
+    attivita: 'Attività fisica', npasti: 'N° pasti', luogo: 'Luogo pasti',
+    appetito: 'Appetito', allergie: 'Allergie',
+  }
+  const ICONE_TIPO = { chetogenica: '🥑', renale: '🫘', diabete: '💉', dca: '🧠', sport: '🏋️', pancreas: '🫀', disfagia: '🍵' }
+  const calcTypes = ['chetogenica','renale','diabete','dca','sport','pancreas','disfagia']
+  const calcData = dati.calcolo || dati.rapporto_ic || dati.panoramica || (calcTypes.includes(tipo) ? dati : null)
+
+  if (calcData) {
+    const icon = ICONE_TIPO[tipo] || '📊'
+    const flatEntries = Object.entries(calcData)
+      .filter(([, v]) => v !== '' && v !== null && v !== undefined && typeof v !== 'object')
+      .map(([k, v]) => [CALCOLO_LABELS[k] || k.replace(/_/g, ' '), v])
+    const nested = Object.entries(calcData).filter(([, v]) => v && typeof v === 'object' && !Array.isArray(v))
+    return (
+      <div>
+        <DocHeader color="#0891b2" bg="#f0f9ff" icon={icon} category={tipo.charAt(0).toUpperCase() + tipo.slice(1)} title={doc.nota || doc.title} />
+        {flatEntries.length > 0 && (
+          <DataTable title="📊 Dati clinici" rows={flatEntries} />
+        )}
+        {nested.map(([k, v]) => {
+          const entries = Object.entries(v).filter(([, vv]) => vv !== '' && vv !== null && vv !== undefined && typeof vv !== 'object').map(([kk, vv]) => [CALCOLO_LABELS[kk] || kk.replace(/_/g, ' '), vv])
+          return entries.length > 0 ? <DataTable key={k} title={k.replace(/_/g, ' ')} rows={entries} /> : null
+        })}
+      </div>
+    )
+  }
+
+  // ── Fallback: testo normale o struttura generica ──────────────────────────
+  const hasContent = doc.content && doc.content.trim()
+  const hasDati = dati && Object.keys(dati).length > 0
+
   return (
     <div>
       {doc.nota && doc.nota !== doc.title && (
@@ -234,102 +287,16 @@ function PrintDocRenderer({ doc }) {
           <p style={{ fontSize: 15, color: '#166534' }}>{doc.nota}</p>
         </div>
       )}
-      {doc.content
+      {hasContent
         ? <p style={{ fontSize: 15, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{doc.content}</p>
-        : Object.keys(dati).length > 0
-          ? <SmartJsonRenderer data={dati} />
+        : hasDati
+          ? <DataTable title="Contenuto" rows={Object.entries(dati).filter(([, v]) => v !== '' && v !== null && typeof v !== 'object').map(([k, v]) => [k.replace(/_/g, ' '), v])} />
           : <p style={{ color: '#999', textAlign: 'center', marginTop: 40 }}>Nessun contenuto disponibile</p>
       }
     </div>
   )
 }
 
-// ─── Smart renderer: formats any JSON object in a human-readable way ──────────
-function SmartJsonRenderer({ data, depth = 0 }) {
-  if (!data || typeof data !== 'object') {
-    return <span style={{ fontSize: 14 }}>{String(data)}</span>
-  }
-
-  if (Array.isArray(data)) {
-    if (data.length === 0) return null
-    // Array of objects → table
-    if (typeof data[0] === 'object' && data[0] !== null) {
-      const keys = Object.keys(data[0]).filter(k => data.some(r => r[k] !== '' && r[k] !== null && r[k] !== undefined))
-      if (keys.length > 0) {
-        return (
-          <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, overflow: 'hidden', marginBottom: 12 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: '#f9fafb' }}>
-                  {keys.map(k => (
-                    <th key={k} style={{ padding: '7px 12px', fontSize: 11, color: '#666', textAlign: 'left', fontWeight: 600, textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb' }}>
-                      {k.replace(/_/g, ' ')}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {data.map((row, i) => (
-                  <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
-                    {keys.map(k => (
-                      <td key={k} style={{ padding: '7px 12px', fontSize: 13 }}>
-                        {typeof row[k] === 'object' ? JSON.stringify(row[k]) : String(row[k] ?? '—')}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )
-      }
-    }
-    // Array of primitives → list
-    return (
-      <ul style={{ paddingLeft: 20, fontSize: 14, lineHeight: 2 }}>
-        {data.map((item, i) => <li key={i}>{String(item)}</li>)}
-      </ul>
-    )
-  }
-
-  // Object → key-value table
-  const entries = Object.entries(data).filter(([, v]) => v !== '' && v !== null && v !== undefined)
-  if (entries.length === 0) return null
-
-  return (
-    <div style={{ marginBottom: depth === 0 ? 0 : 12 }}>
-      {entries.map(([k, v]) => (
-        <div key={k} style={{ marginBottom: 10 }}>
-          {typeof v === 'object' ? (
-            <>
-              <p style={{ fontSize: 12, fontWeight: 700, color: '#1a7f5a', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
-                {k.replace(/_/g, ' ')}
-              </p>
-              <div style={{ paddingLeft: 12, borderLeft: '3px solid #e6f5ee' }}>
-                <SmartJsonRenderer data={v} depth={depth + 1} />
-              </div>
-            </>
-          ) : (
-            <div style={{ display: 'flex', gap: 12, padding: '6px 0', borderBottom: '1px solid #f3f4f6' }}>
-              <span style={{ fontSize: 12, color: '#666', fontWeight: 600, width: '40%', flexShrink: 0 }}>
-                {k.replace(/_/g, ' ').replace(/\w/g, l => l.toUpperCase())}
-              </span>
-              <span style={{ fontSize: 13, color: '#1a1a1a' }}>{String(v)}</span>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  )
-}
-
-const MEAL_LABELS = {
-  colazione: { label: 'Colazione', emoji: '☀️' },
-  spuntino_mattina: { label: 'Spuntino mattina', emoji: '🍎' },
-  pranzo: { label: 'Pranzo', emoji: '🍽️' },
-  spuntino_pomeriggio: { label: 'Spuntino pomeriggio', emoji: '🥤' },
-  cena: { label: 'Cena', emoji: '🌙' },
-}
 
 function MealPlanRenderer({ mealsData, title, dataString }) {
   let days = []
@@ -361,17 +328,20 @@ function MealPlanRenderer({ mealsData, title, dataString }) {
             {(day.meals || []).map((meal, mi) => {
               const mealKey = meal.id || meal.tipo || ''
               const meta = MEAL_LABELS[mealKey] || { label: meal.nome || meal.id || 'Pasto', emoji: '🍴' }
-              const foods = meal.foods || meal.alimenti || []
+              // Support new format: items[], qt, misura, emoji
+              const foods = meal.items || meal.foods || meal.alimenti || []
               const kcal = meal.kcal || meal.calorie || null
               const note = meal.note || meal.notes || ''
+              const mealEmoji = meal.emoji || meta.emoji
+              const mealLabel = meal.nome || meta.label
 
               return (
                 <div key={meal.id || mi} style={{ border: '1px solid #e8f2ec', borderRadius: 10, overflow: 'hidden' }}>
                   {/* Meal header */}
                   <div style={{ background: '#f0faf5', padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e8f2ec' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 18 }}>{meta.emoji}</span>
-                      <span style={{ fontWeight: 600, fontSize: 14, color: '#0d5c3a' }}>{meta.label}</span>
+                      <span style={{ fontSize: 18 }}>{mealEmoji}</span>
+                      <span style={{ fontWeight: 600, fontSize: 14, color: '#0d5c3a' }}>{mealLabel}</span>
                     </div>
                     {kcal && <span style={{ fontSize: 12, color: '#666', background: 'white', padding: '2px 8px', borderRadius: 100, border: '1px solid #e8f2ec' }}>🔥 {kcal} kcal</span>}
                   </div>
@@ -391,10 +361,15 @@ function MealPlanRenderer({ mealsData, title, dataString }) {
                             <tr key={fi} style={{ borderBottom: fi < foods.length - 1 ? '1px solid #f5f5f5' : 'none' }}>
                               <td style={{ padding: '6px 0', color: '#1a1a1a' }}>{food.nome || food.name || food.alimento || ''}</td>
                               <td style={{ padding: '6px 0', textAlign: 'right', color: '#1a7f5a', fontWeight: 500 }}>
-                                {food.quantita || food.quantity || food.grammi || food.grams || ''}{food.unita || food.unit || 'g'}
+                                {food.qt || food.quantita || food.quantity || food.grammi || food.grams || ''}{food.misura || food.unita || food.unit || 'g'}
                               </td>
                             </tr>
                           ))}
+                          {foods.some(f => f.altPrint?.length > 0) && (
+                            <tr><td colSpan={2} style={{ padding: '4px 0 0', fontSize: 11, color: '#999', fontStyle: 'italic' }}>
+                              Alt: {foods.flatMap(f => f.altPrint || []).map(a => `${a.nome} ${a.qt}g`).join(' / ')}
+                            </td></tr>
+                          )}
                         </tbody>
                       </table>
                     ) : (meal.descrizione || meal.description) ? (
@@ -540,15 +515,18 @@ export default function DocumentsPage() {
             let mealsData = null
 
             if (n.dati) {
-              if (typeof n.dati === 'string') {
-                content = n.dati
-              } else if (typeof n.dati === 'object') {
-                content = n.dati.content || n.dati.contenuto || n.dati.testo ||
-                          n.dati.descrizione || n.dati.text || n.dati.desc || ''
-                if (n.dati.meals || n.dati.giorni) {
-                  mealsData = n.dati.meals || n.dati.giorni
-                }
+              // dati may be stored as a double-encoded JSON string — always parse it first
+              let datiObj = n.dati
+              if (typeof datiObj === 'string') {
+                try { datiObj = JSON.parse(datiObj) } catch { datiObj = {} }
               }
+              content = datiObj.content || datiObj.contenuto || datiObj.testo ||
+                        datiObj.descrizione || datiObj.text || datiObj.desc || ''
+              if (datiObj.meals || datiObj.giorni) {
+                mealsData = datiObj.meals || datiObj.giorni
+              }
+              // Store parsed object for renderer
+              n._dati_parsed = datiObj
             }
 
             allDocs.push({
@@ -559,7 +537,7 @@ export default function DocumentsPage() {
               tipo: n.tipo,
               nota: n.nota,
               content,
-              dati_raw: n.dati,
+              dati_raw: n._dati_parsed || n.dati,
               meals_data: mealsData,
               file_url: n.dati?.file_url || n.dati?.pdf_url || null,
               tags: n.dati?.tags || [],
