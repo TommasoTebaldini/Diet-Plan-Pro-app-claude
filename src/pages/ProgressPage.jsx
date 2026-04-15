@@ -33,6 +33,7 @@ export default function ProgressPage() {
   const [symptoms, setSymptoms] = useState([])
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [showAdd, setShowAdd] = useState(false)
   const [range, setRange] = useState(30)
   const today = new Date().toISOString().split('T')[0]
@@ -51,7 +52,10 @@ export default function ProgressPage() {
 
     const { data: log } = await supabase
       .from('daily_wellness')
-      .select('*').eq('date', today).maybeSingle()
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('date', today)
+      .maybeSingle()
     setTodayLog(log)
     if (log) {
       setMood(log.mood)
@@ -62,27 +66,62 @@ export default function ProgressPage() {
 
   async function saveEntry() {
     setSaving(true)
-    // Save weight
-    if (newWeight) {
-      const w = parseFloat(newWeight)
-      if (!isNaN(w)) {
-        const { data } = await supabase.from('weight_logs')
-          .upsert({ user_id: user.id, date: today, weight_kg: w }, { onConflict: 'user_id,date' })
-          .select().single()
-        if (data) setWeights(prev => {
-          const filtered = prev.filter(x => x.date !== today)
-          return [...filtered, data].sort((a, b) => a.date.localeCompare(b.date))
-        })
+    setSaveError('')
+    try {
+      // Save weight with resilient fallback (works even without unique constraint)
+      if (newWeight) {
+        const w = parseFloat(newWeight)
+        if (!isNaN(w)) {
+          const weightPayload = { user_id: user.id, date: today, weight_kg: w }
+          const { data: existingWeight } = await supabase
+            .from('weight_logs')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('date', today)
+            .maybeSingle()
+
+          const weightQuery = existingWeight?.id
+            ? supabase.from('weight_logs').update(weightPayload).eq('id', existingWeight.id).select().single()
+            : supabase.from('weight_logs').insert(weightPayload).select().single()
+
+          const { data: savedWeight, error: weightError } = await weightQuery
+          if (weightError) throw weightError
+
+          if (savedWeight) {
+            setWeights(prev => {
+              const filtered = prev.filter(x => x.date !== today)
+              return [...filtered, savedWeight].sort((a, b) => a.date.localeCompare(b.date))
+            })
+          }
+        }
       }
+
+      // Save wellness with resilient fallback (works even without unique constraint)
+      if (mood || symptoms.length || notes) {
+        const wellnessPayload = { user_id: user.id, date: today, mood, symptoms, notes }
+        const { data: existingWellness } = await supabase
+          .from('daily_wellness')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('date', today)
+          .maybeSingle()
+
+        const wellnessQuery = existingWellness?.id
+          ? supabase.from('daily_wellness').update(wellnessPayload).eq('id', existingWellness.id)
+          : supabase.from('daily_wellness').insert(wellnessPayload)
+
+        const { error: wellnessError } = await wellnessQuery
+        if (wellnessError) throw wellnessError
+      }
+
+      setShowAdd(false)
+      await loadData()
+    } catch (error) {
+      console.error('Save entry error:', error)
+      setSaveError('Errore durante il salvataggio. Riprova.')
+    } finally {
+      setSaving(false)
     }
-    // Save wellness
-    if (mood || symptoms.length || notes) {
-      await supabase.from('daily_wellness')
-        .upsert({ user_id: user.id, date: today, mood, symptoms, notes }, { onConflict: 'user_id,date' })
-    }
-    setShowAdd(false)
-    setSaving(false)
-    loadData()
   }
 
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - range)
@@ -131,6 +170,12 @@ export default function ProgressPage() {
       </div>
 
       <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {saveError && (
+          <div style={{ background: '#fff1f2', color: '#be123c', border: '1px solid #fecdd3', borderRadius: 10, padding: '10px 12px', fontSize: 13 }}>
+            {saveError}
+          </div>
+        )}
+
         {/* Add entry panel */}
         {showAdd && (
           <div className="card animate-slideUp" style={{ padding: 20 }}>
