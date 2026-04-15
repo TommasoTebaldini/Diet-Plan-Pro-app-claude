@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import patientViewHtml from '../assets/patient-view.html?raw'
 import { FileText, Download, Calendar, ChevronRight, BookOpen, Utensils, Apple, Heart, Bookmark, BookmarkCheck, ArrowUpDown, Star, Printer } from 'lucide-react'
 
 const TYPE_META = {
@@ -401,6 +402,41 @@ function MealPlanRenderer({ mealsData, title, dataString }) {
   )
 }
 
+// ─── Inietta i dati del documento in patient-view.html e restituisce blob URL ──
+// patient-view.html è il file esatto del sito dietista (src/assets/patient-view.html)
+function buildPatientViewBlobUrl(doc, withPrint = false) {
+  const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
+  const nota = doc.nota || doc.title || ''
+
+  let dati = {}
+  if (doc.dati_raw) {
+    try { dati = typeof doc.dati_raw === 'string' ? JSON.parse(doc.dati_raw) : (doc.dati_raw || {}) } catch { dati = {} }
+  }
+  if (doc.meals_data) {
+    try {
+      const m = typeof doc.meals_data === 'string' ? JSON.parse(doc.meals_data) : doc.meals_data
+      if (Array.isArray(m)) dati = { ...dati, meals: m }
+    } catch { /* ignore */ }
+  }
+
+  const dataB64 = btoa(encodeURIComponent(JSON.stringify(dati)))
+  const paramsStr = `tipo=${encodeURIComponent(tipo)}&nota=${encodeURIComponent(nota)}&data=${dataB64}`
+
+  // Sostituisce la lettura da location.search con i dati iniettati direttamente
+  let html = patientViewHtml.replace(
+    'const params = new URLSearchParams(location.search)',
+    `const params = new URLSearchParams(${JSON.stringify(paramsStr)})`
+  )
+
+  // Aggiunge auto-print se richiesto
+  if (withPrint) {
+    html = html.replace('render()', 'render()\nsetTimeout(function(){window.print();},500)')
+  }
+
+  const blob = new Blob([html], { type: 'text/html; charset=utf-8' })
+  return URL.createObjectURL(blob)
+}
+
 // ─── HTML builder: genera HTML identico a patient-view.html del sito dietista ─
 // withPrint=true aggiunge setTimeout(print) per la stampa diretta
 function buildDocumentHTML(doc, withPrint = false) {
@@ -579,49 +615,28 @@ ${withPrint ? 'setTimeout(function(){window.print();},500);' : ''}
 }
 
 function handlePrint(doc) {
-  const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
-  const nota = doc.nota || doc.title || ''
-
-  let dati = {}
-  if (doc.dati_raw) {
-    try { dati = typeof doc.dati_raw === 'string' ? JSON.parse(doc.dati_raw) : (doc.dati_raw || {}) } catch { dati = {} }
-  }
-  if (doc.meals_data) {
-    try {
-      const m = typeof doc.meals_data === 'string' ? JSON.parse(doc.meals_data) : doc.meals_data
-      if (Array.isArray(m)) dati = { ...dati, meals: m }
-    } catch { /* ignore */ }
-  }
-
-  const dataB64 = btoa(encodeURIComponent(JSON.stringify(dati)))
-  const url = `/patient-view.html?tipo=${encodeURIComponent(tipo)}&nota=${encodeURIComponent(nota)}&data=${dataB64}&print=1`
+  const url = buildPatientViewBlobUrl(doc, true)
   const win = window.open(url, '_blank')
-  if (!win) alert('Abilita i popup per stampare il documento.')
+  if (!win) { URL.revokeObjectURL(url); alert('Abilita i popup per stampare il documento.'); return }
+  setTimeout(() => URL.revokeObjectURL(url), 60000)
 }
 
 function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
   const [iframeSrc, setIframeSrc] = useState(null)
+  const blobUrlRef = useRef(null)
 
   useEffect(() => {
+    // Revoca il blob URL precedente
+    if (blobUrlRef.current) { URL.revokeObjectURL(blobUrlRef.current); blobUrlRef.current = null }
     if (!doc || doc.file_url) { setIframeSrc(null); return }
 
-    const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
-    const nota = doc.nota || doc.title || ''
-
-    let dati = {}
-    if (doc.dati_raw) {
-      try { dati = typeof doc.dati_raw === 'string' ? JSON.parse(doc.dati_raw) : (doc.dati_raw || {}) } catch { dati = {} }
-    }
-    if (doc.meals_data) {
-      try {
-        const m = typeof doc.meals_data === 'string' ? JSON.parse(doc.meals_data) : doc.meals_data
-        if (Array.isArray(m)) dati = { ...dati, meals: m }
-      } catch { /* ignore */ }
-    }
-
-    const dataB64 = btoa(encodeURIComponent(JSON.stringify(dati)))
-    const url = `/patient-view.html?tipo=${encodeURIComponent(tipo)}&nota=${encodeURIComponent(nota)}&data=${dataB64}`
+    const url = buildPatientViewBlobUrl(doc)
+    blobUrlRef.current = url
     setIframeSrc(url)
+
+    return () => {
+      if (blobUrlRef.current) { URL.revokeObjectURL(blobUrlRef.current); blobUrlRef.current = null }
+    }
   }, [doc?.id])
 
   if (!doc) return null
