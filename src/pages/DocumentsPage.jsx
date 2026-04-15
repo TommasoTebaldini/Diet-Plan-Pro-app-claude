@@ -423,14 +423,18 @@ function buildPatientViewBlobUrl(doc, withPrint = false) {
   const paramsStr = `tipo=${encodeURIComponent(tipo)}&nota=${encodeURIComponent(nota)}&data=${dataB64}`
 
   // Sostituisce la lettura da location.search con i dati iniettati direttamente
+  // Usa regex per ignorare spazi/indentazione e CRLF/LF
   let html = patientViewHtml.replace(
-    'const params = new URLSearchParams(location.search)',
+    /const params\s*=\s*new URLSearchParams\(location\.search\)/,
     `const params = new URLSearchParams(${JSON.stringify(paramsStr)})`
   )
 
-  // Aggiunge auto-print se richiesto
+  // Aggiunge auto-print se richiesto (sostituisce la chiamata finale a render())
   if (withPrint) {
-    html = html.replace('render()', 'render()\nsetTimeout(function(){window.print();},500)')
+    html = html.replace(
+      /\nrender\(\)/,
+      '\nrender()\nsetTimeout(function(){window.print();},500)'
+    )
   }
 
   const blob = new Blob([html], { type: 'text/html; charset=utf-8' })
