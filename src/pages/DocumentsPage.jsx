@@ -401,8 +401,9 @@ function MealPlanRenderer({ mealsData, title, dataString }) {
   )
 }
 
-// ─── Print function: genera una finestra identica a patient-view.html ────────
-function handlePrint(doc) {
+// ─── HTML builder: genera HTML identico a patient-view.html del sito dietista ─
+// withPrint=true aggiunge setTimeout(print) per la stampa diretta
+function buildDocumentHTML(doc, withPrint = false) {
   const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
   const nota = doc.nota || doc.title || ''
 
@@ -570,26 +571,36 @@ function render(){
   wrap.appendChild(el('div',{class:'doc-footer'},['Documento generato da NutriPlan Pro \u2022 '+new Date().toLocaleDateString('it-IT')]));
 }
 render();
-setTimeout(function(){window.print();},500);
+${withPrint ? 'setTimeout(function(){window.print();},500);' : ''}
 <\/script>
 </body>
 </html>`
+  return html
+}
 
+function handlePrint(doc) {
+  const html = buildDocumentHTML(doc, true)
   const blob = new Blob([html], { type: 'text/html; charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const win = window.open(url, '_blank')
-  if (!win) {
-    URL.revokeObjectURL(url)
-    alert('Abilita i popup per stampare il documento.')
-    return
-  }
+  if (!win) { URL.revokeObjectURL(url); alert('Abilita i popup per stampare il documento.'); return }
   setTimeout(() => URL.revokeObjectURL(url), 60000)
 }
 
 function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
+  const [iframeSrc, setIframeSrc] = useState(null)
+
+  useEffect(() => {
+    if (!doc || doc.file_url) { setIframeSrc(null); return }
+    const html = buildDocumentHTML(doc)
+    const blob = new Blob([html], { type: 'text/html; charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    setIframeSrc(url)
+    return () => URL.revokeObjectURL(url)
+  }, [doc?.id])
+
   if (!doc) return null
   const meta = TYPE_META[doc.type] || TYPE_META.document
-  const isPiano = doc.source === 'piano'
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', flexDirection: 'column', background: 'white' }}>
@@ -617,32 +628,27 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
         </button>
       </div>
 
-      {/* Content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 40px', maxWidth: 800, width: '100%', margin: '0 auto' }}>
-        {doc.meals_data ? (
-          <MealPlanRenderer mealsData={doc.meals_data} title={doc.title} dataString={doc.data_piano} />
-        ) : doc.file_url ? (
-          <div style={{ textAlign: 'center', padding: '40px 0' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>📄</div>
-            <p style={{ marginBottom: 16, color: '#666' }}>Documento allegato</p>
-            <a href={doc.file_url} target="_blank" rel="noopener noreferrer" download style={{ background: '#1a7f5a', color: 'white', padding: '12px 24px', borderRadius: 12, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              <Download size={16} />Scarica documento
-            </a>
-          </div>
-        ) : (
-          <PrintDocRenderer doc={doc} />
-        )}
-
-        {doc.tags && doc.tags.length > 0 && (
-          <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {doc.tags.map(t => <span key={t} style={{ background: '#e6f5ee', color: '#0d5c3a', padding: '3px 10px', borderRadius: 100, fontSize: 12 }}>{t}</span>)}
-          </div>
-        )}
-
-        <div style={{ marginTop: 24, padding: 14, background: '#f7faf8', borderRadius: 12, fontSize: 12, color: '#999' }}>
-          📅 Pubblicato il {new Date(doc.published_at || doc.created_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
+      {/* Content — layout identico a patient-view.html del sito dietista */}
+      {doc.file_url ? (
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>📄</div>
+          <p style={{ marginBottom: 16, color: '#666' }}>Documento allegato</p>
+          <a href={doc.file_url} target="_blank" rel="noopener noreferrer" download
+            style={{ background: '#1a7f5a', color: 'white', padding: '12px 24px', borderRadius: 12, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <Download size={16} />Scarica documento
+          </a>
         </div>
-      </div>
+      ) : iframeSrc ? (
+        <iframe
+          src={iframeSrc}
+          style={{ flex: 1, width: '100%', border: 'none', display: 'block' }}
+          title={doc.title}
+        />
+      ) : (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 24, height: 24, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+        </div>
+      )}
     </div>
   )
 }
