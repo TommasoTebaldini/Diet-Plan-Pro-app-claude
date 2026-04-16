@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import patientViewRaw from '../assets/patient-view.html.txt?raw'
+import patientViewRaw from '../assets/patientView.txt?raw'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { FileText, Download, Calendar, ChevronRight, BookOpen, Utensils, Apple, Heart, Bookmark, BookmarkCheck, ArrowUpDown, Star, Printer } from 'lucide-react'

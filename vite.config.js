@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  define: {
+    __BUILD_ID__: JSON.stringify(Date.now().toString())
+  },
   plugins: [
     react(),
     VitePWA({
@@ -30,7 +33,7 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
+        globPatterns: ['**/*.{css,ico,png,svg,woff2}'],
         importScripts: ['/sw-reload.js'],
         runtimeCaching: [
           {
