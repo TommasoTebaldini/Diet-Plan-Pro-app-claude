@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import patientViewRaw from '../assets/patient-view.html.txt?raw'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { FileText, Download, Calendar, ChevronRight, BookOpen, Utensils, Apple, Heart, Bookmark, BookmarkCheck, ArrowUpDown, Star, Printer } from 'lucide-react'
@@ -407,7 +408,7 @@ function MealPlanRenderer({ mealsData, title, dataString }) {
 // Mappa i tipi interni ai tipi riconosciuti da patient-view.html
 const TIPO_MAP = { diet: 'piano', advice: 'consiglio', education: 'educazione', recipe: 'ricetta', document: 'documento', referto: 'referto' }
 
-async function buildPatientViewHtml(doc, withPrint = false) {
+function buildPatientViewHtml(doc, withPrint = false) {
   const tipoRaw = (doc.tipo || doc.type || '').toLowerCase().trim()
   const tipo = TIPO_MAP[tipoRaw] || tipoRaw
   const nota = doc.nota || doc.title || ''
@@ -427,14 +428,8 @@ async function buildPatientViewHtml(doc, withPrint = false) {
   let paramsStr = `tipo=${encodeURIComponent(tipo)}&nota=${encodeURIComponent(nota)}&data=${dataB64}`
   if (withPrint) paramsStr += '&print=1'
 
-  // Scarica il file esatto del sito dietista (servito da /public)
-  const res = await fetch('/patient-view.html')
-  if (!res.ok) throw new Error(`Fetch patient-view.html failed: ${res.status}`)
-  const rawHtml = await res.text()
-
-  // Inietta i parametri sostituendo la lettura da location.search
-  // patient-view.html usa: const params = new URLSearchParams(location.search)
-  return rawHtml.replace(
+  // HTML già bundlato nel JS — nessuna fetch, nessuna dipendenza dalla cache SW
+  return patientViewRaw.replace(
     /const params\s*=\s*new URLSearchParams\(location\.search\)/,
     `const params = new URLSearchParams(${JSON.stringify(paramsStr)})`
   )
@@ -618,15 +613,16 @@ ${withPrint ? 'setTimeout(function(){window.print();},500);' : ''}
 }
 
 function handlePrint(doc) {
-  buildPatientViewHtml(doc, true)
-    .then(html => {
-      const blob = new Blob([html], { type: 'text/html; charset=utf-8' })
-      const url = URL.createObjectURL(blob)
-      const win = window.open(url, '_blank')
-      if (!win) { URL.revokeObjectURL(url); alert('Abilita i popup per stampare il documento.'); return }
-      setTimeout(() => URL.revokeObjectURL(url), 60000)
-    })
-    .catch(err => console.error('[handlePrint] error:', err))
+  try {
+    const html = buildPatientViewHtml(doc, true)
+    const blob = new Blob([html], { type: 'text/html; charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const win = window.open(url, '_blank')
+    if (!win) { URL.revokeObjectURL(url); alert('Abilita i popup per stampare il documento.'); return }
+    setTimeout(() => URL.revokeObjectURL(url), 60000)
+  } catch (err) {
+    console.error('[handlePrint] error:', err)
+  }
 }
 
 function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
@@ -638,20 +634,13 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
     setIframeError(null)
     if (!doc || doc.file_url) return
 
-    let cancelled = false
-
-    buildPatientViewHtml(doc)
-      .then(html => {
-        if (cancelled) return
-        setIframeHtml(html)
-      })
-      .catch(err => {
-        if (cancelled) return
-        console.error('[DocModal] patient-view load error:', err)
-        setIframeError(err.message || 'Errore caricamento')
-      })
-
-    return () => { cancelled = true }
+    try {
+      const html = buildPatientViewHtml(doc)
+      setIframeHtml(html)
+    } catch (err) {
+      console.error('[DocModal] patient-view error:', err)
+      setIframeError(err.message || 'Errore caricamento')
+    }
   }, [doc?.id])
 
   if (!doc) return null
