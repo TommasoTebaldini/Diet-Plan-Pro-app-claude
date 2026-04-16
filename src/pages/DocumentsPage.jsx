@@ -420,7 +420,8 @@ async function buildPatientViewBlobUrl(doc, withPrint = false) {
   }
 
   const dataB64 = btoa(encodeURIComponent(JSON.stringify(dati)))
-  const paramsStr = `tipo=${encodeURIComponent(tipo)}&nota=${encodeURIComponent(nota)}&data=${dataB64}`
+  let paramsStr = `tipo=${encodeURIComponent(tipo)}&nota=${encodeURIComponent(nota)}&data=${dataB64}`
+  if (withPrint) paramsStr += '&print=1'
 
   // Scarica il file esatto del sito dietista (servito da /public)
   const res = await fetch('/patient-view.html')
@@ -428,14 +429,11 @@ async function buildPatientViewBlobUrl(doc, withPrint = false) {
   const rawHtml = await res.text()
 
   // Inietta i parametri sostituendo la lettura da location.search
-  let html = rawHtml.replace(
+  // patient-view.html usa: const params = new URLSearchParams(location.search)
+  const html = rawHtml.replace(
     /const params\s*=\s*new URLSearchParams\(location\.search\)/,
     `const params = new URLSearchParams(${JSON.stringify(paramsStr)})`
   )
-
-  if (withPrint) {
-    html = html.replace(/\nrender\(\)/, '\nrender()\nsetTimeout(function(){window.print();},500)')
-  }
 
   const blob = new Blob([html], { type: 'text/html; charset=utf-8' })
   return URL.createObjectURL(blob)
@@ -769,12 +767,11 @@ export default function DocumentsPage() {
             }
             // Use tipo directly if it has a TYPE_META entry, otherwise lookup, otherwise use tipo itself
             const type = TYPE_META_KEYS_SET.has(tipo) ? tipo : (tipoToKey[tipo] || tipo || 'document')
-            const title = n.nota || titleFromDati ||
-              (n.tipo ? n.tipo.charAt(0).toUpperCase() + n.tipo.slice(1) : 'Documento')
 
             // Extract readable content from dati
             let content = ''
             let mealsData = null
+            let datiParsed = null
 
             if (n.dati) {
               // dati may be stored as a double-encoded JSON string — always parse it first
@@ -782,14 +779,17 @@ export default function DocumentsPage() {
               if (typeof datiObj === 'string') {
                 try { datiObj = JSON.parse(datiObj) } catch { datiObj = {} }
               }
+              datiParsed = datiObj
               content = datiObj.content || datiObj.contenuto || datiObj.testo ||
                         datiObj.descrizione || datiObj.text || datiObj.desc || ''
               if (datiObj.meals || datiObj.giorni) {
                 mealsData = datiObj.meals || datiObj.giorni
               }
-              // Store parsed object for renderer
-              n._dati_parsed = datiObj
             }
+
+            const titleFromDati = datiParsed?.titolo || datiParsed?.nome || datiParsed?.consiglio_nome || ''
+            const title = n.nota || titleFromDati ||
+              (n.tipo ? n.tipo.charAt(0).toUpperCase() + n.tipo.slice(1) : 'Documento')
 
             allDocs.push({
               id: `note_${n.id}`,
@@ -799,7 +799,7 @@ export default function DocumentsPage() {
               tipo: n.tipo,
               nota: n.nota,
               content,
-              dati_raw: n._dati_parsed || n.dati,
+              dati_raw: datiParsed || n.dati,
               meals_data: mealsData,
               file_url: n.dati?.file_url || n.dati?.pdf_url || null,
               tags: n.dati?.tags || [],
