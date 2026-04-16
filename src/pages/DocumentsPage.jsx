@@ -404,8 +404,12 @@ function MealPlanRenderer({ mealsData, title, dataString }) {
 // ─── Fetch patient-view.html (file esatto del sito dietista), inietta i dati
 // del documento e restituisce l'HTML pronto per srcdoc dell'iframe.
 // Usiamo srcdoc invece di blob URL per compatibilità con iOS Safari.
+// Mappa i tipi interni ai tipi riconosciuti da patient-view.html
+const TIPO_MAP = { diet: 'piano', advice: 'consiglio', education: 'educazione', recipe: 'ricetta', document: 'documento', referto: 'referto' }
+
 async function buildPatientViewHtml(doc, withPrint = false) {
-  const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
+  const tipoRaw = (doc.tipo || doc.type || '').toLowerCase().trim()
+  const tipo = TIPO_MAP[tipoRaw] || tipoRaw
   const nota = doc.nota || doc.title || ''
 
   let dati = {}
