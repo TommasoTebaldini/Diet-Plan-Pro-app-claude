@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { FileText, Download, Calendar, ChevronRight, BookOpen, Utensils, Apple, Heart, Bookmark, BookmarkCheck, ArrowUpDown, Star, Printer } from 'lucide-react'
@@ -402,9 +402,9 @@ function MealPlanRenderer({ mealsData, title, dataString }) {
 }
 
 // ─── Fetch patient-view.html (file esatto del sito dietista), inietta i dati
-// del documento e restituisce un blob URL caricabile nell'iframe senza header
-// X-Frame-Options (i blob URL non hanno restrizioni di framing).
-async function buildPatientViewBlobUrl(doc, withPrint = false) {
+// del documento e restituisce l'HTML pronto per srcdoc dell'iframe.
+// Usiamo srcdoc invece di blob URL per compatibilità con iOS Safari.
+async function buildPatientViewHtml(doc, withPrint = false) {
   const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
   const nota = doc.nota || doc.title || ''
 
@@ -430,13 +430,10 @@ async function buildPatientViewBlobUrl(doc, withPrint = false) {
 
   // Inietta i parametri sostituendo la lettura da location.search
   // patient-view.html usa: const params = new URLSearchParams(location.search)
-  const html = rawHtml.replace(
+  return rawHtml.replace(
     /const params\s*=\s*new URLSearchParams\(location\.search\)/,
     `const params = new URLSearchParams(${JSON.stringify(paramsStr)})`
   )
-
-  const blob = new Blob([html], { type: 'text/html; charset=utf-8' })
-  return URL.createObjectURL(blob)
 }
 
 // ─── HTML builder: genera HTML identico a patient-view.html del sito dietista ─
@@ -617,8 +614,10 @@ ${withPrint ? 'setTimeout(function(){window.print();},500);' : ''}
 }
 
 function handlePrint(doc) {
-  buildPatientViewBlobUrl(doc, true)
-    .then(url => {
+  buildPatientViewHtml(doc, true)
+    .then(html => {
+      const blob = new Blob([html], { type: 'text/html; charset=utf-8' })
+      const url = URL.createObjectURL(blob)
       const win = window.open(url, '_blank')
       if (!win) { URL.revokeObjectURL(url); alert('Abilita i popup per stampare il documento.'); return }
       setTimeout(() => URL.revokeObjectURL(url), 60000)
@@ -627,27 +626,28 @@ function handlePrint(doc) {
 }
 
 function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
-  const [iframeSrc, setIframeSrc] = useState(null)
-  const blobUrlRef = useRef(null)
+  const [iframeHtml, setIframeHtml] = useState(null)
+  const [iframeError, setIframeError] = useState(null)
 
   useEffect(() => {
-    if (blobUrlRef.current) { URL.revokeObjectURL(blobUrlRef.current); blobUrlRef.current = null }
-    if (!doc || doc.file_url) { setIframeSrc(null); return }
+    setIframeHtml(null)
+    setIframeError(null)
+    if (!doc || doc.file_url) return
 
     let cancelled = false
 
-    buildPatientViewBlobUrl(doc)
-      .then(url => {
-        if (cancelled) { URL.revokeObjectURL(url); return }
-        blobUrlRef.current = url
-        setIframeSrc(url)
+    buildPatientViewHtml(doc)
+      .then(html => {
+        if (cancelled) return
+        setIframeHtml(html)
       })
-      .catch(err => console.error('[DocModal] patient-view load error:', err))
+      .catch(err => {
+        if (cancelled) return
+        console.error('[DocModal] patient-view load error:', err)
+        setIframeError(err.message || 'Errore caricamento')
+      })
 
-    return () => {
-      cancelled = true
-      if (blobUrlRef.current) { URL.revokeObjectURL(blobUrlRef.current); blobUrlRef.current = null }
-    }
+    return () => { cancelled = true }
   }, [doc?.id])
 
   if (!doc) return null
@@ -689,11 +689,16 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
             <Download size={16} />Scarica documento
           </a>
         </div>
-      ) : iframeSrc ? (
+      ) : iframeError ? (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <p style={{ color: 'var(--red)', fontSize: 14, textAlign: 'center' }}>Errore: {iframeError}</p>
+        </div>
+      ) : iframeHtml ? (
         <iframe
-          src={iframeSrc}
+          srcDoc={iframeHtml}
           style={{ flex: 1, width: '100%', border: 'none', display: 'block' }}
           title={doc.title}
+          sandbox="allow-scripts allow-popups"
         />
       ) : (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
