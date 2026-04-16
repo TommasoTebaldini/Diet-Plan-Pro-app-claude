@@ -19,5 +19,14 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // When a new service worker takes over, reload immediately to load fresh JS
+      if ('serviceWorker' in navigator) {
+        var _swRefreshing = false
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+          if (!_swRefreshing) { _swRefreshing = true; window.location.reload() }
+        })
+      }
+    </script>
   </body>
 </html>
