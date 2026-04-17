@@ -404,9 +404,8 @@ function MealPlanRenderer({ mealsData, title, dataString }) {
 // ─── Mappa i tipi interni ai tipi riconosciuti da patient-view.html ──────────
 const TIPO_MAP = { diet: 'piano', advice: 'consiglio', education: 'educazione', recipe: 'ricetta', document: 'documento' }
 
-// Costruisce l'URL di /patient-view.html con i dati del documento come query params.
-// L'iframe carica il file direttamente dal server — identico a quello del sito dietista.
-function buildPatientViewUrl(doc, withPrint = false) {
+// Costruisce la stringa dei query params per patient-view.html
+function buildPatientViewParams(doc, withPrint = false) {
   const tipoRaw = (doc.tipo || doc.type || '').toLowerCase().trim()
   const tipo = TIPO_MAP[tipoRaw] || tipoRaw
   const nota = doc.nota || doc.title || ''
@@ -425,12 +424,28 @@ function buildPatientViewUrl(doc, withPrint = false) {
   const dataB64 = btoa(encodeURIComponent(JSON.stringify(dati)))
   let params = `tipo=${encodeURIComponent(tipo)}&nota=${encodeURIComponent(nota)}&data=${dataB64}`
   if (withPrint) params += '&print=1'
-  return `/patient-view.html?${params}`
+  return params
 }
 
-// ─── buildDocumentHTML rimossa — ora usiamo direttamente /patient-view.html ──
+// Recupera patient-view.html dal server (cache-bust), inietta i params e restituisce
+// l'HTML pronto per srcDoc. Bypassa SW cache e il rewrite SPA di Vercel.
+function fetchPatientViewHtml(doc, withPrint = false) {
+  const params = buildPatientViewParams(doc, withPrint)
+  return fetch('/patient-view.html?_cb=' + Date.now(), { cache: 'no-store' })
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status)
+      return r.text()
+    })
+    .then(html =>
+      html.replace(
+        /const params\s*=\s*new URLSearchParams\(location\.search\)/,
+        `const params = new URLSearchParams(${JSON.stringify(params)})`
+      )
+    )
+}
+
 // eslint-disable-next-line no-unused-vars
-function _removedBuildDocumentHTML(doc, withPrint = false) {
+function _deadCode(doc, withPrint = false) {
   const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
   const nota = doc.nota || doc.title || ''
 
@@ -606,12 +621,26 @@ ${withPrint ? 'setTimeout(function(){window.print();},500);' : ''}
 }
 
 function handlePrint(doc) {
-  const url = buildPatientViewUrl(doc, true)
-  const win = window.open(url, '_blank')
-  if (!win) alert('Abilita i popup per stampare il documento.')
+  fetchPatientViewHtml(doc, true).then(html => {
+    const win = window.open('', '_blank')
+    if (!win) { alert('Abilita i popup per stampare il documento.'); return }
+    win.document.write(html)
+    win.document.close()
+  }).catch(err => console.error('[handlePrint]', err))
 }
 
 function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
+  const [iframeHtml, setIframeHtml] = useState(null)
+
+  useEffect(() => {
+    setIframeHtml(null)
+    if (!doc || doc.file_url) return
+    let cancelled = false
+    fetchPatientViewHtml(doc).then(html => {
+      if (!cancelled) setIframeHtml(html)
+    }).catch(err => console.error('[DocModal]', err))
+    return () => { cancelled = true }
+  }, [doc?.id])
 
   if (!doc) return null
   const meta = TYPE_META[doc.type] || TYPE_META.document
@@ -652,14 +681,17 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
             <Download size={16} />Scarica documento
           </a>
         </div>
-      ) : (
+      ) : iframeHtml ? (
         <iframe
-          key={doc.id}
-          src={buildPatientViewUrl(doc)}
+          srcDoc={iframeHtml}
           style={{ flex: 1, width: '100%', border: 'none', display: 'block' }}
           title={doc.title}
           sandbox="allow-scripts allow-popups"
         />
+      ) : (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 24, height: 24, border: '3px solid #e5e7eb', borderTopColor: '#1a7f5a', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+        </div>
       )}
     </div>
   )
