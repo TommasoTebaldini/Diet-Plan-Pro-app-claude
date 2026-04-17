@@ -4,8 +4,7 @@
   "installCommand": "npm install",
   "framework": null,
   "rewrites": [
-    { "source": "/patient-view.html", "destination": "/patient-view.html" },
-    { "source": "/((?!patient-view\\.html).*)", "destination": "/index.html" }
+    { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
     {
