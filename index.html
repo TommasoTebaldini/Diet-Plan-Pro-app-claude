@@ -20,9 +20,10 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
-      // When a new service worker takes over, reload immediately to load fresh JS.
-      // Uses both postMessage (iOS-safe) and controllerchange as fallback.
       if ('serviceWorker' in navigator) {
+        // Force immediate SW update check on every page load
+        navigator.serviceWorker.ready.then(function (reg) { reg.update().catch(function () {}) })
+        // Reload page when new SW takes over (postMessage = iOS-safe, controllerchange = fallback)
         var _swRefreshing = false
         function _swDoReload() {
           if (!_swRefreshing) { _swRefreshing = true; window.location.reload() }

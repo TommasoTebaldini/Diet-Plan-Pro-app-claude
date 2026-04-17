@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react'
-import patientViewRaw from '../assets/patientView.txt?raw'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { FileText, Download, Calendar, ChevronRight, BookOpen, Utensils, Apple, Heart, Bookmark, BookmarkCheck, ArrowUpDown, Star, Printer } from 'lucide-react'
@@ -402,13 +401,12 @@ function MealPlanRenderer({ mealsData, title, dataString }) {
   )
 }
 
-// ─── Fetch patient-view.html (file esatto del sito dietista), inietta i dati
-// del documento e restituisce l'HTML pronto per srcdoc dell'iframe.
-// Usiamo srcdoc invece di blob URL per compatibilità con iOS Safari.
-// Mappa i tipi interni ai tipi riconosciuti da patient-view.html
-const TIPO_MAP = { diet: 'piano', advice: 'consiglio', education: 'educazione', recipe: 'ricetta', document: 'documento', referto: 'referto' }
+// ─── Mappa i tipi interni ai tipi riconosciuti da patient-view.html ──────────
+const TIPO_MAP = { diet: 'piano', advice: 'consiglio', education: 'educazione', recipe: 'ricetta', document: 'documento' }
 
-function buildPatientViewHtml(doc, withPrint = false) {
+// Costruisce l'URL di /patient-view.html con i dati del documento come query params.
+// L'iframe carica il file direttamente dal server — identico a quello del sito dietista.
+function buildPatientViewUrl(doc, withPrint = false) {
   const tipoRaw = (doc.tipo || doc.type || '').toLowerCase().trim()
   const tipo = TIPO_MAP[tipoRaw] || tipoRaw
   const nota = doc.nota || doc.title || ''
@@ -425,19 +423,14 @@ function buildPatientViewHtml(doc, withPrint = false) {
   }
 
   const dataB64 = btoa(encodeURIComponent(JSON.stringify(dati)))
-  let paramsStr = `tipo=${encodeURIComponent(tipo)}&nota=${encodeURIComponent(nota)}&data=${dataB64}`
-  if (withPrint) paramsStr += '&print=1'
-
-  // HTML già bundlato nel JS — nessuna fetch, nessuna dipendenza dalla cache SW
-  return patientViewRaw.replace(
-    /const params\s*=\s*new URLSearchParams\(location\.search\)/,
-    `const params = new URLSearchParams(${JSON.stringify(paramsStr)})`
-  )
+  let params = `tipo=${encodeURIComponent(tipo)}&nota=${encodeURIComponent(nota)}&data=${dataB64}`
+  if (withPrint) params += '&print=1'
+  return `/patient-view.html?${params}`
 }
 
-// ─── HTML builder: genera HTML identico a patient-view.html del sito dietista ─
-// withPrint=true aggiunge setTimeout(print) per la stampa diretta
-function buildDocumentHTML(doc, withPrint = false) {
+// ─── buildDocumentHTML rimossa — ora usiamo direttamente /patient-view.html ──
+// eslint-disable-next-line no-unused-vars
+function _removedBuildDocumentHTML(doc, withPrint = false) {
   const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
   const nota = doc.nota || doc.title || ''
 
@@ -613,35 +606,12 @@ ${withPrint ? 'setTimeout(function(){window.print();},500);' : ''}
 }
 
 function handlePrint(doc) {
-  try {
-    const html = buildPatientViewHtml(doc, true)
-    const blob = new Blob([html], { type: 'text/html; charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const win = window.open(url, '_blank')
-    if (!win) { URL.revokeObjectURL(url); alert('Abilita i popup per stampare il documento.'); return }
-    setTimeout(() => URL.revokeObjectURL(url), 60000)
-  } catch (err) {
-    console.error('[handlePrint] error:', err)
-  }
+  const url = buildPatientViewUrl(doc, true)
+  const win = window.open(url, '_blank')
+  if (!win) alert('Abilita i popup per stampare il documento.')
 }
 
 function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
-  const [iframeHtml, setIframeHtml] = useState(null)
-  const [iframeError, setIframeError] = useState(null)
-
-  useEffect(() => {
-    setIframeHtml(null)
-    setIframeError(null)
-    if (!doc || doc.file_url) return
-
-    try {
-      const html = buildPatientViewHtml(doc)
-      setIframeHtml(html)
-    } catch (err) {
-      console.error('[DocModal] patient-view error:', err)
-      setIframeError(err.message || 'Errore caricamento')
-    }
-  }, [doc?.id])
 
   if (!doc) return null
   const meta = TYPE_META[doc.type] || TYPE_META.document
@@ -682,21 +652,14 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
             <Download size={16} />Scarica documento
           </a>
         </div>
-      ) : iframeError ? (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <p style={{ color: 'var(--red)', fontSize: 14, textAlign: 'center' }}>Errore: {iframeError}</p>
-        </div>
-      ) : iframeHtml ? (
+      ) : (
         <iframe
-          srcDoc={iframeHtml}
+          key={doc.id}
+          src={buildPatientViewUrl(doc)}
           style={{ flex: 1, width: '100%', border: 'none', display: 'block' }}
           title={doc.title}
           sandbox="allow-scripts allow-popups"
         />
-      ) : (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ width: 24, height: 24, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-        </div>
       )}
     </div>
   )
