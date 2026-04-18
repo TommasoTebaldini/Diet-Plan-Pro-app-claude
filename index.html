@@ -21,17 +21,30 @@
     <script type="module" src="/src/main.jsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
-        // Force immediate SW update check on every page load
-        navigator.serviceWorker.ready.then(function (reg) { reg.update().catch(function () {}) })
-        // Reload page when new SW takes over (postMessage = iOS-safe, controllerchange = fallback)
         var _swRefreshing = false
         function _swDoReload() {
-          if (!_swRefreshing) { _swRefreshing = true; window.location.reload() }
+          if (!_swRefreshing) { _swRefreshing = true; window.location.reload(true) }
         }
         navigator.serviceWorker.addEventListener('message', function (e) {
           if (e.data && e.data.type === 'SW_RELOAD') { _swDoReload() }
         })
         navigator.serviceWorker.addEventListener('controllerchange', _swDoReload)
+        // Force immediate SW update check; if a waiting SW exists, skip waiting immediately
+        navigator.serviceWorker.ready.then(function (reg) {
+          if (reg.waiting) {
+            reg.waiting.postMessage({ type: 'SKIP_WAITING' })
+          }
+          reg.update().catch(function () {})
+          reg.addEventListener('updatefound', function () {
+            var newSW = reg.installing
+            if (!newSW) return
+            newSW.addEventListener('statechange', function () {
+              if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+                newSW.postMessage({ type: 'SKIP_WAITING' })
+              }
+            })
+          })
+        })
       }
     </script>
   </body>

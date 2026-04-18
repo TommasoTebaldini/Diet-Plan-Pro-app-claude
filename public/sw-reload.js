@@ -1,6 +1,11 @@
 // Imported by the generated service worker.
-// When a new SW activates, forces all open windows to reload.
-// Uses client.navigate() for Chrome/Firefox/Edge and postMessage as iOS fallback.
+// Handles SKIP_WAITING messages and forces all open windows to reload on activate.
+self.addEventListener('message', function (event) {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
+})
+
 self.addEventListener('activate', function (event) {
   event.waitUntil(
     self.clients.claim().then(function () {
