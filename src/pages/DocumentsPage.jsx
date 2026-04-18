@@ -55,7 +55,7 @@ const TIPO_MAP = {
 // Il file è già bundlato in patientViewRaw — nessuna rete, nessun rewrite Vercel.
 function buildPatientViewHtml(doc, withPrint = false) {
   const tipoRaw = (doc.tipo || doc.type || '').toLowerCase().trim()
-  const tipo    = TIPO_MAP[tipoRaw] || tipoRaw
+  let   tipo    = TIPO_MAP[tipoRaw] || tipoRaw
   const nota    = doc.nota || doc.title || ''
 
   let dati = {}
@@ -69,6 +69,16 @@ function buildPatientViewHtml(doc, withPrint = false) {
       const m = typeof doc.meals_data === 'string' ? JSON.parse(doc.meals_data) : doc.meals_data
       if (Array.isArray(m)) dati = { ...dati, meals: m }
     } catch { /* ignore */ }
+  }
+
+  // Fallback: se non ci sono dati strutturati ma c'è contenuto testuale, usalo come descrizione
+  const hasStructuredData = dati.meals || dati.giorni || dati.consiglio_id ||
+    dati.consiglio_nome || dati.valutazione || dati.paziente || dati.calcolo ||
+    dati.descrizione || dati.indicazioni
+  if (!hasStructuredData && doc.content) {
+    dati.descrizione = doc.content
+    // Per documenti di tipo "piano" senza dati pasti, mostra come documento generico
+    if (tipo === 'piano' || tipo === 'dieta') tipo = 'documento'
   }
 
   const dataB64   = btoa(encodeURIComponent(JSON.stringify(dati)))

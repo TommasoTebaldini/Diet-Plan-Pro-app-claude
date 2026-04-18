@@ -33,7 +33,7 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{css,ico,png,svg,woff2}'],
+        globPatterns: ['**/*.{html,css,ico,png,svg,woff2}'],
         importScripts: ['/sw-reload.js'],
         runtimeCaching: [
           {
