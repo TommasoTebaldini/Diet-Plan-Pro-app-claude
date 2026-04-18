@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import patientViewRaw from '../assets/patientViewHtml.js'
+import { CONSIGLI_BASE } from '../data/consigliBase.js'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { FileText, Download, Calendar, Utensils, Apple, Heart, Bookmark, BookmarkCheck, ArrowUpDown, Star, Printer, BookOpen } from 'lucide-react'
@@ -85,7 +86,7 @@ function buildPatientViewHtml(doc, withPrint = false) {
   let   paramsStr = `tipo=${encodeURIComponent(tipo)}&nota=${encodeURIComponent(nota)}&data=${dataB64}`
   if (withPrint) paramsStr += '&print=1'
 
-  console.log('[buildPatientViewHtml]', { tipoRaw, tipo, nota, dati, hasStructuredData: !!hasStructuredData })
+  console.log('[buildPatientViewHtml] tipo:', tipo, '| nota:', nota, '| hasStructured:', !!hasStructuredData, '| datiKeys:', Object.keys(dati))
 
   const result = patientViewRaw.replace(
     /const params\s*=\s*new URLSearchParams\(location\.search\)/,
@@ -255,6 +256,19 @@ export default function DocumentsPage() {
               datiParsed = obj
               content    = obj.content || obj.contenuto || obj.testo || obj.descrizione || obj.text || ''
               if (obj.meals || obj.giorni) mealsData = obj.meals || obj.giorni
+            }
+
+            // Per i consigli, arricchisci con i dati completi da CONSIGLI_BASE se mancano ok/no/mod
+            if (tipo === 'consiglio' && datiParsed?.consiglio_id && !datiParsed.ok?.length) {
+              const base = CONSIGLI_BASE.find(c => c.id === datiParsed.consiglio_id)
+              if (base) {
+                datiParsed = {
+                  ...datiParsed,
+                  ok: base.ok, no: base.no, mod: base.mod,
+                  pratici: base.pratici, avvisi: base.avvisi,
+                  pasti: base.pasti, porzioni: base.porzioni, idratazione: base.idratazione,
+                }
+              }
             }
 
             const titleFromDati = datiParsed?.titolo || datiParsed?.nome || datiParsed?.consiglio_nome || ''
