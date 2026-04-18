@@ -85,10 +85,15 @@ function buildPatientViewHtml(doc, withPrint = false) {
   let   paramsStr = `tipo=${encodeURIComponent(tipo)}&nota=${encodeURIComponent(nota)}&data=${dataB64}`
   if (withPrint) paramsStr += '&print=1'
 
-  return patientViewRaw.replace(
+  console.log('[buildPatientViewHtml]', { tipoRaw, tipo, nota, dati, hasStructuredData: !!hasStructuredData })
+
+  const result = patientViewRaw.replace(
     /const params\s*=\s*new URLSearchParams\(location\.search\)/,
     `const params = new URLSearchParams(${JSON.stringify(paramsStr)})`
   )
+  const replaced = result !== patientViewRaw
+  console.log('[buildPatientViewHtml] regex replaced:', replaced, '| html length:', result.length)
+  return result
 }
 
 // ─── Stampa: apre una nuova finestra con l'HTML del documento ─────────────────
@@ -210,15 +215,17 @@ export default function DocumentsPage() {
           .maybeSingle()
 
         const cartellaId = link?.cartella_id
+        console.log('[Docs] patient_dietitian link:', link, '| cartellaId:', cartellaId)
 
         if (cartellaId) {
           // 2a. Note specialistiche visibili al paziente
-          const { data: notes } = await supabase
+          const { data: notes, error: notesErr } = await supabase
             .from('note_specialistiche')
             .select('id, tipo, nota, dati, created_at')
             .eq('cartella_id', cartellaId)
             .eq('visible_to_patient', true)
             .order('created_at', { ascending: false })
+          console.log('[Docs] note_specialistiche:', notes?.length, '| error:', notesErr?.message)
 
           for (const n of notes || []) {
             const tipo = (n.tipo || '').toLowerCase().trim()
@@ -272,12 +279,13 @@ export default function DocumentsPage() {
           }
 
           // 2b. Piani alimentari visibili al paziente
-          const { data: piani } = await supabase
+          const { data: piani, error: pianiErr } = await supabase
             .from('piani')
             .select('id, nome, data_piano, meals, saved_at')
             .eq('cartella_id', cartellaId)
             .eq('visible_to_patient', true)
             .order('saved_at', { ascending: false })
+          console.log('[Docs] piani:', piani?.length, '| error:', pianiErr?.message)
 
           for (const p of piani || []) {
             allDocs.push({
@@ -300,12 +308,14 @@ export default function DocumentsPage() {
         }
 
         // 3. Fallback: patient_documents diretti
-        const { data: patientDocs } = await supabase
+        const { data: patientDocs, error: pdErr } = await supabase
           .from('patient_documents')
           .select('*')
           .eq('patient_id', user.id)
           .eq('visible', true)
           .order('created_at', { ascending: false })
+        console.log('[Docs] patient_documents:', patientDocs?.length, '| error:', pdErr?.message)
+        if (patientDocs?.length) console.log('[Docs] patient_documents[0]:', JSON.stringify(patientDocs[0]))
 
         for (const d of patientDocs || []) {
           allDocs.push({ ...d, published_at: d.published_at || d.created_at })
@@ -316,6 +326,7 @@ export default function DocumentsPage() {
         setLoadError(e.message)
       }
 
+      console.log('[Docs] total allDocs:', allDocs.length, allDocs.map(d => ({ id: d.id, type: d.type, tipo: d.tipo, hasContent: !!d.content, hasDatiRaw: !!d.dati_raw, hasMeals: !!d.meals_data })))
       setDocs(allDocs)
       setLoading(false)
     }
