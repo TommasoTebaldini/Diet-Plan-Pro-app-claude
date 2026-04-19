@@ -52,6 +52,116 @@ const TIPO_MAP = {
   document:  'documento',
 }
 
+// ─── Replica esatta di buildStampaHTML da NutriPlan-Pro/consigli.html ─────────
+// Genera l'HTML di stampa per un consiglio nutrizionale, identico al sito dietista.
+function buildConsiglioPrintHTML(doc) {
+  const dati = (doc.dati_raw && typeof doc.dati_raw === 'object') ? doc.dati_raw : {}
+
+  // Se il dietista ha già salvato lo stampa_html, usalo direttamente
+  if (dati.stampa_html) return dati.stampa_html
+
+  // Altrimenti, costruiscilo da CONSIGLI_BASE
+  const base = CONSIGLI_BASE.find(c => c.id === dati.consiglio_id) || {}
+  const c = {
+    emoji:       base.emoji       || '💊',
+    nome:        dati.consiglio_nome || base.nome || doc.title || '',
+    colore:      base.colore      || '#1a7f5a',
+    ok:          (dati.ok?.length   ? dati.ok   : base.ok)   || [],
+    no:          (dati.no?.length   ? dati.no   : base.no)   || [],
+    mod:         (dati.mod?.length  ? dati.mod  : base.mod)  || [],
+    pratici:     (dati.pratici?.length  ? dati.pratici  : base.pratici)  || [],
+    avvisi:      (dati.avvisi?.length   ? dati.avvisi   : base.avvisi)   || [],
+    pasti:       dati.pasti        || base.pasti        || '',
+    porzioni:    dati.porzioni     || base.porzioni     || '',
+    idratazione: dati.idratazione  || base.idratazione  || '',
+    nota:        base.nota         || '',
+  }
+  const notePaziente = dati.note_paziente || ''
+
+  const foodPill = (f, col, bg) =>
+    `<span style="display:inline-block;padding:3px 10px;border-radius:10px;font-size:11.5px;font-weight:500;margin:3px;background:${bg};color:${col}">${f}</span>`
+
+  const okPills    = c.ok.map(f    => foodPill(f, '#065F46', '#D1FAE5')).join('')
+  const noPills    = c.no.map(f    => foodPill(f, '#991B1B', '#FEE2E2')).join('')
+  const modPills   = c.mod.map(f   => foodPill(f, '#92400E', '#FEF3C7')).join('')
+  const praticiHtml = c.pratici.map(p =>
+    `<li style="padding:5px 0;border-bottom:1px solid #E2E8F0;font-size:12pt;color:#334155">→ ${p}</li>`).join('')
+  const avvisiHtml = c.avvisi.map(a =>
+    `<div style="padding:5px 8px;border-bottom:1px solid #FEE2E2;font-size:11pt;color:#991B1B">⚠️ ${a}</div>`).join('')
+  const noteHtml = notePaziente
+    ? `<div style="background:#FFF7ED;border-left:4px solid #F59E0B;border-radius:6px;padding:10px 14px;font-size:10pt;color:#78350F;margin-bottom:14px;line-height:1.6;white-space:pre-wrap"><b>✏️ Note specifiche per il paziente:</b><br>${notePaziente}</div>`
+    : ''
+
+  return `<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Consigli Nutrizionali — ${c.nome}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1E293B; font-size: 11pt; line-height: 1.5; padding: 1.5cm 2cm 2.5cm; }
+  @media screen { body { padding: 20px; } }
+  .header { background: ${c.colore}; color: white; padding: 16px 20px; border-radius: 10px; margin-bottom: 16px; display: flex; align-items: center; gap: 14px; }
+  .header h1 { font-size: 20pt; font-weight: 700; }
+  .header .emoji { font-size: 32pt; }
+  .header .subtitle { font-size: 10pt; opacity: .8; margin-top: 4px; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  @media (max-width: 500px) { .info-grid { grid-template-columns: 1fr; } .alimenti-grid { grid-template-columns: 1fr !important; } }
+  .info-box { background: #F8FAFC; border-radius: 8px; padding: 10px 12px; border-left: 3px solid ${c.colore}; }
+  .info-label { font-size: 9pt; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+  .info-val { font-size: 11pt; font-weight: 700; color: #1E293B; }
+  .nota { background: #EFF6FF; border-left: 4px solid #3B82F6; border-radius: 6px; padding: 10px 14px; font-size: 10pt; color: #1E3A5F; margin-bottom: 14px; line-height: 1.6; }
+  .section-title { font-size: 11pt; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 2px solid #E2E8F0; }
+  .food-grid { margin-bottom: 14px; }
+  .alimenti-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .avvisi-box { background: #FEF2F2; border-radius: 8px; padding: 12px; margin-top: 10px; border: 1.5px solid #FEE2E2; }
+  .footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #E2E8F0; font-size: 9pt; color: #94A3B8; display: flex; justify-content: space-between; }
+  ul { list-style: none; padding: 0; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <span class="emoji">${c.emoji}</span>
+    <div>
+      <h1>${c.nome}</h1>
+      <div class="subtitle">Consigli Nutrizionali · DietPlan Pro</div>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-box"><div class="info-label">🍽️ Pasti/die</div><div class="info-val">${c.pasti || '—'}</div></div>
+    <div class="info-box"><div class="info-label">🥣 Porzioni</div><div class="info-val">${c.porzioni || '—'}</div></div>
+    <div class="info-box"><div class="info-label">💧 Idratazione</div><div class="info-val">${c.idratazione || '—'}</div></div>
+  </div>
+
+  ${c.nota ? `<div class="nota">📚 ${c.nota}</div>` : ''}
+  ${noteHtml}
+
+  <div class="alimenti-grid">
+    <div>
+      <div class="section-title">✅ Alimenti Consigliati</div>
+      <div class="food-grid">${okPills}</div>
+    </div>
+    <div>
+      <div class="section-title">❌ Da Evitare / Limitare</div>
+      <div class="food-grid">${noPills}</div>
+    </div>
+  </div>
+
+  ${modPills ? `<div style="margin-bottom:14px"><div class="section-title">⚠️ Consumare con Moderazione</div><div class="food-grid">${modPills}</div></div>` : ''}
+
+  ${praticiHtml ? `<div style="margin-bottom:14px"><div class="section-title">💡 Consigli Pratici</div><ul>${praticiHtml}</ul></div>` : ''}
+
+  ${avvisiHtml ? `<div class="avvisi-box"><div class="section-title" style="color:#991B1B;border-color:#FEE2E2">🚨 Avvertenze</div>${avvisiHtml}</div>` : ''}
+
+  <div class="footer">
+    <span>DietPlan Pro · Consigli Nutrizionali</span>
+  </div>
+</body>
+</html>`
+}
+
 // Costruisce l'HTML di patient-view.html con i dati del documento iniettati.
 // Il file è già bundlato in patientViewRaw — nessuna rete, nessun rewrite Vercel.
 function buildPatientViewHtml(doc, withPrint = false) {
@@ -100,11 +210,14 @@ function buildPatientViewHtml(doc, withPrint = false) {
 // ─── Stampa: apre una nuova finestra con l'HTML del documento ─────────────────
 function handlePrint(doc) {
   try {
-    const html = buildPatientViewHtml(doc, true)
+    const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
+    const isConsiglio = tipo === 'consiglio' || tipo === 'advice'
+    const html = isConsiglio ? buildConsiglioPrintHTML(doc) : buildPatientViewHtml(doc, true)
     const win  = window.open('', '_blank')
     if (!win) { alert('Abilita i popup per stampare il documento.'); return }
     win.document.write(html)
     win.document.close()
+    if (!isConsiglio) win.onload = () => win.print()
   } catch (err) {
     console.error('[handlePrint]', err)
   }
@@ -120,7 +233,9 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
     setError(null)
     if (!doc || doc.file_url) return
     try {
-      setIframeHtml(buildPatientViewHtml(doc))
+      const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
+      const isConsiglio = tipo === 'consiglio' || tipo === 'advice'
+      setIframeHtml(isConsiglio ? buildConsiglioPrintHTML(doc) : buildPatientViewHtml(doc))
     } catch (err) {
       console.error('[DocModal]', err)
       setError(err.message)
@@ -136,7 +251,7 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
       <div style={{ background: 'linear-gradient(160deg, #0d5c3a, #1a7f5a)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,.15)' }}>
         <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', fontSize: 20, flexShrink: 0 }}>←</button>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, margin: 0 }}>{meta.label} <span style={{ background: '#fff', color: '#0d5c3a', fontWeight: 700, borderRadius: 4, padding: '0 4px', fontSize: 10 }}>v2</span></p>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, margin: 0 }}>{meta.label}</p>
           <h2 style={{ color: 'white', fontSize: 17, fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.title}</h2>
         </div>
         {!doc.file_url && (
