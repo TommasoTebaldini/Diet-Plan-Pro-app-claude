@@ -261,20 +261,80 @@ function buildStampaSpecialisticaFallback(doc, tipo, dati) {
     return h + '</div>'
   }
 
+  const wrapDoc = inner => `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>${_e(nome)}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:'DM Sans','Segoe UI',Arial,sans-serif;color:#1E293B;font-size:11pt;line-height:1.5;padding:1.5cm 2cm 2.5cm}
+@media screen{body{padding:20px;max-width:760px;margin:0 auto}}</style>
+</head><body>${inner}</body></html>`
+
+  // ── PASTI_TIPI: layout identico a stampaCompattaSpecialistica ─────────────
+  const PASTI_TIPI = ['diabete', 'pediatria', 'sport', 'pancreas']
+  if (PASTI_TIPI.includes(tipo)) {
+    const totKcal = parseFloat(piano.kcal)       || 0
+    const totCho  = parseFloat(piano.cho_tot)    || 0
+    const totProt = parseFloat(piano.prot_tot)   || (totKcal ? Math.round(totKcal * 0.15 / 4) : 0)
+    const totFat  = parseFloat(piano.grassi_tot) || (totKcal ? Math.round(totKcal * 0.25 / 9) : 0)
+    const pasti   = (piano.pasti || dati.pasti || []).filter(p => p.alimenti?.trim())
+    const avgKcal = totKcal && pasti.length ? Math.round(totKcal / pasti.length) : 0
+
+    let sub = ''
+    if (tipo === 'diabete' && piano.tipo) sub = 'Tipo: ' + piano.tipo + (piano.insulina ? ' · Insulina: ' + piano.insulina : '')
+    else if (tipo === 'sport' && (piano.sport || piano.obiettivo)) sub = piano.sport || piano.obiettivo
+    else if (tipo === 'pancreas' && piano.enzima) sub = 'Enzima: ' + piano.enzima
+
+    const stats = [
+      { val: totKcal || '—', lbl: 'KCAL TOTALI' },
+      { val: totProt || '—', lbl: 'PROTEINE (G)' },
+      { val: totCho  || '—', lbl: 'CARBOIDRATI (G)' },
+      { val: totFat  || '—', lbl: 'GRASSI (G)' },
+      { val: avgKcal || '—', lbl: 'KCAL/PASTO' },
+    ]
+
+    let b = `<div style="font-family:'DM Sans',sans-serif;max-width:700px;margin:0 auto;color:#1E293B">`
+    b += `<div style="text-align:center;padding-bottom:12px;margin-bottom:14px;border-bottom:1.5px solid #E2E8F0">`
+    b += `<div style="font-size:18px;font-weight:700;color:#0F766E">${_e(nome)}</div>`
+    if (sub) b += `<div style="font-size:13px;color:#475569;margin-top:3px">${_e(sub)}</div>`
+    b += `</div>`
+    b += `<div style="display:flex;border:1.5px solid #CBD5E1;border-radius:10px;overflow:hidden;margin-bottom:18px">`
+    stats.forEach((s, i) => {
+      b += `<div style="flex:1;text-align:center;padding:12px 6px;${i < stats.length - 1 ? 'border-right:1.5px solid #CBD5E1' : ''}">`
+      b += `<div style="font-size:20px;font-weight:700;color:#0EA5E9">${s.val}</div>`
+      b += `<div style="font-size:9px;font-weight:600;color:#64748B;letter-spacing:.5px;margin-top:2px">${s.lbl}</div>`
+      b += `</div>`
+    })
+    b += `</div>`
+    if (piano.note_cliniche?.trim()) {
+      b += `<div style="background:#EFF6FF;border-left:4px solid #3B82F6;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:10pt;color:#1E3A5F;white-space:pre-wrap">📋 ${_e(piano.note_cliniche)}</div>`
+    }
+    pasti.forEach(pasto => {
+      const energia = pasto.kcal ? `≈ ${pasto.kcal} kcal` : (pasto.cho ? `${pasto.cho} g CHO` : '')
+      b += `<div style="margin-bottom:12px;border-radius:10px;overflow:hidden;border:1.5px solid #E2E8F0;break-inside:avoid">`
+      b += `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:linear-gradient(135deg,#0D9488,#10B981);-webkit-print-color-adjust:exact;print-color-adjust:exact">`
+      b += `<div style="display:flex;align-items:center;gap:10px">`
+      if (pasto.emoji) b += `<span style="font-size:18px">${_e(pasto.emoji)}</span>`
+      b += `<span style="font-size:14px;font-weight:700;color:white">${_e(pasto.nome || 'Pasto')}</span>`
+      if (pasto.ora) b += `<span style="font-size:12px;color:rgba(255,255,255,.75)">${_e(pasto.ora)}</span>`
+      b += `</div>`
+      if (energia) b += `<span style="font-size:12px;color:rgba(255,255,255,.9);font-weight:600">${_e(energia)}</span>`
+      b += `</div>`
+      pasto.alimenti.split('\n').map(l => l.trim()).filter(Boolean).forEach(line => {
+        b += `<div style="padding:8px 16px;border-bottom:1px solid #F1F5F9;font-size:13px;color:#1E293B">${_e(line)}</div>`
+      })
+      const noteText = (pasto.note?.trim()) || (pasto.cho && !pasto.kcal ? `CHO: ${pasto.cho} g` : '')
+      if (noteText) b += `<div style="padding:6px 16px;font-size:11.5px;color:#64748B;font-style:italic;background:#FFFBEB">📝 ${_e(noteText)}</div>`
+      b += `</div>`
+    })
+    if (piano.note_generali?.trim()) {
+      b += `<div style="margin-top:10px;padding:10px 14px;background:#FFF7ED;border-radius:8px;font-size:12px;color:#7C2D12">⚠️ ${_e(piano.note_generali)}</div>`
+    }
+    b += `<div style="margin-top:20px;padding-top:10px;border-top:1px solid #E2E8F0;font-size:9pt;color:#94A3B8;text-align:center">DietPlan Pro · ${_e(label)}</div></div>`
+    return wrapDoc(b)
+  }
+
   let body = `<div style="background:${colore};color:white;padding:16px 20px;border-radius:10px;margin-bottom:16px;-webkit-print-color-adjust:exact;print-color-adjust:exact">
     <div style="font-size:18pt;font-weight:700">${_e(nome)}</div>
     <div style="font-size:10pt;opacity:.8;margin-top:4px">${_e(label)} · DietPlan Pro</div>
   </div>`
-
-  // Info grid per sezioni con piano (diabete, pediatria, sport, pancreas)
-  if (piano.kcal || piano.cho_tot || piano.prot_per_kg || piano.grassi_tot) {
-    body += infoGrid([
-      { label:'🔥 Kcal/die', val: piano.kcal },
-      { label:'🍞 CHO tot',  val: piano.cho_tot    ? piano.cho_tot    + ' g' : '' },
-      { label:'💪 Prot/kg',  val: piano.prot_per_kg? piano.prot_per_kg+ ' g' : '' },
-      { label:'🫁 Grassi',   val: piano.grassi_tot ? piano.grassi_tot + ' g' : '' },
-    ])
-  }
 
   // Info grid per chetogenica (dati.calcolo)
   if (tipo === 'chetogenica') {
@@ -416,11 +476,7 @@ function buildStampaSpecialisticaFallback(doc, tipo, dati) {
   const dataStr = doc.created_at ? new Date(doc.created_at).toLocaleDateString('it-IT') : ''
   body += `<div style="margin-top:20px;padding-top:10px;border-top:1px solid #E2E8F0;font-size:9pt;color:#94A3B8;text-align:center">DietPlan Pro · ${_e(label)}${dataStr ? ' · ' + dataStr : ''}</div>`
 
-  return `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>${_e(nome)}</title>
-<style>*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-body{font-family:'Segoe UI',Arial,sans-serif;color:#1E293B;font-size:11pt;line-height:1.5;padding:1.5cm 2cm 2.5cm}
-@media screen{body{padding:20px;max-width:760px;margin:0 auto}}</style>
-</head><body>${body}</body></html>`
+  return wrapDoc(body)
 }
 
 // ─── Master router: smista tutti i tipi di documento al renderer corretto ────
@@ -446,6 +502,221 @@ function buildDocumentPrintHTML(doc) {
   // 4. Tutti gli altri tipi: porta esatta di buildStampaSpecialisticaHTML
   return buildStampaSpecialisticaFallback(doc, tipo, dati)
 }
+
+// ─── Sottosezioni per specialistiche (usate nella folder view del paziente) ───
+const PATIENT_SPEC_SUBSECTIONS = {
+  diabete:     [
+    { key: 'piano_alimentare',   label: '🍽️ Piano alimentare',        color: '#1D4ED8' },
+    { key: 'terapia_insulinica', label: '💉 Terapia insulinica',       color: '#1D4ED8' },
+    { key: 'note_cliniche',      label: '📋 Note cliniche',            color: '#1D4ED8' },
+    { key: 'note_generali',      label: '📌 Note generali',            color: '#1D4ED8' },
+    { key: 'depliant',           label: '📖 Depliant informativo',     color: '#1D4ED8' },
+  ],
+  pediatria:   [
+    { key: 'piano_alimentare', label: '🍽️ Piano alimentare', color: '#5B21B6' },
+    { key: 'note_cliniche',    label: '📋 Note cliniche',    color: '#5B21B6' },
+    { key: 'note_generali',    label: '📌 Note generali',    color: '#5B21B6' },
+  ],
+  sport:       [
+    { key: 'piano_alimentare',  label: '🍽️ Piano alimentare', color: '#065F46' },
+    { key: 'supplementazione',  label: '💊 Supplementazione', color: '#065F46' },
+    { key: 'note_generali',     label: '📌 Note generali',    color: '#065F46' },
+  ],
+  pancreas:    [
+    { key: 'piano_alimentare', label: '🍽️ Piano alimentare', color: '#C2410C' },
+    { key: 'note_cliniche',    label: '📋 Note cliniche',    color: '#C2410C' },
+    { key: 'note_generali',    label: '📌 Note generali',    color: '#C2410C' },
+  ],
+  chetogenica: [
+    { key: 'valutazione', label: '📊 Valutazione',         color: '#7C3AED' },
+    { key: 'calcolo',     label: '🧮 Parametri calcolo',   color: '#7C3AED' },
+    { key: 'gki',         label: '🔬 Indice Chetogenico',  color: '#7C3AED' },
+  ],
+  renale:      [
+    { key: 'valutazione', label: '📊 Valutazione',       color: '#0F766E' },
+    { key: 'calcolo',     label: '🧮 Parametri calcolo', color: '#0F766E' },
+  ],
+  disfagia:    [
+    { key: 'iddsi', label: '🗣️ Livello IDDSI',        color: '#0369A1' },
+    { key: 'kcal',  label: '🔥 Fabbisogno calorico',  color: '#0369A1' },
+  ],
+  ristorazione:[
+    { key: 'piano_alimentare', label: '🍽️ Menù / Portate', color: '#0369A1' },
+    { key: 'note_generali',    label: '📌 Note generali',  color: '#0369A1' },
+  ],
+  dca:         [
+    { key: 'valutazione',  label: '📊 Valutazione',   color: '#991B1B' },
+    { key: 'note_cliniche',label: '📋 Note cliniche', color: '#991B1B' },
+    { key: 'note_generali',label: '📌 Note generali', color: '#991B1B' },
+  ],
+  consiglio:   [
+    { key: 'consigli_base',  label: '✅ Consigli nutrizionali', color: '#16A34A' },
+    { key: 'note_paziente',  label: '✏️ Note specifiche',       color: '#16A34A' },
+  ],
+}
+
+// ─── Genera HTML per una singola sottosezione di un documento specialistico ───
+function buildSubsectionHTML(doc, sectionKey) {
+  const dati  = doc.dati_raw || {}
+  const tipo  = (doc.tipo || '').toLowerCase()
+  const nome  = doc.title || doc.nota || tipo
+  const piano = dati.piano || {}
+
+  const wrapSec = inner => `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>${_e(nome)}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:'DM Sans','Segoe UI',Arial,sans-serif;color:#1E293B;font-size:11pt;line-height:1.5;padding:1.5cm 2cm 2.5cm}
+@media screen{body{padding:20px;max-width:760px;margin:0 auto}}</style>
+</head><body>${inner}</body></html>`
+
+  const infoCard = (lbl, val, col) => val ? `<div style="background:#F8FAFC;border-radius:8px;padding:12px 16px;border-left:3px solid ${col};margin-bottom:10px">
+    <div style="font-size:9pt;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px">${lbl}</div>
+    <div style="font-size:13px;color:#1E293B;white-space:pre-wrap">${_e(String(val))}</div>
+  </div>` : ''
+
+  const noteBlock = (text, icon, bg, border) => text?.trim() ? `<div style="background:${bg};border-left:4px solid ${border};border-radius:6px;padding:14px 18px;font-size:11pt;color:#1E293B;white-space:pre-wrap;line-height:1.7">${icon} ${_e(text)}</div>` : ''
+
+  switch (sectionKey) {
+    case 'piano_alimentare':
+      return buildStampaSpecialisticaFallback(doc, tipo, dati)
+
+    case 'note_cliniche': {
+      const testo = piano.note_cliniche?.trim()
+      if (!testo) return null
+      return wrapSec(`<h2 style="font-size:16px;font-weight:700;color:#0F766E;margin-bottom:16px">📋 Note Cliniche</h2>
+        ${noteBlock(testo, '', '#EFF6FF', '#3B82F6')}
+        <div style="margin-top:20px;font-size:9pt;color:#94A3B8;text-align:center">DietPlan Pro · ${_e(nome)}</div>`)
+    }
+
+    case 'note_generali': {
+      const testo = piano.note_generali?.trim()
+      if (!testo) return null
+      return wrapSec(`<h2 style="font-size:16px;font-weight:700;color:#0F766E;margin-bottom:16px">📌 Note Generali</h2>
+        ${noteBlock(testo, '⚠️', '#FFF7ED', '#F59E0B')}
+        <div style="margin-top:20px;font-size:9pt;color:#94A3B8;text-align:center">DietPlan Pro · ${_e(nome)}</div>`)
+    }
+
+    case 'terapia_insulinica': {
+      const ri = dati.rapporto_ic || {}
+      const dp = dati.dose_pasto  || {}
+      const fsi = dati.fsi        || {}
+      const col = '#3B82F6'
+      let body = `<h2 style="font-size:16px;font-weight:700;color:${col};margin-bottom:16px">💉 Terapia Insulinica</h2>`
+      if (ri.tipo || ri.valore || ri.formula) body += `<div style="font-size:13px;font-weight:700;color:#334155;margin:14px 0 8px">Rapporto Insulina/Carboidrati</div>
+        ${infoCard('Tipo', ri.tipo, col)}${infoCard('Valore', ri.valore, col)}${infoCard('Formula', ri.formula, col)}`
+      if (dp.dose || dp.unita || dp.note) body += `<div style="font-size:13px;font-weight:700;color:#334155;margin:14px 0 8px">Dose per Pasto</div>
+        ${infoCard('Dose', dp.dose, col)}${infoCard('Unità', dp.unita, col)}${infoCard('Note', dp.note, col)}`
+      if (fsi.valore || fsi.formula || fsi.note) body += `<div style="font-size:13px;font-weight:700;color:#334155;margin:14px 0 8px">Fattore Sensibilità Insulinica</div>
+        ${infoCard('Valore', fsi.valore, col)}${infoCard('Formula', fsi.formula, col)}${infoCard('Note', fsi.note, col)}`
+      if (!ri.tipo && !ri.valore && !dp.dose && !fsi.valore) body += `<p style="color:#94A3B8;font-size:13px">Nessun dato disponibile.</p>`
+      body += `<div style="margin-top:20px;font-size:9pt;color:#94A3B8;text-align:center">DietPlan Pro · ${_e(nome)}</div>`
+      return wrapSec(body)
+    }
+
+    case 'supplementazione': {
+      const supp = piano.supplementazione || dati.supplementazione
+      if (!supp) return null
+      return wrapSec(`<h2 style="font-size:16px;font-weight:700;color:#065F46;margin-bottom:16px">💊 Supplementazione</h2>
+        <div style="background:#F0FDF4;border-radius:8px;padding:16px;font-size:11pt;color:#1E293B;white-space:pre-wrap;line-height:1.7">${_e(String(supp))}</div>
+        <div style="margin-top:20px;font-size:9pt;color:#94A3B8;text-align:center">DietPlan Pro · ${_e(nome)}</div>`)
+    }
+
+    case 'valutazione': {
+      const val = dati.valutazione || {}
+      const entries = Object.entries(val).filter(([, v]) => v && String(v).trim())
+      if (!entries.length) return null
+      return wrapSec(`<h2 style="font-size:16px;font-weight:700;color:#0F766E;margin-bottom:16px">📊 Valutazione</h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          ${entries.map(([k, v]) => `<div style="background:#F8FAFC;border-radius:8px;padding:10px 12px;border-left:3px solid #0F766E">
+            <div style="font-size:9pt;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px">${_e(k.replace(/_/g,' '))}</div>
+            <div style="font-size:11pt;color:#1E293B">${_e(String(v))}</div>
+          </div>`).join('')}
+        </div>
+        <div style="margin-top:20px;font-size:9pt;color:#94A3B8;text-align:center">DietPlan Pro · ${_e(nome)}</div>`)
+    }
+
+    case 'calcolo': {
+      const c = dati.calcolo || {}
+      const entries = Object.entries(c).filter(([, v]) => v && String(v).trim())
+      if (!entries.length) return null
+      const UNITS = { peso:'kg', altezza:'cm', eta:'anni', peso_ideale:'kg' }
+      return wrapSec(`<h2 style="font-size:16px;font-weight:700;color:#0891b2;margin-bottom:16px">🧮 Parametri Calcolo</h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          ${entries.map(([k, v]) => `<div style="background:#F8FAFC;border-radius:8px;padding:10px 12px;border-left:3px solid #0891b2">
+            <div style="font-size:9pt;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px">${_e(k.replace(/_/g,' '))}</div>
+            <div style="font-size:11pt;color:#1E293B">${_e(String(v))}${UNITS[k] ? ' <span style="font-size:9pt;color:#94A3B8">'+UNITS[k]+'</span>' : ''}</div>
+          </div>`).join('')}
+        </div>
+        <div style="margin-top:20px;font-size:9pt;color:#94A3B8;text-align:center">DietPlan Pro · ${_e(nome)}</div>`)
+    }
+
+    case 'gki': {
+      const gki = dati.gki || {}
+      if (!gki.glicemia && !gki.chetoni) return null
+      return wrapSec(`<h2 style="font-size:16px;font-weight:700;color:#0891b2;margin-bottom:16px">🔬 Indice Chetogenico (GKI)</h2>
+        ${gki.glicemia ? infoCard('🩸 Glicemia', gki.glicemia + ' mg/dL', '#0891b2') : ''}
+        ${gki.chetoni  ? infoCard('🔬 Chetoni',  gki.chetoni  + ' mmol/L','#0891b2') : ''}
+        <div style="margin-top:20px;font-size:9pt;color:#94A3B8;text-align:center">DietPlan Pro · ${_e(nome)}</div>`)
+    }
+
+    case 'iddsi': {
+      if (!dati.iddsi) return null
+      return wrapSec(`<h2 style="font-size:16px;font-weight:700;color:#0369A1;margin-bottom:16px">🗣️ Livello IDDSI</h2>
+        <div style="background:#F0FDFA;border-left:4px solid #0D9488;border-radius:6px;padding:20px;text-align:center;margin-bottom:14px">
+          <div style="font-size:9pt;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:8px">Classificazione IDDSI</div>
+          <div style="font-size:28pt;font-weight:700;color:#0F766E">${_e(dati.iddsi)}</div>
+        </div>
+        <div style="font-size:9pt;color:#94A3B8;text-align:center">DietPlan Pro · ${_e(nome)}</div>`)
+    }
+
+    case 'kcal': {
+      if (!dati.kcal) return null
+      return wrapSec(`<h2 style="font-size:16px;font-weight:700;color:#0369A1;margin-bottom:16px">🔥 Fabbisogno Calorico</h2>
+        ${infoCard('🔥 Obiettivo energetico giornaliero', dati.kcal, '#0369A1')}
+        <div style="margin-top:20px;font-size:9pt;color:#94A3B8;text-align:center">DietPlan Pro · ${_e(nome)}</div>`)
+    }
+
+    case 'depliant': {
+      const dep = dati.depliant || piano.depliant
+      if (!dep) return null
+      const depBody = typeof dep === 'string'
+        ? `<div style="background:#F8FAFC;border-radius:8px;padding:16px;font-size:11pt;white-space:pre-wrap;line-height:1.7">${_e(dep)}</div>`
+        : Object.entries(dep).filter(([,v]) => v).map(([k, v]) => infoCard(k.replace(/_/g,' '), v, '#3B82F6')).join('')
+      return wrapSec(`<h2 style="font-size:16px;font-weight:700;color:#3B82F6;margin-bottom:16px">📖 Depliant Informativo</h2>
+        ${depBody}
+        <div style="margin-top:20px;font-size:9pt;color:#94A3B8;text-align:center">DietPlan Pro · ${_e(nome)}</div>`)
+    }
+
+    case 'consigli_base':
+      return buildConsiglioPrintHTML(doc)
+
+    case 'note_paziente': {
+      const np = (doc.dati_raw || {}).note_paziente
+      if (!np?.trim()) return null
+      return wrapSec(`<h2 style="font-size:16px;font-weight:700;color:#16A34A;margin-bottom:16px">✏️ Note Specifiche</h2>
+        ${noteBlock(np, '', '#FFF7ED', '#F59E0B')}
+        <div style="margin-top:20px;font-size:9pt;color:#94A3B8;text-align:center">DietPlan Pro · ${_e(nome)}</div>`)
+    }
+
+    default:
+      return buildDocumentPrintHTML(doc)
+  }
+}
+
+// ─── Folder definitions: raggruppa i docs per categoria ───────────────────────
+const FOLDER_DEFS = [
+  { key: 'consiglio',    label: 'Consigli Nutrizionali', icon: '💡', color: '#16A34A', bg: '#F0FDF4', types: ['consiglio','advice'] },
+  { key: 'piano',        label: 'Piano Alimentare',       icon: '🥗', color: '#1a7f5a', bg: '#e6f5ee', types: ['piano','diet','dieta'] },
+  { key: 'ncpt',         label: 'NCPT',                   icon: '📋', color: '#7c3aed', bg: '#f5f3ff', types: ['ncpt'] },
+  { key: 'diabete',      label: 'Diabete',                icon: '🩸', color: '#1D4ED8', bg: '#DBEAFE', types: ['diabete'] },
+  { key: 'pediatria',    label: 'Pediatria',              icon: '👶', color: '#5B21B6', bg: '#EDE9FE', types: ['pediatria'] },
+  { key: 'sport',        label: 'Nutrizione Sportiva',    icon: '🏃', color: '#065F46', bg: '#ECFDF5', types: ['sport'] },
+  { key: 'pancreas',     label: 'Pancreas',               icon: '🫁', color: '#C2410C', bg: '#FFF7ED', types: ['pancreas'] },
+  { key: 'chetogenica',  label: 'Dieta Chetogenica',      icon: '🥑', color: '#7C3AED', bg: '#F5F3FF', types: ['chetogenica'] },
+  { key: 'renale',       label: 'Nefropatia / IRC',       icon: '🫘', color: '#0F766E', bg: '#CCFBF1', types: ['renale'] },
+  { key: 'disfagia',     label: 'Disfagia',               icon: '🗣️', color: '#0369A1', bg: '#E0F2FE', types: ['disfagia'] },
+  { key: 'ristorazione', label: 'Ristorazione',           icon: '🍽️', color: '#0369A1', bg: '#F0F9FF', types: ['ristorazione'] },
+  { key: 'dca',          label: 'Sessione DCA',           icon: '🫀', color: '#991B1B', bg: '#FEE2E2', types: ['dca'] },
+]
 
 // Costruisce l'HTML di patient-view.html con i dati del documento iniettati.
 // Il file è già bundlato in patientViewRaw — nessuna rete, nessun rewrite Vercel.
@@ -595,6 +866,16 @@ export default function DocumentsPage() {
   const [lastSeen] = useState(
     () => localStorage.getItem(`docs_last_seen_${user?.id}`) || DOCS_EPOCH
   )
+  const [openFolders, setOpenFolders] = useState(() => new Set())
+
+  const toggleFolder = useCallback((key) => {
+    setOpenFolders(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }, [])
 
   // ── Carica i documenti dal DB ────────────────────────────────────────────────
   useEffect(() => {
@@ -845,57 +1126,161 @@ export default function DocumentsPage() {
                 : <><FileText size={40} style={{ marginBottom: 12, opacity: 0.3 }} /><p style={{ fontSize: 15, fontWeight: 500 }}>Nessun documento</p><p style={{ fontSize: 13, marginTop: 4 }}>Il tuo dietista non ha ancora condiviso documenti.</p></>
               }
             </div>
-          ) : filtered.map(doc => {
-            const meta        = TYPE_META[doc.type] || TYPE_META.document
-            const docIsNew    = isNew(doc, lastSeen)
-            const isBookmarked = bookmarks.has(doc.id)
-            return (
-              <div key={doc.id} style={{ position: 'relative' }}>
-                {docIsNew && (
-                  <span style={{ position: 'absolute', top: -6, left: 14, zIndex: 1, background: '#f59e0b', color: 'white', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100 }}>NUOVO</span>
-                )}
-                <button onClick={() => setSelected(doc)} style={{
-                  width: '100%', background: 'white',
-                  border: `1px solid ${docIsNew ? '#fcd34d' : 'var(--border-light)'}`,
-                  borderRadius: 'var(--r-lg)', padding: '14px 14px 14px 18px',
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  cursor: 'pointer', font: 'inherit', textAlign: 'left', boxShadow: 'var(--shadow-sm)',
-                }}>
-                  <div style={{ width: 46, height: 46, borderRadius: 14, background: meta.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: meta.color, flexShrink: 0 }}>
-                    {meta.icon}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.title}</p>
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                      <span style={{ fontSize: 12, color: meta.color, fontWeight: 500 }}>{meta.label}</span>
+          ) : (() => {
+            // ── Raggruppa i documenti filtrati per cartella ──────────────────
+            const allFolderTypes = new Set(FOLDER_DEFS.flatMap(f => f.types))
+            const docsByFolder = {}
+            const ungrouped = []
+
+            filtered.forEach(doc => {
+              const tipo = (doc.tipo || doc.type || '').toLowerCase()
+              const folder = FOLDER_DEFS.find(f => f.types.includes(tipo))
+              if (folder) {
+                if (!docsByFolder[folder.key]) docsByFolder[folder.key] = []
+                docsByFolder[folder.key].push(doc)
+              } else {
+                ungrouped.push(doc)
+              }
+            })
+
+            const renderDocRow = (doc, isNested = false) => {
+              const meta = TYPE_META[doc.type] || TYPE_META.document
+              const docIsNew = isNew(doc, lastSeen)
+              const isBookmarked = bookmarks.has(doc.id)
+              return (
+                <div key={doc.id} style={{ position: 'relative' }}>
+                  {docIsNew && <span style={{ position: 'absolute', top: -6, left: isNested ? 28 : 14, zIndex: 1, background: '#f59e0b', color: 'white', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100 }}>NUOVO</span>}
+                  <button onClick={() => setSelected(doc)} style={{
+                    width: '100%', background: 'white',
+                    border: `1px solid ${docIsNew ? '#fcd34d' : 'var(--border-light)'}`,
+                    borderRadius: 'var(--r-lg)', padding: '12px 12px 12px 16px',
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    cursor: 'pointer', font: 'inherit', textAlign: 'left',
+                    boxShadow: 'var(--shadow-sm)',
+                    marginLeft: isNested ? 16 : 0,
+                  }}>
+                    <div style={{ width: 42, height: 42, borderRadius: 12, background: meta.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: meta.color, flexShrink: 0 }}>
+                      {meta.icon}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.title}</p>
                       <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 3 }}>
                         <Calendar size={10} />{new Date(doc.created_at).toLocaleDateString('it-IT')}
                       </span>
                     </div>
-                    {doc.tags?.length > 0 && (
-                      <div style={{ display: 'flex', gap: 4, marginTop: 5, flexWrap: 'wrap' }}>
-                        {doc.tags.slice(0, 3).map(t => <span key={t} className="badge badge-green" style={{ fontSize: 10, padding: '2px 8px' }}>{t}</span>)}
-                      </div>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                      {doc.file_url && (
+                        <a href={doc.file_url} target="_blank" rel="noopener noreferrer" download
+                          onClick={e => e.stopPropagation()}
+                          style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green-main)', textDecoration: 'none' }}>
+                          <Download size={13} />
+                        </a>
+                      )}
+                      <button onClick={e => { e.stopPropagation(); toggleBookmark(doc.id) }}
+                        style={{ width: 30, height: 30, borderRadius: 8, background: isBookmarked ? '#fff4e6' : 'var(--surface-2)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isBookmarked ? '#f0922b' : 'var(--text-muted)', cursor: 'pointer' }}>
+                        {isBookmarked ? <BookmarkCheck size={13} /> : <Bookmark size={13} />}
+                      </button>
+                    </div>
+                  </button>
+                </div>
+              )
+            }
+
+            const renderSubsectionRow = (doc, sub, folderColor) => {
+              const html = buildSubsectionHTML(doc, sub.key)
+              if (!html) return null
+              const virtualDoc = { ...doc, id: doc.id + '_' + sub.key, title: sub.label.replace(/^[^\w]*/, '').trim() || sub.label, dati_raw: { ...doc.dati_raw, stampa_html: html } }
+              return (
+                <button key={sub.key} onClick={() => setSelected(virtualDoc)} style={{
+                  width: '100%', background: 'white',
+                  border: '1px solid var(--border-light)',
+                  borderRadius: 'var(--r-lg)', padding: '11px 14px 11px 20px',
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  cursor: 'pointer', font: 'inherit', textAlign: 'left',
+                  boxShadow: 'var(--shadow-sm)',
+                  marginLeft: 20,
+                }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: folderColor + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
+                    {sub.label.split(' ')[0]}
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                    {doc.file_url && (
-                      <a href={doc.file_url} target="_blank" rel="noopener noreferrer" download
-                        onClick={e => e.stopPropagation()} title="Scarica PDF"
-                        style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green-main)', textDecoration: 'none' }}>
-                        <Download size={14} />
-                      </a>
-                    )}
-                    <button onClick={e => { e.stopPropagation(); toggleBookmark(doc.id) }}
-                      title={isBookmarked ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}
-                      style={{ width: 32, height: 32, borderRadius: 8, background: isBookmarked ? '#fff4e6' : 'var(--surface-2)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isBookmarked ? '#f0922b' : 'var(--text-muted)', cursor: 'pointer' }}>
-                      {isBookmarked ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
-                    </button>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: '#1E293B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 0 }}>
+                      {sub.label.replace(/^\S+\s/, '')}
+                    </p>
                   </div>
+                  <span style={{ fontSize: 16, color: '#94A3B8' }}>›</span>
                 </button>
-              </div>
+              )
+            }
+
+            const renderFolder = (folder, folderDocs) => {
+              const isOpen = openFolders.has(folder.key)
+              const hasNew = folderDocs.some(d => isNew(d, lastSeen))
+
+              return (
+                <div key={folder.key}>
+                  {/* Folder header */}
+                  <button onClick={() => toggleFolder(folder.key)} style={{
+                    width: '100%', background: isOpen ? folder.bg : 'white',
+                    border: `1.5px solid ${isOpen ? folder.color + '60' : 'var(--border-light)'}`,
+                    borderRadius: isOpen ? '14px 14px 0 0' : 14,
+                    padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14,
+                    cursor: 'pointer', font: 'inherit', textAlign: 'left',
+                    boxShadow: isOpen ? 'none' : 'var(--shadow-sm)',
+                    transition: 'border-color .2s, background .2s',
+                  }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 14, background: folder.bg, border: `2px solid ${folder.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>
+                      {folder.icon}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 15, fontWeight: 700, color: folder.color, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {folder.label}
+                        {hasNew && <span style={{ background: '#f59e0b', color: 'white', fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 100 }}>NUOVO</span>}
+                      </p>
+                      <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                        {folderDocs.length} documento{folderDocs.length !== 1 ? 'i' : ''}
+                      </span>
+                    </div>
+                    <div style={{ width: 30, height: 30, borderRadius: 8, background: folder.color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', color: folder.color, fontSize: 18, flexShrink: 0, transition: 'transform .2s', transform: isOpen ? 'rotate(90deg)' : 'none' }}>›</div>
+                  </button>
+
+                  {/* Folder contents */}
+                  {isOpen && (
+                    <div style={{ border: `1.5px solid ${folder.color + '60'}`, borderTop: 'none', borderRadius: '0 0 14px 14px', background: '#FAFAFA', padding: '10px 10px 10px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {folderDocs.map(doc => {
+                        const tipo = (doc.tipo || '').toLowerCase()
+                        const specSubs = PATIENT_SPEC_SUBSECTIONS[tipo]
+                        const visibleSections = doc.dati_raw?.visible_sections
+
+                        // Se ha visible_sections definite e ci sono sottosezioni per questo tipo
+                        if (visibleSections?.length > 0 && specSubs?.length > 0) {
+                          const activeSubs = specSubs.filter(s => visibleSections.includes(s.key))
+                          if (activeSubs.length > 0) {
+                            return activeSubs.map(sub => renderSubsectionRow(doc, sub, folder.color))
+                          }
+                        }
+                        // Altrimenti se ci sono sottosezioni definite, mostrare tutte
+                        if (specSubs?.length > 0 && !visibleSections) {
+                          return specSubs.map(sub => renderSubsectionRow(doc, sub, folder.color)).filter(Boolean)
+                        }
+                        // Default: mostra il documento intero
+                        return renderDocRow(doc, true)
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            }
+
+            return (
+              <>
+                {FOLDER_DEFS
+                  .filter(f => docsByFolder[f.key]?.length > 0)
+                  .map(f => renderFolder(f, docsByFolder[f.key]))}
+                {ungrouped.map(doc => renderDocRow(doc))}
+              </>
             )
-          })}
+          })()}
         </div>
       </div>
 
