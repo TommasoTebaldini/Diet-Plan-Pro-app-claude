@@ -266,38 +266,58 @@ function buildSpecialisticaHTML(doc, tipo, dati, pasti) {
 
   let body = _hdr(nome, label, colore)
 
-  // Info grid
-  const infoVoci = [
-    { label:'🔥 Kcal/die',    val: piano.kcal },
-    { label:'🍞 CHO tot',     val: piano.cho_tot ? piano.cho_tot + ' g' : '' },
-    { label:'💪 Prot/kg',     val: piano.prot_per_kg ? piano.prot_per_kg + ' g' : '' },
-    { label:'⚖️ Peso target', val: piano.peso ? piano.peso + ' kg' : '' },
-    { label:'🍽️ N. pasti',   val: pasti.filter(p => p.alimenti?.trim()).length || '' },
-    { label:'🫁 Lipidi tot',  val: piano.grassi_tot ? piano.grassi_tot + ' g' : '' },
-  ]
-  body += _infoGrid(infoVoci, colore)
+  // Info grid — kcal, macros, parametri piano
+  body += _infoGrid([
+    { label:'🔥 Kcal/die',         val: piano.kcal },
+    { label:'🍞 CHO tot',          val: piano.cho_tot    ? piano.cho_tot    + ' g' : '' },
+    { label:'💪 Prot/kg',          val: piano.prot_per_kg? piano.prot_per_kg+ ' g' : '' },
+    { label:'⚖️ Peso target',      val: piano.peso       ? piano.peso       + ' kg': '' },
+    { label:'🫁 Grassi tot',       val: piano.grassi_tot ? piano.grassi_tot + ' g' : '' },
+    { label:'⚡ Kcal allenamento', val: piano.kcal_train },
+    { label:'🛌 Kcal riposo',      val: piano.kcal_rest },
+    { label:'🏃 Sport/obiettivo',  val: piano.sport || piano.obiettivo },
+  ], colore)
 
   // Note cliniche
-  if (piano.note_cliniche?.trim()) {
-    body += `<div style="background:#EFF6FF;border-left:4px solid #3B82F6;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:10pt;color:#1E3A5F;line-height:1.6;white-space:pre-wrap">📋 ${_e(piano.note_cliniche)}</div>`
+  const noteClin = piano.note_cliniche || piano.causa || piano.enzima
+  if (noteClin?.trim()) {
+    body += `<div style="background:#EFF6FF;border-left:4px solid #3B82F6;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:10pt;color:#1E3A5F;line-height:1.6;white-space:pre-wrap">📋 ${_e(noteClin)}</div>`
   }
 
-  // Pasti
-  pasti.filter(p => p.alimenti?.trim()).forEach(pasto => {
-    const energia = pasto.kcal ? `≈ ${pasto.kcal} kcal` : (pasto.cho ? `${pasto.cho} g CHO` : (pasto.grassi ? `${pasto.grassi} g grassi` : ''))
-    const hdrInner = `<div style="display:flex;align-items:center;gap:10px">
-      <span style="font-size:14px;font-weight:700;color:white">${_e(pasto.nome || 'Pasto')}</span>
-      ${pasto.ora ? `<span style="font-size:12px;color:rgba(255,255,255,.75)">${_e(pasto.ora)}</span>` : ''}
-    </div>
-    ${energia ? `<span style="font-size:12px;color:rgba(255,255,255,.9);font-weight:600">${_e(energia)}</span>` : ''}`
-    const righe = pasto.alimenti.split('\n').map(l => l.trim()).filter(Boolean).map(line =>
-      `<div style="padding:8px 16px;border-bottom:1px solid #F1F5F9;font-size:13px;color:#1E293B">${_e(line)}</div>`
-    )
-    body += _mealCard(hdrInner, righe, pasto.note)
-  })
+  // Dati clinici dal livello radice di dati (rapporto_ic, dose_pasto, fsi, depliant, pert, ecc.)
+  // — mostrati come sezioni key-value, saltando piano/valutazione/stampa_html
+  const SKIP = new Set(['valutazione','piano','stampa_html'])
+  for (const [k, v] of Object.entries(dati)) {
+    if (SKIP.has(k) || !v || typeof v !== 'object' || Array.isArray(v)) continue
+    const entries = _flattenDati(v, '')
+    if (entries.length) {
+      const titolo = k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
+      body += _renderClinicalSection('📊 ' + titolo, entries, colore)
+    }
+  }
 
-  if (piano.note_generali?.trim()) {
-    body += `<div style="background:#FFF7ED;border-left:4px solid #F59E0B;border-radius:6px;padding:10px 14px;margin-top:10px;font-size:10pt;color:#78350F;line-height:1.6;white-space:pre-wrap">📌 ${_e(piano.note_generali)}</div>`
+  // Pasti con alimenti compilati
+  const pastiAttivi = pasti.filter(p => p.alimenti?.trim())
+  if (pastiAttivi.length) {
+    body += `<div style="font-size:11pt;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:.8px;margin:16px 0 10px;padding-bottom:4px;border-bottom:2px solid #E2E8F0">🍽️ Schema Alimentare</div>`
+    pastiAttivi.forEach(pasto => {
+      const energia = pasto.kcal ? `≈ ${pasto.kcal} kcal` : (pasto.cho ? `${pasto.cho} g CHO` : (pasto.grassi ? `${pasto.grassi} g grassi` : ''))
+      const hdrInner = `<div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:14px;font-weight:700;color:white">${_e(pasto.nome || 'Pasto')}</span>
+        ${pasto.ora ? `<span style="font-size:12px;color:rgba(255,255,255,.75)">${_e(pasto.ora)}</span>` : ''}
+      </div>
+      ${energia ? `<span style="font-size:12px;color:rgba(255,255,255,.9);font-weight:600">${_e(energia)}</span>` : ''}`
+      const righe = pasto.alimenti.split('\n').map(l => l.trim()).filter(Boolean).map(line =>
+        `<div style="padding:8px 16px;border-bottom:1px solid #F1F5F9;font-size:13px;color:#1E293B">${_e(line)}</div>`
+      )
+      body += _mealCard(hdrInner, righe, pasto.note)
+    })
+  }
+
+  // Note integrative
+  const noteExtra = [piano.integr, piano.gara, piano.suppl, piano.edu, piano.limita, piano.note_generali].filter(Boolean).join('\n\n')
+  if (noteExtra.trim()) {
+    body += `<div style="background:#FFF7ED;border-left:4px solid #F59E0B;border-radius:6px;padding:10px 14px;margin-top:10px;font-size:10pt;color:#78350F;line-height:1.6;white-space:pre-wrap">📌 ${_e(noteExtra)}</div>`
   }
 
   body += `<div class="footer">DietPlan Pro · ${_e(label)}</div>`
@@ -308,7 +328,7 @@ function buildSpecialisticaHTML(doc, tipo, dati, pasti) {
 function buildRistorazioneHTML(doc, dati) {
   const piano   = dati.piano || {}
   const nome    = doc.title || doc.nota || 'Menu Ristorazione'
-  const portate = (piano.portate || []).filter(p => p.menu?.trim())
+  const portate = (piano.portate || []).filter(p => p.nome?.trim() || p.menu?.trim())
 
   let body = _hdr(nome, 'Menu Ristorazione', '#0F766E')
   body += _infoGrid([
@@ -418,15 +438,16 @@ function buildGenericDocHTML(doc, tipo, dati) {
     body += renderSez('📈 Monitoraggio', dati.monitoraggio)
 
   } else {
-    // Generic fallback: content text or available dati fields
+    // Fallback generico: testo oppure tutti i campi dati (inclusi oggetti annidati)
     const testo = doc.content || dati.descrizione || dati.testo || dati.contenuto || dati.note || ''
     if (testo) {
       body += `<div style="background:#F8FAFC;border-radius:8px;padding:16px;font-size:11pt;color:#1E293B;line-height:1.7;white-space:pre-wrap">${_nl2br(testo)}</div>`
     } else {
-      const entries = Object.entries(dati).filter(([k, v]) => v && String(v).trim() && !['stampa_html'].includes(k) && typeof v !== 'object')
-      if (entries.length) {
+      // Valori semplici (stringhe)
+      const simple = Object.entries(dati).filter(([k, v]) => v && String(v).trim() && !['stampa_html'].includes(k) && typeof v !== 'object')
+      if (simple.length) {
         body += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">`
-        entries.forEach(([k, v]) => {
+        simple.forEach(([k, v]) => {
           const lbl = k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
           body += `<div style="background:#F8FAFC;border-radius:8px;padding:10px 12px;border-left:3px solid ${colore}">
             <div style="font-size:9pt;font-weight:700;color:#64748B;margin-bottom:4px">${_e(lbl)}</div>
@@ -435,12 +456,54 @@ function buildGenericDocHTML(doc, tipo, dati) {
         })
         body += `</div>`
       }
+      // Oggetti annidati — appiattiti come sezioni card
+      for (const [k, v] of Object.entries(dati)) {
+        if (!v || typeof v !== 'object' || Array.isArray(v) || k === 'stampa_html') continue
+        const entries = _flattenDati(v, '')
+        if (entries.length) {
+          const titolo = k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
+          body += _renderClinicalSection('📊 ' + titolo, entries, colore)
+        }
+      }
     }
   }
 
   const dataStr = doc.created_at ? new Date(doc.created_at).toLocaleDateString('it-IT') : ''
   body += `<div class="footer">DietPlan Pro · ${_e(label)}${dataStr ? ' · ' + dataStr : ''}</div>`
   return _pageWrap(nome, body)
+}
+
+// ─── Helper: appiattisce un oggetto annidato in coppie [label, valore] ────────
+function _flattenDati(obj, prefix) {
+  const out = []
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return out
+  for (const [k, v] of Object.entries(obj)) {
+    if (!v && v !== 0) continue
+    const skip = ['stampa_html','valutazione','piano','pasti','portate','cartella_id','user_id']
+    if (skip.includes(k)) continue
+    const label = (prefix ? prefix + ' — ' : '') + k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
+    if (typeof v === 'object' && !Array.isArray(v)) {
+      out.push(..._flattenDati(v, label))
+    } else if (typeof v !== 'object' && String(v).trim()) {
+      out.push([label, String(v)])
+    }
+  }
+  return out
+}
+
+// ─── Helper: renderizza sezione dati clinici come griglia di card ─────────────
+function _renderClinicalSection(titolo, entries, colore) {
+  if (!entries.length) return ''
+  let h = `<div style="margin-bottom:16px">
+    <div style="font-size:11pt;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid #E2E8F0">${titolo}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">`
+  entries.forEach(([lbl, val]) => {
+    h += `<div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;border-left:3px solid ${colore}">
+      <div style="font-size:9pt;font-weight:700;color:#64748B;margin-bottom:2px">${_e(lbl)}</div>
+      <div style="font-size:11pt;color:#1E293B">${_e(val)}</div>
+    </div>`
+  })
+  return h + '</div></div>'
 }
 
 // ─── Master router: smista tutti i tipi di documento al renderer corretto ────
@@ -463,16 +526,14 @@ function buildDocumentPrintHTML(doc) {
     } catch { /* fall through */ }
   }
 
-  // 4. Specialistiche con pasti textarea (diabete, pediatria, sport, pancreas)
-  const pasti = dati.piano?.pasti
-  if (Array.isArray(pasti) && pasti.some(p => p.alimenti?.trim())) {
-    return buildSpecialisticaHTML(doc, tipo, dati, pasti)
+  // 4. Specialistiche con pasti (route per tipo, non per contenuto)
+  const SPEC_PASTI = ['diabete','pediatria','sport','pancreas']
+  if (SPEC_PASTI.includes(tipo)) {
+    return buildSpecialisticaHTML(doc, tipo, dati, dati.piano?.pasti || [])
   }
 
-  // 5. Ristorazione con portate
-  if (tipo === 'ristorazione' && Array.isArray(dati.piano?.portate) && dati.piano.portate.some(p => p.menu?.trim())) {
-    return buildRistorazioneHTML(doc, dati)
-  }
+  // 5. Ristorazione
+  if (tipo === 'ristorazione') return buildRistorazioneHTML(doc, dati)
 
   // 6. Tutto il resto (chetogenica, renale, disfagia, ncpt, documenti, ecc.)
   return buildGenericDocHTML(doc, tipo, dati)
