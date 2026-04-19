@@ -162,6 +162,322 @@ function buildConsiglioPrintHTML(doc) {
 </html>`
 }
 
+// ─── Shared HTML escape helper ───────────────────────────────────────────────
+const _e = s => (s == null ? '' : String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+const _nl2br = s => _e(s).replace(/\n/g,'<br>')
+
+// Shared page wrapper — A4-safe, responsive on screen
+function _pageWrap(title, inner) {
+  return `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${_e(title)}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{font-family:'Segoe UI',Arial,sans-serif;color:#1E293B;font-size:11pt;line-height:1.5;padding:1.5cm 2cm 2.5cm}
+  @media screen{body{padding:20px;max-width:760px;margin:0 auto}}
+  .footer{margin-top:20px;padding-top:10px;border-top:1px solid #E2E8F0;font-size:9pt;color:#94A3B8;text-align:center}
+</style></head><body>${inner}</body></html>`
+}
+
+// Colored page header
+function _hdr(nome, sottotitolo, colore) {
+  return `<div style="background:${colore};color:white;padding:16px 20px;border-radius:10px;margin-bottom:16px">
+    <div style="font-size:18pt;font-weight:700">${_e(nome)}</div>
+    <div style="font-size:10pt;opacity:.8;margin-top:4px">${_e(sottotitolo)} · DietPlan Pro</div>
+  </div>`
+}
+
+// Data cards grid
+function _infoGrid(items, colore) {
+  const visible = items.filter(i => i.val)
+  if (!visible.length) return ''
+  const cols = Math.min(visible.length, 3)
+  let h = `<div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:10px;margin-bottom:14px">`
+  visible.forEach(i => {
+    h += `<div style="background:#F8FAFC;border-radius:8px;padding:10px 12px;border-left:3px solid ${colore}">
+      <div style="font-size:9pt;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${i.label}</div>
+      <div style="font-size:11pt;font-weight:700;color:#1E293B">${_e(String(i.val))}</div>
+    </div>`
+  })
+  return h + '</div>'
+}
+
+// Meal card used by both piano and specialistiche
+function _mealCard(header, righe, notaMeal) {
+  let h = `<div style="margin-bottom:12px;border-radius:10px;overflow:hidden;border:1.5px solid #E2E8F0;break-inside:avoid">`
+  h += `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:linear-gradient(135deg,#0D9488,#10B981)">${header}</div>`
+  righe.forEach(r => { h += r })
+  if (notaMeal?.trim()) h += `<div style="padding:6px 16px;font-size:11.5px;color:#64748B;font-style:italic;background:#FFFBEB">📝 ${_e(notaMeal)}</div>`
+  return h + '</div>'
+}
+
+// ─── Piano alimentare (tabella piani — giorni con items strutturati) ──────────
+function buildPianoPrintHTML(doc, giorni) {
+  const nome = doc.title || doc.nota || 'Piano Alimentare'
+  const isMulti = giorni.length > 1
+  let body = `<div style="text-align:center;padding-bottom:14px;margin-bottom:16px;border-bottom:2px solid #E2E8F0">
+    <div style="font-size:20pt;font-weight:700;color:#0F766E">🥗 ${_e(nome)}</div>
+    <div style="font-size:10pt;color:#94A3B8;margin-top:4px">Piano Alimentare · DietPlan Pro</div>
+  </div>`
+
+  giorni.forEach(giorno => {
+    const mealList = (giorno.meals || []).filter(m => m.items?.some(it => it.nome?.trim()))
+    if (!mealList.length) return
+    if (isMulti) body += `<div style="margin:14px 0 10px;padding:8px 16px;background:#1E293B;border-radius:8px;font-size:14px;font-weight:700;color:white">📅 ${_e(giorno.nome)}</div>`
+    mealList.forEach(meal => {
+      const items = (meal.items || []).filter(it => it.nome?.trim())
+      const hdrInner = `<div style="display:flex;align-items:center;gap:10px">
+        ${meal.emoji ? `<span style="font-size:18px">${_e(meal.emoji)}</span>` : ''}
+        <span style="font-size:14px;font-weight:700;color:white">${_e(meal.nome)}</span>
+      </div>`
+      const righe = items.flatMap(item => {
+        const misura = item.misura ? ` <span style="color:#94A3B8;font-size:10px">(${_e(item.misura)})</span>` : ''
+        const r = [`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid #F1F5F9">
+          <span style="font-size:13px">${_e(item.nome)}${misura}</span>
+          ${item.qt ? `<span style="font-size:13px;font-weight:700;color:#0EA5E9;padding-left:12px">${_e(item.qt)} g</span>` : ''}
+        </div>`]
+        ;(item.altPrint || []).forEach(a => {
+          r.push(`<div style="padding:5px 16px 5px 28px;background:#F0FDF4;border-bottom:1px solid #DCFCE7;font-size:11.5px;color:#15803D">↳ oppure: ${_e(a.nome)} — ${_e(a.qt)} g</div>`)
+        })
+        return r
+      })
+      body += _mealCard(hdrInner, righe, meal.note)
+    })
+  })
+
+  body += `<div class="footer">DietPlan Pro · Piano Alimentare</div>`
+  return _pageWrap(nome, body)
+}
+
+// ─── Specialistiche con pasti textarea (diabete, pediatria, sport, pancreas) ──
+function buildSpecialisticaHTML(doc, tipo, dati, pasti) {
+  const LABELS = {
+    diabete:'🩸 Diabete', pediatria:'👶 Pediatria', sport:'🏃 Nutrizione Sportiva',
+    pancreas:'🫁 Pancreas', disfagia:'💧 Disfagia', dca:'🧠 Sessione DCA',
+  }
+  const COLORI = {
+    diabete:'#3B82F6', pediatria:'#EC4899', sport:'#F97316',
+    pancreas:'#8B5CF6', disfagia:'#06B6D4', dca:'#7C3AED',
+  }
+  const label  = LABELS[tipo]  || tipo.charAt(0).toUpperCase() + tipo.slice(1)
+  const colore = COLORI[tipo]  || '#1a7f5a'
+  const nome   = doc.title || doc.nota || label
+  const piano  = dati.piano || {}
+
+  let body = _hdr(nome, label, colore)
+
+  // Info grid
+  const infoVoci = [
+    { label:'🔥 Kcal/die',    val: piano.kcal },
+    { label:'🍞 CHO tot',     val: piano.cho_tot ? piano.cho_tot + ' g' : '' },
+    { label:'💪 Prot/kg',     val: piano.prot_per_kg ? piano.prot_per_kg + ' g' : '' },
+    { label:'⚖️ Peso target', val: piano.peso ? piano.peso + ' kg' : '' },
+    { label:'🍽️ N. pasti',   val: pasti.filter(p => p.alimenti?.trim()).length || '' },
+    { label:'🫁 Lipidi tot',  val: piano.grassi_tot ? piano.grassi_tot + ' g' : '' },
+  ]
+  body += _infoGrid(infoVoci, colore)
+
+  // Note cliniche
+  if (piano.note_cliniche?.trim()) {
+    body += `<div style="background:#EFF6FF;border-left:4px solid #3B82F6;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:10pt;color:#1E3A5F;line-height:1.6;white-space:pre-wrap">📋 ${_e(piano.note_cliniche)}</div>`
+  }
+
+  // Pasti
+  pasti.filter(p => p.alimenti?.trim()).forEach(pasto => {
+    const energia = pasto.kcal ? `≈ ${pasto.kcal} kcal` : (pasto.cho ? `${pasto.cho} g CHO` : (pasto.grassi ? `${pasto.grassi} g grassi` : ''))
+    const hdrInner = `<div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:14px;font-weight:700;color:white">${_e(pasto.nome || 'Pasto')}</span>
+      ${pasto.ora ? `<span style="font-size:12px;color:rgba(255,255,255,.75)">${_e(pasto.ora)}</span>` : ''}
+    </div>
+    ${energia ? `<span style="font-size:12px;color:rgba(255,255,255,.9);font-weight:600">${_e(energia)}</span>` : ''}`
+    const righe = pasto.alimenti.split('\n').map(l => l.trim()).filter(Boolean).map(line =>
+      `<div style="padding:8px 16px;border-bottom:1px solid #F1F5F9;font-size:13px;color:#1E293B">${_e(line)}</div>`
+    )
+    body += _mealCard(hdrInner, righe, pasto.note)
+  })
+
+  if (piano.note_generali?.trim()) {
+    body += `<div style="background:#FFF7ED;border-left:4px solid #F59E0B;border-radius:6px;padding:10px 14px;margin-top:10px;font-size:10pt;color:#78350F;line-height:1.6;white-space:pre-wrap">📌 ${_e(piano.note_generali)}</div>`
+  }
+
+  body += `<div class="footer">DietPlan Pro · ${_e(label)}</div>`
+  return _pageWrap(nome, body)
+}
+
+// ─── Ristorazione collettiva ──────────────────────────────────────────────────
+function buildRistorazioneHTML(doc, dati) {
+  const piano   = dati.piano || {}
+  const nome    = doc.title || doc.nota || 'Menu Ristorazione'
+  const portate = (piano.portate || []).filter(p => p.menu?.trim())
+
+  let body = _hdr(nome, 'Menu Ristorazione', '#0F766E')
+  body += _infoGrid([
+    { label:'🏛️ Tipo struttura', val: piano.tipo },
+    { label:'👥 Coperti',        val: piano.coperti },
+    { label:'🔥 Kcal/die',       val: piano.kcal },
+    { label:'👤 Utenza',         val: piano.utenza },
+  ], '#0F766E')
+
+  if (piano.diete?.trim()) {
+    body += `<div style="background:#F0FDF4;border-left:4px solid #16A34A;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:10pt;color:#14532D;white-space:pre-wrap">🥗 Diete speciali: ${_e(piano.diete)}</div>`
+  }
+  if (piano.allergeni?.trim()) {
+    body += `<div style="background:#FEF2F2;border-left:4px solid #EF4444;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:10pt;color:#7F1D1D;white-space:pre-wrap">⚠️ Allergeni: ${_e(piano.allergeni)}</div>`
+  }
+
+  portate.forEach(portata => {
+    const hdrInner = `<div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+      <span style="font-size:14px;font-weight:700;color:white">${_e(portata.nome || 'Portata')}</span>
+      ${portata.porzione ? `<span style="font-size:12px;color:rgba(255,255,255,.9)">${_e(portata.porzione)}</span>` : ''}
+    </div>`
+    const righe = portata.menu.split('\n').map(l => l.trim()).filter(Boolean).map(line =>
+      `<div style="padding:8px 16px;border-bottom:1px solid #F1F5F9;font-size:13px">${_e(line)}</div>`
+    )
+    body += _mealCard(hdrInner, righe, portata.note)
+  })
+
+  body += `<div class="footer">DietPlan Pro · Menu Ristorazione</div>`
+  return _pageWrap(nome, body)
+}
+
+// ─── Renderer generico (chetogenica, renale, disfagia, ncpt, documenti, ecc.) ─
+function buildGenericDocHTML(doc, tipo, dati) {
+  const LABELS = {
+    chetogenica:'🥑 Dieta Chetogenica', renale:'🫘 Nefropatia / IRC',
+    ncpt:'📋 NCPT', dca:'🧠 Sessione DCA', questionario:'📝 Questionario',
+    valutazione:'📊 Valutazione', education:'📚 Materiale Educativo',
+    educazione:'📚 Materiale Educativo', referto:'📄 Referto',
+    document:'📄 Documento', ricetta:'🍳 Ricetta', recipe:'🍳 Ricetta',
+  }
+  const COLORI = {
+    chetogenica:'#0891b2', renale:'#f97316', ncpt:'#7c3aed',
+    dca:'#7c3aed', questionario:'#7c3aed', valutazione:'#0f766e',
+    education:'#8b5cf6', educazione:'#8b5cf6',
+  }
+  const label  = LABELS[tipo] || tipo.charAt(0).toUpperCase() + tipo.slice(1)
+  const colore = COLORI[tipo] || '#475569'
+  const nome   = doc.title || doc.nota || label
+
+  let body = _hdr(nome, label, colore)
+
+  if (tipo === 'chetogenica') {
+    const c = dati.calcolo || {}
+    body += _infoGrid([
+      { label:'⚖️ Peso',      val: c.peso   ? c.peso   + ' kg'   : '' },
+      { label:'📏 Altezza',   val: c.altezza? c.altezza+ ' cm'   : '' },
+      { label:'🎂 Età',       val: c.eta    ? c.eta    + ' anni' : '' },
+      { label:'🚶 Attività',  val: c.attivita },
+      { label:'🥑 Tipo dieta',val: c.tipo },
+      { label:'🎯 Obiettivo', val: c.obiettivo },
+    ], colore)
+    if (dati.gki?.glicemia || dati.gki?.chetoni) {
+      body += _infoGrid([
+        { label:'🩸 Glicemia', val: dati.gki.glicemia  ? dati.gki.glicemia  + ' mg/dL'  : '' },
+        { label:'🔬 Chetoni',  val: dati.gki.chetoni   ? dati.gki.chetoni   + ' mmol/L' : '' },
+      ], colore)
+    }
+
+  } else if (tipo === 'renale') {
+    const c = dati.calcolo || {}
+    body += _infoGrid([
+      { label:'⚖️ Peso',         val: c.peso        ? c.peso        + ' kg'   : '' },
+      { label:'🏋️ Peso ideale',  val: c.peso_ideale ? c.peso_ideale + ' kg'   : '' },
+      { label:'📏 Altezza',      val: c.altezza     ? c.altezza     + ' cm'   : '' },
+      { label:'🎂 Età',          val: c.eta         ? c.eta         + ' anni' : '' },
+      { label:'🏥 Stadio IRC',   val: c.stadio },
+      { label:'🚶 Attività',     val: c.attivita },
+    ], colore)
+
+  } else if (tipo === 'disfagia') {
+    if (dati.iddsi) body += `<div style="background:#F0FDFA;border-left:4px solid #0D9488;border-radius:6px;padding:12px 16px;margin-bottom:14px">
+      <div style="font-size:9pt;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Livello IDDSI</div>
+      <div style="font-size:16pt;font-weight:700;color:#0F766E">${_e(dati.iddsi)}</div>
+    </div>`
+    if (dati.kcal) body += `<div style="background:#F8FAFC;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:11pt">${_e(dati.kcal)}</div>`
+
+  } else if (tipo === 'ncpt') {
+    const renderSez = (titolo, jsonVal) => {
+      if (!jsonVal) return ''
+      let obj; try { obj = typeof jsonVal === 'string' ? JSON.parse(jsonVal) : jsonVal } catch { return '' }
+      const entries = Object.entries(obj).filter(([k, v]) => v && String(v).trim() && !['cartella_id','user_id','obiettivi'].includes(k))
+      if (!entries.length) return ''
+      let s = `<div style="margin-bottom:16px"><div style="font-size:11pt;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid #E2E8F0">${titolo}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">`
+      entries.forEach(([k, v]) => {
+        const lbl = k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
+        s += `<div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;border-left:3px solid ${colore}">
+          <div style="font-size:9pt;font-weight:700;color:#64748B;margin-bottom:2px">${_e(lbl)}</div>
+          <div style="font-size:11pt;color:#1E293B">${_e(String(v))}</div>
+        </div>`
+      })
+      return s + '</div></div>'
+    }
+    body += renderSez('👤 Valutazione', dati.valutazione)
+    body += renderSez('🎯 Diagnosi', dati.diagnosi)
+    body += renderSez('💊 Intervento', dati.intervento)
+    body += renderSez('📈 Monitoraggio', dati.monitoraggio)
+
+  } else {
+    // Generic fallback: content text or available dati fields
+    const testo = doc.content || dati.descrizione || dati.testo || dati.contenuto || dati.note || ''
+    if (testo) {
+      body += `<div style="background:#F8FAFC;border-radius:8px;padding:16px;font-size:11pt;color:#1E293B;line-height:1.7;white-space:pre-wrap">${_nl2br(testo)}</div>`
+    } else {
+      const entries = Object.entries(dati).filter(([k, v]) => v && String(v).trim() && !['stampa_html'].includes(k) && typeof v !== 'object')
+      if (entries.length) {
+        body += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">`
+        entries.forEach(([k, v]) => {
+          const lbl = k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
+          body += `<div style="background:#F8FAFC;border-radius:8px;padding:10px 12px;border-left:3px solid ${colore}">
+            <div style="font-size:9pt;font-weight:700;color:#64748B;margin-bottom:4px">${_e(lbl)}</div>
+            <div style="font-size:11pt;color:#1E293B">${_e(String(v))}</div>
+          </div>`
+        })
+        body += `</div>`
+      }
+    }
+  }
+
+  const dataStr = doc.created_at ? new Date(doc.created_at).toLocaleDateString('it-IT') : ''
+  body += `<div class="footer">DietPlan Pro · ${_e(label)}${dataStr ? ' · ' + dataStr : ''}</div>`
+  return _pageWrap(nome, body)
+}
+
+// ─── Master router: smista tutti i tipi di documento al renderer corretto ────
+function buildDocumentPrintHTML(doc) {
+  const dati = doc.dati_raw && typeof doc.dati_raw === 'object' ? doc.dati_raw : {}
+
+  // 1. HTML di stampa pre-generato dal sito dietista
+  if (dati.stampa_html) return dati.stampa_html
+
+  const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
+
+  // 2. Consiglio nutrizionale
+  if (tipo === 'consiglio' || tipo === 'advice') return buildConsiglioPrintHTML(doc)
+
+  // 3. Piano alimentare strutturato (tabella piani, giorni con items)
+  if (doc.meals_data) {
+    try {
+      const md = typeof doc.meals_data === 'string' ? JSON.parse(doc.meals_data) : doc.meals_data
+      if (Array.isArray(md) && md[0]?.meals) return buildPianoPrintHTML(doc, md)
+    } catch { /* fall through */ }
+  }
+
+  // 4. Specialistiche con pasti textarea (diabete, pediatria, sport, pancreas)
+  const pasti = dati.piano?.pasti
+  if (Array.isArray(pasti) && pasti.some(p => p.alimenti?.trim())) {
+    return buildSpecialisticaHTML(doc, tipo, dati, pasti)
+  }
+
+  // 5. Ristorazione con portate
+  if (tipo === 'ristorazione' && Array.isArray(dati.piano?.portate) && dati.piano.portate.some(p => p.menu?.trim())) {
+    return buildRistorazioneHTML(doc, dati)
+  }
+
+  // 6. Tutto il resto (chetogenica, renale, disfagia, ncpt, documenti, ecc.)
+  return buildGenericDocHTML(doc, tipo, dati)
+}
+
 // Costruisce l'HTML di patient-view.html con i dati del documento iniettati.
 // Il file è già bundlato in patientViewRaw — nessuna rete, nessun rewrite Vercel.
 function buildPatientViewHtml(doc, withPrint = false) {
@@ -210,14 +526,11 @@ function buildPatientViewHtml(doc, withPrint = false) {
 // ─── Stampa: apre una nuova finestra con l'HTML del documento ─────────────────
 function handlePrint(doc) {
   try {
-    const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
-    const isConsiglio = tipo === 'consiglio' || tipo === 'advice'
-    const html = isConsiglio ? buildConsiglioPrintHTML(doc) : buildPatientViewHtml(doc, true)
+    const html = buildDocumentPrintHTML(doc)
     const win  = window.open('', '_blank')
     if (!win) { alert('Abilita i popup per stampare il documento.'); return }
     win.document.write(html)
     win.document.close()
-    if (!isConsiglio) win.onload = () => win.print()
   } catch (err) {
     console.error('[handlePrint]', err)
   }
@@ -233,9 +546,7 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
     setError(null)
     if (!doc || doc.file_url) return
     try {
-      const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
-      const isConsiglio = tipo === 'consiglio' || tipo === 'advice'
-      setIframeHtml(isConsiglio ? buildConsiglioPrintHTML(doc) : buildPatientViewHtml(doc))
+      setIframeHtml(buildDocumentPrintHTML(doc))
     } catch (err) {
       console.error('[DocModal]', err)
       setError(err.message)
