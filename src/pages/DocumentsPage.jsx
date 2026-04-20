@@ -268,7 +268,7 @@ body{font-family:'DM Sans','Segoe UI',Arial,sans-serif;color:#1E293B;font-size:1
 </head><body>${inner}</body></html>`
 
   // ── PASTI_TIPI: layout identico a stampaCompattaSpecialistica ─────────────
-  const PASTI_TIPI = ['diabete', 'pediatria', 'sport', 'pancreas']
+  const PASTI_TIPI = ['diabete', 'pediatria', 'sport', 'pancreas', 'dca']
   if (PASTI_TIPI.includes(tipo)) {
     const totKcal = parseFloat(piano.kcal)       || 0
     const totCho  = parseFloat(piano.cho_tot)    || 0
@@ -1187,28 +1187,37 @@ export default function DocumentsPage() {
             }
 
             const renderSubsectionRow = (doc, sub, folderColor) => {
-              const html = buildSubsectionHTML(doc, sub.key)
+              // Per piano_alimentare usa stampa_html (output ESATTO dal sito dietista)
+              const html = (sub.key === 'piano_alimentare' && doc.dati_raw?.stampa_html)
+                ? doc.dati_raw.stampa_html
+                : buildSubsectionHTML(doc, sub.key)
               if (!html) return null
-              const virtualDoc = { ...doc, id: doc.id + '_' + sub.key, title: sub.label.replace(/^[^\w]*/, '').trim() || sub.label, dati_raw: { ...doc.dati_raw, stampa_html: html } }
+              const emoji = sub.label.match(/^\S+/)?.[0] || '📄'
+              const labelText = sub.label.replace(/^\S+\s*/, '')
+              const virtualDoc = {
+                ...doc,
+                id:       doc.id + '_' + sub.key,
+                title:    sub.label,
+                dati_raw: { stampa_html: html },
+              }
               return (
-                <button key={sub.key} onClick={() => setSelected(virtualDoc)} style={{
+                <button key={doc.id + '_' + sub.key} onClick={() => setSelected(virtualDoc)} style={{
                   width: '100%', background: 'white',
                   border: '1px solid var(--border-light)',
-                  borderRadius: 'var(--r-lg)', padding: '11px 14px 11px 20px',
+                  borderRadius: 'var(--r-lg)', padding: '11px 14px',
                   display: 'flex', alignItems: 'center', gap: 12,
                   cursor: 'pointer', font: 'inherit', textAlign: 'left',
                   boxShadow: 'var(--shadow-sm)',
-                  marginLeft: 20,
                 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: folderColor + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
-                    {sub.label.split(' ')[0]}
+                  <div style={{ width: 38, height: 38, borderRadius: 10, background: folderColor + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+                    {emoji}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontSize: 13, fontWeight: 600, color: '#1E293B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 0 }}>
-                      {sub.label.replace(/^\S+\s/, '')}
+                      {labelText}
                     </p>
                   </div>
-                  <span style={{ fontSize: 16, color: '#94A3B8' }}>›</span>
+                  <span style={{ fontSize: 18, color: '#CBD5E1' }}>›</span>
                 </button>
               )
             }
@@ -1252,18 +1261,18 @@ export default function DocumentsPage() {
                         const specSubs = PATIENT_SPEC_SUBSECTIONS[tipo]
                         const visibleSections = doc.dati_raw?.visible_sections
 
-                        // Se ha visible_sections definite e ci sono sottosezioni per questo tipo
+                        // ── Mostra sottosezioni SOLO se il dietista le ha scelte esplicitamente ──
                         if (visibleSections?.length > 0 && specSubs?.length > 0) {
                           const activeSubs = specSubs.filter(s => visibleSections.includes(s.key))
-                          if (activeSubs.length > 0) {
-                            return activeSubs.map(sub => renderSubsectionRow(doc, sub, folder.color))
+                          const rows = activeSubs
+                            .map(sub => renderSubsectionRow(doc, sub, folder.color))
+                            .filter(Boolean)
+                          if (rows.length > 0) {
+                            return <div key={doc.id} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{rows}</div>
                           }
                         }
-                        // Altrimenti se ci sono sottosezioni definite, mostrare tutte
-                        if (specSubs?.length > 0 && !visibleSections) {
-                          return specSubs.map(sub => renderSubsectionRow(doc, sub, folder.color)).filter(Boolean)
-                        }
-                        // Default: mostra il documento intero
+
+                        // ── Default: documento intero (usa stampa_html se disponibile) ──
                         return renderDocRow(doc, true)
                       })}
                     </div>
