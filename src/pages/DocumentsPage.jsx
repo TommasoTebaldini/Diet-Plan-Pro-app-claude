@@ -21,6 +21,9 @@ const TYPE_META = {
   sport:         { label: 'Nutrizione Sportiva',    icon: <Heart size={18} />,    color: '#e05a5a', bg: '#fff0f0' },
   questionario:  { label: 'Questionario',           icon: <FileText size={18} />, color: '#7c3aed', bg: '#f5f3ff' },
   dca:           { label: 'Sessione DCA',           icon: <FileText size={18} />, color: '#7c3aed', bg: '#f5f3ff' },
+  ncpt:          { label: 'NCPT',                   icon: <FileText size={18} />, color: '#7c3aed', bg: '#f5f3ff' },
+  valutazione:   { label: 'Valutazione',            icon: <FileText size={18} />, color: '#0f766e', bg: '#ccfbf1' },
+  bia:           { label: 'BIA',                    icon: <FileText size={18} />, color: '#0891b2', bg: '#ecfeff' },
   document:      { label: 'Documento',              icon: <FileText size={18} />, color: '#3b82f6', bg: '#eff6ff' },
   referto:       { label: 'Referto',                icon: <FileText size={18} />, color: '#3b82f6', bg: '#eff6ff' },
   education:     { label: 'Materiale educativo',    icon: <BookOpen size={18} />, color: '#8b5cf6', bg: '#f5f3ff' },
@@ -540,8 +543,39 @@ body{font-family:'DM Sans','Segoe UI',Arial,sans-serif;color:#1E293B;font-size:1
     body += renderSezNcpt('📈 Monitoraggio', dati.monitoraggio)
   }
 
+  // Scheda Valutazione
+  if (tipo === 'valutazione') {
+    const d = dati
+    const card = (lbl, val, unit='') => val != null && val !== '' && val !== null
+      ? `<div style="background:#F8FAFC;border-radius:8px;padding:10px 12px;border-left:3px solid #0f766e">
+          <div style="font-size:9pt;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:2px">${lbl}</div>
+          <div style="font-size:13px;color:#1E293B;font-weight:600">${_e(String(val))}${unit ? ' <span style="font-size:10px;color:#94A3B8">'+unit+'</span>' : ''}</div>
+        </div>` : ''
+    const section = (title, cards) => { const c = cards.filter(Boolean).join(''); return c ? `<div style="margin-bottom:14px"><div style="font-size:10pt;font-weight:700;color:#0f766e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid #E2E8F0">${title}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${c}</div></div>` : '' }
+    body += section('👤 Dati Anagrafici', [card('Nome',d.nome),card('Cognome',d.cognome),card('Età',d.eta,'anni'),card('Sesso',d.sesso)])
+    body += section('⚖️ Antropometria', [card('Peso',d.peso,'kg'),card('Altezza',d.altezza,'cm'),card('Peso ideale',d.peso_ideale,'kg'),card('Massa grassa',d.massa_grassa_pct,'%'),card('Massa magra',d.massa_magra,'kg'),card('Vita',d.vita,'cm'),card('Fianchi',d.fianchi,'cm'),card('Braccio',d.braccio,'cm')])
+    if (d.tdee_calcolato) body += `<div style="background:#F0FDF4;border-radius:8px;padding:12px 16px;border-left:4px solid #16A34A;margin-bottom:14px"><div style="font-size:9pt;font-weight:700;color:#15803D;text-transform:uppercase;margin-bottom:2px">Fabbisogno energetico</div><div style="font-size:18px;font-weight:700;color:#15803D">${_e(String(d.tdee_calcolato))} kcal/die</div></div>`
+    if (d.note?.trim()) body += `<div style="background:#FFF7ED;border-left:4px solid #F59E0B;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:11pt;white-space:pre-wrap">📌 ${_e(d.note)}</div>`
+  }
+
+  // BIA
+  if (tipo === 'bia') {
+    const d = dati
+    const card = (lbl, val, unit='') => val != null && val !== '' && val !== null
+      ? `<div style="background:#F8FAFC;border-radius:8px;padding:10px 12px;border-left:3px solid #0891b2">
+          <div style="font-size:9pt;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:2px">${lbl}</div>
+          <div style="font-size:13px;color:#1E293B;font-weight:600">${_e(String(val))}${unit ? ' <span style="font-size:10px;color:#94A3B8">'+unit+'</span>' : ''}</div>
+        </div>` : ''
+    const section = (title, cards) => { const c = cards.filter(Boolean).join(''); return c ? `<div style="margin-bottom:14px"><div style="font-size:10pt;font-weight:700;color:#0891b2;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid #E2E8F0">${title}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${c}</div></div>` : '' }
+    if (d.data_misura) body += `<div style="background:#EFF6FF;border-left:4px solid #0891b2;border-radius:6px;padding:8px 14px;margin-bottom:14px;font-size:11pt;color:#0c4a6e">📅 Data misurazione: <strong>${_e(new Date(d.data_misura).toLocaleDateString('it-IT'))}</strong></div>`
+    body += section('⚖️ Dati Base', [card('Peso',d.peso,'kg'),card('Altezza',d.altezza,'cm'),card('Età',d.eta,'anni'),card('Sesso',d.sesso)])
+    body += section('🔬 Composizione Corporea', [card('Massa grassa',d.bf_pct,'%'),card('FM',d.fm_kg,'kg'),card('FFM',d.ffm_kg,'kg'),card('Angolo di fase',d.angolo_fase,'°'),card('FFMI',d.ffmi),card('BCM',d.bcm,'kg'),card('Muscolo',d.muscle,'kg'),card('Osso',d.bone,'kg')])
+    body += section('💧 Idratazione', [card('TBW',d.tbw,'L'),card('ICW',d.icw,'L'),card('ECW',d.ecw,'L')])
+    if (d.note?.trim()) body += `<div style="background:#FFF7ED;border-left:4px solid #F59E0B;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:11pt;white-space:pre-wrap">📌 ${_e(d.note)}</div>`
+  }
+
   // Fallback generico per tipi sconosciuti: mostra testo o campi semplici
-  const SPEC_KNOWN = new Set(['diabete','pediatria','sport','pancreas','disfagia','renale','chetogenica','ristorazione','ncpt','dca'])
+  const SPEC_KNOWN = new Set(['diabete','pediatria','sport','pancreas','disfagia','renale','chetogenica','ristorazione','ncpt','dca','valutazione','bia'])
   if (!SPEC_KNOWN.has(tipo)) {
     const testo = doc.content || dati.descrizione || dati.testo || dati.contenuto || dati.note || ''
     if (testo) {
@@ -795,6 +829,8 @@ body{font-family:'DM Sans','Segoe UI',Arial,sans-serif;color:#1E293B;font-size:1
 const FOLDER_DEFS = [
   { key: 'consiglio',    label: 'Consigli Nutrizionali', icon: '💡', color: '#16A34A', bg: '#F0FDF4', types: ['consiglio','advice'] },
   { key: 'piano',        label: 'Piano Alimentare',       icon: '🥗', color: '#1a7f5a', bg: '#e6f5ee', types: ['piano','diet','dieta'] },
+  { key: 'valutazione',  label: 'Valutazione',            icon: '📊', color: '#0f766e', bg: '#ccfbf1', types: ['valutazione'] },
+  { key: 'bia',          label: 'BIA',                    icon: '⚡', color: '#0891b2', bg: '#ecfeff', types: ['bia'] },
   { key: 'ncpt',         label: 'NCPT',                   icon: '📋', color: '#7c3aed', bg: '#f5f3ff', types: ['ncpt'] },
   { key: 'diabete',      label: 'Diabete',                icon: '🩸', color: '#1D4ED8', bg: '#DBEAFE', types: ['diabete'] },
   { key: 'pediatria',    label: 'Pediatria',              icon: '👶', color: '#5B21B6', bg: '#EDE9FE', types: ['pediatria'] },
@@ -1082,6 +1118,61 @@ export default function DocumentsPage() {
               visible:     true,
               published_at: p.saved_at,
               created_at:  p.saved_at,
+            })
+          }
+
+          // 2c. NCPT visibili al paziente
+          const { data: ncpts, error: ncptErr } = await supabase
+            .from('ncpt')
+            .select('id, cartella_id, valutazione, diagnosi, intervento, monitoraggio, created_at')
+            .eq('cartella_id', cartellaId)
+            .eq('visible_to_patient', true)
+            .order('created_at', { ascending: false })
+          console.log('[Docs] ncpt:', ncpts?.length, '| error:', ncptErr?.message)
+          for (const n of ncpts || []) {
+            let val = {}; try { val = typeof n.valutazione === 'string' ? JSON.parse(n.valutazione) : (n.valutazione || {}) } catch { /* */ }
+            const titolo = [val.nome, val.cognome].filter(Boolean).join(' ') || 'NCPT'
+            allDocs.push({
+              id: `ncpt_${n.id}`, title: titolo, type: 'ncpt', source: 'ncpt', tipo: 'ncpt',
+              nota: titolo, content: '', file_url: null, tags: [], visible: true,
+              dati_raw: { valutazione: n.valutazione, diagnosi: n.diagnosi, intervento: n.intervento, monitoraggio: n.monitoraggio },
+              meals_data: null, published_at: n.created_at, created_at: n.created_at,
+            })
+          }
+
+          // 2d. Schede valutazione visibili al paziente
+          const { data: schede, error: schedeErr } = await supabase
+            .from('schede_valutazione')
+            .select('id, nome, cognome, eta, sesso, peso, altezza, peso_ideale, massa_grassa_pct, massa_magra, vita, fianchi, braccio, patologie, note, macro_dist, tdee_calcolato, dati_extra, saved_at')
+            .eq('cartella_id', cartellaId)
+            .eq('visible_to_patient', true)
+            .order('saved_at', { ascending: false })
+          console.log('[Docs] schede_valutazione:', schede?.length, '| error:', schedeErr?.message)
+          for (const s of schede || []) {
+            const titolo = [s.nome, s.cognome].filter(Boolean).join(' ') || 'Scheda Valutazione'
+            allDocs.push({
+              id: `val_${s.id}`, title: titolo, type: 'valutazione', source: 'valutazione', tipo: 'valutazione',
+              nota: titolo, content: '', file_url: null, tags: [], visible: true,
+              dati_raw: { nome: s.nome, cognome: s.cognome, eta: s.eta, sesso: s.sesso, peso: s.peso, altezza: s.altezza, peso_ideale: s.peso_ideale, massa_grassa_pct: s.massa_grassa_pct, massa_magra: s.massa_magra, vita: s.vita, fianchi: s.fianchi, braccio: s.braccio, patologie: s.patologie, note: s.note, macro_dist: s.macro_dist, tdee_calcolato: s.tdee_calcolato, dati_extra: s.dati_extra },
+              meals_data: null, published_at: s.saved_at, created_at: s.saved_at,
+            })
+          }
+
+          // 2e. BIA visibili al paziente
+          const { data: bias, error: biaErr } = await supabase
+            .from('bia_records')
+            .select('id, data_misura, note, peso, altezza, eta, sesso, angolo_fase, bf_pct, fm_kg, ffm_kg, tbw, icw, ecw, bcm, muscle, bone, ffmi, raw_data, created_at')
+            .eq('cartella_id', cartellaId)
+            .eq('visible_to_patient', true)
+            .order('data_misura', { ascending: false })
+          console.log('[Docs] bia_records:', bias?.length, '| error:', biaErr?.message)
+          for (const b of bias || []) {
+            const dataStr = b.data_misura ? new Date(b.data_misura).toLocaleDateString('it-IT') : ''
+            allDocs.push({
+              id: `bia_${b.id}`, title: 'BIA' + (dataStr ? ' — ' + dataStr : ''), type: 'bia', source: 'bia', tipo: 'bia',
+              nota: 'BIA' + (dataStr ? ' — ' + dataStr : ''), content: '', file_url: null, tags: [], visible: true,
+              dati_raw: { data_misura: b.data_misura, note: b.note, peso: b.peso, altezza: b.altezza, eta: b.eta, sesso: b.sesso, angolo_fase: b.angolo_fase, bf_pct: b.bf_pct, fm_kg: b.fm_kg, ffm_kg: b.ffm_kg, tbw: b.tbw, icw: b.icw, ecw: b.ecw, bcm: b.bcm, muscle: b.muscle, bone: b.bone, ffmi: b.ffmi, raw_data: b.raw_data },
+              meals_data: null, published_at: b.created_at || b.data_misura, created_at: b.created_at || b.data_misura,
             })
           }
         }
