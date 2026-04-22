@@ -44,15 +44,58 @@ function isNew(doc, lastSeen) {
   return new Date(doc.created_at) > new Date(lastSeen)
 }
 
-// Funzione principale: mostra solo stampe originali del sito dietista
+// Funzione principale: mostra stampe originali o fallback base per documenti esistenti
 function buildDocumentPrintHTML(doc) {
   const dati = doc.dati_raw && typeof doc.dati_raw === 'object' ? doc.dati_raw : {}
 
-  // Solo HTML di stampa pre-generato dal sito dietista
+  // 1. HTML di stampa pre-generato dal sito dietista (preferito)
   if (dati.stampa_html) return dati.stampa_html
 
-  // Se non c'è stampa_html, non mostrare nulla generato
-  return null
+  // 2. Fallback base per documenti esistenti senza stampa_html
+  const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
+  const nome = doc.title || doc.nota || 'Documento'
+  const content = doc.content || dati.descrizione || dati.testo || dati.contenuto || ''
+  
+  // Crea un HTML base semplice che mostra il contenuto disponibile
+  let body = `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>${nome}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',Arial,sans-serif;color:#1E293B;font-size:12pt;line-height:1.6;padding:2cm;max-width:700px;margin:0 auto}
+    .header{background:#1a7f5a;color:white;padding:16px 20px;border-radius:10px;margin-bottom:20px;text-align:center}
+    .content{background:#f8fafc;border-radius:10px;padding:20px;margin-bottom:20px}
+    .footer{font-size:10pt;color:#64748b;text-align:center;margin-top:20px}
+  </style>
+  </head><body>
+    <div class="header">
+      <h1 style="margin:0;font-size:18pt;font-weight:300">${nome}</h1>
+      <p style="margin:4px 0 0;opacity:0.8;font-size:11pt">${tipo.charAt(0).toUpperCase() + tipo.slice(1)} · DietPlan Pro</p>
+    </div>
+    <div class="content">`
+    
+  if (content && content.trim()) {
+    body += `<div style="white-space:pre-wrap;line-height:1.7">${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`
+  } else {
+    body += `<p style="color:#64748b;font-style:italic">Contenuto non disponibile</p>`
+  }
+    
+  // Mostra dati aggiuntivi se presenti
+  const datiKeys = Object.keys(dati).filter(k => k !== 'stampa_html' && dati[k] && typeof dati[k] === 'string' && dati[k].trim())
+  if (datiKeys.length > 0) {
+    body += `<div style="margin-top:20px;padding-top:15px;border-top:1px solid #e2e8f0">
+      <h3 style="font-size:14pt;color:#1e293b;margin-bottom:10px">Informazioni aggiuntive:</h3>`
+    datiKeys.forEach(key => {
+      const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+      body += `<p style="margin:5px 0;font-size:11pt"><strong>${label}:</strong> ${dati[key]}</p>`
+    })
+    body += `</div>`
+  }
+    
+  const dataStr = doc.created_at ? new Date(doc.created_at).toLocaleDateString('it-IT') : ''
+  body += `</div>
+    <div class="footer">DietPlan Pro · ${tipo.charAt(0).toUpperCase() + tipo.slice(1)}${dataStr ? ' · ' + dataStr : ''}</div>
+  </body></html>`
+    
+  return body
 }
 
 // Sottosezioni per specialistiche
