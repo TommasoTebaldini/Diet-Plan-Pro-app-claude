@@ -768,7 +768,7 @@ export default function DocumentsPage() {
               dati_raw: datiParsed || n.dati,
               meals_data: mealsData,
               file_url: datiParsed?.file_url || datiParsed?.pdf_url || null,
-              print_image_url: n.print_image_url || n.stampa_image || n.image_url || datiParsed?.print_image_url || datiParsed?.stampa_image || datiParsed?.image_url || null,
+              print_image_url: n.print_image_url || null,
               tags: datiParsed?.tags || [],
               visible: true,
               published_at: n.created_at,
@@ -828,7 +828,7 @@ export default function DocumentsPage() {
               dati_raw: null,
               meals_data: p.meals,
               file_url: null,
-              print_image_url: p.print_image_url || p.stampa_image || p.image_url || null,
+              print_image_url: p.print_image_url || null,
               tags: [],
               visible: true,
               published_at: p.saved_at,
@@ -883,7 +883,7 @@ export default function DocumentsPage() {
               id: `ncpt_${n.id}`, title: titolo, type: 'ncpt', source: 'ncpt', tipo: 'ncpt',
               nota: titolo, content: '', file_url: null, tags: [], visible: true,
               dati_raw: { valutazione: n.valutazione, diagnosi: n.diagnosi, intervento: n.intervento, monitoraggio: n.monitoraggio },
-              meals_data: null, print_image_url: n.print_image_url || n.stampa_image || n.image_url || null, published_at: n.created_at, created_at: n.created_at,
+              meals_data: null, print_image_url: n.print_image_url || null, published_at: n.created_at, created_at: n.created_at,
             })
           }
 
@@ -933,7 +933,7 @@ export default function DocumentsPage() {
               id: `val_${s.id}`, title: titolo, type: 'valutazione', source: 'valutazione', tipo: 'valutazione',
               nota: titolo, content: '', file_url: null, tags: [], visible: true,
               dati_raw: { nome: s.nome, cognome: s.cognome, eta: s.eta, sesso: s.sesso, peso: s.peso, altezza: s.altezza, peso_ideale: s.peso_ideale, massa_grassa_pct: s.massa_grassa_pct, massa_magra: s.massa_magra, vita: s.vita, fianchi: s.fianchi, braccio: s.braccio, patologie: s.patologie, note: s.note, macro_dist: s.macro_dist, tdee_calcolato: s.tdee_calcolato, dati_extra: s.dati_extra },
-              meals_data: null, print_image_url: s.print_image_url || s.stampa_image || s.image_url || null, published_at: s.saved_at, created_at: s.saved_at,
+              meals_data: null, print_image_url: s.print_image_url || null, published_at: s.saved_at, created_at: s.saved_at,
             })
           }
 
@@ -982,7 +982,7 @@ export default function DocumentsPage() {
               id: `bia_${b.id}`, title: 'BIA' + (dataStr ? ' - ' + dataStr : ''), type: 'bia', source: 'bia', tipo: 'bia',
               nota: 'BIA' + (dataStr ? ' - ' + dataStr : ''), content: '', file_url: null, tags: [], visible: true,
               dati_raw: { data_misura: b.data_misura, note: b.note, peso: b.peso, altezza: b.altezza, eta: b.eta, sesso: b.sesso, angolo_fase: b.angolo_fase, bf_pct: b.bf_pct, fm_kg: b.fm_kg, ffm_kg: b.ffm_kg, tbw: b.tbw, icw: b.icw, ecw: b.ecw, bcm: b.bcm, muscle: b.muscle, bone: b.bone, ffmi: b.ffmi, raw_data: b.raw_data },
-              meals_data: null, print_image_url: b.print_image_url || b.stampa_image || b.image_url || null, published_at: b.created_at || b.data_misura, created_at: b.created_at || b.data_misura,
+              meals_data: null, print_image_url: b.print_image_url || null, published_at: b.created_at || b.data_misura, created_at: b.created_at || b.data_misura,
             })
           }
       } catch (e) {
