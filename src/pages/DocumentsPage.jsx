@@ -489,7 +489,7 @@ function buildPatientViewHtml(doc, withPrint = false) {
 }
 
 // DocModal: mostra il documento
-function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
+function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint, userId }) {
   const [iframeHtml, setIframeHtml] = useState(null)
   const [error, setError] = useState(null)
 
@@ -497,8 +497,11 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
     console.log('[DocModal] useEffect triggered for doc:', doc?.id, doc?.title)
     setIframeHtml(null)
     setError(null)
-    if (!doc || doc.file_url || doc.print_image_url) {
-      console.log('[DocModal] Skipping HTML generation - has attachment or print image')
+    
+    // Controlla se c'è un'immagine di stampa PNG disponibile
+    const hasPrintImage = doc.print_image_url || doc.dati_raw?.print_image_url
+    if (!doc || doc.file_url || hasPrintImage) {
+      console.log('[DocModal] Skipping HTML generation - has attachment or print image:', hasPrintImage)
       return
     }
 
@@ -548,7 +551,30 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
 
   if (!doc) return null
   const meta = TYPE_META[doc.type] || TYPE_META.document
-  const printImageUrl = doc.print_image_url || doc.dati_raw?.print_image_url || doc.dati_raw?.stampa_image || doc.dati_raw?.image_url || null
+  // Cerca print_image_url da tutte le fonti possibili
+  // Il sito dietista salva le immagini PNG nel bucket 'document-prints' con path: <patient_id>/<table>_<record_id>.png
+  let printImageUrl = doc.print_image_url || doc.dati_raw?.print_image_url || doc.dati_raw?.stampa_image || doc.dati_raw?.image_url || null
+  
+  // Se non c'è print_image_url, prova a costruire l'URL dal bucket storage
+  if (!printImageUrl && doc.id) {
+    const sourceTable = doc.source || ''
+    const tableMap = { 'note': 'note_specialistiche', 'piano': 'piani', 'ncpt': 'ncpt', 'valutazione': 'schede_valutazione', 'bia': 'bia_records' }
+    const tableName = tableMap[sourceTable]
+    const recordId = doc.id.split('_').slice(1).join('_') // Rimuovi il prefisso (note_, piano_, etc.)
+    
+    if (tableName && recordId) {
+      // Prova a costruire l'URL del bucket storage
+      // Path: <patient_id>/<table>_<record_id>.png
+      const storagePath = userId ? `${userId}/${tableName}_${recordId}.png` : `${tableName}_${recordId}.png`
+      const { data } = supabase.storage.from('document-prints').getPublicUrl(storagePath)
+      if (data?.publicUrl) {
+        printImageUrl = data.publicUrl
+        console.log('[DocModal] Constructed print URL from storage:', printImageUrl)
+      }
+    }
+  }
+  
+  console.log('[DocModal] Final printImageUrl:', printImageUrl)
   const hasAttachment = !!doc.file_url
 
   return (
@@ -1167,6 +1193,7 @@ export default function DocumentsPage() {
           bookmarked={bookmarks.has(selected.id)}
           onToggleBookmark={toggleBookmark}
           onPrint={() => console.log('Print requested for:', selected.id)}
+          userId={user.id}
         />
       )}
     </>
