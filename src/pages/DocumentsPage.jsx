@@ -909,17 +909,12 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
   useEffect(() => {
     setIframeHtml(null)
     setError(null)
-    if (!doc || doc.file_url) return
-    try {
-      setIframeHtml(buildDocumentPrintHTML(doc))
-    } catch (err) {
-      console.error('[DocModal]', err)
-      setError(err.message)
-    }
   }, [doc?.id])
 
   if (!doc) return null
   const meta = TYPE_META[doc.type] || TYPE_META.document
+  const printImageUrl = doc.print_image_url || null
+  const hasAttachment = !!doc.file_url
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', flexDirection: 'column', background: 'white' }}>
@@ -930,11 +925,11 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
           <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, margin: 0 }}>{meta.label}</p>
           <h2 style={{ color: 'white', fontSize: 17, fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.title}</h2>
         </div>
-        {!doc.file_url && (
-          <button onClick={() => onPrint(doc)} title="Stampa documento"
-            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0 }}>
-            <Printer size={18} />
-          </button>
+        {printImageUrl && (
+          <a href={printImageUrl} target="_blank" rel="noopener noreferrer" download={`${doc.title || 'documento'}.png`} title="Scarica immagine"
+            style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 10, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0, textDecoration: 'none' }}>
+            <Download size={18} />
+          </a>
         )}
         <button onClick={() => onToggleBookmark(doc.id)}
           style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0 }}>
@@ -943,7 +938,23 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
       </div>
 
       {/* Content */}
-      {doc.file_url ? (
+      {printImageUrl ? (
+        <div style={{ flex: 1, overflow: 'auto', background: '#f1f5f9' }}>
+          <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, gap: 14, boxSizing: 'border-box' }}>
+            <img
+              src={printImageUrl}
+              alt={doc.title}
+              style={{ display: 'block', width: '100%', maxWidth: 760, height: 'auto', margin: '0 auto', boxShadow: '0 6px 24px rgba(0,0,0,0.15)', borderRadius: 8, background: 'white' }}
+            />
+            {hasAttachment && (
+              <a href={doc.file_url} target="_blank" rel="noopener noreferrer" download
+                style={{ background: '#1a7f5a', color: 'white', padding: '10px 20px', borderRadius: 12, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+                <Download size={16} />Scarica file allegato
+              </a>
+            )}
+          </div>
+        </div>
+      ) : hasAttachment ? (
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>📄</div>
           <p style={{ marginBottom: 16, color: '#666' }}>Documento allegato</p>
@@ -952,20 +963,13 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
             <Download size={16} />Scarica documento
           </a>
         </div>
-      ) : error ? (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <p style={{ color: '#ef4444', fontSize: 14, textAlign: 'center' }}>{error}</p>
-        </div>
-      ) : iframeHtml ? (
-        <iframe
-          srcDoc={iframeHtml}
-          style={{ flex: 1, width: '100%', border: 'none', display: 'block' }}
-          title={doc.title}
-          sandbox="allow-scripts allow-popups"
-        />
       ) : (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ width: 24, height: 24, border: '3px solid #e5e7eb', borderTopColor: '#1a7f5a', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40, textAlign: 'center' }}>
+          <div style={{ fontSize: 56, marginBottom: 16 }}>⏳</div>
+          <h3 style={{ fontSize: 18, fontWeight: 600, color: '#334155', marginBottom: 8 }}>Documento in fase di aggiornamento</h3>
+          <p style={{ color: '#64748b', fontSize: 14, maxWidth: 320, lineHeight: 1.5 }}>
+            Il tuo dietista sta preparando la versione aggiornata di questo documento. Sarà disponibile a breve.
+          </p>
         </div>
       )}
     </div>
@@ -1023,7 +1027,7 @@ export default function DocumentsPage() {
           // 2a. Note specialistiche visibili al paziente
           const { data: notes, error: notesErr } = await supabase
             .from('note_specialistiche')
-            .select('id, tipo, nota, dati, created_at')
+            .select('id, tipo, nota, dati, print_image_url, created_at')
             .eq('cartella_id', cartellaId)
             .eq('visible_to_patient', true)
             .order('created_at', { ascending: false })
@@ -1086,6 +1090,12 @@ export default function DocumentsPage() {
               dati_raw:    datiParsed || n.dati,
               meals_data:  mealsData,
               file_url:    datiParsed?.file_url || datiParsed?.pdf_url || null,
+              print_image_url: n.print_image_url
+                || datiParsed?.print_image_url
+                || datiParsed?.image_url
+                || datiParsed?.stampa_image_url
+                || datiParsed?.stampa_url
+                || null,
               tags:        datiParsed?.tags || [],
               visible:     true,
               published_at: n.created_at,
@@ -1096,7 +1106,7 @@ export default function DocumentsPage() {
           // 2b. Piani alimentari visibili al paziente
           const { data: piani, error: pianiErr } = await supabase
             .from('piani')
-            .select('id, nome, data_piano, meals, saved_at')
+            .select('id, nome, data_piano, meals, print_image_url, saved_at')
             .eq('cartella_id', cartellaId)
             .eq('visible_to_patient', true)
             .order('saved_at', { ascending: false })
@@ -1114,6 +1124,9 @@ export default function DocumentsPage() {
               dati_raw:    null,
               meals_data:  p.meals,
               file_url:    null,
+              print_image_url: p.print_image_url
+                || (p.meals && typeof p.meals === 'object' && (p.meals.print_image_url || p.meals.image_url))
+                || null,
               tags:        [],
               visible:     true,
               published_at: p.saved_at,
@@ -1124,7 +1137,7 @@ export default function DocumentsPage() {
           // 2c. NCPT visibili al paziente
           const { data: ncpts, error: ncptErr } = await supabase
             .from('ncpt')
-            .select('id, cartella_id, valutazione, diagnosi, intervento, monitoraggio, created_at')
+            .select('id, cartella_id, valutazione, diagnosi, intervento, monitoraggio, print_image_url, created_at')
             .eq('cartella_id', cartellaId)
             .eq('visible_to_patient', true)
             .order('created_at', { ascending: false })
@@ -1134,7 +1147,7 @@ export default function DocumentsPage() {
             const titolo = [val.nome, val.cognome].filter(Boolean).join(' ') || 'NCPT'
             allDocs.push({
               id: `ncpt_${n.id}`, title: titolo, type: 'ncpt', source: 'ncpt', tipo: 'ncpt',
-              nota: titolo, content: '', file_url: null, tags: [], visible: true,
+              nota: titolo, content: '', file_url: null, print_image_url: n.print_image_url || null, tags: [], visible: true,
               dati_raw: { valutazione: n.valutazione, diagnosi: n.diagnosi, intervento: n.intervento, monitoraggio: n.monitoraggio },
               meals_data: null, published_at: n.created_at, created_at: n.created_at,
             })
@@ -1143,7 +1156,7 @@ export default function DocumentsPage() {
           // 2d. Schede valutazione visibili al paziente
           const { data: schede, error: schedeErr } = await supabase
             .from('schede_valutazione')
-            .select('id, nome, cognome, eta, sesso, peso, altezza, peso_ideale, massa_grassa_pct, massa_magra, vita, fianchi, braccio, patologie, note, macro_dist, tdee_calcolato, dati_extra, saved_at')
+            .select('id, nome, cognome, eta, sesso, peso, altezza, peso_ideale, massa_grassa_pct, massa_magra, vita, fianchi, braccio, patologie, note, macro_dist, tdee_calcolato, dati_extra, print_image_url, saved_at')
             .eq('cartella_id', cartellaId)
             .eq('visible_to_patient', true)
             .order('saved_at', { ascending: false })
@@ -1152,7 +1165,11 @@ export default function DocumentsPage() {
             const titolo = [s.nome, s.cognome].filter(Boolean).join(' ') || 'Scheda Valutazione'
             allDocs.push({
               id: `val_${s.id}`, title: titolo, type: 'valutazione', source: 'valutazione', tipo: 'valutazione',
-              nota: titolo, content: '', file_url: null, tags: [], visible: true,
+              nota: titolo, content: '', file_url: null,
+              print_image_url: s.print_image_url
+                || (s.dati_extra && typeof s.dati_extra === 'object' && (s.dati_extra.print_image_url || s.dati_extra.image_url))
+                || null,
+              tags: [], visible: true,
               dati_raw: { nome: s.nome, cognome: s.cognome, eta: s.eta, sesso: s.sesso, peso: s.peso, altezza: s.altezza, peso_ideale: s.peso_ideale, massa_grassa_pct: s.massa_grassa_pct, massa_magra: s.massa_magra, vita: s.vita, fianchi: s.fianchi, braccio: s.braccio, patologie: s.patologie, note: s.note, macro_dist: s.macro_dist, tdee_calcolato: s.tdee_calcolato, dati_extra: s.dati_extra },
               meals_data: null, published_at: s.saved_at, created_at: s.saved_at,
             })
@@ -1161,7 +1178,7 @@ export default function DocumentsPage() {
           // 2e. BIA visibili al paziente
           const { data: bias, error: biaErr } = await supabase
             .from('bia_records')
-            .select('id, data_misura, note, peso, altezza, eta, sesso, angolo_fase, bf_pct, fm_kg, ffm_kg, tbw, icw, ecw, bcm, muscle, bone, ffmi, raw_data, created_at')
+            .select('id, data_misura, note, peso, altezza, eta, sesso, angolo_fase, bf_pct, fm_kg, ffm_kg, tbw, icw, ecw, bcm, muscle, bone, ffmi, raw_data, print_image_url, created_at')
             .eq('cartella_id', cartellaId)
             .eq('visible_to_patient', true)
             .order('data_misura', { ascending: false })
@@ -1170,7 +1187,11 @@ export default function DocumentsPage() {
             const dataStr = b.data_misura ? new Date(b.data_misura).toLocaleDateString('it-IT') : ''
             allDocs.push({
               id: `bia_${b.id}`, title: 'BIA' + (dataStr ? ' — ' + dataStr : ''), type: 'bia', source: 'bia', tipo: 'bia',
-              nota: 'BIA' + (dataStr ? ' — ' + dataStr : ''), content: '', file_url: null, tags: [], visible: true,
+              nota: 'BIA' + (dataStr ? ' — ' + dataStr : ''), content: '', file_url: null,
+              print_image_url: b.print_image_url
+                || (b.raw_data && typeof b.raw_data === 'object' && (b.raw_data.print_image_url || b.raw_data.image_url))
+                || null,
+              tags: [], visible: true,
               dati_raw: { data_misura: b.data_misura, note: b.note, peso: b.peso, altezza: b.altezza, eta: b.eta, sesso: b.sesso, angolo_fase: b.angolo_fase, bf_pct: b.bf_pct, fm_kg: b.fm_kg, ffm_kg: b.ffm_kg, tbw: b.tbw, icw: b.icw, ecw: b.ecw, bcm: b.bcm, muscle: b.muscle, bone: b.bone, ffmi: b.ffmi, raw_data: b.raw_data },
               meals_data: null, published_at: b.created_at || b.data_misura, created_at: b.created_at || b.data_misura,
             })
@@ -1196,7 +1217,9 @@ export default function DocumentsPage() {
         setLoadError(e.message)
       }
 
-      console.log('[Docs] total allDocs:', allDocs.length, allDocs.map(d => ({ id: d.id, type: d.type, tipo: d.tipo, hasContent: !!d.content, hasDatiRaw: !!d.dati_raw, hasMeals: !!d.meals_data })))
+      console.log('[Docs] total allDocs:', allDocs.length, allDocs.map(d => ({ id: d.id, type: d.type, tipo: d.tipo, hasContent: !!d.content, hasDatiRaw: !!d.dati_raw, hasMeals: !!d.meals_data, hasPrintImage: !!d.print_image_url })))
+      const missingImg = allDocs.filter(d => !d.print_image_url).map(d => `${d.source || d.type}:${d.id}`)
+      console.log('[Docs] missing print_image_url:', missingImg.length, missingImg)
       setDocs(allDocs)
       setLoading(false)
     }
@@ -1441,8 +1464,9 @@ export default function DocumentsPage() {
                         const specSubs = PATIENT_SPEC_SUBSECTIONS[tipo]
                         const visibleSections = doc.dati_raw?.visible_sections
 
-                        // ── Mostra sottosezioni SOLO se il dietista le ha scelte esplicitamente ──
-                        if (visibleSections?.length > 0 && specSubs?.length > 0) {
+                        // ── Mostra sottosezioni SOLO se il dietista le ha scelte esplicitamente
+                        //    e non c'è già un'immagine di stampa unica del documento ──
+                        if (!doc.print_image_url && visibleSections?.length > 0 && specSubs?.length > 0) {
                           const activeSubs = specSubs.filter(s => visibleSections.includes(s.key))
                           const rows = activeSubs
                             .map(sub => renderSubsectionRow(doc, sub, folder.color))
