@@ -595,6 +595,7 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
   const meta = TYPE_META[doc.type] || TYPE_META.document
   const generatedPngUrl = generatePngUrl(doc)
   const printImageUrl = doc.print_image_url || generatedPngUrl
+  console.log('[DocModal] doc.print_format:', doc.print_format)
   console.log('[DocModal] printImageUrl:', printImageUrl, '(from DB:', !!doc.print_image_url, ', generated:', generatedPngUrl === printImageUrl, ')')
   const hasAttachment = !!doc.file_url
   
