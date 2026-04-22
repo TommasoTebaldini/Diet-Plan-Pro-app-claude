@@ -548,7 +548,7 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
 
   if (!doc) return null
   const meta = TYPE_META[doc.type] || TYPE_META.document
-  const printImageUrl = doc.print_image_url || null
+  const printImageUrl = doc.print_image_url || doc.dati_raw?.print_image_url || doc.dati_raw?.stampa_image || doc.dati_raw?.image_url || null
   const hasAttachment = !!doc.file_url
 
   return (
@@ -684,7 +684,7 @@ export default function DocumentsPage() {
         if (cartellaId) {
           const result1 = await supabase
             .from('note_specialistiche')
-            .select('id, tipo, nota, dati, created_at')
+            .select('*')
             .eq('cartella_id', cartellaId)
             .eq('visible_to_patient', true)
             .order('created_at', { ascending: false })
@@ -699,7 +699,7 @@ export default function DocumentsPage() {
         if (!notes || notes.length === 0) {
           const result2 = await supabase
             .from('note_specialistiche')
-            .select('id, tipo, nota, dati, created_at')
+            .select('*')
             .eq('patient_id', user.id)
             .eq('visible_to_patient', true)
             .order('created_at', { ascending: false })
@@ -711,13 +711,19 @@ export default function DocumentsPage() {
         if (!notes || notes.length === 0) {
           const result3 = await supabase
             .from('note_specialistiche')
-            .select('id, tipo, nota, dati, created_at')
+            .select('*')
             .eq('visible_to_patient', true)
             .order('created_at', { ascending: false })
             .limit(50) // Limita per evitare troppi risultati
           notes = result3.data
           console.log('[Docs] note_specialistiche without filters:', notes?.length)
         }
+
+          // Log tutte le colonne disponibili per trovare le immagini PNG
+          if (notes?.length > 0) {
+            console.log('[Docs] note_specialistiche ALL columns:', Object.keys(notes[0]))
+            console.log('[Docs] note_specialistiche[0] FULL:', JSON.stringify(notes[0]).substring(0, 500))
+          }
 
           for (const n of notes || []) {
             const tipo = (n.tipo || '').toLowerCase().trim()
@@ -762,6 +768,7 @@ export default function DocumentsPage() {
               dati_raw: datiParsed || n.dati,
               meals_data: mealsData,
               file_url: datiParsed?.file_url || datiParsed?.pdf_url || null,
+              print_image_url: n.print_image_url || n.stampa_image || n.image_url || datiParsed?.print_image_url || datiParsed?.stampa_image || datiParsed?.image_url || null,
               tags: datiParsed?.tags || [],
               visible: true,
               published_at: n.created_at,
@@ -774,7 +781,7 @@ export default function DocumentsPage() {
           if (cartellaId) {
             const pianoResult1 = await supabase
               .from('piani')
-              .select('id, nome, data_piano, meals, saved_at')
+              .select('*')
               .eq('cartella_id', cartellaId)
               .eq('visible_to_patient', true)
               .order('saved_at', { ascending: false })
@@ -789,7 +796,7 @@ export default function DocumentsPage() {
           if (!piani || piani.length === 0) {
             const pianoResult2 = await supabase
               .from('piani')
-              .select('id, nome, data_piano, meals, saved_at')
+              .select('*')
               .eq('patient_id', user.id)
               .eq('visible_to_patient', true)
               .order('saved_at', { ascending: false })
@@ -801,7 +808,7 @@ export default function DocumentsPage() {
           if (!piani || piani.length === 0) {
             const pianoResult3 = await supabase
               .from('piani')
-              .select('id, nome, data_piano, meals, saved_at')
+              .select('*')
               .eq('visible_to_patient', true)
               .order('saved_at', { ascending: false })
               .limit(50)
@@ -821,6 +828,7 @@ export default function DocumentsPage() {
               dati_raw: null,
               meals_data: p.meals,
               file_url: null,
+              print_image_url: p.print_image_url || p.stampa_image || p.image_url || null,
               tags: [],
               visible: true,
               published_at: p.saved_at,
@@ -833,7 +841,7 @@ export default function DocumentsPage() {
           if (cartellaId) {
             const ncptResult1 = await supabase
               .from('ncpt')
-              .select('id, cartella_id, valutazione, diagnosi, intervento, monitoraggio, created_at')
+              .select('*')
               .eq('cartella_id', cartellaId)
               .eq('visible_to_patient', true)
               .order('created_at', { ascending: false })
@@ -848,7 +856,7 @@ export default function DocumentsPage() {
           if (!ncpts || ncpts.length === 0) {
             const ncptResult2 = await supabase
               .from('ncpt')
-              .select('id, cartella_id, valutazione, diagnosi, intervento, monitoraggio, created_at')
+              .select('*')
               .eq('patient_id', user.id)
               .eq('visible_to_patient', true)
               .order('created_at', { ascending: false })
@@ -860,7 +868,7 @@ export default function DocumentsPage() {
           if (!ncpts || ncpts.length === 0) {
             const ncptResult3 = await supabase
               .from('ncpt')
-              .select('id, cartella_id, valutazione, diagnosi, intervento, monitoraggio, created_at')
+              .select('*')
               .eq('visible_to_patient', true)
               .order('created_at', { ascending: false })
               .limit(50)
@@ -875,7 +883,7 @@ export default function DocumentsPage() {
               id: `ncpt_${n.id}`, title: titolo, type: 'ncpt', source: 'ncpt', tipo: 'ncpt',
               nota: titolo, content: '', file_url: null, tags: [], visible: true,
               dati_raw: { valutazione: n.valutazione, diagnosi: n.diagnosi, intervento: n.intervento, monitoraggio: n.monitoraggio },
-              meals_data: null, published_at: n.created_at, created_at: n.created_at,
+              meals_data: null, print_image_url: n.print_image_url || n.stampa_image || n.image_url || null, published_at: n.created_at, created_at: n.created_at,
             })
           }
 
@@ -884,7 +892,7 @@ export default function DocumentsPage() {
           if (cartellaId) {
             const schedeResult1 = await supabase
               .from('schede_valutazione')
-              .select('id, nome, cognome, eta, sesso, peso, altezza, peso_ideale, massa_grassa_pct, massa_magra, vita, fianchi, braccio, patologie, note, macro_dist, tdee_calcolato, dati_extra, saved_at')
+              .select('*')
               .eq('cartella_id', cartellaId)
               .eq('visible_to_patient', true)
               .order('saved_at', { ascending: false })
@@ -899,7 +907,7 @@ export default function DocumentsPage() {
           if (!schede || schede.length === 0) {
             const schedeResult2 = await supabase
               .from('schede_valutazione')
-              .select('id, nome, cognome, eta, sesso, peso, altezza, peso_ideale, massa_grassa_pct, massa_magra, vita, fianchi, braccio, patologie, note, macro_dist, tdee_calcolato, dati_extra, saved_at')
+              .select('*')
               .eq('patient_id', user.id)
               .eq('visible_to_patient', true)
               .order('saved_at', { ascending: false })
@@ -911,7 +919,7 @@ export default function DocumentsPage() {
           if (!schede || schede.length === 0) {
             const schedeResult3 = await supabase
               .from('schede_valutazione')
-              .select('id, nome, cognome, eta, sesso, peso, altezza, peso_ideale, massa_grassa_pct, massa_magra, vita, fianchi, braccio, patologie, note, macro_dist, tdee_calcolato, dati_extra, saved_at')
+              .select('*')
               .eq('visible_to_patient', true)
               .order('saved_at', { ascending: false })
               .limit(50)
@@ -925,7 +933,7 @@ export default function DocumentsPage() {
               id: `val_${s.id}`, title: titolo, type: 'valutazione', source: 'valutazione', tipo: 'valutazione',
               nota: titolo, content: '', file_url: null, tags: [], visible: true,
               dati_raw: { nome: s.nome, cognome: s.cognome, eta: s.eta, sesso: s.sesso, peso: s.peso, altezza: s.altezza, peso_ideale: s.peso_ideale, massa_grassa_pct: s.massa_grassa_pct, massa_magra: s.massa_magra, vita: s.vita, fianchi: s.fianchi, braccio: s.braccio, patologie: s.patologie, note: s.note, macro_dist: s.macro_dist, tdee_calcolato: s.tdee_calcolato, dati_extra: s.dati_extra },
-              meals_data: null, published_at: s.saved_at, created_at: s.saved_at,
+              meals_data: null, print_image_url: s.print_image_url || s.stampa_image || s.image_url || null, published_at: s.saved_at, created_at: s.saved_at,
             })
           }
 
@@ -934,7 +942,7 @@ export default function DocumentsPage() {
           if (cartellaId) {
             const biaResult1 = await supabase
               .from('bia_records')
-              .select('id, data_misura, note, peso, altezza, eta, sesso, angolo_fase, bf_pct, fm_kg, ffm_kg, tbw, icw, ecw, bcm, muscle, bone, ffmi, raw_data, created_at')
+              .select('*')
               .eq('cartella_id', cartellaId)
               .eq('visible_to_patient', true)
               .order('data_misura', { ascending: false })
@@ -949,7 +957,7 @@ export default function DocumentsPage() {
           if (!bias || bias.length === 0) {
             const biaResult2 = await supabase
               .from('bia_records')
-              .select('id, data_misura, note, peso, altezza, eta, sesso, angolo_fase, bf_pct, fm_kg, ffm_kg, tbw, icw, ecw, bcm, muscle, bone, ffmi, raw_data, created_at')
+              .select('*')
               .eq('patient_id', user.id)
               .eq('visible_to_patient', true)
               .order('data_misura', { ascending: false })
@@ -961,7 +969,7 @@ export default function DocumentsPage() {
           if (!bias || bias.length === 0) {
             const biaResult3 = await supabase
               .from('bia_records')
-              .select('id, data_misura, note, peso, altezza, eta, sesso, angolo_fase, bf_pct, fm_kg, ffm_kg, tbw, icw, ecw, bcm, muscle, bone, ffmi, raw_data, created_at')
+              .select('*')
               .eq('visible_to_patient', true)
               .order('data_misura', { ascending: false })
               .limit(50)
@@ -974,7 +982,7 @@ export default function DocumentsPage() {
               id: `bia_${b.id}`, title: 'BIA' + (dataStr ? ' - ' + dataStr : ''), type: 'bia', source: 'bia', tipo: 'bia',
               nota: 'BIA' + (dataStr ? ' - ' + dataStr : ''), content: '', file_url: null, tags: [], visible: true,
               dati_raw: { data_misura: b.data_misura, note: b.note, peso: b.peso, altezza: b.altezza, eta: b.eta, sesso: b.sesso, angolo_fase: b.angolo_fase, bf_pct: b.bf_pct, fm_kg: b.fm_kg, ffm_kg: b.ffm_kg, tbw: b.tbw, icw: b.icw, ecw: b.ecw, bcm: b.bcm, muscle: b.muscle, bone: b.bone, ffmi: b.ffmi, raw_data: b.raw_data },
-              meals_data: null, published_at: b.created_at || b.data_misura, created_at: b.created_at || b.data_misura,
+              meals_data: null, print_image_url: b.print_image_url || b.stampa_image || b.image_url || null, published_at: b.created_at || b.data_misura, created_at: b.created_at || b.data_misura,
             })
           }
       } catch (e) {
@@ -992,6 +1000,7 @@ export default function DocumentsPage() {
         hasDatiRaw: !!d.dati_raw, 
         hasMeals: !!d.meals_data,
         hasStampaHtml: !!(d.dati_raw?.stampa_html),
+        printImageUrl: d.print_image_url,
         visible: d.visible
       })))
       setDocs(allDocs)
