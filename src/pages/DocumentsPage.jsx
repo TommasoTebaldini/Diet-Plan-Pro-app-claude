@@ -51,23 +51,46 @@ function buildDocumentPrintHTML(doc) {
   // 1. HTML di stampa pre-generato dal sito dietista (preferito)
   if (dati.stampa_html) return dati.stampa_html
 
-  // 2. Genera URL per recuperare la stampa originale dal sito dietista
+  // 2. Genera HTML per recuperare la stampa originale via API
   const printUrl = generateDietitianPrintUrl(doc)
   if (printUrl) {
-    // Ritorna HTML che carica la stampa originale dal sito dietista
+    // Ritorna HTML che recupera la stampa via API fetch
     return `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>${doc.title || 'Documento'}</title>
     <style>
       body{margin:0;padding:0;font-family:Arial,sans-serif}
       .loading{display:flex;align-items:center;justify-content:center;height:100vh;background:#f8fafc}
       .error{display:flex;align-items:center;justify-content:center;height:100vh;background:#fef2f2;color:#dc2626}
-      iframe{width:100%;height:100vh;border:none}
+      .content{padding:20px;font-family:Arial,sans-serif}
     </style>
   </head><body>
     <div id="loading" class="loading">
       <div>Caricamento stampa originale dal sito dietista...</div>
     </div>
-    <iframe id="printFrame" src="${printUrl}" style="display:none" onload="document.getElementById('loading').style.display='none';this.style.display='block'" onerror="document.getElementById('loading').className='error';document.getElementById('loading').innerHTML='Errore nel caricamento della stampa originale'">
-    </iframe>
+    <div id="content" class="content" style="display:none"></div>
+    <script>
+      async function loadPrintContent() {
+        try {
+          const response = await fetch('${printUrl}');
+          if (!response.ok) throw new Error('HTTP ' + response.status);
+          const html = await response.text();
+          
+          // Estrai il contenuto principale dalla risposta
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          const mainContent = doc.querySelector('body')?.innerHTML || html;
+          
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('content').style.display = 'block';
+          document.getElementById('content').innerHTML = mainContent;
+        } catch (error) {
+          console.error('Error loading print:', error);
+          document.getElementById('loading').className = 'error';
+          document.getElementById('loading').innerHTML = 'Errore nel caricamento della stampa originale';
+        }
+      }
+      
+      loadPrintContent();
+    </script>
   </body></html>`
   }
 
@@ -126,17 +149,26 @@ function generateDietitianPrintUrl(doc) {
   
   if (!id) return null
   
-  // Mappa dei percorsi per diversi tipi di documenti
+  // Mappa dei percorsi corretti per diversi tipi di documenti
   const pathMap = {
-    'note': `/documenti/visualizza/${id}`,
-    'piano': `/piani/visualizza/${id}`,
-    'ncpt': `/ncpt/visualizza/${id}`,
-    'valutazione': `/valutazioni/visualizza/${id}`,
-    'bia': `/bia/visualizza/${id}`,
+    'note': `/api/documenti/${id}/stampa`,
+    'piano': `/api/piani/${id}/stampa`,
+    'ncpt': `/api/ncpt/${id}/stampa`,
+    'valutazione': `/api/valutazioni/${id}/stampa`,
+    'bia': `/api/bia/${id}/stampa`,
   }
   
-  const path = pathMap[source] || `/documenti/visualizza/${id}`
-  return `${baseUrl}${path}?print=true&format=html`
+  // Fallback a percorsi alternativi se API non esiste
+  const fallbackPaths = {
+    'note': `/documenti/${id}`,
+    'piano': `/piani/${id}`,
+    'ncpt': `/ncpt/${id}`,
+    'valutazione': `/valutazioni/${id}`,
+    'bia': `/bia/${id}`,
+  }
+  
+  const path = pathMap[source] || fallbackPaths[source] || `/documenti/${id}`
+  return `${baseUrl}${path}`
 }
 
 // Sottosezioni per specialistiche
