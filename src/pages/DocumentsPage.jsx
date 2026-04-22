@@ -44,14 +44,34 @@ function isNew(doc, lastSeen) {
   return new Date(doc.created_at) > new Date(lastSeen)
 }
 
-// Funzione principale: mostra stampe originali o fallback base per documenti esistenti
+// Funzione principale: mostra stampe originali dal sito dietista o fallback
 function buildDocumentPrintHTML(doc) {
   const dati = doc.dati_raw && typeof doc.dati_raw === 'object' ? doc.dati_raw : {}
 
   // 1. HTML di stampa pre-generato dal sito dietista (preferito)
   if (dati.stampa_html) return dati.stampa_html
 
-  // 2. Fallback base per documenti esistenti senza stampa_html
+  // 2. Genera URL per recuperare la stampa originale dal sito dietista
+  const printUrl = generateDietitianPrintUrl(doc)
+  if (printUrl) {
+    // Ritorna HTML che carica la stampa originale dal sito dietista
+    return `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>${doc.title || 'Documento'}</title>
+    <style>
+      body{margin:0;padding:0;font-family:Arial,sans-serif}
+      .loading{display:flex;align-items:center;justify-content:center;height:100vh;background:#f8fafc}
+      .error{display:flex;align-items:center;justify-content:center;height:100vh;background:#fef2f2;color:#dc2626}
+      iframe{width:100%;height:100vh;border:none}
+    </style>
+  </head><body>
+    <div id="loading" class="loading">
+      <div>Caricamento stampa originale dal sito dietista...</div>
+    </div>
+    <iframe id="printFrame" src="${printUrl}" style="display:none" onload="document.getElementById('loading').style.display='none';this.style.display='block'" onerror="document.getElementById('loading').className='error';document.getElementById('loading').innerHTML='Errore nel caricamento della stampa originale'">
+    </iframe>
+  </body></html>`
+  }
+
+  // 3. Fallback base per documenti esistenti senza stampa
   const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
   const nome = doc.title || doc.nota || 'Documento'
   const content = doc.content || dati.descrizione || dati.testo || dati.contenuto || ''
@@ -96,6 +116,27 @@ function buildDocumentPrintHTML(doc) {
   </body></html>`
     
   return body
+}
+
+// Genera URL per recuperare la stampa originale dal sito dietista
+function generateDietitianPrintUrl(doc) {
+  const baseUrl = 'https://nutri-plan-pro-cxee.vercel.app'
+  const source = doc.source || ''
+  const id = doc.id?.split('_')[1] || '' // Estrai l'ID originale dal prefisso
+  
+  if (!id) return null
+  
+  // Mappa dei percorsi per diversi tipi di documenti
+  const pathMap = {
+    'note': `/documenti/visualizza/${id}`,
+    'piano': `/piani/visualizza/${id}`,
+    'ncpt': `/ncpt/visualizza/${id}`,
+    'valutazione': `/valutazioni/visualizza/${id}`,
+    'bia': `/bia/visualizza/${id}`,
+  }
+  
+  const path = pathMap[source] || `/documenti/visualizza/${id}`
+  return `${baseUrl}${path}?print=true&format=html`
 }
 
 // Sottosezioni per specialistiche
