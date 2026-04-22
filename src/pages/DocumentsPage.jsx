@@ -48,13 +48,8 @@ function isNew(doc, lastSeen) {
 function buildDocumentPrintHTML(doc) {
   const dati = doc.dati_raw && typeof doc.dati_raw === 'object' ? doc.dati_raw : {}
 
-  // 1. Estrai e mostra solo le immagini dalla stampa originale del dietista
+  // 1. Mostra direttamente la stampa originale del dietista
   if (dati.stampa_html) {
-    const images = extractImagesFromHTML(dati.stampa_html)
-    if (images.length > 0) {
-      return createImageGalleryHTML(images, doc.title || 'Documento')
-    }
-    // Se non ci sono immagini, fallback alla stampa completa
     return dati.stampa_html
   }
 
@@ -106,79 +101,6 @@ function buildDocumentPrintHTML(doc) {
   </body></html>`
     
   return body
-}
-
-// Estrai immagini dall'HTML della stampa
-function extractImagesFromHTML(html) {
-  const images = []
-  const parser = new DOMParser()
-  const doc = parser.parseFromString(html, 'text/html')
-  const imgElements = doc.querySelectorAll('img')
-  
-  imgElements.forEach((img, index) => {
-    const src = img.src || img.getAttribute('src')
-    if (src && (src.startsWith('data:image') || src.startsWith('http'))) {
-      images.push({
-        src: src,
-        alt: img.alt || `Immagine ${index + 1}`,
-        width: img.width || 'auto',
-        height: img.height || 'auto'
-      })
-    }
-  })
-  
-  // Cerca anche immagini in background-image CSS
-  const allElements = doc.querySelectorAll('*')
-  allElements.forEach(element => {
-    const style = element.getAttribute('style')
-    if (style && style.includes('background-image')) {
-      const match = style.match(/background-image:\s*url\(['"]?([^'"\)]+)['"]?\)/i)
-      if (match && match[1]) {
-        images.push({
-          src: match[1],
-          alt: `Immagine di sfondo ${images.length + 1}`,
-          width: '100%',
-          height: 'auto'
-        })
-      }
-    }
-  })
-  
-  return images
-}
-
-// Crea HTML galleria immagini
-function createImageGalleryHTML(images, title) {
-  return `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>${title}</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:Arial,sans-serif;background:#f8fafc;padding:20px}
-    .container{max-width:900px;margin:0 auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.1)}
-    .header{background:linear-gradient(135deg,#0D5C3A,#1A7F5A);color:white;padding:20px;text-align:center}
-    .header h1{margin:0;font-size:18pt;font-weight:300}
-    .header p{margin:4px 0 0;opacity:0.9;font-size:10pt}
-    .gallery{padding:20px}
-    .image-container{margin-bottom:20px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden}
-    .image-container img{width:100%;height:auto;display:block}
-    .image-info{padding:12px;background:#f8fafc;font-size:10pt;color:#64748b;text-align:center}
-    @media print{body{background:white}.container{box-shadow:none}.gallery{padding:10px}}
-  </style>
-</head><body>
-  <div class="container">
-    <div class="header">
-      <h1>${title}</h1>
-      <p>Documento originale del dietista · ${new Date().toLocaleDateString('it-IT')}</p>
-    </div>
-    <div class="gallery">`
-    + images.map((img, index) => `
-      <div class="image-container">
-        <img src="${img.src}" alt="${img.alt}" />
-        <div class="image-info">${img.alt}</div>
-      </div>
-    `).join('') + `
-    </div>
-  </div>
-</body></html>`
 }
 
 // Genera stampa professionale basata sui dati disponibili
@@ -682,7 +604,7 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
             srcDoc={iframeHtml}
             style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
             title={doc.title}
-            sandbox="allow-scripts allow-popups"
+            sandbox="allow-scripts allow-popups allow-same-origin"
           />
         ) : (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40, textAlign: 'center' }}>
