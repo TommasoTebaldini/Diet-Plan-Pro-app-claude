@@ -659,7 +659,7 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
         ) : iframeHtml ? (
           <iframe
             srcDoc={iframeHtml}
-            style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+            style={{ width: '100%', height: '100%', border: 'none', display: 'block', background: 'white' }}
             title={doc.title}
             sandbox="allow-scripts allow-popups allow-same-origin"
           />
