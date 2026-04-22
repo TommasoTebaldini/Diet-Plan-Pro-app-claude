@@ -51,48 +51,8 @@ function buildDocumentPrintHTML(doc) {
   // 1. HTML di stampa pre-generato dal sito dietista (preferito)
   if (dati.stampa_html) return dati.stampa_html
 
-  // 2. Genera HTML per recuperare la stampa originale via API
-  const printUrl = generateDietitianPrintUrl(doc)
-  if (printUrl) {
-    // Ritorna HTML che recupera la stampa via API fetch
-    return `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>${doc.title || 'Documento'}</title>
-    <style>
-      body{margin:0;padding:0;font-family:Arial,sans-serif}
-      .loading{display:flex;align-items:center;justify-content:center;height:100vh;background:#f8fafc}
-      .error{display:flex;align-items:center;justify-content:center;height:100vh;background:#fef2f2;color:#dc2626}
-      .content{padding:20px;font-family:Arial,sans-serif}
-    </style>
-  </head><body>
-    <div id="loading" class="loading">
-      <div>Caricamento stampa originale dal sito dietista...</div>
-    </div>
-    <div id="content" class="content" style="display:none"></div>
-    <script>
-      async function loadPrintContent() {
-        try {
-          const response = await fetch('${printUrl}');
-          if (!response.ok) throw new Error('HTTP ' + response.status);
-          const html = await response.text();
-          
-          // Estrai il contenuto principale dalla risposta
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, 'text/html');
-          const mainContent = doc.querySelector('body')?.innerHTML || html;
-          
-          document.getElementById('loading').style.display = 'none';
-          document.getElementById('content').style.display = 'block';
-          document.getElementById('content').innerHTML = mainContent;
-        } catch (error) {
-          console.error('Error loading print:', error);
-          document.getElementById('loading').className = 'error';
-          document.getElementById('loading').innerHTML = 'Errore nel caricamento della stampa originale';
-        }
-      }
-      
-      loadPrintContent();
-    </script>
-  </body></html>`
-  }
+  // 2. Genera stampa professionale basata sui dati disponibili
+  return generateProfessionalPrintHTML(doc)
 
   // 3. Fallback base per documenti esistenti senza stampa
   const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
@@ -141,34 +101,305 @@ function buildDocumentPrintHTML(doc) {
   return body
 }
 
-// Genera URL per recuperare la stampa originale dal sito dietista
-function generateDietitianPrintUrl(doc) {
-  const baseUrl = 'https://nutri-plan-pro-cxee.vercel.app'
+// Genera stampa professionale basata sui dati disponibili
+function generateProfessionalPrintHTML(doc) {
+  const dati = doc.dati_raw && typeof doc.dati_raw === 'object' ? doc.dati_raw : {}
+  const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
   const source = doc.source || ''
-  const id = doc.id?.split('_')[1] || '' // Estrai l'ID originale dal prefisso
   
-  if (!id) return null
+  // Stili professionali comuni
+  const commonStyles = `
+    *{box-sizing:border-box;margin:0;padding:0}
+    @page{margin:2cm}
+    body{font-family:'Segoe UI',Arial,sans-serif;color:#1E293B;font-size:11pt;line-height:1.5;background:white}
+    .header{background:linear-gradient(135deg,#0D5C3A,#1A7F5A);color:white;padding:20px;border-radius:8px;margin-bottom:20px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+    .header h1{font-size:18pt;font-weight:300;margin:0}
+    .header p{margin:4px 0 0;opacity:0.9;font-size:10pt}
+    .content{background:#FAFBFC;border:1px solid #E2E8F0;border-radius:8px;padding:20px;margin-bottom:20px}
+    .section{margin-bottom:16px}
+    .section-title{font-size:12pt;font-weight:600;color:#1A7F5A;margin-bottom:8px;border-bottom:2px solid #E2E8F0;padding-bottom:4px}
+    .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px}
+    .info-item{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;padding:8px}
+    .info-label{font-size:9pt;color:#64748B;margin-bottom:2px}
+    .info-value{font-size:10pt;font-weight:500;color:#1E293B}
+    .footer{margin-top:30px;padding-top:16px;border-top:1px solid #E2E8F0;text-align:center;font-size:9pt;color:#64748B}
+    .logo{font-size:14pt;font-weight:600;color:#1A7F5A}
+    @media print{body{background:white}.header{background:#1A7F5A !important;-webkit-print-color-adjust:exact}}
+  `
   
-  // Mappa dei percorsi corretti per diversi tipi di documenti
-  const pathMap = {
-    'note': `/api/documenti/${id}/stampa`,
-    'piano': `/api/piani/${id}/stampa`,
-    'ncpt': `/api/ncpt/${id}/stampa`,
-    'valutazione': `/api/valutazioni/${id}/stampa`,
-    'bia': `/api/bia/${id}/stampa`,
+  let html = `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>${doc.title || 'Documento'}</title><style>${commonStyles}</style></head><body>`
+  
+  // Header professionale
+  const tipoLabel = getTipoLabel(tipo, source)
+  html += `<div class="header">
+    <div class="logo">NutriPlan Pro</div>
+    <h1>${doc.title || doc.nota || 'Documento'}</h1>
+    <p>${tipoLabel} · ${new Date(doc.created_at).toLocaleDateString('it-IT', {day: '2-digit', month: 'long', year: 'numeric'})}</p>
+  </div>`
+  
+  // Contenuto specifico per tipo di documento
+  html += generateDocumentContent(doc, dati, tipo, source)
+  
+  // Footer
+  html += `<div class="footer">
+    <div class="logo">NutriPlan Pro</div>
+    <p>Documento generato il ${new Date().toLocaleDateString('it-IT', {day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'})}</p>
+    <p>Sistema di Gestione Nutrizionale</p>
+  </div>`
+  
+  html += `</body></html>`
+  return html
+}
+
+// Ottieni etichetta tipo in italiano
+function getTipoLabel(tipo, source) {
+  const labels = {
+    'valutazione': 'Scheda Valutazione',
+    'bia': 'Analisi Bioimpedenziometrica (BIA)',
+    'piano': 'Piano Alimentare',
+    'ncpt': 'Processo di Assistenza Nutrizionale',
+    'note': 'Nota Specialistica',
+    'dieta': 'Dieta',
+    'consiglio': 'Consiglio Nutrizionale',
+    'diabete': 'Piano Diabete',
+    'pediatria': 'Nutrizione Pediatrica',
+    'sport': 'Nutrizione Sportiva',
+  }
+  return labels[tipo] || labels[source] || 'Documento'
+}
+
+// Genera contenuto specifico per tipo di documento
+function generateDocumentContent(doc, dati, tipo, source) {
+  let html = '<div class="content">'
+  
+  switch (source) {
+    case 'valutazione':
+      html += generateValutazioneContent(doc, dati)
+      break
+    case 'bia':
+      html += generateBiaContent(doc, dati)
+      break
+    case 'piano':
+      html += generatePianoContent(doc, dati)
+      break
+    case 'ncpt':
+      html += generateNcptContent(doc, dati)
+      break
+    case 'note':
+      html += generateNoteContent(doc, dati)
+      break
+    default:
+      html += generateGenericContent(doc, dati)
   }
   
-  // Fallback a percorsi alternativi se API non esiste
-  const fallbackPaths = {
-    'note': `/documenti/${id}`,
-    'piano': `/piani/${id}`,
-    'ncpt': `/ncpt/${id}`,
-    'valutazione': `/valutazioni/${id}`,
-    'bia': `/bia/${id}`,
+  html += '</div>'
+  return html
+}
+
+// Contenuto per schede valutazione
+function generateValutazioneContent(doc, dati) {
+  let html = ''
+  
+  // Dati anagrafici
+  if (dati.nome || dati.cognome) {
+    html += `<div class="section">
+      <div class="section-title">Dati Anagrafici</div>
+      <div class="info-grid">`
+    
+    if (dati.nome) html += `<div class="info-item"><div class="info-label">Nome</div><div class="info-value">${dati.nome}</div></div>`
+    if (dati.cognome) html += `<div class="info-item"><div class="info-label">Cognome</div><div class="info-value">${dati.cognome}</div></div>`
+    if (dati.eta) html += `<div class="info-item"><div class="info-label">Età</div><div class="info-value">${dati.eta} anni</div></div>`
+    if (dati.sesso) html += `<div class="info-item"><div class="info-label">Sesso</div><div class="info-value">${dati.sesso}</div></div>`
+    
+    html += `</div></div>`
   }
   
-  const path = pathMap[source] || fallbackPaths[source] || `/documenti/${id}`
-  return `${baseUrl}${path}`
+  // Dati antropometrici
+  if (dati.peso || dati.altezza || dati.imc) {
+    html += `<div class="section">
+      <div class="section-title">Dati Antropometrici</div>
+      <div class="info-grid">`
+    
+    if (dati.peso) html += `<div class="info-item"><div class="info-label">Peso</div><div class="info-value">${dati.peso} kg</div></div>`
+    if (dati.altezza) html += `<div class="info-item"><div class="info-label">Altezza</div><div class="info-value">${dati.altezza} cm</div></div>`
+    if (dati.imc) html += `<div class="info-item"><div class="info-label">IMC</div><div class="info-value">${dati.imc}</div></div>`
+    
+    html += `</div></div>`
+  }
+  
+  // Composizione corporea
+  if (dati.massa_grassa_pct || dati.massa_magra) {
+    html += `<div class="section">
+      <div class="section-title">Composizione Corporea</div>
+      <div class="info-grid">`
+    
+    if (dati.massa_grassa_pct) html += `<div class="info-item"><div class="info-label">Massa Grassa</div><div class="info-value">${dati.massa_grassa_pct}%</div></div>`
+    if (dati.massa_magra) html += `<div class="info-item"><div class="info-label">Massa Magra</div><div class="info-value">${dati.massa_magra} kg</div></div>`
+    
+    html += `</div></div>`
+  }
+  
+  // Note
+  if (dati.note) {
+    html += `<div class="section">
+      <div class="section-title">Note</div>
+      <div style="white-space:pre-wrap;line-height:1.6">${dati.note}</div>
+    </div>`
+  }
+  
+  return html
+}
+
+// Contenuto per BIA
+function generateBiaContent(doc, dati) {
+  let html = ''
+  
+  if (dati.data_misura) {
+    html += `<div class="section">
+      <div class="section-title">Data Misura</div>
+      <div class="info-value">${new Date(dati.data_misura).toLocaleDateString('it-IT')}</div>
+    </div>`
+  }
+  
+  // Parametri principali
+  html += `<div class="section">
+    <div class="section-title">Parametri BIA</div>
+    <div class="info-grid">`
+  
+  if (dati.peso) html += `<div class="info-item"><div class="info-label">Peso</div><div class="info-value">${dati.peso} kg</div></div>`
+  if (dati.bf_pct) html += `<div class="info-item"><div class="info-label">Massa Grassa (%)</div><div class="info-value">${dati.bf_pct}%</div></div>`
+  if (dati.fm_kg) html += `<div class="info-item"><div class="info-label">Massa Grassa (kg)</div><div class="info-value">${dati.fm_kg} kg</div></div>`
+  if (dati.ffm_kg) html += `<div class="info-item"><div class="info-label">Massa Magra (kg)</div><div class="info-value">${dati.ffm_kg} kg</div></div>`
+  if (dati.tbw) html += `<div class="info-item"><div class="info-label">Acqua Totale</div><div class="info-value">${dati.tbw} L</div></div>`
+  if (dati.ffmi) html += `<div class="info-item"><div class="info-label">FFMI</div><div class="info-value">${dati.ffmi}</div></div>`
+  
+  html += `</div></div>`
+  
+  if (dati.note) {
+    html += `<div class="section">
+      <div class="section-title">Note</div>
+      <div style="white-space:pre-wrap;line-height:1.6">${dati.note}</div>
+    </div>`
+  }
+  
+  return html
+}
+
+// Contenuto per piani alimentari
+function generatePianoContent(doc, dati) {
+  let html = ''
+  
+  if (doc.content) {
+    html += `<div class="section">
+      <div class="section-title">Descrizione Piano</div>
+      <div style="white-space:pre-wrap;line-height:1.6">${doc.content}</div>
+    </div>`
+  }
+  
+  if (doc.meals_data && Array.isArray(doc.meals_data)) {
+    html += `<div class="section">
+      <div class="section-title">Pasti Programmati</div>`
+    
+    doc.meals_data.forEach((pasto, index) => {
+      if (pasto.alimenti) {
+        html += `<div style="margin-bottom:16px;border-left:3px solid #1A7F5A;padding-left:12px">
+          <h4 style="color:#1A7F5A;margin-bottom:8px">${pasto.nome || `Pasto ${index + 1}`}</h4>
+          <div style="white-space:pre-wrap;line-height:1.6">${pasto.alimenti}</div>
+          ${pasto.ora ? `<p style="margin-top:4px;font-size:9pt;color:#64748B">Orario: ${pasto.ora}</p>` : ''}
+        </div>`
+      }
+    })
+    
+    html += `</div>`
+  }
+  
+  return html
+}
+
+// Contenuto per NCPT
+function generateNcptContent(doc, dati) {
+  let html = ''
+  
+  if (dati.valutazione) {
+    html += `<div class="section">
+      <div class="section-title">Valutazione</div>
+      <div style="white-space:pre-wrap;line-height:1.6">${typeof dati.valutazione === 'string' ? dati.valutazione : JSON.stringify(dati.valutazione, null, 2)}</div>
+    </div>`
+  }
+  
+  if (dati.diagnosi) {
+    html += `<div class="section">
+      <div class="section-title">Diagnosi</div>
+      <div style="white-space:pre-wrap;line-height:1.6">${dati.diagnosi}</div>
+    </div>`
+  }
+  
+  if (dati.intervento) {
+    html += `<div class="section">
+      <div class="section-title">Intervento</div>
+      <div style="white-space:pre-wrap;line-height:1.6">${dati.intervento}</div>
+    </div>`
+  }
+  
+  if (dati.monitoraggio) {
+    html += `<div class="section">
+      <div class="section-title">Monitoraggio</div>
+      <div style="white-space:pre-wrap;line-height:1.6">${dati.monitoraggio}</div>
+    </div>`
+  }
+  
+  return html
+}
+
+// Contenuto per note specialistiche
+function generateNoteContent(doc, dati) {
+  let html = ''
+  
+  if (doc.content) {
+    html += `<div class="section">
+      <div class="section-title">Contenuto</div>
+      <div style="white-space:pre-wrap;line-height:1.6">${doc.content}</div>
+    </div>`
+  }
+  
+  // Mostra tutti i dati disponibili
+  Object.keys(dati).forEach(key => {
+    if (key !== 'stampa_html' && dati[key] && typeof dati[key] === 'string') {
+      const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+      html += `<div class="section">
+        <div class="section-title">${label}</div>
+        <div style="white-space:pre-wrap;line-height:1.6">${dati[key]}</div>
+      </div>`
+    }
+  })
+  
+  return html
+}
+
+// Contenuto generico
+function generateGenericContent(doc, dati) {
+  let html = ''
+  
+  if (doc.content) {
+    html += `<div class="section">
+      <div class="section-title">Contenuto</div>
+      <div style="white-space:pre-wrap;line-height:1.6">${doc.content}</div>
+    </div>`
+  }
+  
+  // Mostra i dati più importanti
+  const importantFields = ['descrizione', 'testo', 'contenuto', 'note', 'osservazioni']
+  importantFields.forEach(field => {
+    if (dati[field]) {
+      const label = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+      html += `<div class="section">
+        <div class="section-title">${label}</div>
+        <div style="white-space:pre-wrap;line-height:1.6">${dati[field]}</div>
+      </div>`
+    }
+  })
+  
+  return html
 }
 
 // Sottosezioni per specialistiche
