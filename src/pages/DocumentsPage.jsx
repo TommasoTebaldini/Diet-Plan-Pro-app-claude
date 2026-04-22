@@ -199,6 +199,18 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
     try {
       console.log('[DocModal] Attempting HTML generation for doc:', doc.id)
       console.log('[DocModal] doc.dati_raw:', doc.dati_raw)
+      
+      // Log dettagliato del contenuto di dati_raw
+      if (doc.dati_raw && typeof doc.dati_raw === 'object') {
+        console.log('[DocModal] dati_raw keys:', Object.keys(doc.dati_raw))
+        console.log('[DocModal] dati_raw.stampa_html exists:', 'stampa_html' in doc.dati_raw)
+        console.log('[DocModal] dati_raw.stampa_html type:', typeof doc.dati_raw.stampa_html)
+        console.log('[DocModal] dati_raw.stampa_html length:', doc.dati_raw.stampa_html?.length || 0)
+        if (doc.dati_raw.stampa_html) {
+          console.log('[DocModal] stampa_html preview:', doc.dati_raw.stampa_html.substring(0, 200) + '...')
+        }
+      }
+      
       const html = buildDocumentPrintHTML(doc)
       console.log('[DocModal] Generated HTML length:', html?.length || 0)
       if (html) {
