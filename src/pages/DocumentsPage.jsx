@@ -107,9 +107,8 @@ function buildDocumentPrintHTML(doc) {
 function generatePngUrl(doc) {
   const source = doc.source || ''
   const id = doc.id || ''
-  const cartellaId = doc.cartella_id || ''
   
-  console.log('[generatePngUrl] doc:', { source, id, cartellaId })
+  console.log('[generatePngUrl] doc:', { source, id })
   
   // Estrai l'ID originale rimuovendo il prefisso
   let originalId = id
@@ -131,26 +130,18 @@ function generatePngUrl(doc) {
   
   const tableName = tableMap[source] || source
   const bucketUrl = 'https://hvdwqowkhutfsdpiubxe.supabase.co/storage/v1/object/public/document-prints/'
+  // Folder ID fisso nel bucket (non è il cartella_id dal database)
+  const folderId = 'c6b0014c-c957-406a-aa09-9c7ff9e11d42'
   
   console.log('[generatePngUrl] tableName:', tableName)
   
   let pngUrl = ''
-  // Se c'è cartella_id, includilo nel percorso
-  if (cartellaId) {
-    // Per note_specialistiche, usa {cartella_id}/{id}.png
-    if (source === 'note') {
-      pngUrl = `${bucketUrl}${cartellaId}/${originalId}.png`
-    } else {
-      // Per altre tabelle, usa {cartella_id}/{tabella}_{id}.png
-      pngUrl = `${bucketUrl}${cartellaId}/${tableName}_${originalId}.png`
-    }
+  // Per note_specialistiche, usa {folderId}/{id}.png
+  if (source === 'note') {
+    pngUrl = `${bucketUrl}${folderId}/${originalId}.png`
   } else {
-    // Fallback senza cartella_id (per compatibilità)
-    if (source === 'note') {
-      pngUrl = `${bucketUrl}${originalId}.png`
-    } else {
-      pngUrl = `${bucketUrl}${tableName}_${originalId}.png`
-    }
+    // Per altre tabelle, usa {folderId}/{tabella}_{id}.png
+    pngUrl = `${bucketUrl}${folderId}/${tableName}_${originalId}.png`
   }
   
   console.log('[generatePngUrl] Generated URL:', pngUrl)
