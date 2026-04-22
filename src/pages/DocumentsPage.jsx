@@ -625,7 +625,16 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
       </div>
 
       <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9', padding: 20 }}>
-        {printImageUrl && !imageError ? (
+        {hasAttachment ? (
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>?</div>
+            <p style={{ marginBottom: 16, color: '#666' }}>Documento allegato</p>
+            <a href={doc.file_url} target="_blank" rel="noopener noreferrer" download
+              style={{ background: '#1a7f5a', color: 'white', padding: '12px 24px', borderRadius: 12, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <Download size={16} />Scarica documento
+            </a>
+          </div>
+        ) : printImageUrl && !imageError ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
             <img
               src={printImageUrl}
@@ -636,21 +645,6 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
               }}
               style={{ display: 'block', maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain', boxShadow: '0 6px 24px rgba(0,0,0,0.15)', borderRadius: 8, background: 'white' }}
             />
-            {hasAttachment && (
-              <a href={doc.file_url} target="_blank" rel="noopener noreferrer" download
-                style={{ background: '#1a7f5a', color: 'white', padding: '10px 20px', borderRadius: 12, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-                <Download size={16} />Scarica file allegato
-              </a>
-            )}
-          </div>
-        ) : hasAttachment ? (
-          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>?</div>
-            <p style={{ marginBottom: 16, color: '#666' }}>Documento allegato</p>
-            <a href={doc.file_url} target="_blank" rel="noopener noreferrer" download
-              style={{ background: '#1a7f5a', color: 'white', padding: '12px 24px', borderRadius: 12, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              <Download size={16} />Scarica documento
-            </a>
           </div>
         ) : error ? (
           <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
