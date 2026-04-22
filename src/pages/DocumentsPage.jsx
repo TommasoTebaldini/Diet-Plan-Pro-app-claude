@@ -623,9 +623,9 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
         </button>
       </div>
 
-      <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9' }}>
+      <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9', padding: 20 }}>
         {printImageUrl && !imageError ? (
-          <div style={{ padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, width: '100%', height: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
             <img
               src={printImageUrl}
               alt={doc.title}
@@ -633,7 +633,7 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
                 console.log('[DocModal] PNG failed to load, falling back to HTML')
                 setImageError(true)
               }}
-              style={{ display: 'block', maxWidth: 800, maxHeight: '100%', width: 'auto', height: 'auto', boxShadow: '0 6px 24px rgba(0,0,0,0.15)', borderRadius: 8, background: 'white' }}
+              style={{ display: 'block', maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain', boxShadow: '0 6px 24px rgba(0,0,0,0.15)', borderRadius: 8, background: 'white' }}
             />
             {hasAttachment && (
               <a href={doc.file_url} target="_blank" rel="noopener noreferrer" download
