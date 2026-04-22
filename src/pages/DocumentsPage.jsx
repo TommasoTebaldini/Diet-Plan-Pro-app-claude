@@ -374,6 +374,18 @@ export default function DocumentsPage() {
           notes = result2.data
           console.log('[Docs] note_specialistiche by patient_id:', notes?.length)
         }
+        
+        // Ulteriore fallback: cerca senza patient_id (documenti più vecchi)
+        if (!notes || notes.length === 0) {
+          const result3 = await supabase
+            .from('note_specialistiche')
+            .select('id, tipo, nota, dati, created_at')
+            .eq('visible_to_patient', true)
+            .order('created_at', { ascending: false })
+            .limit(50) // Limita per evitare troppi risultati
+          notes = result3.data
+          console.log('[Docs] note_specialistiche without filters:', notes?.length)
+        }
 
           for (const n of notes || []) {
             const tipo = (n.tipo || '').toLowerCase().trim()
@@ -452,6 +464,18 @@ export default function DocumentsPage() {
             piani = pianoResult2.data
             console.log('[Docs] piani by patient_id:', piani?.length)
           }
+          
+          // Ulteriore fallback: cerca senza patient_id
+          if (!piani || piani.length === 0) {
+            const pianoResult3 = await supabase
+              .from('piani')
+              .select('id, nome, data_piano, meals, saved_at')
+              .eq('visible_to_patient', true)
+              .order('saved_at', { ascending: false })
+              .limit(50)
+            piani = pianoResult3.data
+            console.log('[Docs] piani without filters:', piani?.length)
+          }
 
           for (const p of piani || []) {
             allDocs.push({
@@ -500,6 +524,18 @@ export default function DocumentsPage() {
             console.log('[Docs] ncpt by patient_id:', ncpts?.length)
           }
           
+          // Ulteriore fallback: cerca senza patient_id
+          if (!ncpts || ncpts.length === 0) {
+            const ncptResult3 = await supabase
+              .from('ncpt')
+              .select('id, cartella_id, valutazione, diagnosi, intervento, monitoraggio, created_at')
+              .eq('visible_to_patient', true)
+              .order('created_at', { ascending: false })
+              .limit(50)
+            ncpts = ncptResult3.data
+            console.log('[Docs] ncpt without filters:', ncpts?.length)
+          }
+          
           for (const n of ncpts || []) {
             let val = {}; try { val = typeof n.valutazione === 'string' ? JSON.parse(n.valutazione) : (n.valutazione || {}) } catch { /* */ }
             const titolo = [val.nome, val.cognome].filter(Boolean).join(' ') || 'NCPT'
@@ -539,6 +575,18 @@ export default function DocumentsPage() {
             console.log('[Docs] schede_valutazione by patient_id:', schede?.length)
           }
           
+          // Ulteriore fallback: cerca senza patient_id
+          if (!schede || schede.length === 0) {
+            const schedeResult3 = await supabase
+              .from('schede_valutazione')
+              .select('id, nome, cognome, eta, sesso, peso, altezza, peso_ideale, massa_grassa_pct, massa_magra, vita, fianchi, braccio, patologie, note, macro_dist, tdee_calcolato, dati_extra, saved_at')
+              .eq('visible_to_patient', true)
+              .order('saved_at', { ascending: false })
+              .limit(50)
+            schede = schedeResult3.data
+            console.log('[Docs] schede_valutazione without filters:', schede?.length)
+          }
+          
           for (const s of schede || []) {
             const titolo = [s.nome, s.cognome].filter(Boolean).join(' ') || 'Scheda Valutazione'
             allDocs.push({
@@ -575,6 +623,18 @@ export default function DocumentsPage() {
               .order('data_misura', { ascending: false })
             bias = biaResult2.data
             console.log('[Docs] bia_records by patient_id:', bias?.length)
+          }
+          
+          // Ulteriore fallback: cerca senza patient_id
+          if (!bias || bias.length === 0) {
+            const biaResult3 = await supabase
+              .from('bia_records')
+              .select('id, data_misura, note, peso, altezza, eta, sesso, angolo_fase, bf_pct, fm_kg, ffm_kg, tbw, icw, ecw, bcm, muscle, bone, ffmi, raw_data, created_at')
+              .eq('visible_to_patient', true)
+              .order('data_misura', { ascending: false })
+              .limit(50)
+            bias = biaResult3.data
+            console.log('[Docs] bia_records without filters:', bias?.length)
           }  
           for (const b of bias || []) {
             const dataStr = b.data_misura ? new Date(b.data_misura).toLocaleDateString('it-IT') : ''
