@@ -108,12 +108,16 @@ function generatePngUrl(doc) {
   const source = doc.source || ''
   const id = doc.id || ''
   
+  console.log('[generatePngUrl] doc:', { source, id })
+  
   // Estrai l'ID originale rimuovendo il prefisso
   let originalId = id
   if (id.includes('_')) {
     const parts = id.split('_')
     originalId = parts[parts.length - 1]
   }
+  
+  console.log('[generatePngUrl] originalId:', originalId)
   
   // Mappa dei nomi delle tabelle nel bucket
   const tableMap = {
@@ -127,13 +131,19 @@ function generatePngUrl(doc) {
   const tableName = tableMap[source] || source
   const bucketUrl = 'https://hvdwqowkhutfsdpiubxe.supabase.co/storage/v1/object/public/document-prints/'
   
+  console.log('[generatePngUrl] tableName:', tableName)
+  
+  let pngUrl = ''
   // Per note_specialistiche, usa solo l'ID (senza prefisso tabella)
   if (source === 'note') {
-    return `${bucketUrl}${originalId}.png`
+    pngUrl = `${bucketUrl}${originalId}.png`
+  } else {
+    // Per altre tabelle, usa {tabella}_{id}.png
+    pngUrl = `${bucketUrl}${tableName}_${originalId}.png`
   }
   
-  // Per altre tabelle, usa {tabella}_{id}.png
-  return `${bucketUrl}${tableName}_${originalId}.png`
+  console.log('[generatePngUrl] Generated URL:', pngUrl)
+  return pngUrl
 }
 
 // Genera stampa professionale basata sui dati disponibili
@@ -581,7 +591,9 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
 
   if (!doc) return null
   const meta = TYPE_META[doc.type] || TYPE_META.document
-  const printImageUrl = doc.print_image_url || generatePngUrl(doc)
+  const generatedPngUrl = generatePngUrl(doc)
+  const printImageUrl = doc.print_image_url || generatedPngUrl
+  console.log('[DocModal] printImageUrl:', printImageUrl, '(from DB:', !!doc.print_image_url, ', generated:', generatedPngUrl === printImageUrl, ')')
   const hasAttachment = !!doc.file_url
 
   return (
