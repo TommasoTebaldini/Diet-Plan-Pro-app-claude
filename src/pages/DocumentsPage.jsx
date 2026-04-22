@@ -1019,15 +1019,49 @@ export default function DocumentsPage() {
         const cartellaId = link?.cartella_id
         console.log('[Docs] patient_dietitian link:', link, '| cartellaId:', cartellaId)
 
+        // Carica sempre patient_documents come base
+        const { data: patientDocs, error: pdErr } = await supabase
+          .from('patient_documents')
+          .select('*')
+          .eq('patient_id', user.id)
+          .eq('visible', true)
+          .order('created_at', { ascending: false })
+        console.log('[Docs] patient_documents:', patientDocs?.length, '| error:', pdErr?.message)
+        if (patientDocs?.length) {
+          console.log('[Docs] patient_documents[0]:', JSON.stringify(patientDocs[0]))
+          for (const d of patientDocs || []) {
+            allDocs.push({ ...d, published_at: d.published_at || d.created_at })
+          }
+        }
+
         if (cartellaId) {
-          // 2a. Note specialistiche visibili al paziente
-          const { data: notes, error: notesErr } = await supabase
+          // 2a. Note specialistiche visibili al paziente (fallback su patient_id se cartella_id non funziona)
+          let notes = null
+          let notesErr = null
+          
+          // Prima prova con cartella_id
+          const result1 = await supabase
             .from('note_specialistiche')
             .select('id, tipo, nota, dati, created_at')
             .eq('cartella_id', cartellaId)
             .eq('visible_to_patient', true)
             .order('created_at', { ascending: false })
-          console.log('[Docs] note_specialistiche:', notes?.length, '| error:', notesErr?.message)
+          
+          if (result1.data?.length > 0) {
+            notes = result1.data
+            console.log('[Docs] note_specialistiche by cartella:', notes.length)
+          } else {
+            // Fallback: prova con patient_id direttamente
+            const result2 = await supabase
+              .from('note_specialistiche')
+              .select('id, tipo, nota, dati, created_at')
+              .eq('patient_id', user.id)
+              .eq('visible_to_patient', true)
+              .order('created_at', { ascending: false })
+            notes = result2.data
+            notesErr = result2.error
+            console.log('[Docs] note_specialistiche by patient_id:', notes?.length, '| error:', notesErr?.message)
+          }
 
           for (const n of notes || []) {
             const tipo = (n.tipo || '').toLowerCase().trim()
@@ -1093,14 +1127,31 @@ export default function DocumentsPage() {
             })
           }
 
-          // 2b. Piani alimentari visibili al paziente
-          const { data: piani, error: pianiErr } = await supabase
+          // 2b. Piani alimentari visibili al paziente (fallback su patient_id)
+          let piani = null
+          let pianiErr = null
+          
+          const pianoResult1 = await supabase
             .from('piani')
             .select('id, nome, data_piano, meals, saved_at')
             .eq('cartella_id', cartellaId)
             .eq('visible_to_patient', true)
             .order('saved_at', { ascending: false })
-          console.log('[Docs] piani:', piani?.length, '| error:', pianiErr?.message)
+            
+          if (pianoResult1.data?.length > 0) {
+            piani = pianoResult1.data
+            console.log('[Docs] piani by cartella:', piani.length)
+          } else {
+            const pianoResult2 = await supabase
+              .from('piani')
+              .select('id, nome, data_piano, meals, saved_at')
+              .eq('patient_id', user.id)
+              .eq('visible_to_patient', true)
+              .order('saved_at', { ascending: false })
+            piani = pianoResult2.data
+            pianiErr = pianoResult2.error
+            console.log('[Docs] piani by patient_id:', piani?.length, '| error:', pianiErr?.message)
+          }
 
           for (const p of piani || []) {
             allDocs.push({
@@ -1121,14 +1172,31 @@ export default function DocumentsPage() {
             })
           }
 
-          // 2c. NCPT visibili al paziente
-          const { data: ncpts, error: ncptErr } = await supabase
+          // 2c. NCPT visibili al paziente (fallback su patient_id)
+          let ncpts = null
+          let ncptErr = null
+          
+          const ncptResult1 = await supabase
             .from('ncpt')
             .select('id, cartella_id, valutazione, diagnosi, intervento, monitoraggio, created_at')
             .eq('cartella_id', cartellaId)
             .eq('visible_to_patient', true)
             .order('created_at', { ascending: false })
-          console.log('[Docs] ncpt:', ncpts?.length, '| error:', ncptErr?.message)
+            
+          if (ncptResult1.data?.length > 0) {
+            ncpts = ncptResult1.data
+            console.log('[Docs] ncpt by cartella:', ncpts.length)
+          } else {
+            const ncptResult2 = await supabase
+              .from('ncpt')
+              .select('id, cartella_id, valutazione, diagnosi, intervento, monitoraggio, created_at')
+              .eq('patient_id', user.id)
+              .eq('visible_to_patient', true)
+              .order('created_at', { ascending: false })
+            ncpts = ncptResult2.data
+            ncptErr = ncptResult2.error
+            console.log('[Docs] ncpt by patient_id:', ncpts?.length, '| error:', ncptErr?.message)
+          }
           for (const n of ncpts || []) {
             let val = {}; try { val = typeof n.valutazione === 'string' ? JSON.parse(n.valutazione) : (n.valutazione || {}) } catch { /* */ }
             const titolo = [val.nome, val.cognome].filter(Boolean).join(' ') || 'NCPT'
@@ -1140,14 +1208,31 @@ export default function DocumentsPage() {
             })
           }
 
-          // 2d. Schede valutazione visibili al paziente
-          const { data: schede, error: schedeErr } = await supabase
+          // 2d. Schede valutazione visibili al paziente (fallback su patient_id)
+          let schede = null
+          let schedeErr = null
+          
+          const schedeResult1 = await supabase
             .from('schede_valutazione')
             .select('id, nome, cognome, eta, sesso, peso, altezza, peso_ideale, massa_grassa_pct, massa_magra, vita, fianchi, braccio, patologie, note, macro_dist, tdee_calcolato, dati_extra, saved_at')
             .eq('cartella_id', cartellaId)
             .eq('visible_to_patient', true)
             .order('saved_at', { ascending: false })
-          console.log('[Docs] schede_valutazione:', schede?.length, '| error:', schedeErr?.message)
+            
+          if (schedeResult1.data?.length > 0) {
+            schede = schedeResult1.data
+            console.log('[Docs] schede_valutazione by cartella:', schede.length)
+          } else {
+            const schedeResult2 = await supabase
+              .from('schede_valutazione')
+              .select('id, nome, cognome, eta, sesso, peso, altezza, peso_ideale, massa_grassa_pct, massa_magra, vita, fianchi, braccio, patologie, note, macro_dist, tdee_calcolato, dati_extra, saved_at')
+              .eq('patient_id', user.id)
+              .eq('visible_to_patient', true)
+              .order('saved_at', { ascending: false })
+            schede = schedeResult2.data
+            schedeErr = schedeResult2.error
+            console.log('[Docs] schede_valutazione by patient_id:', schede?.length, '| error:', schedeErr?.message)
+          }
           for (const s of schede || []) {
             const titolo = [s.nome, s.cognome].filter(Boolean).join(' ') || 'Scheda Valutazione'
             allDocs.push({
@@ -1158,14 +1243,31 @@ export default function DocumentsPage() {
             })
           }
 
-          // 2e. BIA visibili al paziente
-          const { data: bias, error: biaErr } = await supabase
+          // 2e. BIA visibili al paziente (fallback su patient_id)
+          let bias = null
+          let biaErr = null
+          
+          const biaResult1 = await supabase
             .from('bia_records')
             .select('id, data_misura, note, peso, altezza, eta, sesso, angolo_fase, bf_pct, fm_kg, ffm_kg, tbw, icw, ecw, bcm, muscle, bone, ffmi, raw_data, created_at')
             .eq('cartella_id', cartellaId)
             .eq('visible_to_patient', true)
             .order('data_misura', { ascending: false })
-          console.log('[Docs] bia_records:', bias?.length, '| error:', biaErr?.message)
+            
+          if (biaResult1.data?.length > 0) {
+            bias = biaResult1.data
+            console.log('[Docs] bia_records by cartella:', bias.length)
+          } else {
+            const biaResult2 = await supabase
+              .from('bia_records')
+              .select('id, data_misura, note, peso, altezza, eta, sesso, angolo_fase, bf_pct, fm_kg, ffm_kg, tbw, icw, ecw, bcm, muscle, bone, ffmi, raw_data, created_at')
+              .eq('patient_id', user.id)
+              .eq('visible_to_patient', true)
+              .order('data_misura', { ascending: false })
+            bias = biaResult2.data
+            biaErr = biaResult2.error
+            console.log('[Docs] bia_records by patient_id:', bias?.length, '| error:', biaErr?.message)
+          }
           for (const b of bias || []) {
             const dataStr = b.data_misura ? new Date(b.data_misura).toLocaleDateString('it-IT') : ''
             allDocs.push({
@@ -1175,20 +1277,6 @@ export default function DocumentsPage() {
               meals_data: null, published_at: b.created_at || b.data_misura, created_at: b.created_at || b.data_misura,
             })
           }
-        }
-
-        // 3. Fallback: patient_documents diretti
-        const { data: patientDocs, error: pdErr } = await supabase
-          .from('patient_documents')
-          .select('*')
-          .eq('patient_id', user.id)
-          .eq('visible', true)
-          .order('created_at', { ascending: false })
-        console.log('[Docs] patient_documents:', patientDocs?.length, '| error:', pdErr?.message)
-        if (patientDocs?.length) console.log('[Docs] patient_documents[0]:', JSON.stringify(patientDocs[0]))
-
-        for (const d of patientDocs || []) {
-          allDocs.push({ ...d, published_at: d.published_at || d.created_at })
         }
 
       } catch (e) {
