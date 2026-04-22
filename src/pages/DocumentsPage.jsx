@@ -209,7 +209,21 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
         if (doc.dati_raw.stampa_html) {
           console.log('[DocModal] stampa_html preview:', doc.dati_raw.stampa_html.substring(0, 200) + '...')
         }
+        
+        // Controlla altri campi che potrebbero contenere immagini di stampa
+        console.log('[DocModal] Checking for print image fields:')
+        console.log('[DocModal] dati_raw.print_image_url:', doc.dati_raw.print_image_url)
+        console.log('[DocModal] dati_raw.image_url:', doc.dati_raw.image_url)
+        console.log('[DocModal] dati_raw.file_url:', doc.dati_raw.file_url)
+        console.log('[DocModal] dati_raw.pdf_url:', doc.dati_raw.pdf_url)
+        console.log('[DocModal] dati_raw.stampa_url:', doc.dati_raw.stampa_url)
       }
+      
+      // Controlla anche i campi principali del documento
+      console.log('[DocModal] Main doc fields:')
+      console.log('[DocModal] doc.print_image_url:', doc.print_image_url)
+      console.log('[DocModal] doc.file_url:', doc.file_url)
+      console.log('[DocModal] All doc keys:', Object.keys(doc))
       
       const html = buildDocumentPrintHTML(doc)
       console.log('[DocModal] Generated HTML length:', html?.length || 0)
