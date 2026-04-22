@@ -536,7 +536,6 @@ function buildPatientViewHtml(doc, withPrint = false) {
 function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
   const [iframeHtml, setIframeHtml] = useState(null)
   const [error, setError] = useState(null)
-  const [bookmarked, setBookmarked] = useState(() => bookmarks.has(doc.id))
   const [imageError, setImageError] = useState(false)
 
   useEffect(() => {
