@@ -103,6 +103,39 @@ function buildDocumentPrintHTML(doc) {
   return body
 }
 
+// Genera URL delle immagini PNG da Supabase Storage
+function generatePngUrl(doc) {
+  const source = doc.source || ''
+  const id = doc.id || ''
+  
+  // Estrai l'ID originale rimuovendo il prefisso
+  let originalId = id
+  if (id.includes('_')) {
+    const parts = id.split('_')
+    originalId = parts[parts.length - 1]
+  }
+  
+  // Mappa dei nomi delle tabelle nel bucket
+  const tableMap = {
+    'note': 'note_specialistiche',
+    'piano': 'piani',
+    'ncpt': 'ncpt',
+    'valutazione': 'schede_valutazione',
+    'bia': 'bia_records'
+  }
+  
+  const tableName = tableMap[source] || source
+  const bucketUrl = 'https://hvdwqowkhutfsdpiubxe.supabase.co/storage/v1/object/public/document-prints/'
+  
+  // Per note_specialistiche, usa solo l'ID (senza prefisso tabella)
+  if (source === 'note') {
+    return `${bucketUrl}${originalId}.png`
+  }
+  
+  // Per altre tabelle, usa {tabella}_{id}.png
+  return `${bucketUrl}${tableName}_${originalId}.png`
+}
+
 // Genera stampa professionale basata sui dati disponibili
 function generateProfessionalPrintHTML(doc) {
   const dati = doc.dati_raw && typeof doc.dati_raw === 'object' ? doc.dati_raw : {}
@@ -548,7 +581,7 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
 
   if (!doc) return null
   const meta = TYPE_META[doc.type] || TYPE_META.document
-  const printImageUrl = doc.print_image_url || doc.dati_raw?.print_image_url || doc.dati_raw?.stampa_image || doc.dati_raw?.image_url || null
+  const printImageUrl = doc.print_image_url || generatePngUrl(doc)
   const hasAttachment = !!doc.file_url
 
   return (
