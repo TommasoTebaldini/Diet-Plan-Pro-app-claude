@@ -347,9 +347,9 @@ export default function DocumentsPage() {
           }
         }
 
+        // 2a. Note specialistiche - cerca sempre sia per cartella_id che per patient_id
+        let notes = null
         if (cartellaId) {
-          // 2a. Note specialistiche
-          let notes = null
           const result1 = await supabase
             .from('note_specialistiche')
             .select('id, tipo, nota, dati, created_at')
@@ -360,16 +360,20 @@ export default function DocumentsPage() {
           if (result1.data?.length > 0) {
             notes = result1.data
             console.log('[Docs] note_specialistiche by cartella:', notes.length)
-          } else {
-            const result2 = await supabase
-              .from('note_specialistiche')
-              .select('id, tipo, nota, dati, created_at')
-              .eq('patient_id', user.id)
-              .eq('visible_to_patient', true)
-              .order('created_at', { ascending: false })
-            notes = result2.data
-            console.log('[Docs] note_specialistiche by patient_id:', notes?.length)
           }
+        }
+        
+        // Fallback o ricerca diretta per patient_id
+        if (!notes || notes.length === 0) {
+          const result2 = await supabase
+            .from('note_specialistiche')
+            .select('id, tipo, nota, dati, created_at')
+            .eq('patient_id', user.id)
+            .eq('visible_to_patient', true)
+            .order('created_at', { ascending: false })
+          notes = result2.data
+          console.log('[Docs] note_specialistiche by patient_id:', notes?.length)
+        }
 
           for (const n of notes || []) {
             const tipo = (n.tipo || '').toLowerCase().trim()
@@ -421,19 +425,24 @@ export default function DocumentsPage() {
             })
           }
 
-          // 2b. Piani alimentari
+          // 2b. Piani alimentari - cerca sempre sia per cartella_id che per patient_id
           let piani = null
-          const pianoResult1 = await supabase
-            .from('piani')
-            .select('id, nome, data_piano, meals, saved_at')
-            .eq('cartella_id', cartellaId)
-            .eq('visible_to_patient', true)
-            .order('saved_at', { ascending: false })
-            
-          if (pianoResult1.data?.length > 0) {
-            piani = pianoResult1.data
-            console.log('[Docs] piani by cartella:', piani.length)
-          } else {
+          if (cartellaId) {
+            const pianoResult1 = await supabase
+              .from('piani')
+              .select('id, nome, data_piano, meals, saved_at')
+              .eq('cartella_id', cartellaId)
+              .eq('visible_to_patient', true)
+              .order('saved_at', { ascending: false })
+              
+            if (pianoResult1.data?.length > 0) {
+              piani = pianoResult1.data
+              console.log('[Docs] piani by cartella:', piani.length)
+            }
+          }
+          
+          // Fallback o ricerca diretta per patient_id
+          if (!piani || piani.length === 0) {
             const pianoResult2 = await supabase
               .from('piani')
               .select('id, nome, data_piano, meals, saved_at')
@@ -463,19 +472,24 @@ export default function DocumentsPage() {
             })
           }
 
-          // 2c. NCPT
+          // 2c. NCPT - cerca sempre sia per cartella_id che per patient_id
           let ncpts = null
-          const ncptResult1 = await supabase
-            .from('ncpt')
-            .select('id, cartella_id, valutazione, diagnosi, intervento, monitoraggio, created_at')
-            .eq('cartella_id', cartellaId)
-            .eq('visible_to_patient', true)
-            .order('created_at', { ascending: false })
-            
-          if (ncptResult1.data?.length > 0) {
-            ncpts = ncptResult1.data
-            console.log('[Docs] ncpt by cartella:', ncpts.length)
-          } else {
+          if (cartellaId) {
+            const ncptResult1 = await supabase
+              .from('ncpt')
+              .select('id, cartella_id, valutazione, diagnosi, intervento, monitoraggio, created_at')
+              .eq('cartella_id', cartellaId)
+              .eq('visible_to_patient', true)
+              .order('created_at', { ascending: false })
+              
+            if (ncptResult1.data?.length > 0) {
+              ncpts = ncptResult1.data
+              console.log('[Docs] ncpt by cartella:', ncpts.length)
+            }
+          }
+          
+          // Fallback o ricerca diretta per patient_id
+          if (!ncpts || ncpts.length === 0) {
             const ncptResult2 = await supabase
               .from('ncpt')
               .select('id, cartella_id, valutazione, diagnosi, intervento, monitoraggio, created_at')
@@ -497,19 +511,24 @@ export default function DocumentsPage() {
             })
           }
 
-          // 2d. Schede valutazione
+          // 2d. Schede valutazione - cerca sempre sia per cartella_id che per patient_id
           let schede = null
-          const schedeResult1 = await supabase
-            .from('schede_valutazione')
-            .select('id, nome, cognome, eta, sesso, peso, altezza, peso_ideale, massa_grassa_pct, massa_magra, vita, fianchi, braccio, patologie, note, macro_dist, tdee_calcolato, dati_extra, saved_at')
-            .eq('cartella_id', cartellaId)
-            .eq('visible_to_patient', true)
-            .order('saved_at', { ascending: false })
-            
-          if (schedeResult1.data?.length > 0) {
-            schede = schedeResult1.data
-            console.log('[Docs] schede_valutazione by cartella:', schede.length)
-          } else {
+          if (cartellaId) {
+            const schedeResult1 = await supabase
+              .from('schede_valutazione')
+              .select('id, nome, cognome, eta, sesso, peso, altezza, peso_ideale, massa_grassa_pct, massa_magra, vita, fianchi, braccio, patologie, note, macro_dist, tdee_calcolato, dati_extra, saved_at')
+              .eq('cartella_id', cartellaId)
+              .eq('visible_to_patient', true)
+              .order('saved_at', { ascending: false })
+              
+            if (schedeResult1.data?.length > 0) {
+              schede = schedeResult1.data
+              console.log('[Docs] schede_valutazione by cartella:', schede.length)
+            }
+          }
+          
+          // Fallback o ricerca diretta per patient_id
+          if (!schede || schede.length === 0) {
             const schedeResult2 = await supabase
               .from('schede_valutazione')
               .select('id, nome, cognome, eta, sesso, peso, altezza, peso_ideale, massa_grassa_pct, massa_magra, vita, fianchi, braccio, patologie, note, macro_dist, tdee_calcolato, dati_extra, saved_at')
@@ -530,19 +549,24 @@ export default function DocumentsPage() {
             })
           }
 
-          // 2e. BIA records
+          // 2e. BIA records - cerca sempre sia per cartella_id che per patient_id
           let bias = null
-          const biaResult1 = await supabase
-            .from('bia_records')
-            .select('id, data_misura, note, peso, altezza, eta, sesso, angolo_fase, bf_pct, fm_kg, ffm_kg, tbw, icw, ecw, bcm, muscle, bone, ffmi, raw_data, created_at')
-            .eq('cartella_id', cartellaId)
-            .eq('visible_to_patient', true)
-            .order('data_misura', { ascending: false })
-            
-          if (biaResult1.data?.length > 0) {
-            bias = biaResult1.data
-            console.log('[Docs] bia_records by cartella:', bias.length)
-          } else {
+          if (cartellaId) {
+            const biaResult1 = await supabase
+              .from('bia_records')
+              .select('id, data_misura, note, peso, altezza, eta, sesso, angolo_fase, bf_pct, fm_kg, ffm_kg, tbw, icw, ecw, bcm, muscle, bone, ffmi, raw_data, created_at')
+              .eq('cartella_id', cartellaId)
+              .eq('visible_to_patient', true)
+              .order('data_misura', { ascending: false })
+              
+            if (biaResult1.data?.length > 0) {
+              bias = biaResult1.data
+              console.log('[Docs] bia_records by cartella:', bias.length)
+            }
+          }
+          
+          // Fallback o ricerca diretta per patient_id
+          if (!bias || bias.length === 0) {
             const biaResult2 = await supabase
               .from('bia_records')
               .select('id, data_misura, note, peso, altezza, eta, sesso, angolo_fase, bf_pct, fm_kg, ffm_kg, tbw, icw, ecw, bcm, muscle, bone, ffmi, raw_data, created_at')
@@ -551,8 +575,7 @@ export default function DocumentsPage() {
               .order('data_misura', { ascending: false })
             bias = biaResult2.data
             console.log('[Docs] bia_records by patient_id:', bias?.length)
-          }
-          
+          }  
           for (const b of bias || []) {
             const dataStr = b.data_misura ? new Date(b.data_misura).toLocaleDateString('it-IT') : ''
             allDocs.push({
