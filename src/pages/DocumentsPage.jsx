@@ -909,6 +909,15 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
   useEffect(() => {
     setIframeHtml(null)
     setError(null)
+    if (!doc || doc.file_url || doc.print_image_url) return
+
+    try {
+      const html = buildDocumentPrintHTML(doc)
+      setIframeHtml(html)
+    } catch (err) {
+      console.error('[DocModal] HTML generation error:', err)
+      setError(err.message)
+    }
   }, [doc?.id])
 
   if (!doc) return null
@@ -963,13 +972,21 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
             <Download size={16} />Scarica documento
           </a>
         </div>
+      ) : error ? (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <p style={{ color: '#ef4444', fontSize: 14, textAlign: 'center' }}>{error}</p>
+        </div>
+      ) : iframeHtml ? (
+        <iframe
+          srcDoc={iframeHtml}
+          style={{ flex: 1, width: '100%', border: 'none', display: 'block' }}
+          title={doc.title}
+          sandbox="allow-scripts allow-popups"
+        />
       ) : (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40, textAlign: 'center' }}>
-          <div style={{ fontSize: 56, marginBottom: 16 }}>⏳</div>
-          <h3 style={{ fontSize: 18, fontWeight: 600, color: '#334155', marginBottom: 8 }}>Documento in fase di aggiornamento</h3>
-          <p style={{ color: '#64748b', fontSize: 14, maxWidth: 320, lineHeight: 1.5 }}>
-            Il tuo dietista sta preparando la versione aggiornata di questo documento. Sarà disponibile a breve.
-          </p>
+          <div style={{ width: 24, height: 24, border: '3px solid #e5e7eb', borderTopColor: '#1a7f5a', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+          <p style={{ color: '#64748b', fontSize: 14, marginTop: 16 }}>Caricamento documento...</p>
         </div>
       )}
     </div>
