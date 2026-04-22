@@ -597,6 +597,7 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
   const printImageUrl = doc.print_image_url || generatedPngUrl
   console.log('[DocModal] printImageUrl:', printImageUrl, '(from DB:', !!doc.print_image_url, ', generated:', generatedPngUrl === printImageUrl, ')')
   const hasAttachment = !!doc.file_url
+  const [pngError, setPngError] = useState(false)
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', flexDirection: 'column', background: 'white' }}>
@@ -619,11 +620,12 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
       </div>
 
       <div style={{ flex: 1, overflow: 'auto' }}>
-        {printImageUrl ? (
+        {printImageUrl && !pngError ? (
           <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, gap: 14, boxSizing: 'border-box', background: '#f1f5f9' }}>
             <img
               src={printImageUrl}
               alt={doc.title}
+              onError={() => setPngError(true)}
               style={{ display: 'block', width: '100%', maxWidth: 760, height: 'auto', margin: '0 auto', boxShadow: '0 6px 24px rgba(0,0,0,0.15)', borderRadius: 8, background: 'white' }}
             />
             {hasAttachment && (
