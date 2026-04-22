@@ -107,8 +107,9 @@ function buildDocumentPrintHTML(doc) {
 function generatePngUrl(doc) {
   const source = doc.source || ''
   const id = doc.id || ''
+  const cartellaId = doc.cartella_id || ''
   
-  console.log('[generatePngUrl] doc:', { source, id })
+  console.log('[generatePngUrl] doc:', { source, id, cartellaId })
   
   // Estrai l'ID originale rimuovendo il prefisso
   let originalId = id
@@ -134,12 +135,22 @@ function generatePngUrl(doc) {
   console.log('[generatePngUrl] tableName:', tableName)
   
   let pngUrl = ''
-  // Per note_specialistiche, usa solo l'ID (senza prefisso tabella)
-  if (source === 'note') {
-    pngUrl = `${bucketUrl}${originalId}.png`
+  // Se c'è cartella_id, includilo nel percorso
+  if (cartellaId) {
+    // Per note_specialistiche, usa {cartella_id}/{id}.png
+    if (source === 'note') {
+      pngUrl = `${bucketUrl}${cartellaId}/${originalId}.png`
+    } else {
+      // Per altre tabelle, usa {cartella_id}/{tabella}_{id}.png
+      pngUrl = `${bucketUrl}${cartellaId}/${tableName}_${originalId}.png`
+    }
   } else {
-    // Per altre tabelle, usa {tabella}_{id}.png
-    pngUrl = `${bucketUrl}${tableName}_${originalId}.png`
+    // Fallback senza cartella_id (per compatibilità)
+    if (source === 'note') {
+      pngUrl = `${bucketUrl}${originalId}.png`
+    } else {
+      pngUrl = `${bucketUrl}${tableName}_${originalId}.png`
+    }
   }
   
   console.log('[generatePngUrl] Generated URL:', pngUrl)
@@ -818,6 +829,7 @@ export default function DocumentsPage() {
               visible: true,
               published_at: n.created_at,
               created_at: n.created_at,
+              cartella_id: n.cartella_id,
             })
           }
 
@@ -878,6 +890,7 @@ export default function DocumentsPage() {
               visible: true,
               published_at: p.saved_at,
               created_at: p.saved_at,
+              cartella_id: p.cartella_id,
             })
           }
 
@@ -929,6 +942,7 @@ export default function DocumentsPage() {
               nota: titolo, content: '', file_url: null, tags: [], visible: true,
               dati_raw: { valutazione: n.valutazione, diagnosi: n.diagnosi, intervento: n.intervento, monitoraggio: n.monitoraggio },
               meals_data: null, print_image_url: n.print_image_url || null, published_at: n.created_at, created_at: n.created_at,
+              cartella_id: n.cartella_id,
             })
           }
 
@@ -979,6 +993,7 @@ export default function DocumentsPage() {
               nota: titolo, content: '', file_url: null, tags: [], visible: true,
               dati_raw: { nome: s.nome, cognome: s.cognome, eta: s.eta, sesso: s.sesso, peso: s.peso, altezza: s.altezza, peso_ideale: s.peso_ideale, massa_grassa_pct: s.massa_grassa_pct, massa_magra: s.massa_magra, vita: s.vita, fianchi: s.fianchi, braccio: s.braccio, patologie: s.patologie, note: s.note, macro_dist: s.macro_dist, tdee_calcolato: s.tdee_calcolato, dati_extra: s.dati_extra },
               meals_data: null, print_image_url: s.print_image_url || null, published_at: s.saved_at, created_at: s.saved_at,
+              cartella_id: s.cartella_id,
             })
           }
 
@@ -1028,6 +1043,7 @@ export default function DocumentsPage() {
               nota: 'BIA' + (dataStr ? ' - ' + dataStr : ''), content: '', file_url: null, tags: [], visible: true,
               dati_raw: { data_misura: b.data_misura, note: b.note, peso: b.peso, altezza: b.altezza, eta: b.eta, sesso: b.sesso, angolo_fase: b.angolo_fase, bf_pct: b.bf_pct, fm_kg: b.fm_kg, ffm_kg: b.ffm_kg, tbw: b.tbw, icw: b.icw, ecw: b.ecw, bcm: b.bcm, muscle: b.muscle, bone: b.bone, ffmi: b.ffmi, raw_data: b.raw_data },
               meals_data: null, print_image_url: b.print_image_url || null, published_at: b.created_at || b.data_misura, created_at: b.created_at || b.data_misura,
+              cartella_id: b.cartella_id,
             })
           }
       } catch (e) {
