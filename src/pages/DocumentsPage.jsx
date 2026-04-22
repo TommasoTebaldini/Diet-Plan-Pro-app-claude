@@ -188,15 +188,24 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
   const [error, setError] = useState(null)
 
   useEffect(() => {
+    console.log('[DocModal] useEffect triggered for doc:', doc?.id, doc?.title)
     setIframeHtml(null)
     setError(null)
-    if (!doc || doc.file_url || doc.print_image_url) return
+    if (!doc || doc.file_url || doc.print_image_url) {
+      console.log('[DocModal] Skipping HTML generation - has attachment or print image')
+      return
+    }
 
     try {
+      console.log('[DocModal] Attempting HTML generation for doc:', doc.id)
+      console.log('[DocModal] doc.dati_raw:', doc.dati_raw)
       const html = buildDocumentPrintHTML(doc)
+      console.log('[DocModal] Generated HTML length:', html?.length || 0)
       if (html) {
+        console.log('[DocModal] HTML generated successfully, setting iframeHtml')
         setIframeHtml(html)
       } else {
+        console.log('[DocModal] HTML generation returned null')
         setError('Documento non disponibile - manca stampa originale dal dietista')
       }
     } catch (err) {
@@ -559,9 +568,21 @@ export default function DocumentsPage() {
         setLoadError(e.message)
       }
 
-      console.log('[Docs] total allDocs:', allDocs.length, allDocs.map(d => ({ id: d.id, type: d.type, tipo: d.tipo, hasContent: !!d.content, hasDatiRaw: !!d.dati_raw, hasMeals: !!d.meals_data })))
+      console.log('[Docs] total allDocs:', allDocs.length)
+      console.log('[Docs] allDocs details:', allDocs.map(d => ({ 
+        id: d.id, 
+        type: d.type, 
+        tipo: d.tipo, 
+        title: d.title,
+        hasContent: !!d.content, 
+        hasDatiRaw: !!d.dati_raw, 
+        hasMeals: !!d.meals_data,
+        hasStampaHtml: !!(d.dati_raw?.stampa_html),
+        visible: d.visible
+      })))
       setDocs(allDocs)
       setLoading(false)
+      console.log('[Docs] Loading completed, docs set:', allDocs.length)
     }
     load()
   }, [user.id])
