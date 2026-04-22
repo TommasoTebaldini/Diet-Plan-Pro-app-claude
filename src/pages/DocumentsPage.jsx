@@ -585,7 +585,6 @@ export default function DocumentsPage() {
               meals_data: null, published_at: b.created_at || b.data_misura, created_at: b.created_at || b.data_misura,
             })
           }
-        }
       } catch (e) {
         console.error('Documents load error:', e)
         setLoadError(e.message)
