@@ -537,8 +537,8 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
     console.log('[DocModal] useEffect triggered for doc:', doc?.id, doc?.title)
     setIframeHtml(null)
     setError(null)
-    if (!doc || doc.file_url || doc.print_image_url) {
-      console.log('[DocModal] Skipping HTML generation - has attachment or print image')
+    if (!doc || doc.file_url) {
+      console.log('[DocModal] Skipping HTML generation - has file attachment')
       return
     }
 
@@ -801,7 +801,8 @@ export default function DocumentsPage() {
             }
 
             const titleFromDati = datiParsed?.titolo || datiParsed?.nome || datiParsed?.consiglio_nome || ''
-            const title = n.nota || titleFromDati || (tipo ? tipo.charAt(0).toUpperCase() + tipo.slice(1) : 'Documento')
+            const titleFromNota = n.nota && n.nota.trim() && n.nota.trim() !== '1' ? n.nota.trim() : ''
+            const title = titleFromNota || titleFromDati || (tipo ? 'Consiglio: ' + tipo.charAt(0).toUpperCase() + tipo.slice(1) : 'Documento')
 
             allDocs.push({
               id: `note_${n.id}`,
