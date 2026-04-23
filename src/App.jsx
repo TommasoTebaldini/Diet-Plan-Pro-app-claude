@@ -76,6 +76,9 @@ function AppInner() {
           <Route path="/profilo" element={<PatientRoute><ProfilePage /></PatientRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <footer className="global-copyright-app">
+          © {new Date().getFullYear()} DietPlan Pro — Tutti i diritti riservati.
+        </footer>
       </div>
     </NotificationProvider>
   )
