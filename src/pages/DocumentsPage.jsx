@@ -136,14 +136,9 @@ function generatePngUrl(doc) {
   
   console.log('[generatePngUrl] tableName:', tableName)
   
-  let pngUrl = ''
-  // Per note_specialistiche, usa {folderId}/{id}_{format}.png
-  if (source === 'note') {
-    pngUrl = `${bucketUrl}${folderId}/${originalId}_${printFormat}.png`
-  } else {
-    // Per altre tabelle, usa {folderId}/{tabella}_{id}_{format}.png
-    pngUrl = `${bucketUrl}${folderId}/${tableName}_${originalId}_${printFormat}.png`
-  }
+  // Usa sempre formato: {folderId}/{tabella}_{id}_{format}.png
+  // Questo corrisponde a come viene salvato in print-capture.js
+  const pngUrl = `${bucketUrl}${folderId}/${tableName}_${originalId}_${printFormat}.png`
   
   console.log('[generatePngUrl] Generated URL:', pngUrl)
   return pngUrl
@@ -819,7 +814,7 @@ export default function DocumentsPage() {
               dati_raw: datiParsed || n.dati,
               meals_data: mealsData,
               file_url: datiParsed?.file_url || datiParsed?.pdf_url || null,
-              print_image_url: n.prin_image_url || null,
+              print_image_url: n.print_image_url || null,
               print_format: n.print_format || 'compact',
               tags: datiParsed?.tags || [],
               visible: true,
@@ -881,7 +876,7 @@ export default function DocumentsPage() {
               dati_raw: null,
               meals_data: p.meals,
               file_url: null,
-              print_image_url: p.prin_image_url || null,
+              print_image_url: p.print_image_url || null,
               print_format: p.print_format || 'compact',
               tags: [],
               visible: true,
@@ -938,7 +933,7 @@ export default function DocumentsPage() {
               id: `ncpt_${n.id}`, title: titolo, type: 'ncpt', source: 'ncpt', tipo: 'ncpt',
               nota: titolo, content: '', file_url: null, tags: [], visible: true,
               dati_raw: { valutazione: n.valutazione, diagnosi: n.diagnosi, intervento: n.intervento, monitoraggio: n.monitoraggio },
-              meals_data: null, print_image_url: n.prin_image_url || null, print_format: n.print_format || 'compact', published_at: n.created_at, created_at: n.created_at,
+              meals_data: null, print_image_url: n.print_image_url || null, print_format: n.print_format || 'compact', published_at: n.created_at, created_at: n.created_at,
               cartella_id: n.cartella_id,
             })
           }
@@ -989,7 +984,7 @@ export default function DocumentsPage() {
               id: `val_${s.id}`, title: titolo, type: 'valutazione', source: 'valutazione', tipo: 'valutazione',
               nota: titolo, content: '', file_url: null, tags: [], visible: true,
               dati_raw: { nome: s.nome, cognome: s.cognome, eta: s.eta, sesso: s.sesso, peso: s.peso, altezza: s.altezza, peso_ideale: s.peso_ideale, massa_grassa_pct: s.massa_grassa_pct, massa_magra: s.massa_magra, vita: s.vita, fianchi: s.fianchi, braccio: s.braccio, patologie: s.patologie, note: s.note, macro_dist: s.macro_dist, tdee_calcolato: s.tdee_calcolato, dati_extra: s.dati_extra },
-              meals_data: null, print_image_url: s.prin_image_url || null, print_format: s.print_format || 'compact', published_at: s.saved_at, created_at: s.saved_at,
+              meals_data: null, print_image_url: s.print_image_url || null, print_format: s.print_format || 'compact', published_at: s.saved_at, created_at: s.saved_at,
               cartella_id: s.cartella_id,
             })
           }
@@ -1039,7 +1034,7 @@ export default function DocumentsPage() {
               id: `bia_${b.id}`, title: 'BIA' + (dataStr ? ' - ' + dataStr : ''), type: 'bia', source: 'bia', tipo: 'bia',
               nota: 'BIA' + (dataStr ? ' - ' + dataStr : ''), content: '', file_url: null, tags: [], visible: true,
               dati_raw: { data_misura: b.data_misura, note: b.note, peso: b.peso, altezza: b.altezza, eta: b.eta, sesso: b.sesso, angolo_fase: b.angolo_fase, bf_pct: b.bf_pct, fm_kg: b.fm_kg, ffm_kg: b.ffm_kg, tbw: b.tbw, icw: b.icw, ecw: b.ecw, bcm: b.bcm, muscle: b.muscle, bone: b.bone, ffmi: b.ffmi, raw_data: b.raw_data },
-              meals_data: null, print_image_url: b.prin_image_url || null, print_format: b.print_format || 'compact', published_at: b.created_at || b.data_misura, created_at: b.created_at || b.data_misura,
+              meals_data: null, print_image_url: b.print_image_url || null, print_format: b.print_format || 'compact', published_at: b.created_at || b.data_misura, created_at: b.created_at || b.data_misura,
               cartella_id: b.cartella_id,
             })
           }
