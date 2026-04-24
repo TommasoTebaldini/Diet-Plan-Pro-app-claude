@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { Send, CheckCheck, Check, MessageCircle, LogOut, Users, ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Apple, Clock, UserPlus, Search, X, FolderOpen } from 'lucide-react'
+import { Send, CheckCheck, Check, MessageCircle, LogOut, Users, ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Apple, Clock, UserPlus, Search, X, FolderOpen, User } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 const MEALS = [
   { key: 'colazione', label: 'Colazione', emoji: '☀️' },
@@ -416,6 +417,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
 // ─── PatientList sidebar ──────────────────────────────────────────────────────
 
 function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkPatient }) {
+  const navigate = useNavigate()
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'white' }}>
       {/* Header */}
@@ -434,6 +436,13 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkP
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button onClick={() => navigate('/dietitian/profilo')} style={{
+            background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10,
+            padding: '7px 10px', cursor: 'pointer', color: 'white',
+            display: 'flex', alignItems: 'center', gap: 5, fontSize: 12,
+          }}>
+            <User size={14} /> Profilo
+          </button>
           <button onClick={onLinkPatient} style={{
             background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10,
             padding: '7px 10px', cursor: 'pointer', color: 'white',

@@ -11,13 +11,14 @@ function searchDietitianFoods(query) {
   if (!q) return []
   const tokens = q.split(/\s+/)
   const results = DIETITIAN_FOODS.filter(f => {
+    if (!f?.name) return false
     const name = f.name.toLowerCase()
     return tokens.every(t => name.includes(t))
   })
   // Sort: exact-start matches first, then partial matches
   results.sort((a, b) => {
-    const aStarts = a.name.toLowerCase().startsWith(q) ? 0 : 1
-    const bStarts = b.name.toLowerCase().startsWith(q) ? 0 : 1
+    const aStarts = (a.name || '').toLowerCase().startsWith(q) ? 0 : 1
+    const bStarts = (b.name || '').toLowerCase().startsWith(q) ? 0 : 1
     return aStarts - bStarts
   })
   return results.map(f => ({ ...f, brand: `📋 DB Dietista — ${f.category || 'Generico'}`, source: 'dietitian' }))
@@ -66,6 +67,7 @@ async function searchDietMealFoods(query) {
     for (const meal of data) {
       if (!Array.isArray(meal.foods)) continue
       for (const food of meal.foods) {
+        if (!food || typeof food !== 'object') continue
         const name = food.name || food.nome || ''
         if (!name || !name.toLowerCase().includes(q) || seen.has(name)) continue
         seen.add(name)
@@ -234,6 +236,7 @@ export async function searchFoods(query) {
   ])
   const seen = new Set()
   const dedup = arr => (arr.status === 'fulfilled' ? arr.value : []).filter(food => {
+    if (!food || typeof food !== 'object') return false
     const k = (food.name || '').toLowerCase().trim()
     if (!k || seen.has(k)) return false
     seen.add(k); return true

@@ -68,6 +68,7 @@ export default function MacroTrackerPage() {
   const [showScanner, setShowScanner] = useState(false)
   const [scanningBarcode, setScanningBarcode] = useState(false)
   const [barcodeError, setBarcodeError] = useState('')
+  const [barcodeFoodModal, setBarcodeFoodModal] = useState(null)
   const searchRef = useRef(null)
   const searchCacheRef = useRef(new Map())
   const latestSearchIdRef = useRef(0)
@@ -115,16 +116,23 @@ export default function MacroTrackerPage() {
     setSearching(true)
     const timer = setTimeout(async () => {
       const searchId = ++latestSearchIdRef.current
-      const foods = await searchFoods(normalizedQuery)
-      if (searchId !== latestSearchIdRef.current) return
-      searchCacheRef.current.set(normalizedQuery, foods)
-      // Prevent unbounded memory growth while keeping recent queries instant.
-      if (searchCacheRef.current.size > 40) {
-        const firstKey = searchCacheRef.current.keys().next().value
-        if (firstKey) searchCacheRef.current.delete(firstKey)
+      try {
+        const foods = await searchFoods(normalizedQuery)
+        if (searchId !== latestSearchIdRef.current) return
+        searchCacheRef.current.set(normalizedQuery, foods)
+        // Prevent unbounded memory growth while keeping recent queries instant.
+        if (searchCacheRef.current.size > 40) {
+          const firstKey = searchCacheRef.current.keys().next().value
+          if (firstKey) searchCacheRef.current.delete(firstKey)
+        }
+        setResults(foods)
+      } catch (err) {
+        console.error('Errore ricerca alimenti:', err)
+        if (searchId !== latestSearchIdRef.current) return
+        setResults([])
+      } finally {
+        if (searchId === latestSearchIdRef.current) setSearching(false)
       }
-      setResults(foods)
-      setSearching(false)
     }, 220)
     return () => clearTimeout(timer)
   }, [query])
@@ -151,6 +159,15 @@ export default function MacroTrackerPage() {
     setAddedFood(null)
   }
 
+  function autoMealFromTime() {
+    const h = new Date().getHours()
+    if (h < 10) return 'colazione'
+    if (h < 12) return 'spuntino_mattina'
+    if (h < 15) return 'pranzo'
+    if (h < 18) return 'spuntino_pomeriggio'
+    return 'cena'
+  }
+
   async function handleBarcodeFound(barcode) {
     setShowScanner(false)
     setScanningBarcode(true)
@@ -158,13 +175,52 @@ export default function MacroTrackerPage() {
     const food = await searchByBarcode(barcode)
     setScanningBarcode(false)
     if (food) {
-      setSelected(food)
-      setGrams(food.default_grams ? String(food.default_grams) : '100')
-      setQuery(food.name)
-      setResults([])
+      if (activeMealAdd) {
+        // Inside meal search — fill directly
+        setSelected(food)
+        setGrams(food.default_grams ? String(food.default_grams) : '100')
+        setQuery(food.name)
+        setResults([])
+      } else {
+        // Header scan — open dedicated modal
+        setBarcodeFoodModal({ food, grams: String(food.default_grams || 100), meal: autoMealFromTime() })
+      }
     } else {
       setBarcodeError(`Prodotto con codice "${barcode}" non trovato. Prova la ricerca manuale.`)
       setTimeout(() => setBarcodeError(''), 5000)
+    }
+  }
+
+  async function addBarcodeFood() {
+    if (!barcodeFoodModal) return
+    setSaving(true)
+    const { food, grams: gramsVal, meal: mealKey } = barcodeFoodModal
+    const m = calcMacros(food, gramsVal)
+    try {
+      const foodData = {
+        id: food.id, name: food.name, brand: food.brand || '',
+        kcal_100g: food.kcal_100g || 0, proteins_100g: food.proteins_100g || 0,
+        carbs_100g: food.carbs_100g || 0, fats_100g: food.fats_100g || 0,
+        fiber_100g: food.fiber_100g || 0, source: food.source || '',
+      }
+      const { data, error } = await supabase.from('food_logs').insert({
+        user_id: user.id,
+        date, meal_type: mealKey, food_name: food.name,
+        grams: parseFloat(gramsVal) || 100, ...m,
+        food_data: foodData,
+      }).select().single()
+      if (error || !data) { setSaving(false); return }
+      setLog(l => [...l, data])
+      await updateDailyLog()
+      const savedName = food.name
+      setBarcodeFoodModal(null)
+      setExpandedMeal(mealKey)
+      setAddedFood(savedName)
+      setTimeout(() => setAddedFood(null), 2500)
+    } catch (e) {
+      console.error('Errore salvataggio barcode food:', e)
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -287,6 +343,16 @@ export default function MacroTrackerPage() {
           </div>
 
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+            <button
+              onClick={() => setShowScanner(true)}
+              title="Scansiona codice a barre"
+              style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}
+            >
+              {scanningBarcode
+                ? <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'block' }} />
+                : <ScanLine size={18} />
+              }
+            </button>
             <button onClick={() => changeDate(1)} disabled={isToday} style={{ background: isToday ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isToday ? 'default' : 'pointer', color: isToday ? 'rgba(255,255,255,0.3)' : 'white' }}>
               <ChevronRight size={18} />
             </button>
@@ -536,6 +602,77 @@ export default function MacroTrackerPage() {
           onClose={() => setShowScanner(false)}
         />
       )}
+
+      {/* Barcode food modal — opened when scanning from header (no meal open) */}
+      {barcodeFoodModal && (() => {
+        const { food, grams: bGrams, meal: bMeal } = barcodeFoodModal
+        const bPreview = calcMacros(food, bGrams)
+        return (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+            <div className="animate-slideUp" style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', padding: 20, paddingBottom: 'calc(20px + env(safe-area-inset-bottom))' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700 }}>🛒 Alimento trovato</h3>
+                <button onClick={() => setBarcodeFoodModal(null)} style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Food info */}
+              <div style={{ background: 'var(--green-pale)', borderRadius: 12, padding: '12px 14px', marginBottom: 14 }}>
+                <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 2 }}>{food.name}</p>
+                {food.brand && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>{food.brand}</p>}
+                <div style={{ display: 'flex', gap: 14 }}>
+                  {[
+                    { label: 'Kcal', val: food.kcal_100g },
+                    { label: 'Prot.', val: `${food.proteins_100g}g` },
+                    { label: 'Carbo', val: `${food.carbs_100g}g` },
+                    { label: 'Grassi', val: `${food.fats_100g}g` },
+                  ].map(s => (
+                    <div key={s.label} style={{ textAlign: 'center' }}>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--green-dark)' }}>{s.val}</p>
+                      <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+                <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>valori per 100 g</p>
+              </div>
+
+              {/* Meal + grams */}
+              <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+                <div className="input-group" style={{ flex: 1 }}>
+                  <label className="input-label">Pasto</label>
+                  <select className="input-field" value={bMeal} onChange={e => setBarcodeFoodModal(m => ({ ...m, meal: e.target.value }))}>
+                    {MEALS.map(m => <option key={m.key} value={m.key}>{m.emoji} {m.label}</option>)}
+                  </select>
+                </div>
+                <div className="input-group" style={{ width: 110 }}>
+                  <label className="input-label">Quantità (g)</label>
+                  <input type="number" className="input-field" value={bGrams} onChange={e => setBarcodeFoodModal(m => ({ ...m, grams: e.target.value }))} min={1} inputMode="decimal" />
+                </div>
+              </div>
+
+              {/* Macro preview */}
+              <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+                {[
+                  { label: 'Kcal', val: bPreview.kcal },
+                  { label: 'Proteine', val: `${bPreview.proteins}g` },
+                  { label: 'Carboidrati', val: `${bPreview.carbs}g` },
+                  { label: 'Grassi', val: `${bPreview.fats}g` },
+                ].map(s => (
+                  <div key={s.label} style={{ flex: 1, background: 'var(--surface-2)', borderRadius: 8, padding: '7px 4px', textAlign: 'center', border: '1px solid var(--border-light)' }}>
+                    <p style={{ fontSize: 13, fontWeight: 700 }}>{s.val}</p>
+                    <p style={{ fontSize: 9, color: 'var(--text-muted)' }}>{s.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              <button className="btn btn-primary btn-full" onClick={addBarcodeFood} disabled={saving}>
+                {saving ? '…' : 'Aggiungi al diario'}
+              </button>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

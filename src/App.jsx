@@ -16,6 +16,8 @@ import ActivityPage from './pages/ActivityPage'
 import StatisticsPage from './pages/StatisticsPage'
 import WellnessPage from './pages/WellnessPage'
 import DietitianChatPage from './pages/DietitianChatPage'
+import DietitianProfilesPage from './pages/DietitianProfilesPage'
+import DietitianProfilePage from './pages/DietitianProfilePage'
 import BottomNav from './components/BottomNav'
 import LoadingScreen from './components/LoadingScreen'
 import InstallBanner from './components/InstallBanner'
@@ -44,6 +46,14 @@ function PatientRoute({ children }) {
   return children
 }
 
+function DietitianRoute({ children }) {
+  const { user, loading, isDietitian } = useAuth()
+  if (loading) return <LoadingScreen />
+  if (!user) return <Navigate to="/login" replace />
+  if (!isDietitian) return <Navigate to="/" replace />
+  return children
+}
+
 function AppInner() {
   const { user, isDietitian, refreshProfile } = useAuth()
 
@@ -62,6 +72,7 @@ function AppInner() {
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
           <Route path="/dietitian/chat" element={<PrivateRoute><DietitianChatPage /></PrivateRoute>} />
+          <Route path="/dietitian/profilo" element={<DietitianRoute><DietitianProfilePage /></DietitianRoute>} />
           <Route path="/" element={<PatientRoute><DashboardPage /></PatientRoute>} />
           <Route path="/dieta" element={<PatientRoute><DietPage /></PatientRoute>} />
           <Route path="/macro" element={<PatientRoute><MacroTrackerPage /></PatientRoute>} />
@@ -73,6 +84,7 @@ function AppInner() {
           <Route path="/attivita" element={<PatientRoute><ActivityPage /></PatientRoute>} />
           <Route path="/statistiche" element={<PatientRoute><StatisticsPage /></PatientRoute>} />
           <Route path="/benessere" element={<PatientRoute><WellnessPage /></PatientRoute>} />
+          <Route path="/dietisti" element={<PatientRoute><DietitianProfilesPage /></PatientRoute>} />
           <Route path="/profilo" element={<PatientRoute><ProfilePage /></PatientRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
