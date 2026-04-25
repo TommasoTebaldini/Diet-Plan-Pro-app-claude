@@ -165,33 +165,9 @@ export async function searchOpenFoodFacts(query) {
   const fields = 'code,product_name,product_name_it,product_name_en,brands,nutriments'
   const q = encodeURIComponent(query)
 
-  // Primary: Italian regional database — returns products sold in Italy in Italian
-  try {
-    const res = await fetch(
-      `https://it.openfoodfacts.org/cgi/search.pl?search_terms=${q}&search_simple=1&action=process&json=1&fields=${fields}&page_size=24&sort_by=unique_scans_n`,
-      { signal: AbortSignal.timeout(8000) }
-    )
-    if (res.ok) {
-      const data = await res.json()
-      const hits = (data.products || []).filter(hasUsefulData).map(mapOFFProduct).filter(p => p.name)
-      if (hits.length >= 3) return hits
-    }
-  } catch { /* fall through */ }
-
-  // Secondary: Meilisearch-based API with Italian language filter
-  try {
-    const res = await fetch(
-      `https://search.openfoodfacts.org/search?q=${q}&page_size=24&fields=${fields}&langs=it`,
-      { signal: AbortSignal.timeout(8000) }
-    )
-    if (res.ok) {
-      const data = await res.json()
-      const hits = (data.hits || []).filter(hasUsefulData).map(mapOFFProduct).filter(p => p.name)
-      if (hits.length >= 3) return hits
-    }
-  } catch { /* fall through */ }
-
-  // Tertiary: world database filtered by Italian country tag, sorted by scans
+  // Primary: world database filtered by Italian country tag, sorted by scans
+  // Note: it.openfoodfacts.org and search.openfoodfacts.org block CORS from production
+  // domains — only world.openfoodfacts.org sends the required headers.
   try {
     const res = await fetch(
       `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${q}&search_simple=1&action=process&json=1&fields=${fields}&page_size=24&tagtype_0=countries&tag_contains_0=contains&tag_0=italy&sort_by=unique_scans_n`,
@@ -200,11 +176,11 @@ export async function searchOpenFoodFacts(query) {
     if (res.ok) {
       const data = await res.json()
       const hits = (data.products || []).filter(hasUsefulData).map(mapOFFProduct).filter(p => p.name)
-      if (hits.length > 0) return hits
+      if (hits.length >= 3) return hits
     }
   } catch { /* fall through */ }
 
-  // Quaternary: world database fallback (no country filter)
+  // Fallback: world database (no country filter)
   try {
     const res = await fetch(
       `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${q}&search_simple=1&action=process&json=1&fields=${fields}&page_size=24&sort_by=unique_scans_n`,

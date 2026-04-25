@@ -359,12 +359,20 @@ alter table profiles enable row level security;
 
 -- food_logs
 drop policy if exists "utenti vedono i propri dati" on food_logs;
-create policy "utenti vedono i propri dati" on food_logs
+drop policy if exists "dietista legge diario pazienti" on food_logs;
+drop policy if exists "food_logs_select_own" on food_logs;
+drop policy if exists "food_logs_insert_own" on food_logs;
+drop policy if exists "food_logs_update_own" on food_logs;
+drop policy if exists "food_logs_delete_own" on food_logs;
+drop policy if exists "food_logs_dietitian_select" on food_logs;
+drop policy if exists "food_logs_own" on food_logs;
+drop policy if exists "food_logs_dietitian_read" on food_logs;
+
+create policy "food_logs_own" on food_logs
   for all using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
-drop policy if exists "dietista legge diario pazienti" on food_logs;
-create policy "dietista legge diario pazienti" on food_logs
+create policy "food_logs_dietitian_read" on food_logs
   for select using (
     exists (
       select 1 from patient_dietitian pd

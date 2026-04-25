@@ -1,62 +1,40 @@
--- RLS policies for food_logs table
--- Run this in the Supabase SQL editor
+-- Fix food_logs: reset RLS policies and ensure all columns exist
+-- Run this in the Supabase SQL Editor to fix 400 errors on food_logs
 
+-- 1. Ensure all required columns exist (safe to run multiple times)
+ALTER TABLE food_logs ADD COLUMN IF NOT EXISTS meal_time text;
+ALTER TABLE food_logs ADD COLUMN IF NOT EXISTS food_data jsonb;
+
+-- 2. Enable RLS (idempotent)
 ALTER TABLE food_logs ENABLE ROW LEVEL SECURITY;
 
--- Allow users to SELECT their own logs
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'food_logs' AND policyname = 'food_logs_select_own'
-  ) THEN
-    CREATE POLICY food_logs_select_own ON food_logs
-      FOR SELECT USING (auth.uid() = user_id);
-  END IF;
+-- 3. Drop ALL existing policies on food_logs to eliminate conflicts
+DO $$
+DECLARE
+  pol record;
+BEGIN
+  FOR pol IN
+    SELECT policyname FROM pg_policies
+    WHERE tablename = 'food_logs' AND schemaname = 'public'
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON food_logs', pol.policyname);
+  END LOOP;
 END $$;
 
--- Allow users to INSERT their own logs
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'food_logs' AND policyname = 'food_logs_insert_own'
-  ) THEN
-    CREATE POLICY food_logs_insert_own ON food_logs
-      FOR INSERT WITH CHECK (auth.uid() = user_id);
-  END IF;
-END $$;
+-- 4. Recreate clean, non-overlapping policies
 
--- Allow users to UPDATE their own logs
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'food_logs' AND policyname = 'food_logs_update_own'
-  ) THEN
-    CREATE POLICY food_logs_update_own ON food_logs
-      FOR UPDATE USING (auth.uid() = user_id);
-  END IF;
-END $$;
+-- Users can read/write/delete their own rows
+CREATE POLICY "food_logs_own" ON food_logs
+  FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
 
--- Allow users to DELETE their own logs
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'food_logs' AND policyname = 'food_logs_delete_own'
-  ) THEN
-    CREATE POLICY food_logs_delete_own ON food_logs
-      FOR DELETE USING (auth.uid() = user_id);
-  END IF;
-END $$;
-
--- Allow dietitians to SELECT logs of their patients
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'food_logs' AND policyname = 'food_logs_dietitian_select'
-  ) THEN
-    CREATE POLICY food_logs_dietitian_select ON food_logs
-      FOR SELECT USING (
-        EXISTS (
-          SELECT 1 FROM patient_dietitian pd
-          JOIN profiles p ON p.id = auth.uid()
-          WHERE pd.patient_id = food_logs.user_id
-            AND pd.dietitian_id = auth.uid()
-            AND p.role = 'dietitian'
-        )
-      );
-  END IF;
-END $$;
+-- Dietitians can read their patients' logs
+CREATE POLICY "food_logs_dietitian_read" ON food_logs
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM patient_dietitian pd
+      WHERE pd.patient_id = food_logs.user_id
+        AND pd.dietitian_id = auth.uid()
+    )
+  );

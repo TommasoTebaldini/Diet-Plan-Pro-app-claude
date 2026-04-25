@@ -99,6 +99,7 @@ export default function MacroTrackerPage() {
       supabase.from('patient_diets').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
       supabase.from('daily_wellness').select('mood').eq('user_id', user.id).eq('date', date).maybeSingle(),
     ])
+    if (foodRes.error) console.error('[food_logs] load error:', foodRes.error)
     setLog(foodRes.data || [])
     setDiet(dietRes.data)
     setMood(wellnessRes.data?.mood || null)
