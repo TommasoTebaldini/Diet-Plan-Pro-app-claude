@@ -21,7 +21,7 @@ function searchDietitianFoods(query) {
     const bStarts = (b.name || '').toLowerCase().startsWith(q) ? 0 : 1
     return aStarts - bStarts
   })
-  return results.map(f => ({ ...f, brand: `📋 DB Dietista — ${f.category || 'Generico'}`, source: 'dietitian' }))
+  return results.map(f => ({ ...f, brand: `CREA — ${f.category || 'Generico'}`, source: 'dietitian' }))
 }
 
 // Recent foods from patient's own logs (fastest, most relevant)

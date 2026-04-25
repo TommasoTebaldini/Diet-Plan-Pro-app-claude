@@ -6,11 +6,11 @@ import { Clock, ChevronDown, ChevronUp, Flame, Leaf, FileText, CheckCircle2, Cir
 const DAYS = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
 
 const MEAL_LABELS = {
-  colazione: { label: 'Colazione', icon: '☀️', time: '07:00–08:30' },
-  spuntino_mattina: { label: 'Spuntino mattina', icon: '🍎', time: '10:00–10:30' },
-  pranzo: { label: 'Pranzo', icon: '🍽️', time: '12:30–13:30' },
-  spuntino_pomeriggio: { label: 'Spuntino pomeriggio', icon: '🥤', time: '15:30–16:00' },
-  cena: { label: 'Cena', icon: '🌙', time: '19:30–20:30' },
+  colazione: { label: 'Colazione', icon: '☀️', time: '07:00–08:30', accent: '#f59e0b', pale: '#fffbeb' },
+  spuntino_mattina: { label: 'Spuntino mattina', icon: '🍎', time: '10:00–10:30', accent: '#10b981', pale: '#ecfdf5' },
+  pranzo: { label: 'Pranzo', icon: '🍽️', time: '12:30–13:30', accent: '#3b82f6', pale: '#eff6ff' },
+  spuntino_pomeriggio: { label: 'Spuntino pomeriggio', icon: '🥤', time: '15:30–16:00', accent: '#8b5cf6', pale: '#f5f3ff' },
+  cena: { label: 'Cena', icon: '🌙', time: '19:30–20:30', accent: '#6366f1', pale: '#eef2ff' },
 }
 
 function MacroBar({ label, value, max, color }) {
@@ -80,29 +80,31 @@ function FoodItem({ food }) {
   const hasSubs = food.substitutes && food.substitutes.length > 0
 
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
-          <span style={{ fontSize: 14, color: 'var(--text-primary)' }}>{food.name}</span>
+    <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-light)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+          <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'var(--font-b)' }}>{food.name}</span>
           {hasSubs && (
             <button
               onClick={() => setShowSubs(v => !v)}
-              style={{ background: 'var(--green-pale)', border: 'none', cursor: 'pointer', color: 'var(--green-main)', fontSize: 11, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 3, padding: '1px 6px', borderRadius: 100 }}
+              style={{ background: 'var(--green-pale)', border: 'none', cursor: 'pointer', color: 'var(--green-main)', fontSize: 10, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 100 }}
             >
-              <RefreshCw size={10} />
-              {showSubs ? 'Nascondi' : 'Sostituti'}
+              <RefreshCw size={9} />
+              {showSubs ? 'Nascondi' : 'Alt.'}
             </button>
           )}
         </div>
-        <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, flexShrink: 0, marginLeft: 8 }}>{food.quantity} {food.unit || 'g'}</span>
+        <span style={{ fontSize: 13, color: 'var(--green-main)', fontWeight: 700, flexShrink: 0, background: 'var(--green-pale)', padding: '2px 9px', borderRadius: 100, fontFamily: 'var(--font-b)' }}>
+          {food.quantity} {food.unit || 'g'}
+        </span>
       </div>
       {hasSubs && showSubs && (
-        <div style={{ marginTop: 6, marginLeft: 10, padding: '8px 12px', background: 'var(--green-mist)', borderRadius: 8, borderLeft: '3px solid var(--green-light)' }}>
-          <p style={{ fontSize: 11, color: 'var(--green-dark)', fontWeight: 600, marginBottom: 4 }}>Sostituti consigliati:</p>
+        <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--surface-2)', borderRadius: 10, borderLeft: '3px solid var(--green-main)' }}>
+          <p style={{ fontSize: 11, color: 'var(--green-dark)', fontWeight: 700, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Sostituti:</p>
           {food.substitutes.map((sub, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', paddingTop: i > 0 ? 4 : 0 }}>
-              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{sub.name}</span>
-              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{sub.quantity} {sub.unit || 'g'}</span>
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: i > 0 ? 5 : 0 }}>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: 'var(--font-b)' }}>{sub.name}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>{sub.quantity} {sub.unit || 'g'}</span>
             </div>
           ))}
         </div>
@@ -113,33 +115,42 @@ function FoodItem({ food }) {
 
 function MealCard({ meal, completed, onToggleComplete }) {
   const [open, setOpen] = useState(false)
-  const meta = MEAL_LABELS[meal.meal_type] || { label: meal.meal_type, icon: '🍴', time: '' }
+  const meta = MEAL_LABELS[meal.meal_type] || { label: meal.meal_type, icon: '🍴', time: '', accent: 'var(--green-main)', pale: 'var(--green-pale)' }
 
   return (
-    <div className="card" style={{ padding: 0, overflow: 'hidden', opacity: completed ? 0.8 : 1, transition: 'opacity 0.2s' }}>
+    <div style={{
+      borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border-light)',
+      background: 'var(--surface)', boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+      opacity: completed ? 0.85 : 1, transition: 'opacity 0.2s',
+    }}>
+      {/* Accent top bar */}
+      <div style={{ height: 3, background: completed ? 'var(--green-main)' : meta.accent }} />
+
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <button
           onClick={() => setOpen(v => !v)}
-          style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', padding: '16px 12px 16px 18px', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left' }}
+          style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', padding: '14px 12px 14px 16px', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left' }}
         >
-          <span style={{ fontSize: 26 }}>{meta.icon}</span>
-          <div style={{ flex: 1 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 14, background: meta.pale, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
+            {meta.icon}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{meta.label}</p>
+              <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-b)' }}>{meta.label}</p>
               {completed && (
-                <span style={{ fontSize: 11, color: 'var(--green-main)', fontWeight: 600, background: 'var(--green-pale)', padding: '2px 7px', borderRadius: 100 }}>✓ Completato</span>
+                <span style={{ fontSize: 10, color: 'var(--green-main)', fontWeight: 700, background: 'var(--green-pale)', padding: '2px 8px', borderRadius: 100 }}>✓ Completato</span>
               )}
             </div>
-            <div style={{ display: 'flex', gap: 12, marginTop: 3 }}>
-              {meta.time && <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 3 }}><Clock size={11} />{meta.time}</span>}
-              {meal.kcal && <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 3 }}><Flame size={11} />{meal.kcal} kcal</span>}
+            <div style={{ display: 'flex', gap: 10, marginTop: 3, flexWrap: 'wrap' }}>
+              {meta.time && <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 3 }}><Clock size={10} />{meta.time}</span>}
+              {meal.kcal && <span style={{ fontSize: 12, color: meta.accent, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}><Flame size={10} color={meta.accent} />{meal.kcal} kcal</span>}
             </div>
           </div>
-          {open ? <ChevronUp size={18} color="var(--text-muted)" /> : <ChevronDown size={18} color="var(--text-muted)" />}
+          {open ? <ChevronUp size={16} color="var(--text-muted)" /> : <ChevronDown size={16} color="var(--text-muted)" />}
         </button>
         <button
           onClick={() => onToggleComplete(meal.id)}
-          style={{ padding: '16px 16px 16px 4px', background: 'none', border: 'none', cursor: 'pointer', color: completed ? 'var(--green-main)' : 'var(--border)', display: 'flex', alignItems: 'center', transition: 'color 0.2s' }}
+          style={{ padding: '14px 14px 14px 4px', background: 'none', border: 'none', cursor: 'pointer', color: completed ? 'var(--green-main)' : 'var(--border)', display: 'flex', alignItems: 'center', transition: 'color 0.2s' }}
           title={completed ? 'Segna come non completato' : 'Segna come completato'}
         >
           {completed ? <CheckCircle2 size={22} /> : <Circle size={22} />}
@@ -147,31 +158,31 @@ function MealCard({ meal, completed, onToggleComplete }) {
       </div>
 
       {open && (
-        <div style={{ borderTop: '1px solid var(--border-light)', padding: '14px 18px 16px' }}>
+        <div style={{ borderTop: '1px solid var(--border-light)', padding: '14px 16px 16px' }}>
           {meal.foods && meal.foods.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: meal.notes ? 12 : 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: meal.notes ? 12 : 0 }}>
               {meal.foods.map((food, i) => <FoodItem key={i} food={food} />)}
             </div>
           ) : meal.description ? (
-            <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: meal.notes ? 12 : 0 }}>{meal.description}</p>
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: meal.notes ? 12 : 0, fontFamily: 'var(--font-b)' }}>{meal.description}</p>
           ) : null}
 
           {meal.notes && (
-            <div style={{ background: 'var(--green-pale)', borderRadius: 10, padding: '10px 12px', marginTop: 8 }}>
-              <p style={{ fontSize: 13, color: 'var(--green-dark)', lineHeight: 1.5 }}>💡 {meal.notes}</p>
+            <div style={{ background: meta.pale, borderRadius: 10, padding: '10px 13px', marginTop: 8, borderLeft: `3px solid ${meta.accent}` }}>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55, fontFamily: 'var(--font-b)' }}>💡 {meal.notes}</p>
             </div>
           )}
 
           {meal.kcal && (
-            <div style={{ display: 'flex', gap: 12, marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-light)' }}>
+            <div style={{ display: 'flex', gap: 8, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-light)' }}>
               {[
                 { label: 'Proteine', val: meal.proteins, color: '#3b82f6' },
                 { label: 'Carboidrati', val: meal.carbs, color: '#f0922b' },
                 { label: 'Grassi', val: meal.fats, color: '#e05a5a' },
               ].filter(m => m.val).map(m => (
-                <div key={m.label} style={{ flex: 1, textAlign: 'center', padding: '8px', background: 'var(--surface-2)', borderRadius: 8 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: m.color }}>{m.val}g</p>
-                  <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{m.label}</p>
+                <div key={m.label} style={{ flex: 1, textAlign: 'center', padding: '8px 4px', background: 'var(--surface-2)', borderRadius: 10, border: '1px solid var(--border-light)' }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: m.color, fontFamily: 'var(--font-b)' }}>{m.val}g</p>
+                  <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>{m.label}</p>
                 </div>
               ))}
             </div>
@@ -520,39 +531,44 @@ export default function DietPage() {
   return (
     <div className="page">
       {/* Header */}
-      <div style={{ background: 'linear-gradient(160deg, var(--green-dark) 0%, var(--green-main) 100%)', padding: 'calc(env(safe-area-inset-top) + 20px) 24px 28px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 14, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Leaf size={20} color="white" />
+      <div style={{ background: 'linear-gradient(160deg, var(--green-dark) 0%, var(--green-main) 100%)', padding: 'calc(env(safe-area-inset-top) + 18px) 20px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: diet ? 16 : 0 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Leaf size={22} color="white" />
           </div>
-          <div>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>{diet ? 'Piano attivo' : 'La mia dieta'}</p>
-            <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 20, color: 'white', fontWeight: 300 }}>{diet ? (diet.name || 'Piano personalizzato') : 'Piani alimentari'}</h1>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 2 }}>
+              {diet ? 'Piano attivo' : 'La mia dieta'}
+            </p>
+            <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 21, color: 'white', fontWeight: 300, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {diet ? (diet.name || 'Piano personalizzato') : 'Piani alimentari'}
+            </h1>
           </div>
         </div>
         {diet && (
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
             {[
-              { label: `${diet.kcal_target || '–'} kcal`, sub: 'obiettivo' },
-              { label: `${diet.protein_target || '–'}g`, sub: 'proteine' },
-              { label: `${diet.duration_weeks || '–'} sett.`, sub: 'durata' },
+              { label: `${diet.kcal_target || '–'}`, sub: 'kcal/giorno', icon: '🔥' },
+              { label: `${diet.protein_target || '–'}g`, sub: 'proteine', icon: '💪' },
+              { label: `${diet.duration_weeks || '–'} sett.`, sub: 'durata', icon: '📅' },
             ].map(s => (
-              <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.15)' }}>
-                <p style={{ color: 'white', fontSize: 15, fontWeight: 600 }}>{s.label}</p>
-                <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>{s.sub}</p>
+              <div key={s.sub} style={{ flex: 1, background: 'rgba(255,255,255,0.13)', borderRadius: 14, padding: '10px 8px', border: '1px solid rgba(255,255,255,0.18)', textAlign: 'center' }}>
+                <p style={{ fontSize: 9, marginBottom: 2 }}>{s.icon}</p>
+                <p style={{ color: 'white', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-b)', lineHeight: 1 }}>{s.label}</p>
+                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, marginTop: 2 }}>{s.sub}</p>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {/* Clinical plans from dietitian portal */}
         {clinicalPlans.length > 0 && (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <ClipboardList size={16} color="var(--green-main)" />
-              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Piani dal dietista</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <ClipboardList size={15} color="var(--green-main)" />
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Piani dal dietista</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {clinicalPlans.map(plan => (
@@ -596,17 +612,18 @@ export default function DietPage() {
 
             {/* Meal completion progress */}
             {dayMeals.length > 0 && (
-              <div style={{ background: 'var(--surface)', borderRadius: 14, padding: '12px 16px', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ background: allDone ? 'var(--green-pale)' : 'var(--surface)', borderRadius: 16, padding: '13px 16px', border: `1px solid ${allDone ? 'var(--green-light)' : 'var(--border-light)'}`, display: 'flex', alignItems: 'center', gap: 12, transition: 'background 0.3s, border-color 0.3s' }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>Pasti completati oggi</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: allDone ? 'var(--green-main)' : 'var(--text-muted)' }}>{completedCount}/{dayMeals.length}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
+                    <span style={{ fontSize: 13, color: allDone ? 'var(--green-dark)' : 'var(--text-secondary)', fontWeight: 600, fontFamily: 'var(--font-b)' }}>
+                      {allDone ? '🎉 Tutti i pasti completati!' : 'Avanzamento pasti'}
+                    </span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: allDone ? 'var(--green-main)' : 'var(--text-muted)', fontFamily: 'var(--font-b)' }}>{completedCount}/{dayMeals.length}</span>
                   </div>
-                  <div style={{ height: 6, background: 'var(--surface-3)', borderRadius: 3, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${(completedCount / dayMeals.length) * 100}%`, background: 'var(--green-main)', borderRadius: 3, transition: 'width 0.3s ease' }} />
+                  <div style={{ height: 7, background: 'var(--surface-3)', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${(completedCount / dayMeals.length) * 100}%`, background: 'var(--green-main)', borderRadius: 4, transition: 'width 0.4s ease' }} />
                   </div>
                 </div>
-                {allDone && <span style={{ fontSize: 22 }}>🎉</span>}
               </div>
             )}
 

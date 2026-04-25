@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import {
   Send, CheckCheck, Check, MessageCircle,
-  ImagePlus, Mic, MicOff, X, Play, Pause, Bell, BellOff
+  ImagePlus, Mic, MicOff, X, Play, Pause, Bell, BellOff,
+  FileText, PenLine, AlertTriangle
 } from 'lucide-react'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -95,6 +97,181 @@ function AudioPlayer({ src, isMe }) {
   )
 }
 
+// ── Signature Modal ──────────────────────────────────────────────────────────
+
+function SignatureModal({ doc, onClose, onSigned }) {
+  const canvasRef = useRef(null)
+  const [drawing, setDrawing] = useState(false)
+  const [hasSignature, setHasSignature] = useState(false)
+  const [signing, setSigning] = useState(false)
+  const [mode, setMode] = useState('canvas') // 'canvas' | 'typed'
+  const [typedName, setTypedName] = useState('')
+  const lastPos = useRef(null)
+
+  function getPos(e, canvas) {
+    const rect = canvas.getBoundingClientRect()
+    const src = e.touches ? e.touches[0] : e
+    return { x: src.clientX - rect.left, y: src.clientY - rect.top }
+  }
+
+  function startDraw(e) {
+    e.preventDefault()
+    const canvas = canvasRef.current
+    if (!canvas) return
+    setDrawing(true)
+    lastPos.current = getPos(e, canvas)
+  }
+
+  function draw(e) {
+    e.preventDefault()
+    if (!drawing) return
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext('2d')
+    const pos = getPos(e, canvas)
+    ctx.beginPath()
+    ctx.moveTo(lastPos.current.x, lastPos.current.y)
+    ctx.lineTo(pos.x, pos.y)
+    ctx.strokeStyle = '#1a2e1a'
+    ctx.lineWidth = 2.5
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.stroke()
+    lastPos.current = pos
+    setHasSignature(true)
+  }
+
+  function endDraw(e) {
+    e.preventDefault()
+    setDrawing(false)
+    lastPos.current = null
+  }
+
+  function clearCanvas() {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height)
+    setHasSignature(false)
+  }
+
+  function applyTypedSignature() {
+    if (!typedName.trim()) return
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.font = 'italic 32px Georgia, serif'
+    ctx.fillStyle = '#1a2e1a'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(typedName.trim(), canvas.width / 2, canvas.height / 2)
+    setHasSignature(true)
+  }
+
+  async function submitSignature() {
+    if (!hasSignature) return
+    setSigning(true)
+    const canvas = canvasRef.current
+    const signatureData = canvas.toDataURL('image/png')
+    const { error } = await supabase.from('patient_documents').update({
+      signed_at: new Date().toISOString(),
+      signature_data: signatureData,
+    }).eq('id', doc.id)
+    setSigning(false)
+    if (!error) onSigned(doc.id)
+  }
+
+  return createPortal(
+    <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.7)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+      <div className="animate-slideUp" style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', maxHeight: '92dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px 12px', borderBottom: '1px solid var(--border-light)', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fff3cd', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FileText size={18} color="#856404" />
+            </div>
+            <div>
+              <p style={{ fontSize: 15, fontWeight: 700 }}>Firma documento</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{doc.title || 'Informativa privacy'}</p>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Document content */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 20px' }}>
+          {doc.content && (
+            <div style={{ background: 'var(--surface-2)', borderRadius: 12, padding: '14px 16px', marginBottom: 16, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, maxHeight: 200, overflowY: 'auto', border: '1px solid var(--border-light)', whiteSpace: 'pre-wrap' }}>
+              {doc.content}
+            </div>
+          )}
+
+          {/* Mode toggle */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+            {[{ key: 'canvas', label: '✍️ Firma manuale' }, { key: 'typed', label: '⌨️ Firma con nome' }].map(t => (
+              <button key={t.key} onClick={() => { setMode(t.key); clearCanvas(); setHasSignature(false) }}
+                style={{ flex: 1, padding: '9px 6px', borderRadius: 10, fontSize: 13, fontWeight: 500, border: `1.5px solid ${mode === t.key ? 'var(--green-main)' : 'var(--border)'}`, background: mode === t.key ? 'var(--green-pale)' : 'var(--surface-2)', color: mode === t.key ? 'var(--green-dark)' : 'var(--text-secondary)', cursor: 'pointer' }}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {mode === 'typed' && (
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+              <input
+                type="text"
+                className="input-field"
+                placeholder="Il tuo nome e cognome"
+                value={typedName}
+                onChange={e => setTypedName(e.target.value)}
+                style={{ flex: 1 }}
+              />
+              <button onClick={applyTypedSignature} disabled={!typedName.trim()}
+                style={{ padding: '0 16px', background: 'var(--green-main)', color: 'white', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: typedName.trim() ? 1 : 0.5 }}>
+                Applica
+              </button>
+            </div>
+          )}
+
+          {/* Canvas */}
+          <div style={{ position: 'relative', marginBottom: 12 }}>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
+              {mode === 'canvas' ? 'Disegna la tua firma qui sotto:' : 'Anteprima firma:'}
+            </p>
+            <canvas
+              ref={canvasRef}
+              width={340}
+              height={120}
+              onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={endDraw}
+              onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw}
+              style={{ width: '100%', height: 120, border: '2px dashed var(--border)', borderRadius: 12, background: '#fafafa', touchAction: 'none', cursor: mode === 'canvas' ? 'crosshair' : 'default', display: 'block' }}
+            />
+            {hasSignature && (
+              <button onClick={clearCanvas} style={{ position: 'absolute', top: 28, right: 8, background: 'rgba(255,255,255,0.9)', border: '1px solid var(--border)', borderRadius: 8, padding: '3px 10px', fontSize: 11, color: 'var(--text-muted)', cursor: 'pointer' }}>
+                Cancella
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border-light)', paddingBottom: 'calc(12px + env(safe-area-inset-bottom))', flexShrink: 0 }}>
+          <button
+            onClick={submitSignature}
+            disabled={!hasSignature || signing}
+            className="btn btn-primary btn-full"
+            style={{ opacity: hasSignature && !signing ? 1 : 0.5 }}
+          >
+            {signing ? 'Salvataggio…' : '✅ Firma e conferma'}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 // ── Main Component ───────────────────────────────────────────────────────────
 
 export default function ChatPage() {
@@ -107,6 +284,8 @@ export default function ChatPage() {
   const [dietitian, setDietitian] = useState(null)
   const [dietitianId, setDietitianId] = useState(null)
   const [notLinked, setNotLinked] = useState(false)
+  const [unsignedDocs, setUnsignedDocs] = useState([])
+  const [signingDoc, setSigningDoc] = useState(null)
 
   // Online status
   const [dietitianLastSeen, setDietitianLastSeen] = useState(null)
@@ -218,12 +397,12 @@ export default function ChatPage() {
     setDietitian(dProfile || { full_name: 'Il tuo dietista' })
     setDietitianLastSeen(dProfile?.last_seen_at || null)
 
-    const { data: msgs } = await supabase
-      .from('chat_messages')
-      .select('*')
-      .eq('patient_id', user.id)
-      .order('created_at', { ascending: true })
+    const [{ data: msgs }, { data: docs }] = await Promise.all([
+      supabase.from('chat_messages').select('*').eq('patient_id', user.id).order('created_at', { ascending: true }),
+      supabase.from('patient_documents').select('id, title, content, type').eq('patient_id', user.id).eq('requires_signature', true).is('signed_at', null).eq('visible', true),
+    ])
     setMessages(msgs || [])
+    setUnsignedDocs(docs || [])
 
     const unread = (msgs || []).filter(m => m.sender_role === 'dietitian' && !m.read_at)
     if (unread.length) markAsRead(unread.map(m => m.id))
@@ -481,6 +660,37 @@ export default function ChatPage() {
         )}
       </div>
 
+      {/* Unsigned documents banner */}
+      {unsignedDocs.length > 0 && (
+        <div style={{ background: '#fffbeb', borderBottom: '1px solid #fde68a', padding: '10px 16px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <AlertTriangle size={16} color="#92400e" style={{ flexShrink: 0, marginTop: 2 }} />
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#92400e', marginBottom: 4 }}>
+                {unsignedDocs.length === 1 ? 'Documento da firmare' : `${unsignedDocs.length} documenti da firmare`}
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {unsignedDocs.map(doc => (
+                  <div key={doc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <FileText size={13} color="#92400e" />
+                      <span style={{ fontSize: 13, color: '#78350f' }}>{doc.title || 'Informativa privacy'}</span>
+                    </div>
+                    <button
+                      onClick={() => setSigningDoc(doc)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#92400e', color: 'white', border: 'none', borderRadius: 8, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
+                    >
+                      <PenLine size={12} />
+                      Firma
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px 0', WebkitOverflowScrolling: 'touch' }}>
         {loading ? (
@@ -542,6 +752,18 @@ export default function ChatPage() {
         )}
         <div ref={bottomRef} style={{ height: 8 }} />
       </div>
+
+      {/* Signature modal */}
+      {signingDoc && (
+        <SignatureModal
+          doc={signingDoc}
+          onClose={() => setSigningDoc(null)}
+          onSigned={docId => {
+            setUnsignedDocs(prev => prev.filter(d => d.id !== docId))
+            setSigningDoc(null)
+          }}
+        />
+      )}
 
       {/* Input bar */}
       <div style={{ position: 'fixed', bottom: 'calc(64px + env(safe-area-inset-bottom))', left: 0, right: 0, padding: '8px 10px', background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(12px)', borderTop: '1px solid var(--border-light)', zIndex: 50 }}>

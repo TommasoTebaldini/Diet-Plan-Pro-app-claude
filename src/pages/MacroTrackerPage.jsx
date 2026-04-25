@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { searchFoods, searchByBarcode } from '../lib/foodSearch'
-import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle } from 'lucide-react'
+import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle, Pencil, Check } from 'lucide-react'
 import BarcodeScanner from '../components/BarcodeScanner'
 
 function calcMacros(food, grams) {
@@ -22,6 +22,7 @@ const MEALS = [
   { key: 'pranzo', label: 'Pranzo', emoji: '🍽️', defaultTime: '12:30' },
   { key: 'spuntino_pomeriggio', label: 'Merenda', emoji: '🥤', defaultTime: '15:30' },
   { key: 'cena', label: 'Cena', emoji: '🌙', defaultTime: '19:30' },
+  { key: 'extra', label: 'Extra', emoji: '➕', defaultTime: '12:00' },
 ]
 
 const MOOD_OPTIONS = [
@@ -70,6 +71,9 @@ export default function MacroTrackerPage() {
   const [scanningBarcode, setScanningBarcode] = useState(false)
   const [barcodeError, setBarcodeError] = useState('')
   const [barcodeFoodModal, setBarcodeFoodModal] = useState(null)
+  const [editingFood, setEditingFood] = useState(null) // food log id being edited
+  const [editGrams, setEditGrams] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
   const searchRef = useRef(null)
   const searchCacheRef = useRef(new Map())
   const latestSearchIdRef = useRef(0)
@@ -288,6 +292,33 @@ export default function MacroTrackerPage() {
     await updateDailyLog()
   }
 
+  async function updateFoodGrams(foodLog) {
+    const gVal = parseFloat(editGrams)
+    if (!gVal || gVal <= 0) return
+    setEditSaving(true)
+    const fd = foodLog.food_data || {}
+    const origG = foodLog.grams || 100
+    const per100 = {
+      kcal: fd.kcal_100g ?? (foodLog.kcal / origG * 100),
+      proteins: fd.proteins_100g ?? (foodLog.proteins / origG * 100),
+      carbs: fd.carbs_100g ?? (foodLog.carbs / origG * 100),
+      fats: fd.fats_100g ?? (foodLog.fats / origG * 100),
+    }
+    const m = {
+      kcal: Math.round(per100.kcal * gVal / 100),
+      proteins: Math.round(per100.proteins * gVal / 10) / 10,
+      carbs: Math.round(per100.carbs * gVal / 10) / 10,
+      fats: Math.round(per100.fats * gVal / 10) / 10,
+    }
+    const { error } = await supabase.from('food_logs').update({ grams: gVal, ...m }).eq('id', foodLog.id)
+    if (!error) {
+      setLog(l => l.map(f => f.id === foodLog.id ? { ...f, grams: gVal, ...m } : f))
+      await updateDailyLog()
+    }
+    setEditingFood(null)
+    setEditSaving(false)
+  }
+
   async function saveMood(value) {
     const newMood = mood === value ? null : value
     setMood(newMood)
@@ -448,20 +479,43 @@ export default function MacroTrackerPage() {
               {isOpen && (
                 <div style={{ borderTop: '1px solid var(--border-light)', padding: '10px 14px 12px' }}>
                   {mealFoods.map(f => (
-                    <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 9, paddingBottom: 9 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Apple size={14} color="var(--green-main)" />
+                    <div key={f.id} style={{ paddingBottom: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Apple size={14} color="var(--green-main)" />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.food_name}</p>
+                          <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                            {f.grams}g · {f.kcal} kcal · P:{f.proteins}g
+                            {f.food_data?.meal_time && <> · <Clock size={9} style={{ display: 'inline', verticalAlign: 'middle' }} /> {f.food_data.meal_time}</>}
+                          </p>
+                        </div>
+                        <button onClick={() => { setEditingFood(f.id); setEditGrams(String(f.grams || 100)) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 5, flexShrink: 0 }}>
+                          <Pencil size={13} />
+                        </button>
+                        <button onClick={() => removeFood(f.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 5, flexShrink: 0 }}>
+                          <Trash2 size={14} />
+                        </button>
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.food_name}</p>
-                        <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                          {f.grams}g · {f.kcal} kcal · P:{f.proteins}g
-                          {f.food_data?.meal_time && <> · <Clock size={9} style={{ display: 'inline', verticalAlign: 'middle' }} /> {f.food_data.meal_time}</>}
-                        </p>
-                      </div>
-                      <button onClick={() => removeFood(f.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 5, flexShrink: 0 }}>
-                        <Trash2 size={14} />
-                      </button>
+                      {editingFood === f.id && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 6, paddingLeft: 41 }}>
+                          <input
+                            type="number" min={1} inputMode="decimal"
+                            value={editGrams}
+                            onChange={e => setEditGrams(e.target.value)}
+                            style={{ width: 80, padding: '5px 10px', fontSize: 13, border: '1.5px solid var(--border)', borderRadius: 8, background: 'var(--surface-2)', color: 'var(--text-primary)', outline: 'none' }}
+                            autoFocus
+                          />
+                          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>g</span>
+                          <button onClick={() => updateFoodGrams(f)} disabled={editSaving} style={{ background: 'var(--green-main)', border: 'none', borderRadius: 8, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                            {editSaving ? <span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'block' }} /> : <Check size={14} color="white" />}
+                          </button>
+                          <button onClick={() => setEditingFood(null)} style={{ background: 'var(--surface-3)', border: 'none', borderRadius: 8, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                            <X size={14} color="var(--text-muted)" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                   {mealFoods.length === 0 && !isSearching && (
@@ -542,9 +596,9 @@ export default function MacroTrackerPage() {
                                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
                                   <p style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.3, flex: 1 }}>{f.name}</p>
                                   {(() => {
-                                    const badges = { recent: ['🕐', '#fff4e6', '#c45e00'], diet: ['🥗', 'var(--green-pale)', 'var(--green-main)'], recipe: ['🍳', '#fff4e6', '#c45e00'], custom_meal: ['🍽️', '#f0fdf4', 'var(--green-dark)'], openfoodfacts: ['🌍', '#f1f5f9', 'var(--text-muted)'], database: ['DB', 'var(--green-pale)', 'var(--green-main)'] }
+                                    const badges = { recent: ['Recente', '#fff4e6', '#c45e00'], diet: ['Piano', 'var(--green-pale)', 'var(--green-main)'], recipe: ['Ricetta', '#fff4e6', '#c45e00'], custom_meal: ['Pasto', '#f0fdf4', 'var(--green-dark)'], openfoodfacts: ['OFF', '#f1f5f9', 'var(--text-muted)'], dietitian: ['CREA', '#e8f5e9', '#1b5e20'] }
                                     const [label, bg, color] = badges[f.source] || badges.openfoodfacts
-                                    return <span style={{ fontSize: 9, background: bg, color, padding: '2px 5px', borderRadius: 100, fontWeight: 700, flexShrink: 0 }}>{label}</span>
+                                    return <span style={{ fontSize: 9, background: bg, color, padding: '2px 6px', borderRadius: 100, fontWeight: 700, flexShrink: 0 }}>{label}</span>
                                   })()}
                                 </div>
                                 <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
@@ -573,15 +627,27 @@ export default function MacroTrackerPage() {
                             </div>
                             <button onClick={() => { setSelected(null); setQuery('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-muted)' }}><X size={15} /></button>
                           </div>
-                          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                          <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
                             <div className="input-group" style={{ flex: 1 }}>
                               <label className="input-label">Quantità (g)</label>
                               <input type="number" className="input-field" value={grams} onChange={e => setGrams(e.target.value)} min={1} inputMode="decimal" />
                             </div>
                             <div className="input-group" style={{ width: 110 }}>
                               <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={11} />Orario</label>
-                              <input type="time" className="input-field" value={mealTime} onChange={e => setMealTime(e.target.value)} />
+                              <input type="time" className="input-field" value={mealTime} onChange={e => setMealTime(e.target.value)} style={{ cursor: 'pointer' }} />
                             </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: 5, marginBottom: 8, flexWrap: 'wrap' }}>
+                            {[
+                              { label: '07:30', key: 'colazione' }, { label: '10:00', key: 'spuntino_mattina' },
+                              { label: '12:30', key: 'pranzo' }, { label: '15:30', key: 'spuntino_pomeriggio' },
+                              { label: '19:30', key: 'cena' },
+                            ].map(p => (
+                              <button key={p.label} type="button" onClick={() => setMealTime(p.label)}
+                                style={{ padding: '4px 9px', borderRadius: 100, fontSize: 11, fontWeight: 500, border: `1.5px solid ${mealTime === p.label ? 'var(--green-main)' : 'var(--border)'}`, background: mealTime === p.label ? 'var(--green-pale)' : 'var(--surface-2)', color: mealTime === p.label ? 'var(--green-dark)' : 'var(--text-muted)', cursor: 'pointer' }}>
+                                {p.label}
+                              </button>
+                            ))}
                           </div>
                           <button className="btn btn-primary btn-full" onClick={addFood} disabled={saving}>
                             {saving ? '…' : 'Aggiungi al diario'}

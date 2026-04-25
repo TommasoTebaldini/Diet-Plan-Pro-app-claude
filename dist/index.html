@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#1a7f5a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="NutriPlan" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="description" content="Il tuo piano nutrizionale personalizzato" />
+    <title>NutriPlan Paziente</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&display=swap" rel="stylesheet">
+    <script type="module" crossorigin src="/assets/index-BoAmZ3UQ.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-NUlnDnTh.css">
+  <link rel="manifest" href="/manifest.webmanifest"></head>
+  <body>
+    <div id="root"></div>
+    <script>
+      if ('serviceWorker' in navigator) {
+        var _swRefreshing = false
+        function _swDoReload() {
+          if (!_swRefreshing) { _swRefreshing = true; window.location.reload(true) }
+        }
+        navigator.serviceWorker.addEventListener('message', function (e) {
+          if (e.data && e.data.type === 'SW_RELOAD') { _swDoReload() }
+        })
+        navigator.serviceWorker.addEventListener('controllerchange', _swDoReload)
+        // Force immediate SW update check; if a waiting SW exists, skip waiting immediately
+        navigator.serviceWorker.ready.then(function (reg) {
+          if (reg.waiting) {
+            reg.waiting.postMessage({ type: 'SKIP_WAITING' })
+          }
+          reg.update().catch(function () {})
+          reg.addEventListener('updatefound', function () {
+            var newSW = reg.installing
+            if (!newSW) return
+            newSW.addEventListener('statechange', function () {
+              if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+                newSW.postMessage({ type: 'SKIP_WAITING' })
+              }
+            })
+          })
+        })
+      }
+    </script>
+  </body>
+</html>
