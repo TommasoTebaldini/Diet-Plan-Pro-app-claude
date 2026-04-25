@@ -27,27 +27,26 @@ function searchDietitianFoods(query) {
 // Recent foods from patient's own logs (fastest, most relevant)
 async function searchRecentFoods(query) {
   try {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('food_logs')
-      .select('food_name, kcal, proteins, carbs, fats, grams, food_data')
+      .select('food_name, kcal, proteins, carbs, fats, grams')
       .ilike('food_name', `%${query}%`)
       .order('created_at', { ascending: false })
       .limit(80)
-    if (!data?.length) return []
+    if (error || !data?.length) return []
     const seen = new Map()
     for (const row of data) {
       if (seen.has(row.food_name)) continue
-      const fd = row.food_data || {}
       const g = row.grams || 100
       seen.set(row.food_name, {
         id: `recent_${row.food_name}`,
         name: row.food_name,
-        brand: fd.brand || '',
-        kcal_100g: fd.kcal_100g ?? Math.round(row.kcal / g * 100),
-        proteins_100g: fd.proteins_100g ?? Math.round(row.proteins / g * 1000) / 10,
-        carbs_100g: fd.carbs_100g ?? Math.round(row.carbs / g * 1000) / 10,
-        fats_100g: fd.fats_100g ?? Math.round(row.fats / g * 1000) / 10,
-        fiber_100g: fd.fiber_100g || 0,
+        brand: '',
+        kcal_100g: Math.round((row.kcal || 0) / g * 100),
+        proteins_100g: Math.round((row.proteins || 0) / g * 1000) / 10,
+        carbs_100g: Math.round((row.carbs || 0) / g * 1000) / 10,
+        fats_100g: Math.round((row.fats || 0) / g * 1000) / 10,
+        fiber_100g: 0,
         source: 'recent',
       })
     }
