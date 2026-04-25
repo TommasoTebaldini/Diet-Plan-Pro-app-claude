@@ -36,6 +36,17 @@ const BUILD_ID = __BUILD_ID__
 // viene distribuita una nuova versione (evita cache stale del bundle JS)
 registerSW({ immediate: true })
 
+// Ascolta il messaggio SW_RELOAD inviato da sw-reload.js quando il nuovo
+// service worker prende il controllo. client.navigate() può fallire su iOS
+// Safari, quindi usiamo anche questo handler come fallback garantito.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data && event.data.type === 'SW_RELOAD') {
+      window.location.reload()
+    }
+  })
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
