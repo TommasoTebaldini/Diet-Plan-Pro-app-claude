@@ -960,12 +960,15 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
       {/* Content */}
       {printImageUrl ? (
         <div style={{ flex: 1, overflow: 'auto', background: '#f1f5f9' }}>
-          <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, gap: 14, boxSizing: 'border-box' }}>
-            <img
-              src={printImageUrl}
-              alt={doc.title}
-              style={{ display: 'block', width: '100%', maxWidth: 760, height: 'auto', margin: '0 auto', boxShadow: '0 6px 24px rgba(0,0,0,0.15)', borderRadius: 8, background: 'white' }}
-            />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 16px', gap: 16 }}>
+            {(doc.print_image_urls || [printImageUrl]).map((url, i) => (
+              <img
+                key={i}
+                src={url}
+                alt={`${doc.title}${doc.print_image_urls?.length > 1 ? ` — pag. ${i + 1}` : ''}`}
+                style={{ display: 'block', width: '100%', maxWidth: 760, height: 'auto', boxShadow: '0 6px 24px rgba(0,0,0,0.15)', borderRadius: 8, background: 'white' }}
+              />
+            ))}
             {hasAttachment && (
               <a href={doc.file_url} target="_blank" rel="noopener noreferrer" download
                 style={{ background: '#1a7f5a', color: 'white', padding: '10px 20px', borderRadius: 12, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
@@ -1285,37 +1288,67 @@ export default function DocumentsPage() {
       const missingImgDocs = allDocs.filter(d => !d.print_image_url)
       if (missingImgDocs.length > 0) {
         try {
+          // Naming convention in storage: {table_name}_{uuid}_{page|variant}.png
+          const SOURCE_TABLE_PREFIX = {
+            note:        'note_specialistiche_',
+            ncpt:        'ncpt_',
+            piano:       'piani_',
+            bia:         'bia_records_',
+            valutazione: 'schede_valutazione_',
+          }
+
           const { data: storageFiles } = await supabase.storage
             .from('document-prints')
             .list(user.id, { limit: 200 })
-          const fileNames = storageFiles?.map(f => f.name) || []
-          console.log('[Docs] storage file names:', JSON.stringify(fileNames))
-          const docRawIds = missingImgDocs.map(d => ({ id: d.id, rawId: d.id.replace(/^[a-z_]+_/, '') }))
-          console.log('[Docs] doc rawIds to match:', JSON.stringify(docRawIds))
-          if (storageFiles?.length) {
-            // Build a set of raw names present in storage (strip extension)
-            const fileSet = new Set(fileNames.map(n => n.replace(/\.[^.]+$/i, '')))
-            // For each missing-image doc, strip the source prefix (note_, bia_, etc.)
-            const toSign = missingImgDocs.filter(doc => {
-              const rawId = doc.id.replace(/^[a-z_]+_/, '')
-              const match = fileSet.has(rawId) || fileSet.has(doc.id)
-              console.log('[Docs] match check:', doc.id, rawId, '->', match)
-              return match
-            })
-            if (toSign.length > 0) {
-              await Promise.all(toSign.map(async doc => {
-                const rawId = doc.id.replace(/^[a-z_]+_/, '')
-                const key = fileSet.has(rawId) ? rawId : doc.id
-                const { data } = await supabase.storage
-                  .from('document-prints')
-                  .createSignedUrl(`${user.id}/${key}.png`, 86400)
-                if (data?.signedUrl) {
-                  doc.print_image_url = data.signedUrl
-                  console.log('[Docs] storage image found for', doc.id)
-                }
-              }))
-            }
+          const fileNames = (storageFiles || []).map(f => f.name)
+
+          // Group storage files by {table_prefix}{uuid} key
+          const storageMap = {}
+          for (const fname of fileNames) {
+            const uuidMatch = fname.match(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/)
+            if (!uuidMatch) continue
+            const uuid = uuidMatch[1]
+            const prefix = fname.slice(0, fname.indexOf(uuid))
+            const key = prefix + uuid
+            if (!storageMap[key]) storageMap[key] = []
+            storageMap[key].push(fname)
           }
+
+          // For each doc without URL, find matching files and create signed URLs
+          await Promise.all(missingImgDocs.map(async doc => {
+            const tablePrefix = SOURCE_TABLE_PREFIX[doc.source] || ''
+            const rawUuid = doc.id.replace(/^[a-z_]+_/, '')
+            const storageKey = tablePrefix + rawUuid
+            const matches = storageMap[storageKey]
+            if (!matches?.length) return
+
+            // Sort: _p1, _p2 first (in order), then other variants
+            const sorted = [...matches].sort((a, b) => {
+              const ap = a.match(/_p(\d+)\.png$/i)?.[1]
+              const bp = b.match(/_p(\d+)\.png$/i)?.[1]
+              if (ap && bp) return parseInt(ap) - parseInt(bp)
+              if (ap) return -1
+              if (bp) return 1
+              // prefer alldays > compact > simple among variants
+              const ORDER = ['alldays', 'compact', 'simple']
+              const ai = ORDER.findIndex(v => a.includes(v))
+              const bi = ORDER.findIndex(v => b.includes(v))
+              if (ai !== -1 && bi !== -1) return ai - bi
+              return a.localeCompare(b)
+            })
+
+            const signedUrls = (await Promise.all(sorted.map(async fname => {
+              const { data } = await supabase.storage
+                .from('document-prints')
+                .createSignedUrl(`${user.id}/${fname}`, 86400)
+              return data?.signedUrl || null
+            }))).filter(Boolean)
+
+            if (signedUrls.length > 0) {
+              doc.print_image_url  = signedUrls[0]
+              doc.print_image_urls = signedUrls
+            }
+          }))
         } catch (e) {
           console.log('[Docs] storage lookup skipped:', e.message)
         }
