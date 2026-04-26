@@ -1066,6 +1066,22 @@ export default function DocumentsPage() {
 
   // ── Carica i documenti dal DB ────────────────────────────────────────────────
   useEffect(() => {
+    // Normalize print_image_url: if it's a JSON array string, parse into print_image_urls
+    function normalizePrintUrl(doc) {
+      const raw = doc.print_image_url
+      if (!raw) return doc
+      if (raw.startsWith('[')) {
+        try {
+          const urls = JSON.parse(raw)
+          if (Array.isArray(urls) && urls.length > 0) {
+            doc.print_image_url  = urls[0]
+            doc.print_image_urls = urls
+          }
+        } catch (_) {}
+      }
+      return doc
+    }
+
     async function load() {
       setLoadError(null)
       const allDocs = []
@@ -1074,11 +1090,12 @@ export default function DocumentsPage() {
         // 1. Cartella del paziente
         const { data: link } = await supabase
           .from('patient_dietitian')
-          .select('cartella_id')
+          .select('cartella_id, dietitian_id')
           .eq('patient_id', user.id)
           .maybeSingle()
 
         const cartellaId = link?.cartella_id
+        const dietitianId = link?.dietitian_id
         console.log('[Docs] patient_dietitian link:', link, '| cartellaId:', cartellaId)
 
         if (cartellaId) {
@@ -1138,7 +1155,7 @@ export default function DocumentsPage() {
             const titleFromNota = n.nota && n.nota.trim() && n.nota.trim() !== '1' ? n.nota.trim() : ''
             const title = titleFromNota || titleFromDati || (tipo ? 'Consiglio: ' + tipo.charAt(0).toUpperCase() + tipo.slice(1) : 'Documento')
 
-            allDocs.push({
+            allDocs.push(normalizePrintUrl({
               id:          `note_${n.id}`,
               title,
               type,
@@ -1159,7 +1176,7 @@ export default function DocumentsPage() {
               visible:     true,
               published_at: n.created_at,
               created_at:  n.created_at,
-            })
+            }))
           }
 
           // 2b. Piani alimentari visibili al paziente
@@ -1204,12 +1221,12 @@ export default function DocumentsPage() {
           for (const n of ncpts || []) {
             let val = {}; try { val = typeof n.valutazione === 'string' ? JSON.parse(n.valutazione) : (n.valutazione || {}) } catch { /* */ }
             const titolo = [val.nome, val.cognome].filter(Boolean).join(' ') || 'NCPT'
-            allDocs.push({
+            allDocs.push(normalizePrintUrl({
               id: `ncpt_${n.id}`, title: titolo, type: 'ncpt', source: 'ncpt', tipo: 'ncpt',
               nota: titolo, content: '', file_url: null, print_image_url: n.print_image_url || null, tags: [], visible: true,
               dati_raw: { valutazione: n.valutazione, diagnosi: n.diagnosi, intervento: n.intervento, monitoraggio: n.monitoraggio },
               meals_data: null, published_at: n.created_at, created_at: n.created_at,
-            })
+            }))
           }
 
           // 2d. Schede valutazione visibili al paziente
@@ -1222,7 +1239,7 @@ export default function DocumentsPage() {
           console.log('[Docs] schede_valutazione:', schede?.length, '| error:', schedeErr?.message)
           for (const s of schede || []) {
             const titolo = [s.nome, s.cognome].filter(Boolean).join(' ') || 'Scheda Valutazione'
-            allDocs.push({
+            allDocs.push(normalizePrintUrl({
               id: `val_${s.id}`, title: titolo, type: 'valutazione', source: 'valutazione', tipo: 'valutazione',
               nota: titolo, content: '', file_url: null,
               print_image_url: s.print_image_url
@@ -1231,7 +1248,7 @@ export default function DocumentsPage() {
               tags: [], visible: true,
               dati_raw: { nome: s.nome, cognome: s.cognome, eta: s.eta, sesso: s.sesso, peso: s.peso, altezza: s.altezza, peso_ideale: s.peso_ideale, massa_grassa_pct: s.massa_grassa_pct, massa_magra: s.massa_magra, vita: s.vita, fianchi: s.fianchi, braccio: s.braccio, patologie: s.patologie, note: s.note, macro_dist: s.macro_dist, tdee_calcolato: s.tdee_calcolato, dati_extra: s.dati_extra },
               meals_data: null, published_at: s.saved_at, created_at: s.saved_at,
-            })
+            }))
           }
 
           // 2e. BIA visibili al paziente
@@ -1244,7 +1261,7 @@ export default function DocumentsPage() {
           console.log('[Docs] bia_records:', bias?.length, '| error:', biaErr?.message)
           for (const b of bias || []) {
             const dataStr = b.data_misura ? new Date(b.data_misura).toLocaleDateString('it-IT') : ''
-            allDocs.push({
+            allDocs.push(normalizePrintUrl({
               id: `bia_${b.id}`, title: 'BIA' + (dataStr ? ' — ' + dataStr : ''), type: 'bia', source: 'bia', tipo: 'bia',
               nota: 'BIA' + (dataStr ? ' — ' + dataStr : ''), content: '', file_url: null,
               print_image_url: b.print_image_url
@@ -1253,7 +1270,7 @@ export default function DocumentsPage() {
               tags: [], visible: true,
               dati_raw: { data_misura: b.data_misura, note: b.note, peso: b.peso, altezza: b.altezza, eta: b.eta, sesso: b.sesso, angolo_fase: b.angolo_fase, bf_pct: b.bf_pct, fm_kg: b.fm_kg, ffm_kg: b.ffm_kg, tbw: b.tbw, icw: b.icw, ecw: b.ecw, bcm: b.bcm, muscle: b.muscle, bone: b.bone, ffmi: b.ffmi, raw_data: b.raw_data },
               meals_data: null, published_at: b.created_at || b.data_misura, created_at: b.created_at || b.data_misura,
-            })
+            }))
           }
         }
 
@@ -1283,8 +1300,7 @@ export default function DocumentsPage() {
       }
 
       // ── Storage fallback: try to find PNGs in Supabase Storage ──────────────
-      // The dietitian uploads screenshots to bucket 'document-prints' at
-      // path: <patient_auth_uid>/<document_db_uuid>.png
+      // Files may be stored under patient_id OR dietitian_id (fallback upload path).
       const missingImgDocs = allDocs.filter(d => !d.print_image_url)
       if (missingImgDocs.length > 0) {
         try {
@@ -1297,22 +1313,25 @@ export default function DocumentsPage() {
             valutazione: 'schede_valutazione_',
           }
 
-          const { data: storageFiles } = await supabase.storage
-            .from('document-prints')
-            .list(user.id, { limit: 200 })
-          const fileNames = (storageFiles || []).map(f => f.name)
+          // Check both patient folder and dietitian folder (used as fallback upload path)
+          const foldersToCheck = [user.id]
+          if (dietitianId && dietitianId !== user.id) foldersToCheck.push(dietitianId)
 
-          // Group storage files by {table_prefix}{uuid} key
           const storageMap = {}
-          for (const fname of fileNames) {
-            const uuidMatch = fname.match(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/)
-            if (!uuidMatch) continue
-            const uuid = uuidMatch[1]
-            const prefix = fname.slice(0, fname.indexOf(uuid))
-            const key = prefix + uuid
-            if (!storageMap[key]) storageMap[key] = []
-            storageMap[key].push(fname)
-          }
+          await Promise.all(foldersToCheck.map(async folderId => {
+            const { data: storageFiles } = await supabase.storage
+              .from('document-prints')
+              .list(folderId, { limit: 200 })
+            for (const f of storageFiles || []) {
+              const uuidMatch = f.name.match(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/)
+              if (!uuidMatch) continue
+              const uuid = uuidMatch[1]
+              const prefix = f.name.slice(0, f.name.indexOf(uuid))
+              const key = prefix + uuid
+              if (!storageMap[key]) storageMap[key] = []
+              storageMap[key].push({ fname: f.name, folder: folderId })
+            }
+          }))
 
           // For each doc without URL, find matching files and create signed URLs
           await Promise.all(missingImgDocs.map(async doc => {
@@ -1324,23 +1343,22 @@ export default function DocumentsPage() {
 
             // Sort: _p1, _p2 first (in order), then other variants
             const sorted = [...matches].sort((a, b) => {
-              const ap = a.match(/_p(\d+)\.png$/i)?.[1]
-              const bp = b.match(/_p(\d+)\.png$/i)?.[1]
+              const ap = a.fname.match(/_p(\d+)\.png$/i)?.[1]
+              const bp = b.fname.match(/_p(\d+)\.png$/i)?.[1]
               if (ap && bp) return parseInt(ap) - parseInt(bp)
               if (ap) return -1
               if (bp) return 1
-              // prefer alldays > compact > simple among variants
               const ORDER = ['alldays', 'compact', 'simple']
-              const ai = ORDER.findIndex(v => a.includes(v))
-              const bi = ORDER.findIndex(v => b.includes(v))
+              const ai = ORDER.findIndex(v => a.fname.includes(v))
+              const bi = ORDER.findIndex(v => b.fname.includes(v))
               if (ai !== -1 && bi !== -1) return ai - bi
-              return a.localeCompare(b)
+              return a.fname.localeCompare(b.fname)
             })
 
-            const signedUrls = (await Promise.all(sorted.map(async fname => {
+            const signedUrls = (await Promise.all(sorted.map(async ({ fname, folder }) => {
               const { data } = await supabase.storage
                 .from('document-prints')
-                .createSignedUrl(`${user.id}/${fname}`, 86400)
+                .createSignedUrl(`${folder}/${fname}`, 86400)
               return data?.signedUrl || null
             }))).filter(Boolean)
 
