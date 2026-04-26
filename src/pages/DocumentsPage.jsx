@@ -1085,6 +1085,7 @@ export default function DocumentsPage() {
     async function load() {
       setLoadError(null)
       const allDocs = []
+      let dietitianId = null
 
       try {
         // 1. Cartella del paziente
@@ -1095,7 +1096,7 @@ export default function DocumentsPage() {
           .maybeSingle()
 
         const cartellaId = link?.cartella_id
-        const dietitianId = link?.dietitian_id
+        dietitianId = link?.dietitian_id
         console.log('[Docs] patient_dietitian link:', link, '| cartellaId:', cartellaId)
 
         if (cartellaId) {
@@ -1559,7 +1560,7 @@ export default function DocumentsPage() {
                 <div key={doc.id} style={{ position: 'relative' }}>
                   {docIsNew && <span style={{ position: 'absolute', top: -6, left: isNested ? 28 : 14, zIndex: 1, background: '#f59e0b', color: 'white', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100 }}>NUOVO</span>}
                   <button onClick={() => setSelected(doc)} style={{
-                    width: '100%', background: 'white',
+                    width: isNested ? 'calc(100% - 16px)' : '100%', background: 'white',
                     border: `1px solid ${docIsNew ? '#fcd34d' : 'var(--border-light)'}`,
                     borderRadius: 'var(--r-lg)', padding: '12px 12px 12px 16px',
                     display: 'flex', alignItems: 'center', gap: 12,
