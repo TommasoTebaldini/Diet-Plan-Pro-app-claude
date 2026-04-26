@@ -1288,21 +1288,27 @@ export default function DocumentsPage() {
           const { data: storageFiles } = await supabase.storage
             .from('document-prints')
             .list(user.id, { limit: 200 })
-          console.log('[Docs] storage files in bucket:', storageFiles?.length, storageFiles?.map(f => f.name))
+          const fileNames = storageFiles?.map(f => f.name) || []
+          console.log('[Docs] storage file names:', JSON.stringify(fileNames))
+          const docRawIds = missingImgDocs.map(d => ({ id: d.id, rawId: d.id.replace(/^[a-z_]+_/, '') }))
+          console.log('[Docs] doc rawIds to match:', JSON.stringify(docRawIds))
           if (storageFiles?.length) {
-            // Build a set of raw UUIDs present in storage (strip extension)
-            const fileSet = new Set(storageFiles.map(f => f.name.replace(/\.[^.]+$/i, '')))
+            // Build a set of raw names present in storage (strip extension)
+            const fileSet = new Set(fileNames.map(n => n.replace(/\.[^.]+$/i, '')))
             // For each missing-image doc, strip the source prefix (note_, bia_, etc.)
             const toSign = missingImgDocs.filter(doc => {
               const rawId = doc.id.replace(/^[a-z_]+_/, '')
-              return fileSet.has(rawId)
+              const match = fileSet.has(rawId) || fileSet.has(doc.id)
+              console.log('[Docs] match check:', doc.id, rawId, '->', match)
+              return match
             })
             if (toSign.length > 0) {
               await Promise.all(toSign.map(async doc => {
                 const rawId = doc.id.replace(/^[a-z_]+_/, '')
+                const key = fileSet.has(rawId) ? rawId : doc.id
                 const { data } = await supabase.storage
                   .from('document-prints')
-                  .createSignedUrl(`${user.id}/${rawId}.png`, 86400)
+                  .createSignedUrl(`${user.id}/${key}.png`, 86400)
                 if (data?.signedUrl) {
                   doc.print_image_url = data.signedUrl
                   console.log('[Docs] storage image found for', doc.id)
