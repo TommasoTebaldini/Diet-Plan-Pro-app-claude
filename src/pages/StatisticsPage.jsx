@@ -356,9 +356,9 @@ export default function StatisticsPage() {
       </div>
 
       {/* tab bar */}
-      <div style={{ display: 'flex', overflowX: 'auto', borderBottom: '1px solid var(--border-light)', background: 'var(--surface)', gap: 0, WebkitOverflowScrolling: 'touch' }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border-light)', background: 'var(--surface)' }}>
         {TABS.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)} style={{ flexShrink: 0, padding: '12px 16px', background: 'none', border: 'none', font: 'inherit', fontSize: 13, fontWeight: tab === t.key ? 600 : 400, color: tab === t.key ? 'var(--green-main)' : 'var(--text-muted)', borderBottom: `2px solid ${tab === t.key ? 'var(--green-main)' : 'transparent'}`, cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+          <button key={t.key} onClick={() => setTab(t.key)} style={{ flex: 1, padding: '11px 6px', background: 'none', border: 'none', font: 'inherit', fontSize: 11.5, fontWeight: tab === t.key ? 700 : 400, color: tab === t.key ? 'var(--green-main)' : 'var(--text-muted)', borderBottom: `2px solid ${tab === t.key ? 'var(--green-main)' : 'transparent'}`, cursor: 'pointer', transition: 'all 0.15s', textAlign: 'center', lineHeight: 1.3 }}>
             {t.label}
           </button>
         ))}

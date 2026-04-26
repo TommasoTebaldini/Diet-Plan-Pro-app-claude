@@ -3,7 +3,7 @@ import patientViewRaw from '../assets/patientViewHtml.js'
 import { CONSIGLI_BASE } from '../data/consigliBase.js'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { FileText, Download, Calendar, Utensils, Apple, Heart, Bookmark, BookmarkCheck, ArrowUpDown, Star, Printer, BookOpen, PenLine, CheckCircle2, XCircle } from 'lucide-react'
+import { FileText, Download, Calendar, Utensils, Apple, Heart, Bookmark, BookmarkCheck, ArrowUpDown, Star, Printer, BookOpen, PenLine, CheckCircle2, XCircle, RefreshCw, Shield } from 'lucide-react'
 
 // ─── Document type metadata ───────────────────────────────────────────────────
 const TYPE_META = {
@@ -31,6 +31,7 @@ const TYPE_META = {
   ristorazione:  { label: 'Menu ristorazione',      icon: <Utensils size={18} />, color: '#0891b2', bg: '#ecfeff' },
   recipe:        { label: 'Ricetta',                icon: <Apple size={18} />,    color: '#f0922b', bg: '#fff4e6' },
   ricetta:       { label: 'Ricetta',                icon: <Apple size={18} />,    color: '#f0922b', bg: '#fff4e6' },
+  privacy:       { label: 'Informativa Privacy',   icon: <Shield size={18} />,   color: '#64748b', bg: '#f1f5f9' },
 }
 
 const DATE_FILTERS = [
@@ -905,10 +906,12 @@ function handlePrint(doc) {
 function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
   const [iframeHtml, setIframeHtml] = useState(null)
   const [error, setError]           = useState(null)
+  const [imgFailed, setImgFailed]   = useState(false)
 
   useEffect(() => {
     setIframeHtml(null)
     setError(null)
+    setImgFailed(false)
     if (!doc || doc.file_url) {
       console.log('[DocModal] Skipping HTML generation - has file attachment')
       return
@@ -958,13 +961,14 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
       </div>
 
       {/* Content */}
-      {printImageUrl ? (
+      {printImageUrl && !imgFailed ? (
         <div style={{ flex: 1, overflow: 'auto', background: '#f1f5f9' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 16px', gap: 16 }}>
             {(doc.print_image_urls || [printImageUrl]).map((url, i) => (
               <img
                 key={i}
                 src={url}
+                onError={() => setImgFailed(true)}
                 alt={`${doc.title}${doc.print_image_urls?.length > 1 ? ` — pag. ${i + 1}` : ''}`}
                 style={{ display: 'block', width: '100%', maxWidth: 760, height: 'auto', boxShadow: '0 6px 24px rgba(0,0,0,0.15)', borderRadius: 8, background: 'white' }}
               />
@@ -1034,6 +1038,15 @@ export default function DocumentsPage() {
     () => localStorage.getItem(`docs_last_seen_${user?.id}`) || DOCS_EPOCH
   )
   const [openFolders, setOpenFolders] = useState(() => new Set())
+  const [reloadKey,   setReloadKey]   = useState(0)
+  const reload = useCallback(() => { setLoading(true); setReloadKey(k => k + 1) }, [])
+
+  // Refresh docs when the user returns to this tab
+  useEffect(() => {
+    const onVisible = () => { if (!document.hidden) reload() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [reload])
 
   const toggleFolder = useCallback((key) => {
     setOpenFolders(prev => {
@@ -1380,7 +1393,7 @@ export default function DocumentsPage() {
       setLoading(false)
     }
     load()
-  }, [user.id])
+  }, [user.id, reloadKey])
 
   const toggleBookmark = useCallback((docId) => {
     setBookmarks(prev => {
@@ -1460,6 +1473,10 @@ export default function DocumentsPage() {
                 </button>
               ))}
             </div>
+            <button onClick={reload}
+              style={{ flexShrink: 0, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}>
+              <RefreshCw size={15} />
+            </button>
             <button onClick={() => setSortAsc(v => !v)}
               style={{ flexShrink: 0, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}>
               <ArrowUpDown size={15} />

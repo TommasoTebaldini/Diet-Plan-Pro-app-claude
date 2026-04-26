@@ -28,6 +28,14 @@ export default function BottomNav() {
   const { pathname } = useLocation()
   const { user } = useAuth()
   const [newDocs, setNewDocs] = useState(0)
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => localStorage.getItem('sidebar_open') !== 'false'
+  )
+  const toggleSidebar = () => setSidebarOpen(v => {
+    const next = !v
+    localStorage.setItem('sidebar_open', String(next))
+    return next
+  })
   const [unreadChat, setUnreadChat] = useState(0)
   const isDesktop = useIsDesktop()
 
@@ -103,41 +111,39 @@ export default function BottomNav() {
   ]
 
   if (isDesktop) {
-    // Sidebar layout for desktop
+    const W = sidebarOpen ? 220 : 56
     return (
-      <nav className="app-sidebar" style={{ display: 'flex', flexDirection: 'column', zIndex: 999 }}>
-        {/* Logo / brand */}
-        <div style={{
-          padding: '20px 16px 16px',
-          borderBottom: '1px solid var(--border-light)',
-          display: 'flex', alignItems: 'center', gap: 10,
-        }}>
-          <div style={{
-            width: 34, height: 34, borderRadius: 10,
-            background: 'linear-gradient(135deg, var(--green-main), var(--green-mid))',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-          }}>
-            <Leaf size={16} color="white" />
+      <nav className="app-sidebar" style={{ display: 'flex', flexDirection: 'column', zIndex: 999, width: W, transition: 'width 0.22s ease', overflow: 'hidden' }}>
+        {/* Logo / brand + toggle */}
+        <div style={{ padding: sidebarOpen ? '16px 14px 12px' : '16px 10px 12px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 8, justifyContent: sidebarOpen ? 'flex-start' : 'center', flexShrink: 0 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 9, background: 'linear-gradient(135deg, var(--green-main), var(--green-mid))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Leaf size={15} color="white" />
           </div>
-          <div>
-            <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.1 }}>Diet Plan</p>
-            <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Dashboard</p>
-          </div>
+          {sidebarOpen && (
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.1, whiteSpace: 'nowrap' }}>Diet Plan</p>
+              <p style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Dashboard</p>
+            </div>
+          )}
+          <button onClick={toggleSidebar} style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid var(--border-light)', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, color: 'var(--text-muted)', fontSize: 13, fontWeight: 700 }}>
+            {sidebarOpen ? '←' : '→'}
+          </button>
         </div>
 
         {/* Nav items */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '10px 10px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: sidebarOpen ? '10px 8px' : '10px 6px' }}>
           {TABS.map(({ to, icon: Icon, label, badge }) => {
             const active = pathname === to || (to !== '/' && pathname.startsWith(to))
             return (
-              <Link key={to} to={to} style={{
-                display: 'flex', alignItems: 'center', gap: 11,
-                padding: '9px 12px', borderRadius: 10, marginBottom: 2,
+              <Link key={to} to={to} title={!sidebarOpen ? label : undefined} style={{
+                display: 'flex', alignItems: 'center', gap: sidebarOpen ? 10 : 0,
+                justifyContent: sidebarOpen ? 'flex-start' : 'center',
+                padding: sidebarOpen ? '9px 10px' : '9px 0', borderRadius: 10, marginBottom: 2,
                 textDecoration: 'none',
                 background: active ? 'var(--green-pale)' : 'transparent',
                 color: active ? 'var(--green-main)' : 'var(--text-secondary)',
                 fontWeight: active ? 600 : 400,
-                fontSize: 14,
+                fontSize: 13,
                 transition: 'background 0.12s, color 0.12s',
                 position: 'relative',
               }}>
@@ -149,12 +155,9 @@ export default function BottomNav() {
                     </span>
                   )}
                 </div>
-                <span>{label}</span>
-                {badge > 0 && (
-                  <span style={{
-                    marginLeft: 'auto', background: '#0891b2', color: 'white',
-                    fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 100,
-                  }}>
+                {sidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>{label}</span>}
+                {sidebarOpen && badge > 0 && (
+                  <span style={{ marginLeft: 'auto', background: '#0891b2', color: 'white', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 100 }}>
                     {badge}
                   </span>
                 )}
