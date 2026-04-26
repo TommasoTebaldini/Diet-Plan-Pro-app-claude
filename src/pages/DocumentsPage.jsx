@@ -1279,9 +1279,45 @@ export default function DocumentsPage() {
         setLoadError(e.message)
       }
 
-      console.log('[Docs] total allDocs:', allDocs.length, allDocs.map(d => ({ id: d.id, type: d.type, tipo: d.tipo, hasContent: !!d.content, hasDatiRaw: !!d.dati_raw, hasMeals: !!d.meals_data, hasPrintImage: !!d.print_image_url })))
+      // ── Storage fallback: try to find PNGs in Supabase Storage ──────────────
+      // The dietitian uploads screenshots to bucket 'document-prints' at
+      // path: <patient_auth_uid>/<document_db_uuid>.png
+      const missingImgDocs = allDocs.filter(d => !d.print_image_url)
+      if (missingImgDocs.length > 0) {
+        try {
+          const { data: storageFiles } = await supabase.storage
+            .from('document-prints')
+            .list(user.id, { limit: 200 })
+          console.log('[Docs] storage files in bucket:', storageFiles?.length, storageFiles?.map(f => f.name))
+          if (storageFiles?.length) {
+            // Build a set of raw UUIDs present in storage (strip extension)
+            const fileSet = new Set(storageFiles.map(f => f.name.replace(/\.[^.]+$/i, '')))
+            // For each missing-image doc, strip the source prefix (note_, bia_, etc.)
+            const toSign = missingImgDocs.filter(doc => {
+              const rawId = doc.id.replace(/^[a-z_]+_/, '')
+              return fileSet.has(rawId)
+            })
+            if (toSign.length > 0) {
+              await Promise.all(toSign.map(async doc => {
+                const rawId = doc.id.replace(/^[a-z_]+_/, '')
+                const { data } = await supabase.storage
+                  .from('document-prints')
+                  .createSignedUrl(`${user.id}/${rawId}.png`, 86400)
+                if (data?.signedUrl) {
+                  doc.print_image_url = data.signedUrl
+                  console.log('[Docs] storage image found for', doc.id)
+                }
+              }))
+            }
+          }
+        } catch (e) {
+          console.log('[Docs] storage lookup skipped:', e.message)
+        }
+      }
+
+      console.log('[Docs] total allDocs:', allDocs.length)
       const missingImg = allDocs.filter(d => !d.print_image_url).map(d => `${d.source || d.type}:${d.id}`)
-      console.log('[Docs] missing print_image_url:', missingImg.length, missingImg)
+      if (missingImg.length) console.log('[Docs] still missing print_image_url:', missingImg)
       setDocs(allDocs)
       setLoading(false)
     }
