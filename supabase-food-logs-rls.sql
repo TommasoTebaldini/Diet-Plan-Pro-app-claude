@@ -2,8 +2,12 @@
 -- Run this in the Supabase SQL Editor to fix 400 errors on food_logs
 
 -- 1. Ensure all required columns exist (safe to run multiple times)
+ALTER TABLE food_logs ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
 ALTER TABLE food_logs ADD COLUMN IF NOT EXISTS meal_time text;
 ALTER TABLE food_logs ADD COLUMN IF NOT EXISTS food_data jsonb;
+
+-- Backfill existing rows that have created_at = NULL
+UPDATE food_logs SET created_at = now() WHERE created_at IS NULL;
 
 -- 2. Enable RLS (idempotent)
 ALTER TABLE food_logs ENABLE ROW LEVEL SECURITY;

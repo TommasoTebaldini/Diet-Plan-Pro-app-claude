@@ -773,8 +773,11 @@ $$;
 -- Aggiungono colonne e policy mancanti senza toccare i dati.
 -- ============================================================
 
--- Colonna orario pasto nel diario alimentare
+-- Colonne mancanti nel diario alimentare
+ALTER TABLE food_logs ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
 ALTER TABLE food_logs ADD COLUMN IF NOT EXISTS meal_time text;
+ALTER TABLE food_logs ADD COLUMN IF NOT EXISTS food_data jsonb;
+UPDATE food_logs SET created_at = now() WHERE created_at IS NULL;
 
 -- Colonna qualità del riposo nel benessere giornaliero
 ALTER TABLE daily_wellness ADD COLUMN IF NOT EXISTS sleep_restedness int;
