@@ -974,6 +974,13 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
             )}
           </div>
         </div>
+      ) : iframeHtml ? (
+        <iframe
+          srcDoc={iframeHtml}
+          style={{ flex: 1, border: 'none', width: '100%', minHeight: 0 }}
+          title={doc.title}
+          sandbox="allow-same-origin"
+        />
       ) : hasAttachment ? (
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>📄</div>
@@ -982,6 +989,12 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
             style={{ background: '#1a7f5a', color: 'white', padding: '12px 24px', borderRadius: 12, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             <Download size={16} />Scarica documento
           </a>
+        </div>
+      ) : error ? (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40, textAlign: 'center' }}>
+          <div style={{ fontSize: 56, marginBottom: 16 }}>⚠️</div>
+          <h3 style={{ fontSize: 18, fontWeight: 600, color: '#334155', marginBottom: 8 }}>Documento non disponibile</h3>
+          <p style={{ color: '#64748b', fontSize: 14, maxWidth: 320, lineHeight: 1.5 }}>{error}</p>
         </div>
       ) : (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40, textAlign: 'center' }}>
