@@ -3,7 +3,7 @@ import patientViewRaw from '../assets/patientViewHtml.js'
 import { CONSIGLI_BASE } from '../data/consigliBase.js'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { FileText, Download, Calendar, Utensils, Apple, Heart, Bookmark, BookmarkCheck, ArrowUpDown, Star, Printer, BookOpen } from 'lucide-react'
+import { FileText, Download, Calendar, Utensils, Apple, Heart, Bookmark, BookmarkCheck, ArrowUpDown, Star, Printer, BookOpen, PenLine, CheckCircle2, XCircle } from 'lucide-react'
 
 // ─── Document type metadata ───────────────────────────────────────────────────
 const TYPE_META = {
@@ -999,14 +999,16 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function DocumentsPage() {
   const { user } = useAuth()
-  const [docs,       setDocs]       = useState([])
-  const [loading,    setLoading]    = useState(true)
-  const [loadError,  setLoadError]  = useState(null)
-  const [typeFilter, setTypeFilter] = useState('all')
-  const [dateFilter, setDateFilter] = useState('all')
-  const [sortAsc,    setSortAsc]    = useState(false)
-  const [selected,   setSelected]   = useState(null)
-  const [bookmarks,  setBookmarks]  = useState(() => {
+  const [docs,                   setDocs]                   = useState([])
+  const [loading,                setLoading]                = useState(true)
+  const [loadError,              setLoadError]              = useState(null)
+  const [typeFilter,             setTypeFilter]             = useState('all')
+  const [dateFilter,             setDateFilter]             = useState('all')
+  const [sortAsc,                setSortAsc]                = useState(false)
+  const [selected,               setSelected]               = useState(null)
+  const [pendingSignatureDocs,   setPendingSignatureDocs]   = useState([])
+  const [signingId,              setSigningId]              = useState(null)
+  const [bookmarks,              setBookmarks]              = useState(() => {
     try {
       const raw = localStorage.getItem(`doc_bookmarks_${user?.id}`)
       return raw ? new Set(JSON.parse(raw)) : new Set()
@@ -1025,6 +1027,26 @@ export default function DocumentsPage() {
       return next
     })
   }, [])
+
+  const handleSign = useCallback(async (docId, accepted) => {
+    setSigningId(docId)
+    try {
+      const { error } = await supabase
+        .from('patient_documents')
+        .update({
+          signed_at: new Date().toISOString(),
+          signature_accepted: accepted,
+          signature_data: accepted ? 'accepted_digitally' : 'rejected_digitally',
+        })
+        .eq('id', docId)
+        .eq('patient_id', user.id)
+      if (!error) {
+        setPendingSignatureDocs(prev => prev.filter(d => d.id !== docId))
+      }
+    } finally {
+      setSigningId(null)
+    }
+  }, [user.id])
 
   // ── Carica i documenti dal DB ────────────────────────────────────────────────
   useEffect(() => {
@@ -1229,9 +1251,15 @@ export default function DocumentsPage() {
         console.log('[Docs] patient_documents:', patientDocs?.length, '| error:', pdErr?.message)
         if (patientDocs?.length) console.log('[Docs] patient_documents[0]:', JSON.stringify(patientDocs[0]))
 
+        const pendingSig = []
         for (const d of patientDocs || []) {
-          allDocs.push({ ...d, published_at: d.published_at || d.created_at })
+          if (d.requires_signature && !d.signed_at) {
+            pendingSig.push(d)
+          } else {
+            allDocs.push({ ...d, published_at: d.published_at || d.created_at })
+          }
         }
+        setPendingSignatureDocs(pendingSig)
 
       } catch (e) {
         console.error('Documents load error:', e)
@@ -1333,6 +1361,56 @@ export default function DocumentsPage() {
         </div>
 
         <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* ── Documenti da firmare ────────────────────────────────────────── */}
+          {pendingSignatureDocs.length > 0 && (
+            <div style={{ borderRadius: 16, overflow: 'hidden', border: '2px solid #f59e0b', background: '#fffbeb', boxShadow: '0 2px 12px rgba(245,158,11,0.15)' }}>
+              <div style={{ padding: '13px 16px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <PenLine size={18} color="white" />
+                <span style={{ fontSize: 14, fontWeight: 700, color: 'white' }}>
+                  Documento{pendingSignatureDocs.length > 1 ? 'i' : ''} da firmare ({pendingSignatureDocs.length})
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {pendingSignatureDocs.map((doc, idx) => (
+                  <div key={doc.id} style={{ padding: '14px 16px', borderTop: idx > 0 ? '1px solid #fde68a' : 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <FileText size={18} color="#d97706" />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 14, fontWeight: 700, color: '#92400e', marginBottom: 2 }}>{doc.title || 'Documento da firmare'}</p>
+                        <p style={{ fontSize: 12, color: '#b45309' }}>
+                          {new Date(doc.created_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </p>
+                        {doc.content && (
+                          <p style={{ fontSize: 13, color: '#78350f', marginTop: 6, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{doc.content}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button
+                        onClick={() => handleSign(doc.id, true)}
+                        disabled={signingId === doc.id}
+                        style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: 'none', cursor: signingId === doc.id ? 'wait' : 'pointer', background: '#16a34a', color: 'white', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, opacity: signingId === doc.id ? 0.7 : 1, transition: 'opacity .2s' }}
+                      >
+                        <CheckCircle2 size={16} />
+                        Accetta
+                      </button>
+                      <button
+                        onClick={() => handleSign(doc.id, false)}
+                        disabled={signingId === doc.id}
+                        style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: '1.5px solid #fca5a5', cursor: signingId === doc.id ? 'wait' : 'pointer', background: 'white', color: '#dc2626', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, opacity: signingId === doc.id ? 0.7 : 1, transition: 'opacity .2s' }}
+                      >
+                        <XCircle size={16} />
+                        Rifiuta
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {loading ? (
             <div style={{ textAlign: 'center', padding: 40 }}>
               <div style={{ width: 24, height: 24, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto' }} />

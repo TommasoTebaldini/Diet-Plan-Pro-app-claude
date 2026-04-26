@@ -40,7 +40,11 @@ export function NotificationProvider({ children, user }) {
         { event: 'INSERT', schema: 'public', table: 'patient_documents', filter: `patient_id=eq.${user.id}` },
         payload => {
           if (payload.new?.visible && p.newDocument) {
-            showNotification('📄 Nuovo documento condiviso', payload.new.title || 'Il tuo dietista ha condiviso un documento', 'doc-new')
+            if (payload.new?.requires_signature) {
+              showNotification('🔏 Firma richiesta', payload.new.title || 'Il tuo dietista ha condiviso un documento da firmare', 'doc-sign')
+            } else {
+              showNotification('📄 Nuovo documento condiviso', payload.new.title || 'Il tuo dietista ha condiviso un documento', 'doc-new')
+            }
           }
         },
       )

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { Clock, ChevronDown, ChevronUp, Flame, Leaf, FileText, CheckCircle2, Circle, History, RefreshCw, TrendingUp, Calendar, Download, ClipboardList } from 'lucide-react'
+import { Clock, ChevronDown, ChevronUp, Flame, Leaf, FileText, CheckCircle2, Circle, History, RefreshCw, TrendingUp, Calendar, Download, ClipboardList, ImageOff } from 'lucide-react'
 
 const DAYS = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
 
@@ -281,8 +281,7 @@ const MEAL_PRINT_LABELS = {
   cena: { label: 'Cena', emoji: '🌙' },
 }
 
-function PianoAlimentareRenderer({ piano }) {
-  const [expanded, setExpanded] = useState(false)
+function PianoAlimentareContent({ piano }) {
   let days = []
   try {
     const raw = typeof piano.meals === 'string' ? JSON.parse(piano.meals) : piano.meals
@@ -291,100 +290,161 @@ function PianoAlimentareRenderer({ piano }) {
 
   const title = piano.nome || 'Piano alimentare'
   const dataStr = piano.data_piano ? new Date(piano.data_piano).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) : ''
-  const savedStr = piano.saved_at ? new Date(piano.saved_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) : ''
 
   return (
-    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-      {/* Header row */}
+    <div style={{ padding: '16px 16px 20px' }}>
+      {days.length > 0 ? days.map((day, di) => (
+        <div key={day.id || di} style={{ marginBottom: 20 }}>
+          <div style={{ background: 'linear-gradient(90deg, var(--green-main), var(--green-dark))', color: 'white', padding: '8px 14px', borderRadius: 10, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>📅</span>
+            <span style={{ fontWeight: 700, fontSize: 14, letterSpacing: '0.01em' }}>{day.nome || `Giorno ${di + 1}`}</span>
+          </div>
+          {(day.meals || []).map((meal, mi) => {
+            const mealKey = meal.id || meal.tipo || ''
+            const meta = MEAL_PRINT_LABELS[mealKey] || { label: meal.nome || meal.id || 'Pasto', emoji: '🍴' }
+            const foods = meal.items || meal.foods || meal.alimenti || []
+            const kcal = meal.kcal || meal.calorie || null
+            const note = meal.note || meal.notes || ''
+            const mealEmoji = meal.emoji || meta.emoji
+            const mealLabel = meal.nome || meta.label
+            return (
+              <div key={meal.id || mi} style={{ border: '1px solid var(--border-light)', borderRadius: 12, overflow: 'hidden', marginBottom: 8, background: 'var(--surface)' }}>
+                <div style={{ padding: '9px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-light)', background: 'var(--surface-2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 17 }}>{mealEmoji}</span>
+                    <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--green-dark)' }}>{mealLabel}</span>
+                  </div>
+                  {kcal && <span style={{ fontSize: 12, color: 'var(--green-main)', background: 'var(--green-pale)', padding: '2px 9px', borderRadius: 100, fontWeight: 600 }}>🔥 {kcal} kcal</span>}
+                </div>
+                <div style={{ padding: '10px 14px' }}>
+                  {foods.length > 0 ? (
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <tbody>
+                        {foods.map((food, fi) => (
+                          <tr key={fi} style={{ borderBottom: fi < foods.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                            <td style={{ padding: '5px 0', color: 'var(--text-primary)', fontWeight: 500 }}>{food.nome || food.name || food.alimento || ''}</td>
+                            <td style={{ padding: '5px 0', textAlign: 'right', color: 'var(--green-main)', fontWeight: 700 }}>
+                              {food.qt || food.quantita || food.quantity || food.grammi || food.grams || ''}{food.misura || food.unita || food.unit || 'g'}
+                            </td>
+                          </tr>
+                        ))}
+                        {foods.some(f => f.altPrint?.length > 0) && (
+                          <tr><td colSpan={2} style={{ padding: '4px 0 0', fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                            Alt: {foods.flatMap(f => f.altPrint || []).map(a => `${a.nome} ${a.qt}g`).join(' / ')}
+                          </td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  ) : (meal.descrizione || meal.description) ? (
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{meal.descrizione || meal.description}</p>
+                  ) : null}
+                  {note && (
+                    <div style={{ marginTop: 8, padding: '7px 11px', background: '#fffbeb', borderRadius: 8, borderLeft: '3px solid #f59e0b', fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>
+                      💡 {note}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )) : (
+        <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)' }}>
+          <ImageOff size={32} style={{ opacity: 0.3, marginBottom: 10 }} />
+          <p style={{ fontSize: 14 }}>Il dietista non ha ancora aggiunto il dettaglio dei pasti.</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function LatestClinicalPlanCard({ piano }) {
+  const title = piano.nome || 'Piano alimentare'
+  const savedStr = piano.saved_at
+    ? new Date(piano.saved_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })
+    : ''
+
+  return (
+    <div style={{ borderRadius: 18, overflow: 'hidden', border: '1px solid var(--border-light)', background: 'var(--surface)', boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}>
+      {/* Coloured top accent */}
+      <div style={{ height: 4, background: 'linear-gradient(90deg, var(--green-main), var(--green-dark))' }} />
+
+      {/* Header */}
+      <div style={{ padding: '16px 18px', background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', display: 'flex', alignItems: 'center', gap: 14, borderBottom: '1px solid #bbf7d0' }}>
+        <div style={{ width: 46, height: 46, borderRadius: 14, background: 'var(--green-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(26,127,90,0.3)' }}>
+          <ClipboardList size={22} color="white" />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: 11, color: 'var(--green-dark)', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700, marginBottom: 3 }}>Piano alimentare personalizzato</p>
+          <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--green-dark)', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</h3>
+          {savedStr && <p style={{ fontSize: 12, color: '#4d7c5a', marginTop: 3 }}>📅 {savedStr}</p>}
+        </div>
+        {piano.print_image_url && (
+          <a
+            href={piano.print_image_url}
+            download={`${title}.png`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+            title="Scarica immagine"
+            style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 11, background: 'var(--green-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', textDecoration: 'none', boxShadow: '0 2px 6px rgba(26,127,90,0.25)' }}
+          >
+            <Download size={17} />
+          </a>
+        )}
+      </div>
+
+      {/* Content: image or JSON renderer */}
+      {piano.print_image_url ? (
+        <div style={{ background: '#f1f5f9', padding: '18px 16px 20px' }}>
+          <img
+            src={piano.print_image_url}
+            alt={title}
+            style={{ display: 'block', width: '100%', height: 'auto', borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.13)', background: 'white' }}
+          />
+        </div>
+      ) : (
+        <PianoAlimentareContent piano={piano} />
+      )}
+    </div>
+  )
+}
+
+function OlderClinicalPlanCard({ piano }) {
+  const [expanded, setExpanded] = useState(false)
+  const title = piano.nome || 'Piano alimentare'
+  const savedStr = piano.saved_at
+    ? new Date(piano.saved_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })
+    : ''
+
+  return (
+    <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border-light)', background: 'var(--surface)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
       <button
         onClick={() => setExpanded(v => !v)}
-        style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left' }}
+        style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left' }}
       >
-        <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg, var(--green-pale), #c8f5e2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <ClipboardList size={20} color="var(--green-main)" />
+        <div style={{ width: 38, height: 38, borderRadius: 11, background: 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Calendar size={16} color="var(--text-muted)" />
         </div>
         <div style={{ flex: 1 }}>
-          <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{title}</p>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-            {days.length > 0 ? `${days.length} giorni` : 'Piano alimentare'}{savedStr ? ` · ${savedStr}` : ''}
-          </p>
+          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{title}</p>
+          {savedStr && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{savedStr}</p>}
         </div>
         {expanded ? <ChevronUp size={16} color="var(--text-muted)" /> : <ChevronDown size={16} color="var(--text-muted)" />}
       </button>
 
       {expanded && (
-        <div style={{ borderTop: '1px solid var(--border-light)', padding: '16px 18px 20px' }}>
-          {/* Print-style header */}
-          <div style={{ textAlign: 'center', marginBottom: 24, paddingBottom: 16, borderBottom: '2px solid var(--green-main)' }}>
-            <p style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 4 }}>Piano Alimentare Personalizzato</p>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--green-dark)', margin: '0 0 4px' }}>{title}</h2>
-            {dataStr && <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{dataStr}</p>}
-          </div>
-
-          {days.length > 0 ? days.map((day, di) => (
-            <div key={day.id || di} style={{ marginBottom: 24 }}>
-              {/* Day header */}
-              <div style={{ background: 'var(--green-main)', color: 'white', padding: '8px 14px', borderRadius: 10, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>📅</span>
-                <span style={{ fontWeight: 700, fontSize: 15 }}>{day.nome || `Giorno ${di + 1}`}</span>
-              </div>
-
-              {/* Meals */}
-              {(day.meals || []).map((meal, mi) => {
-                const mealKey = meal.id || meal.tipo || ''
-                const meta = MEAL_PRINT_LABELS[mealKey] || { label: meal.nome || meal.id || 'Pasto', emoji: '🍴' }
-                // Support new format: items[], qt, misura, emoji
-                const foods = meal.items || meal.foods || meal.alimenti || []
-                const kcal = meal.kcal || meal.calorie || null
-                const note = meal.note || meal.notes || ''
-                const mealEmoji = meal.emoji || meta.emoji
-                const mealLabel = meal.nome || meta.label
-
-                return (
-                  <div key={meal.id || mi} style={{ border: '1px solid var(--border-light)', borderRadius: 10, overflow: 'hidden', marginBottom: 8 }}>
-                    <div style={{ background: 'var(--green-mist)', padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-light)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 18 }}>{mealEmoji}</span>
-                        <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--green-dark)' }}>{mealLabel}</span>
-                      </div>
-                      {kcal && <span style={{ fontSize: 12, color: 'var(--text-muted)', background: 'white', padding: '2px 8px', borderRadius: 100, border: '1px solid var(--border-light)' }}>🔥 {kcal} kcal</span>}
-                    </div>
-
-                    <div style={{ padding: '10px 14px' }}>
-                      {foods.length > 0 ? (
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                          <tbody>
-                            {foods.map((food, fi) => (
-                              <tr key={fi} style={{ borderBottom: fi < foods.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
-                                <td style={{ padding: '5px 0', color: 'var(--text-primary)' }}>{food.nome || food.name || food.alimento || ''}</td>
-                                <td style={{ padding: '5px 0', textAlign: 'right', color: 'var(--green-main)', fontWeight: 500 }}>
-                                  {food.qt || food.quantita || food.quantity || food.grammi || food.grams || ''}{food.misura || food.unita || food.unit || 'g'}
-                                </td>
-                              </tr>
-                            ))}
-                            {foods.some(f => f.altPrint?.length > 0) && (
-                              <tr><td colSpan={2} style={{ padding: '4px 0 0', fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                                Alt: {foods.flatMap(f => f.altPrint || []).map(a => `${a.nome} ${a.qt}g`).join(' / ')}
-                              </td></tr>
-                            )}
-                          </tbody>
-                        </table>
-                      ) : (meal.descrizione || meal.description) ? (
-                        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{meal.descrizione || meal.description}</p>
-                      ) : null}
-
-                      {note && (
-                        <div style={{ marginTop: 8, padding: '6px 10px', background: '#fffbeb', borderRadius: 6, borderLeft: '3px solid #f59e0b', fontSize: 12, color: '#92400e' }}>
-                          💡 {note}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
+        <div style={{ borderTop: '1px solid var(--border-light)' }}>
+          {piano.print_image_url ? (
+            <div style={{ background: '#f1f5f9', padding: '14px 14px 16px' }}>
+              <img
+                src={piano.print_image_url}
+                alt={title}
+                style={{ display: 'block', width: '100%', height: 'auto', borderRadius: 10, boxShadow: '0 2px 12px rgba(0,0,0,0.1)', background: 'white' }}
+              />
             </div>
-          )) : (
-            <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 14 }}>Nessun dettaglio disponibile per questo piano.</p>
+          ) : (
+            <PianoAlimentareContent piano={piano} />
           )}
         </div>
       )}
@@ -404,7 +464,7 @@ export default function DietPage() {
   const [selectedHistoryId, setSelectedHistoryId] = useState(null)
   const [historyMeals, setHistoryMeals] = useState([])
   const [clinicalPlans, setClinicalPlans] = useState([])
-  const [expandedPlan, setExpandedPlan] = useState(null)
+  const [showOlderPlans, setShowOlderPlans] = useState(false)
 
   const today = useMemo(() => new Date().toISOString().split('T')[0], [])
 
@@ -566,15 +626,34 @@ export default function DietPage() {
         {/* Clinical plans from dietitian portal */}
         {clinicalPlans.length > 0 && (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
               <ClipboardList size={15} color="var(--green-main)" />
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Piani dal dietista</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Piano dal dietista</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {clinicalPlans.map(plan => (
-                <PianoAlimentareRenderer key={plan.id} piano={plan} />
-              ))}
-            </div>
+
+            {/* Latest plan shown directly */}
+            <LatestClinicalPlanCard piano={clinicalPlans[0]} />
+
+            {/* Older plans collapsible */}
+            {clinicalPlans.length > 1 && (
+              <div style={{ marginTop: 10 }}>
+                <button
+                  onClick={() => setShowOlderPlans(v => !v)}
+                  style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', color: 'var(--text-secondary)' }}
+                >
+                  <History size={16} />
+                  <span style={{ fontSize: 14, fontWeight: 600 }}>Piani precedenti ({clinicalPlans.length - 1})</span>
+                  {showOlderPlans ? <ChevronUp size={16} style={{ marginLeft: 'auto' }} /> : <ChevronDown size={16} style={{ marginLeft: 'auto' }} />}
+                </button>
+                {showOlderPlans && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {clinicalPlans.slice(1).map(plan => (
+                      <OlderClinicalPlanCard key={plan.id} piano={plan} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
