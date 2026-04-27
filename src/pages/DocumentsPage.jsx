@@ -1314,11 +1314,17 @@ export default function DocumentsPage() {
       }
 
       // ── Storage fallback: try to find PNGs in Supabase Storage ──────────────
-      // Files may be stored under patient_id OR dietitian_id (fallback upload path).
-      const missingImgDocs = allDocs.filter(d => !d.print_image_url)
-      if (missingImgDocs.length > 0) {
+      // Runs for:
+      //  • docs with no print_image_url (need first-page URL)
+      //  • bia/ncpt/valutazione docs without print_image_urls array (might have >1 page)
+      const MULTIPAGE_SOURCES = new Set(['bia', 'ncpt', 'valutazione'])
+      const needsStorageLookup = allDocs.filter(d =>
+        !d.print_image_url ||
+        (MULTIPAGE_SOURCES.has(d.source) && !d.print_image_urls)
+      )
+      if (needsStorageLookup.length > 0) {
         try {
-          // Naming convention in storage: {table_name}_{uuid}_{page|variant}.png
+          // Naming convention in storage: {table_name}_{uuid}_p{N}.png
           const SOURCE_TABLE_PREFIX = {
             note:        'note_specialistiche_',
             ncpt:        'ncpt_',
@@ -1347,15 +1353,14 @@ export default function DocumentsPage() {
             }
           }))
 
-          // For each doc without URL, find matching files and create signed URLs
-          await Promise.all(missingImgDocs.map(async doc => {
+          await Promise.all(needsStorageLookup.map(async doc => {
             const tablePrefix = SOURCE_TABLE_PREFIX[doc.source] || ''
             const rawUuid = doc.id.replace(/^[a-z_]+_/, '')
             const storageKey = tablePrefix + rawUuid
             const matches = storageMap[storageKey]
             if (!matches?.length) return
 
-            // Sort: _p1, _p2 first (in order), then other variants
+            // Sort: _p1, _p2, … first (in order), then other variants
             const sorted = [...matches].sort((a, b) => {
               const ap = a.fname.match(/_p(\d+)\.png$/i)?.[1]
               const bp = b.fname.match(/_p(\d+)\.png$/i)?.[1]
@@ -1377,7 +1382,9 @@ export default function DocumentsPage() {
             }))).filter(Boolean)
 
             if (signedUrls.length > 0) {
-              doc.print_image_url  = signedUrls[0]
+              // Keep the existing long-lived DB URL as primary if already set;
+              // always populate print_image_urls so the modal can show all pages.
+              if (!doc.print_image_url) doc.print_image_url = signedUrls[0]
               doc.print_image_urls = signedUrls
             }
           }))
