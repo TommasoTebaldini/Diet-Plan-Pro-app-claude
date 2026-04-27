@@ -1,8 +1,9 @@
 -- ============================================================
 -- NutriPlan / Diet Plan Pro — Schema SQL Supabase COMPLETO
--- Esegui questo script nel SQL Editor del tuo progetto Supabase
--- Questo file è l'unico da usare: contiene tutto lo schema
--- aggiornato (tabelle, RLS, policy, trigger, storage).
+-- Esegui questo script nel SQL Editor del tuo progetto Supabase.
+-- È l'UNICO file SQL del progetto: contiene tabelle, colonne,
+-- indici, RLS, trigger, storage e realtime.
+-- Idempotente: sicuro da rieseguire su DB già esistente.
 -- ============================================================
 
 
@@ -123,7 +124,7 @@ create table if not exists chat_messages (
   message_type text not null default 'text' check (message_type in ('text', 'image', 'audio')),
   file_url text,
   file_name text,
-  duration_seconds numeric,  -- durata in secondi per i messaggi vocali
+  duration_seconds numeric,
   read_at timestamptz,
   created_at timestamptz default now()
 );
@@ -134,7 +135,7 @@ create table if not exists patient_documents (
   patient_id uuid references auth.users not null,
   dietitian_id uuid references auth.users not null,
   title text not null,
-  type text default 'document',  -- 'diet', 'advice', 'recipe', 'document', 'education'
+  type text default 'document',  -- 'diet','advice','recipe','document','education','privacy'
   content text,
   file_url text,
   tags text[] default '{}',
@@ -174,7 +175,7 @@ create table if not exists custom_meals (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users not null default auth.uid(),
   name text not null,
-  ingredients jsonb default '[]'::jsonb,  -- [{food_name, food_data, grams, kcal, proteins, carbs, fats}]
+  ingredients jsonb default '[]'::jsonb,
   peso_totale_g numeric default 100,
   kcal_total numeric default 0,
   proteins_total numeric default 0,
@@ -188,7 +189,7 @@ create table if not exists ricette (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users not null default auth.uid(),
   nome text not null,
-  ingredienti jsonb default '[]'::jsonb,  -- [{food_name, food_data, grams, kcal, proteins, carbs, fats}]
+  ingredienti jsonb default '[]'::jsonb,
   porzioni int default 1,
   peso_totale_g numeric default 100,
   kcal_100g numeric default 0,
@@ -264,9 +265,27 @@ create table if not exists progress_photos (
   created_at timestamptz default now()
 );
 
+-- Profili pubblici dei dietisti
+create table if not exists dietitian_profiles (
+  id              uuid primary key default gen_random_uuid(),
+  dietitian_id    uuid not null unique references auth.users(id) on delete cascade,
+  nome            text not null default '',
+  cognome         text default '',
+  titoli          text default '',
+  descrizione     text default '',
+  citta           text default '',
+  indirizzo       text default '',
+  telefono        text default '',
+  email_contatto  text default '',
+  sito_web        text default '',
+  visible         boolean default true,
+  created_at      timestamptz default now(),
+  updated_at      timestamptz default now()
+);
+
 
 -- ============================================================
--- COLONNE AGGIUNTIVE (profiles e tabelle cliniche dietista)
+-- COLONNE AGGIUNTIVE (profiles, tabelle cliniche, documenti)
 -- ============================================================
 
 -- Profili utente: colonne estese
@@ -297,15 +316,13 @@ where
   and full_name is not null
   and full_name <> '';
 
--- Tabelle cliniche del portale dietista: colonna patient_id (necessaria per RLS)
+-- Tabelle cliniche del portale dietista: patient_id e visible_to_patient
 alter table piani add column if not exists patient_id uuid references auth.users;
 alter table ncpt add column if not exists patient_id uuid references auth.users;
 alter table schede_valutazione add column if not exists patient_id uuid references auth.users;
 alter table bia_records add column if not exists patient_id uuid references auth.users;
 alter table note_specialistiche add column if not exists patient_id uuid references auth.users;
 
--- Tabelle cliniche del portale dietista: visibilità per il paziente
--- (Le tabelle sono create dal portale dietista e potrebbero non esistere ancora)
 do $$
 declare
   t text;
@@ -319,12 +336,92 @@ begin
 end;
 $$;
 
+-- Tabelle cliniche del portale dietista: print_image_url (screenshot stampabile)
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['patient_documents','note_specialistiche','piani','ncpt','schede_valutazione','bia_records']
+  loop
+    if exists (select 1 from information_schema.tables where table_name = t and table_schema = 'public') then
+      execute format('alter table %I add column if not exists print_image_url text', t);
+    end if;
+  end loop;
+end;
+$$;
+
+-- patient_documents: firma privacy
+alter table patient_documents add column if not exists requires_signature boolean default false;
+alter table patient_documents add column if not exists signed_at timestamptz;
+alter table patient_documents add column if not exists signature_data text;
+alter table patient_documents add column if not exists signature_accepted boolean;
+
+-- food_logs: colonne aggiunte successivamente
+alter table food_logs add column if not exists created_at timestamptz default now();
+alter table food_logs add column if not exists meal_time text;
+alter table food_logs add column if not exists food_data jsonb;
+update food_logs set created_at = now() where created_at is null;
+
+-- daily_wellness: qualità del riposo
+alter table daily_wellness add column if not exists sleep_restedness int;
+alter table daily_wellness drop constraint if exists chk_sleep_restedness_range;
+alter table daily_wellness add constraint chk_sleep_restedness_range
+  check (sleep_restedness between 1 and 5);
+
+
+-- ============================================================
+-- BACKFILL: patient_id nelle tabelle cliniche (da cartella_id)
+-- Necessario per record creati prima che patient_id fosse aggiunto.
+-- ============================================================
+
+do $$
+begin
+  if exists (select 1 from information_schema.tables where table_name='piani' and table_schema='public') then
+    update piani set patient_id = pd.patient_id
+    from patient_dietitian pd
+    where piani.cartella_id = pd.cartella_id and piani.patient_id is null;
+  end if;
+
+  if exists (select 1 from information_schema.tables where table_name='note_specialistiche' and table_schema='public') then
+    update note_specialistiche set patient_id = pd.patient_id
+    from patient_dietitian pd
+    where note_specialistiche.cartella_id = pd.cartella_id and note_specialistiche.patient_id is null;
+  end if;
+
+  if exists (select 1 from information_schema.tables where table_name='ncpt' and table_schema='public') then
+    update ncpt set patient_id = pd.patient_id
+    from patient_dietitian pd
+    where ncpt.cartella_id = pd.cartella_id and ncpt.patient_id is null;
+  end if;
+
+  if exists (select 1 from information_schema.tables where table_name='schede_valutazione' and table_schema='public') then
+    update schede_valutazione set patient_id = pd.patient_id
+    from patient_dietitian pd
+    where schede_valutazione.cartella_id = pd.cartella_id and schede_valutazione.patient_id is null;
+  end if;
+
+  if exists (select 1 from information_schema.tables where table_name='bia_records' and table_schema='public') then
+    update bia_records set patient_id = pd.patient_id
+    from patient_dietitian pd
+    where bia_records.cartella_id = pd.cartella_id and bia_records.patient_id is null;
+  end if;
+end;
+$$;
+
 
 -- ============================================================
 -- INDICI
 -- ============================================================
 
 create index if not exists activity_logs_user_date_idx on activity_logs (user_id, date desc);
+
+create index if not exists idx_patient_documents_unsigned
+  on patient_documents (patient_id, requires_signature, signed_at)
+  where requires_signature = true and signed_at is null;
+
+create index if not exists idx_dietitian_profiles_citta
+  on dietitian_profiles (lower(citta))
+  where visible = true;
 
 
 -- ============================================================
@@ -351,13 +448,14 @@ alter table meal_completions enable row level security;
 alter table body_measurements enable row level security;
 alter table progress_photos enable row level security;
 alter table profiles enable row level security;
+alter table dietitian_profiles enable row level security;
 
 
 -- ============================================================
 -- POLICY RLS
 -- ============================================================
 
--- food_logs
+-- ── food_logs ───────────────────────────────────────────────
 drop policy if exists "utenti vedono i propri dati" on food_logs;
 drop policy if exists "dietista legge diario pazienti" on food_logs;
 drop policy if exists "food_logs_select_own" on food_logs;
@@ -381,7 +479,7 @@ create policy "food_logs_dietitian_read" on food_logs
     )
   );
 
--- daily_logs
+-- ── daily_logs ──────────────────────────────────────────────
 drop policy if exists "utenti vedono i propri dati" on daily_logs;
 create policy "utenti vedono i propri dati" on daily_logs
   for all using (auth.uid() = user_id)
@@ -397,28 +495,28 @@ create policy "dietista legge totali giornalieri pazienti" on daily_logs
     )
   );
 
--- water_logs
+-- ── water_logs ──────────────────────────────────────────────
 drop policy if exists "utenti vedono i propri dati" on water_logs;
 create policy "utenti vedono i propri dati" on water_logs
   for all using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
--- custom_foods
+-- ── custom_foods ────────────────────────────────────────────
 drop policy if exists "utenti vedono i propri dati" on custom_foods;
 create policy "utenti vedono i propri dati" on custom_foods
   for all using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
--- patient_diets
+-- ── patient_diets ───────────────────────────────────────────
 drop policy if exists "pazienti leggono la propria dieta" on patient_diets;
 create policy "pazienti leggono la propria dieta" on patient_diets
   for select using (auth.uid() = user_id);
 
 drop policy if exists "dietista gestisce diete" on patient_diets;
 create policy "dietista gestisce diete" on patient_diets
-  for all using (true);  -- temporaneo, raffina con ruoli
+  for all using (true);
 
--- diet_meals
+-- ── diet_meals ──────────────────────────────────────────────
 drop policy if exists "accesso pasti dieta propria" on diet_meals;
 create policy "accesso pasti dieta propria" on diet_meals
   for select using (
@@ -430,9 +528,9 @@ create policy "accesso pasti dieta propria" on diet_meals
 
 drop policy if exists "dietista gestisce pasti" on diet_meals;
 create policy "dietista gestisce pasti" on diet_meals
-  for all using (true);  -- temporaneo, raffina con ruoli
+  for all using (true);
 
--- patient_dietitian
+-- ── patient_dietitian ───────────────────────────────────────
 drop policy if exists "visibile ai coinvolti" on patient_dietitian;
 create policy "visibile ai coinvolti" on patient_dietitian
   for select using (auth.uid() = patient_id or auth.uid() = dietitian_id);
@@ -445,7 +543,7 @@ drop policy if exists "dietista aggiorna relazioni" on patient_dietitian;
 create policy "dietista aggiorna relazioni" on patient_dietitian
   for update using (auth.uid() = dietitian_id);
 
--- cartelle (dietista può leggere le cartelle)
+-- ── cartelle ────────────────────────────────────────────────
 drop policy if exists "dietista legge cartelle" on cartelle;
 create policy "dietista legge cartelle" on cartelle
   for select using (
@@ -455,7 +553,7 @@ create policy "dietista legge cartelle" on cartelle
     )
   );
 
--- chat_messages
+-- ── chat_messages ───────────────────────────────────────────
 drop policy if exists "chat visibile ai coinvolti" on chat_messages;
 create policy "chat visibile ai coinvolti" on chat_messages
   for all using (
@@ -475,7 +573,7 @@ create policy "chat visibile ai coinvolti" on chat_messages
     )
   );
 
--- patient_documents
+-- ── patient_documents ───────────────────────────────────────
 drop policy if exists "paziente vede propri documenti" on patient_documents;
 create policy "paziente vede propri documenti" on patient_documents
   for select using (auth.uid() = patient_id and visible is not false);
@@ -485,7 +583,16 @@ create policy "dietista gestisce documenti" on patient_documents
   for all using (auth.uid() = dietitian_id)
   with check (auth.uid() = dietitian_id);
 
--- weight_logs
+drop policy if exists "paziente firma documento" on patient_documents;
+create policy "paziente firma documento" on patient_documents
+  for update using (auth.uid() = patient_id)
+  with check (auth.uid() = patient_id);
+
+drop policy if exists "dietista legge propri documenti" on patient_documents;
+create policy "dietista legge propri documenti" on patient_documents
+  for select using (dietitian_id = auth.uid());
+
+-- ── weight_logs ─────────────────────────────────────────────
 drop policy if exists "utente gestisce proprio peso" on weight_logs;
 create policy "utente gestisce proprio peso" on weight_logs
   for all using (auth.uid() = user_id)
@@ -501,7 +608,7 @@ create policy "dietista legge peso pazienti" on weight_logs
     )
   );
 
--- daily_wellness
+-- ── daily_wellness ──────────────────────────────────────────
 drop policy if exists "utente gestisce proprio wellness" on daily_wellness;
 create policy "utente gestisce proprio wellness" on daily_wellness
   for all using (auth.uid() = user_id)
@@ -517,7 +624,7 @@ create policy "dietista legge wellness pazienti" on daily_wellness
     )
   );
 
--- profiles
+-- ── profiles ────────────────────────────────────────────────
 drop policy if exists "utenti vedono il proprio profilo" on profiles;
 create policy "utenti vedono il proprio profilo" on profiles
   for select using (auth.uid() = id);
@@ -541,19 +648,19 @@ create policy "dietista legge profili pazienti" on profiles
     or auth.uid() = id
   );
 
--- custom_meals
+-- ── custom_meals ────────────────────────────────────────────
 drop policy if exists "utente gestisce propri pasti" on custom_meals;
 create policy "utente gestisce propri pasti" on custom_meals
   for all using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
--- ricette
+-- ── ricette ─────────────────────────────────────────────────
 drop policy if exists "utente gestisce proprie ricette" on ricette;
 create policy "utente gestisce proprie ricette" on ricette
   for all using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
--- appointments
+-- ── appointments ────────────────────────────────────────────
 drop policy if exists "paziente vede i propri appuntamenti" on appointments;
 create policy "paziente vede i propri appuntamenti" on appointments
   for select using (auth.uid() = patient_id);
@@ -569,13 +676,13 @@ create policy "dietista gestisce appuntamenti" on appointments
     )
   );
 
--- activity_logs
+-- ── activity_logs ───────────────────────────────────────────
 drop policy if exists "utente gestisce proprie attività" on activity_logs;
 create policy "utente gestisce proprie attività" on activity_logs
   for all using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
--- meal_completions
+-- ── meal_completions ────────────────────────────────────────
 drop policy if exists "paziente gestisce completamenti" on meal_completions;
 create policy "paziente gestisce completamenti" on meal_completions
   for all using (auth.uid() = user_id)
@@ -591,17 +698,150 @@ create policy "dietista legge completamenti" on meal_completions
     )
   );
 
--- body_measurements
+-- ── body_measurements ───────────────────────────────────────
 drop policy if exists "utenti vedono le proprie misurazioni" on body_measurements;
 create policy "utenti vedono le proprie misurazioni" on body_measurements
   for all using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
--- progress_photos
+-- ── progress_photos ─────────────────────────────────────────
 drop policy if exists "utenti vedono le proprie foto" on progress_photos;
 create policy "utenti vedono le proprie foto" on progress_photos
   for all using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+-- ── dietitian_profiles ──────────────────────────────────────
+drop policy if exists "dietitian_manage_own_profile" on dietitian_profiles;
+create policy "dietitian_manage_own_profile" on dietitian_profiles
+  for all to authenticated
+  using (auth.uid() = dietitian_id)
+  with check (auth.uid() = dietitian_id);
+
+drop policy if exists "read_visible_profiles" on dietitian_profiles;
+create policy "read_visible_profiles" on dietitian_profiles
+  for select to authenticated
+  using (visible = true);
+
+
+-- ============================================================
+-- POLICY RLS: Tabelle cliniche del portale dietista
+-- I pazienti possono leggere i propri dati quando
+-- visible_to_patient = true, tramite patient_id o cartella_id.
+-- ============================================================
+
+do $$
+begin
+  -- piani
+  if exists (select 1 from information_schema.tables where table_name='piani' and table_schema='public')
+     and exists (select 1 from information_schema.columns where table_name='piani' and table_schema='public' and column_name='patient_id')
+     and exists (select 1 from information_schema.columns where table_name='piani' and table_schema='public' and column_name='visible_to_patient')
+  then
+    execute $p$ alter table piani enable row level security $p$;
+    drop policy if exists "paziente legge propri piani" on piani;
+    execute $p$
+      create policy "paziente legge propri piani" on piani
+        for select using (
+          visible_to_patient = true
+          and (
+            auth.uid() = patient_id
+            or exists (
+              select 1 from patient_dietitian pd
+              where pd.patient_id = auth.uid() and pd.cartella_id = piani.cartella_id
+            )
+          )
+        )
+    $p$;
+  end if;
+
+  -- note_specialistiche
+  if exists (select 1 from information_schema.tables where table_name='note_specialistiche' and table_schema='public')
+     and exists (select 1 from information_schema.columns where table_name='note_specialistiche' and table_schema='public' and column_name='patient_id')
+     and exists (select 1 from information_schema.columns where table_name='note_specialistiche' and table_schema='public' and column_name='visible_to_patient')
+  then
+    execute $p$ alter table note_specialistiche enable row level security $p$;
+    drop policy if exists "paziente legge proprie note" on note_specialistiche;
+    execute $p$
+      create policy "paziente legge proprie note" on note_specialistiche
+        for select using (
+          visible_to_patient = true
+          and (
+            auth.uid() = patient_id
+            or exists (
+              select 1 from patient_dietitian pd
+              where pd.patient_id = auth.uid() and pd.cartella_id = note_specialistiche.cartella_id
+            )
+          )
+        )
+    $p$;
+  end if;
+
+  -- ncpt
+  if exists (select 1 from information_schema.tables where table_name='ncpt' and table_schema='public')
+     and exists (select 1 from information_schema.columns where table_name='ncpt' and table_schema='public' and column_name='patient_id')
+     and exists (select 1 from information_schema.columns where table_name='ncpt' and table_schema='public' and column_name='visible_to_patient')
+  then
+    execute $p$ alter table ncpt enable row level security $p$;
+    drop policy if exists "paziente legge propri ncpt" on ncpt;
+    execute $p$
+      create policy "paziente legge propri ncpt" on ncpt
+        for select using (
+          visible_to_patient = true
+          and (
+            auth.uid() = patient_id
+            or exists (
+              select 1 from patient_dietitian pd
+              where pd.patient_id = auth.uid() and pd.cartella_id = ncpt.cartella_id
+            )
+          )
+        )
+    $p$;
+  end if;
+
+  -- schede_valutazione
+  if exists (select 1 from information_schema.tables where table_name='schede_valutazione' and table_schema='public')
+     and exists (select 1 from information_schema.columns where table_name='schede_valutazione' and table_schema='public' and column_name='patient_id')
+     and exists (select 1 from information_schema.columns where table_name='schede_valutazione' and table_schema='public' and column_name='visible_to_patient')
+  then
+    execute $p$ alter table schede_valutazione enable row level security $p$;
+    drop policy if exists "paziente legge proprie schede" on schede_valutazione;
+    execute $p$
+      create policy "paziente legge proprie schede" on schede_valutazione
+        for select using (
+          visible_to_patient = true
+          and (
+            auth.uid() = patient_id
+            or exists (
+              select 1 from patient_dietitian pd
+              where pd.patient_id = auth.uid() and pd.cartella_id = schede_valutazione.cartella_id
+            )
+          )
+        )
+    $p$;
+  end if;
+
+  -- bia_records
+  if exists (select 1 from information_schema.tables where table_name='bia_records' and table_schema='public')
+     and exists (select 1 from information_schema.columns where table_name='bia_records' and table_schema='public' and column_name='patient_id')
+     and exists (select 1 from information_schema.columns where table_name='bia_records' and table_schema='public' and column_name='visible_to_patient')
+  then
+    execute $p$ alter table bia_records enable row level security $p$;
+    drop policy if exists "paziente legge propri bia" on bia_records;
+    execute $p$
+      create policy "paziente legge propri bia" on bia_records
+        for select using (
+          visible_to_patient = true
+          and (
+            auth.uid() = patient_id
+            or exists (
+              select 1 from patient_dietitian pd
+              where pd.patient_id = auth.uid() and pd.cartella_id = bia_records.cartella_id
+            )
+          )
+        )
+    $p$;
+  end if;
+end;
+$$;
 
 
 -- ============================================================
@@ -649,22 +889,42 @@ create trigger on_auth_user_created
 
 
 -- ============================================================
--- STORAGE BUCKET: chat-media (foto e audio della chat, privato)
+-- STORAGE BUCKETS
 -- ============================================================
 
+-- chat-media (foto e audio della chat, privato)
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
-  'chat-media',
-  'chat-media',
-  false,
-  52428800,  -- 50 MB
-  array[
-    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-    'audio/webm', 'audio/ogg', 'audio/mp4', 'audio/mpeg', 'audio/wav'
-  ]
+  'chat-media', 'chat-media', false, 52428800,
+  array['image/jpeg','image/png','image/gif','image/webp',
+        'audio/webm','audio/ogg','audio/mp4','audio/mpeg','audio/wav']
 )
 on conflict (id) do nothing;
 
+-- progress-photos (foto progressi, privato)
+insert into storage.buckets (id, name, public)
+values ('progress-photos', 'progress-photos', false)
+on conflict (id) do nothing;
+
+-- avatars (foto profilo, pubblico)
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true)
+on conflict (id) do nothing;
+
+-- document-prints (screenshot documenti clinici, privato — 10 MB)
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'document-prints', 'document-prints', false, 10485760,
+  array['image/png','image/jpeg','image/webp']
+)
+on conflict (id) do nothing;
+
+
+-- ============================================================
+-- STORAGE POLICIES
+-- ============================================================
+
+-- ── chat-media ──────────────────────────────────────────────
 drop policy if exists "chat media upload" on storage.objects;
 create policy "chat media upload" on storage.objects
   for insert with check (
@@ -694,15 +954,7 @@ create policy "chat media delete" on storage.objects
     and auth.uid()::text = (storage.foldername(name))[1]
   );
 
-
--- ============================================================
--- STORAGE BUCKET: progress-photos (foto progressi, privato)
--- ============================================================
-
-insert into storage.buckets (id, name, public)
-values ('progress-photos', 'progress-photos', false)
-on conflict (id) do nothing;
-
+-- ── progress-photos ─────────────────────────────────────────
 drop policy if exists "utenti gestiscono le proprie foto progress" on storage.objects;
 create policy "utenti gestiscono le proprie foto progress" on storage.objects
   for all using (
@@ -710,27 +962,19 @@ create policy "utenti gestiscono le proprie foto progress" on storage.objects
     and auth.uid()::text = (storage.foldername(name))[1]
   );
 
-
--- ============================================================
--- STORAGE BUCKET: avatars (foto profilo, pubblico)
--- ============================================================
-
-insert into storage.buckets (id, name, public)
-values ('avatars', 'avatars', true)
-on conflict (id) do nothing;
-
+-- ── avatars ─────────────────────────────────────────────────
 drop policy if exists "utente carica avatar" on storage.objects;
 create policy "utente carica avatar" on storage.objects
   for insert with check (
-    bucket_id = 'avatars' and
-    auth.uid()::text = split_part(name, '.', 1)
+    bucket_id = 'avatars'
+    and auth.uid()::text = split_part(name, '.', 1)
   );
 
 drop policy if exists "utente aggiorna avatar" on storage.objects;
 create policy "utente aggiorna avatar" on storage.objects
   for update using (
-    bucket_id = 'avatars' and
-    auth.uid()::text = split_part(name, '.', 1)
+    bucket_id = 'avatars'
+    and auth.uid()::text = split_part(name, '.', 1)
   );
 
 drop policy if exists "avatar pubblici" on storage.objects;
@@ -740,8 +984,73 @@ create policy "avatar pubblici" on storage.objects
 drop policy if exists "utente elimina avatar" on storage.objects;
 create policy "utente elimina avatar" on storage.objects
   for delete using (
-    bucket_id = 'avatars' and
-    auth.uid()::text = split_part(name, '.', 1)
+    bucket_id = 'avatars'
+    and auth.uid()::text = split_part(name, '.', 1)
+  );
+
+-- ── document-prints ─────────────────────────────────────────
+-- Path: <owner_id>/<document_id>.png
+-- owner_id può essere patient_id o dietitian_id (il dietista usa la propria cartella)
+
+drop policy if exists "doc prints select" on storage.objects;
+create policy "doc prints select" on storage.objects
+  for select using (
+    bucket_id = 'document-prints'
+    and (
+      auth.uid()::text = (storage.foldername(name))[1]
+      or exists (
+        select 1 from patient_dietitian pd
+        where pd.dietitian_id::text = (storage.foldername(name))[1]
+          and pd.patient_id = auth.uid()
+      )
+      or exists (
+        select 1 from patient_dietitian pd
+        where pd.patient_id::text = (storage.foldername(name))[1]
+          and pd.dietitian_id = auth.uid()
+      )
+    )
+  );
+
+drop policy if exists "doc prints insert" on storage.objects;
+create policy "doc prints insert" on storage.objects
+  for insert with check (
+    bucket_id = 'document-prints'
+    and (
+      auth.uid()::text = (storage.foldername(name))[1]
+      or exists (
+        select 1 from patient_dietitian pd
+        where pd.patient_id::text = (storage.foldername(name))[1]
+          and pd.dietitian_id = auth.uid()
+      )
+    )
+  );
+
+drop policy if exists "doc prints update" on storage.objects;
+create policy "doc prints update" on storage.objects
+  for update using (
+    bucket_id = 'document-prints'
+    and (
+      auth.uid()::text = (storage.foldername(name))[1]
+      or exists (
+        select 1 from patient_dietitian pd
+        where pd.patient_id::text = (storage.foldername(name))[1]
+          and pd.dietitian_id = auth.uid()
+      )
+    )
+  );
+
+drop policy if exists "doc prints delete" on storage.objects;
+create policy "doc prints delete" on storage.objects
+  for delete using (
+    bucket_id = 'document-prints'
+    and (
+      auth.uid()::text = (storage.foldername(name))[1]
+      or exists (
+        select 1 from patient_dietitian pd
+        where pd.patient_id::text = (storage.foldername(name))[1]
+          and pd.dietitian_id = auth.uid()
+      )
+    )
   );
 
 
@@ -749,145 +1058,20 @@ create policy "utente elimina avatar" on storage.objects
 -- REALTIME
 -- ============================================================
 
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_publication_tables
-    WHERE pubname = 'supabase_realtime' AND tablename = 'chat_messages'
-  ) THEN
-    ALTER PUBLICATION supabase_realtime ADD TABLE chat_messages;
-  END IF;
-
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_publication_tables
-    WHERE pubname = 'supabase_realtime' AND tablename = 'profiles'
-  ) THEN
-    ALTER PUBLICATION supabase_realtime ADD TABLE profiles;
-  END IF;
-END;
-$$;
-
-
--- ============================================================
--- MIGRAZIONI (sicure da eseguire su database già esistenti)
--- Aggiungono colonne e policy mancanti senza toccare i dati.
--- ============================================================
-
--- Colonne mancanti nel diario alimentare
-ALTER TABLE food_logs ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
-ALTER TABLE food_logs ADD COLUMN IF NOT EXISTS meal_time text;
-ALTER TABLE food_logs ADD COLUMN IF NOT EXISTS food_data jsonb;
-UPDATE food_logs SET created_at = now() WHERE created_at IS NULL;
-
--- Colonna qualità del riposo nel benessere giornaliero
-ALTER TABLE daily_wellness ADD COLUMN IF NOT EXISTS sleep_restedness int;
-ALTER TABLE daily_wellness DROP CONSTRAINT IF EXISTS chk_sleep_restedness_range;
-ALTER TABLE daily_wellness ADD CONSTRAINT chk_sleep_restedness_range
-  CHECK (sleep_restedness between 1 and 5);
-
--- Assicura che le policy RLS per patient_documents siano attive
--- (necessario se lo schema è stato applicato parzialmente)
 do $$
 begin
   if not exists (
-    select 1 from pg_policies
-    where tablename = 'patient_documents'
-      and policyname = 'paziente vede propri documenti'
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and tablename = 'chat_messages'
   ) then
-    execute $p$
-      create policy "paziente vede propri documenti" on patient_documents
-        for select using (auth.uid() = patient_id and visible is not false)
-    $p$;
+    alter publication supabase_realtime add table chat_messages;
   end if;
 
   if not exists (
-    select 1 from pg_policies
-    where tablename = 'patient_documents'
-      and policyname = 'dietista gestisce documenti'
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and tablename = 'profiles'
   ) then
-    execute $p$
-      create policy "dietista gestisce documenti" on patient_documents
-        for all using (auth.uid() = dietitian_id)
-    $p$;
-  end if;
-end;
-$$;
-
-
--- ============================================================
--- POLICY RLS: Tabelle cliniche del portale dietista
--- Permettono ai pazienti di leggere i propri dati quando
--- visible_to_patient = true.
--- ============================================================
-
--- piani (piani alimentari clinici)
-do $$
-begin
-  if exists (select 1 from information_schema.tables where table_name = 'piani' and table_schema = 'public')
-     and exists (select 1 from information_schema.columns where table_name = 'piani' and table_schema = 'public' and column_name = 'patient_id')
-     and exists (select 1 from information_schema.columns where table_name = 'piani' and table_schema = 'public' and column_name = 'visible_to_patient')
-  then
-    execute $p$ alter table piani enable row level security $p$;
-    if not exists (select 1 from pg_policies where tablename = 'piani' and policyname = 'paziente legge propri piani') then
-      execute $p$
-        create policy "paziente legge propri piani" on piani
-          for select using (auth.uid() = patient_id and visible_to_patient = true)
-      $p$;
-    end if;
-  end if;
-end;
-$$;
-
--- schede_valutazione (schede di valutazione clinica)
-do $$
-begin
-  if exists (select 1 from information_schema.tables where table_name = 'schede_valutazione' and table_schema = 'public')
-     and exists (select 1 from information_schema.columns where table_name = 'schede_valutazione' and table_schema = 'public' and column_name = 'patient_id')
-     and exists (select 1 from information_schema.columns where table_name = 'schede_valutazione' and table_schema = 'public' and column_name = 'visible_to_patient')
-  then
-    execute $p$ alter table schede_valutazione enable row level security $p$;
-    if not exists (select 1 from pg_policies where tablename = 'schede_valutazione' and policyname = 'paziente legge proprie schede') then
-      execute $p$
-        create policy "paziente legge proprie schede" on schede_valutazione
-          for select using (auth.uid() = patient_id and visible_to_patient = true)
-      $p$;
-    end if;
-  end if;
-end;
-$$;
-
--- bia_records (analisi composizione corporea BIA)
-do $$
-begin
-  if exists (select 1 from information_schema.tables where table_name = 'bia_records' and table_schema = 'public')
-     and exists (select 1 from information_schema.columns where table_name = 'bia_records' and table_schema = 'public' and column_name = 'patient_id')
-     and exists (select 1 from information_schema.columns where table_name = 'bia_records' and table_schema = 'public' and column_name = 'visible_to_patient')
-  then
-    execute $p$ alter table bia_records enable row level security $p$;
-    if not exists (select 1 from pg_policies where tablename = 'bia_records' and policyname = 'paziente legge propri bia') then
-      execute $p$
-        create policy "paziente legge propri bia" on bia_records
-          for select using (auth.uid() = patient_id and visible_to_patient = true)
-      $p$;
-    end if;
-  end if;
-end;
-$$;
-
--- note_specialistiche (note cliniche del dietista)
-do $$
-begin
-  if exists (select 1 from information_schema.tables where table_name = 'note_specialistiche' and table_schema = 'public')
-     and exists (select 1 from information_schema.columns where table_name = 'note_specialistiche' and table_schema = 'public' and column_name = 'patient_id')
-     and exists (select 1 from information_schema.columns where table_name = 'note_specialistiche' and table_schema = 'public' and column_name = 'visible_to_patient')
-  then
-    execute $p$ alter table note_specialistiche enable row level security $p$;
-    if not exists (select 1 from pg_policies where tablename = 'note_specialistiche' and policyname = 'paziente legge proprie note') then
-      execute $p$
-        create policy "paziente legge proprie note" on note_specialistiche
-          for select using (auth.uid() = patient_id and visible_to_patient = true)
-      $p$;
-    end if;
+    alter publication supabase_realtime add table profiles;
   end if;
 end;
 $$;
@@ -908,12 +1092,13 @@ $$;
 --   insert into patient_documents (patient_id, dietitian_id, title, type, content, visible)
 --   values ('UUID-PAZIENTE', auth.uid(), 'Titolo', 'advice', 'Testo...', true);
 --
---   IMPORTANTE: UUID-PAZIENTE deve essere l'UUID di autenticazione del paziente,
---   visibile in Supabase → Authentication → Users (colonna "User UID").
+-- Inviare privacy al paziente (con firma richiesta):
+--   insert into patient_documents (patient_id, dietitian_id, title, type, content, visible, requires_signature)
+--   values ('UUID-PAZIENTE', auth.uid(), 'Informativa Privacy', 'privacy', '...testo...', true, true);
 --
 -- Creare un appuntamento:
---   insert into appointments (patient_id, dietitian_id, title, appointment_date, notes)
---   values ('UUID-PAZIENTE', auth.uid(), 'Visita di controllo', '2025-05-15 10:00:00+02', 'Portare diario alimentare');
+--   insert into appointments (patient_id, dietitian_id, title, appointment_date)
+--   values ('UUID-PAZIENTE', auth.uid(), 'Visita di controllo', '2025-05-15 10:00:00+02');
 --
 -- L'UUID del paziente si trova in Supabase → Authentication → Users
 -- ============================================================
