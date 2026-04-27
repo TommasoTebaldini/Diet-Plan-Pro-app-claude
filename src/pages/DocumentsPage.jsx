@@ -1317,7 +1317,7 @@ export default function DocumentsPage() {
       // Runs for:
       //  • docs with no print_image_url (need first-page URL)
       //  • bia/ncpt/valutazione docs without print_image_urls array (might have >1 page)
-      const MULTIPAGE_SOURCES = new Set(['bia', 'ncpt', 'valutazione'])
+      const MULTIPAGE_SOURCES = new Set(['bia', 'ncpt', 'valutazione', 'note'])
       const needsStorageLookup = allDocs.filter(d =>
         !d.print_image_url ||
         (MULTIPAGE_SOURCES.has(d.source) && !d.print_image_urls)
