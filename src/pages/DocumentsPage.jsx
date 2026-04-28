@@ -19,6 +19,8 @@ const TYPE_META = {
   disfagia:      { label: 'Disfagia',               icon: <Heart size={18} />,    color: '#e05a5a', bg: '#fff0f0' },
   pancreas:      { label: 'Pancreas',               icon: <Heart size={18} />,    color: '#e05a5a', bg: '#fff0f0' },
   sport:         { label: 'Nutrizione Sportiva',    icon: <Heart size={18} />,    color: '#e05a5a', bg: '#fff0f0' },
+  paziente_sano: { label: 'Paziente Sano',          icon: <Heart size={18} />,    color: '#16a34a', bg: '#f0fdf4' },
+  dna:           { label: 'Nutrigenomica DNA',      icon: <FileText size={18} />, color: '#7c3aed', bg: '#f5f3ff' },
   questionario:  { label: 'Questionario',           icon: <FileText size={18} />, color: '#7c3aed', bg: '#f5f3ff' },
   dca:           { label: 'Sessione DCA',           icon: <FileText size={18} />, color: '#7c3aed', bg: '#f5f3ff' },
   ncpt:          { label: 'NCPT',                   icon: <FileText size={18} />, color: '#7c3aed', bg: '#f5f3ff' },
@@ -1112,32 +1114,61 @@ export default function DocumentsPage() {
         dietitianId = link?.dietitian_id
         console.log('[Docs] patient_dietitian link:', link, '| cartellaId:', cartellaId)
 
-        if (cartellaId) {
-          // 2a. Note specialistiche visibili al paziente
-          const { data: notes, error: notesErr } = await supabase
-            .from('note_specialistiche')
-            .select('id, tipo, nota, dati, print_image_url, created_at')
-            .eq('cartella_id', cartellaId)
-            .eq('visible_to_patient', true)
-            .order('created_at', { ascending: false })
-          console.log('[Docs] note_specialistiche:', notes?.length, '| error:', notesErr?.message)
+        // Type lookup maps — defined once outside any loop
+        const TYPE_KEYS = new Set([
+          'diet','dieta','piano','chetogenica','renale','diabete',
+          'advice','consiglio','ristorazione','pediatria','disfagia',
+          'pancreas','sport','questionario','dca','document','referto',
+          'education','educazione','recipe','ricetta',
+          'paziente_sano','paziente-sano','dna',
+        ])
+        const TIPO_TO_KEY = {
+          dieta:'diet', piano:'diet',
+          consiglio:'consiglio', questionario:'questionario', dca:'dca',
+          diabete:'diabete', chetogenica:'chetogenica', renale:'renale',
+          referto:'referto', ricetta:'recipe', educazione:'education',
+          nota:'document',
+        }
 
+        // Run all per-cartella queries in parallel — from ~1800ms sequential to ~300ms
+        const [
+          { data: notes,      error: notesErr  },
+          { data: piani,      error: pianiErr  },
+          { data: ncpts,      error: ncptErr   },
+          { data: schede,     error: schedeErr },
+          { data: bias,       error: biaErr    },
+          { data: patientDocs, error: pdErr    },
+        ] = await Promise.all([
+          cartellaId
+            ? supabase.from('note_specialistiche').select('id, tipo, nota, dati, print_image_url, created_at').eq('cartella_id', cartellaId).eq('visible_to_patient', true).order('created_at', { ascending: false })
+            : Promise.resolve({ data: [], error: null }),
+          cartellaId
+            ? supabase.from('piani').select('id, nome, data_piano, meals, print_image_url, saved_at').eq('cartella_id', cartellaId).eq('visible_to_patient', true).order('saved_at', { ascending: false })
+            : Promise.resolve({ data: [], error: null }),
+          cartellaId
+            ? supabase.from('ncpt').select('id, cartella_id, valutazione, diagnosi, intervento, monitoraggio, print_image_url, created_at').eq('cartella_id', cartellaId).eq('visible_to_patient', true).order('created_at', { ascending: false })
+            : Promise.resolve({ data: [], error: null }),
+          cartellaId
+            ? supabase.from('schede_valutazione').select('id, nome, cognome, eta, sesso, peso, altezza, peso_ideale, massa_grassa_pct, massa_magra, vita, fianchi, braccio, patologie, note, macro_dist, tdee_calcolato, dati_extra, print_image_url, saved_at').eq('cartella_id', cartellaId).eq('visible_to_patient', true).order('saved_at', { ascending: false })
+            : Promise.resolve({ data: [], error: null }),
+          cartellaId
+            ? supabase.from('bia_records').select('id, data_misura, note, peso, altezza, eta, sesso, angolo_fase, bf_pct, fm_kg, ffm_kg, tbw, icw, ecw, bcm, muscle, bone, ffmi, raw_data, print_image_url, created_at').eq('cartella_id', cartellaId).eq('visible_to_patient', true).order('data_misura', { ascending: false })
+            : Promise.resolve({ data: [], error: null }),
+          supabase.from('patient_documents').select('*').eq('patient_id', user.id).eq('visible', true).order('created_at', { ascending: false }),
+        ])
+
+        console.log('[Docs] note_specialistiche:', notes?.length, '| error:', notesErr?.message)
+        console.log('[Docs] piani:', piani?.length, '| error:', pianiErr?.message)
+        console.log('[Docs] ncpt:', ncpts?.length, '| error:', ncptErr?.message)
+        console.log('[Docs] schede_valutazione:', schede?.length, '| error:', schedeErr?.message)
+        console.log('[Docs] bia_records:', bias?.length, '| error:', biaErr?.message)
+        console.log('[Docs] patient_documents:', patientDocs?.length, '| error:', pdErr?.message)
+        if (patientDocs?.length) console.log('[Docs] patient_documents[0]:', JSON.stringify(patientDocs[0]))
+
+        if (cartellaId) {
+          // 2a. Note specialistiche
           for (const n of notes || []) {
             const tipo = (n.tipo || '').toLowerCase().trim()
-
-            const TYPE_KEYS = new Set([
-              'diet','dieta','piano','chetogenica','renale','diabete',
-              'advice','consiglio','ristorazione','pediatria','disfagia',
-              'pancreas','sport','questionario','dca','document','referto',
-              'education','educazione','recipe','ricetta',
-            ])
-            const TIPO_TO_KEY = {
-              dieta:'diet', piano:'diet',
-              consiglio:'consiglio', questionario:'questionario', dca:'dca',
-              diabete:'diabete', chetogenica:'chetogenica', renale:'renale',
-              referto:'referto', ricetta:'recipe', educazione:'education',
-              nota:'document',
-            }
             const type = TYPE_KEYS.has(tipo) ? tipo : (TIPO_TO_KEY[tipo] || tipo || 'document')
 
             let datiParsed = null
@@ -1193,45 +1224,17 @@ export default function DocumentsPage() {
             }))
           }
 
-          // 2b. Piani alimentari visibili al paziente
-          const { data: piani, error: pianiErr } = await supabase
-            .from('piani')
-            .select('id, nome, data_piano, meals, print_image_url, saved_at')
-            .eq('cartella_id', cartellaId)
-            .eq('visible_to_patient', true)
-            .order('saved_at', { ascending: false })
-          console.log('[Docs] piani:', piani?.length, '| error:', pianiErr?.message)
-
+          // 2b. Piani alimentari
           for (const p of piani || []) {
             allDocs.push({
-              id:          `piano_${p.id}`,
-              title:       p.nome || 'Piano alimentare',
-              type:        'diet',
-              source:      'piano',
-              tipo:        'piano',
-              nota:        p.nome || 'Piano alimentare',
-              content:     p.data_piano || '',
-              dati_raw:    null,
-              meals_data:  p.meals,
-              file_url:    null,
-              print_image_url: p.print_image_url
-                || (p.meals && typeof p.meals === 'object' && (p.meals.print_image_url || p.meals.image_url))
-                || null,
-              tags:        [],
-              visible:     true,
-              published_at: p.saved_at,
-              created_at:  p.saved_at,
+              id: `piano_${p.id}`, title: p.nome || 'Piano alimentare', type: 'diet', source: 'piano', tipo: 'piano',
+              nota: p.nome || 'Piano alimentare', content: p.data_piano || '', dati_raw: null, meals_data: p.meals, file_url: null,
+              print_image_url: p.print_image_url || (p.meals && typeof p.meals === 'object' && (p.meals.print_image_url || p.meals.image_url)) || null,
+              tags: [], visible: true, published_at: p.saved_at, created_at: p.saved_at,
             })
           }
 
-          // 2c. NCPT visibili al paziente
-          const { data: ncpts, error: ncptErr } = await supabase
-            .from('ncpt')
-            .select('id, cartella_id, valutazione, diagnosi, intervento, monitoraggio, print_image_url, created_at')
-            .eq('cartella_id', cartellaId)
-            .eq('visible_to_patient', true)
-            .order('created_at', { ascending: false })
-          console.log('[Docs] ncpt:', ncpts?.length, '| error:', ncptErr?.message)
+          // 2c. NCPT
           for (const n of ncpts || []) {
             let val = {}; try { val = typeof n.valutazione === 'string' ? JSON.parse(n.valutazione) : (n.valutazione || {}) } catch { /* */ }
             const titolo = [val.nome, val.cognome].filter(Boolean).join(' ') || 'NCPT'
@@ -1243,44 +1246,26 @@ export default function DocumentsPage() {
             }))
           }
 
-          // 2d. Schede valutazione visibili al paziente
-          const { data: schede, error: schedeErr } = await supabase
-            .from('schede_valutazione')
-            .select('id, nome, cognome, eta, sesso, peso, altezza, peso_ideale, massa_grassa_pct, massa_magra, vita, fianchi, braccio, patologie, note, macro_dist, tdee_calcolato, dati_extra, print_image_url, saved_at')
-            .eq('cartella_id', cartellaId)
-            .eq('visible_to_patient', true)
-            .order('saved_at', { ascending: false })
-          console.log('[Docs] schede_valutazione:', schede?.length, '| error:', schedeErr?.message)
+          // 2d. Schede valutazione
           for (const s of schede || []) {
             const titolo = [s.nome, s.cognome].filter(Boolean).join(' ') || 'Scheda Valutazione'
             allDocs.push(normalizePrintUrl({
               id: `val_${s.id}`, title: titolo, type: 'valutazione', source: 'valutazione', tipo: 'valutazione',
               nota: titolo, content: '', file_url: null,
-              print_image_url: s.print_image_url
-                || (s.dati_extra && typeof s.dati_extra === 'object' && (s.dati_extra.print_image_url || s.dati_extra.image_url))
-                || null,
+              print_image_url: s.print_image_url || (s.dati_extra && typeof s.dati_extra === 'object' && (s.dati_extra.print_image_url || s.dati_extra.image_url)) || null,
               tags: [], visible: true,
               dati_raw: { nome: s.nome, cognome: s.cognome, eta: s.eta, sesso: s.sesso, peso: s.peso, altezza: s.altezza, peso_ideale: s.peso_ideale, massa_grassa_pct: s.massa_grassa_pct, massa_magra: s.massa_magra, vita: s.vita, fianchi: s.fianchi, braccio: s.braccio, patologie: s.patologie, note: s.note, macro_dist: s.macro_dist, tdee_calcolato: s.tdee_calcolato, dati_extra: s.dati_extra },
               meals_data: null, published_at: s.saved_at, created_at: s.saved_at,
             }))
           }
 
-          // 2e. BIA visibili al paziente
-          const { data: bias, error: biaErr } = await supabase
-            .from('bia_records')
-            .select('id, data_misura, note, peso, altezza, eta, sesso, angolo_fase, bf_pct, fm_kg, ffm_kg, tbw, icw, ecw, bcm, muscle, bone, ffmi, raw_data, print_image_url, created_at')
-            .eq('cartella_id', cartellaId)
-            .eq('visible_to_patient', true)
-            .order('data_misura', { ascending: false })
-          console.log('[Docs] bia_records:', bias?.length, '| error:', biaErr?.message)
+          // 2e. BIA
           for (const b of bias || []) {
             const dataStr = b.data_misura ? new Date(b.data_misura).toLocaleDateString('it-IT') : ''
             allDocs.push(normalizePrintUrl({
               id: `bia_${b.id}`, title: 'BIA' + (dataStr ? ' — ' + dataStr : ''), type: 'bia', source: 'bia', tipo: 'bia',
               nota: 'BIA' + (dataStr ? ' — ' + dataStr : ''), content: '', file_url: null,
-              print_image_url: b.print_image_url
-                || (b.raw_data && typeof b.raw_data === 'object' && (b.raw_data.print_image_url || b.raw_data.image_url))
-                || null,
+              print_image_url: b.print_image_url || (b.raw_data && typeof b.raw_data === 'object' && (b.raw_data.print_image_url || b.raw_data.image_url)) || null,
               tags: [], visible: true,
               dati_raw: { data_misura: b.data_misura, note: b.note, peso: b.peso, altezza: b.altezza, eta: b.eta, sesso: b.sesso, angolo_fase: b.angolo_fase, bf_pct: b.bf_pct, fm_kg: b.fm_kg, ffm_kg: b.ffm_kg, tbw: b.tbw, icw: b.icw, ecw: b.ecw, bcm: b.bcm, muscle: b.muscle, bone: b.bone, ffmi: b.ffmi, raw_data: b.raw_data },
               meals_data: null, published_at: b.created_at || b.data_misura, created_at: b.created_at || b.data_misura,
@@ -1288,16 +1273,7 @@ export default function DocumentsPage() {
           }
         }
 
-        // 3. Fallback: patient_documents diretti
-        const { data: patientDocs, error: pdErr } = await supabase
-          .from('patient_documents')
-          .select('*')
-          .eq('patient_id', user.id)
-          .eq('visible', true)
-          .order('created_at', { ascending: false })
-        console.log('[Docs] patient_documents:', patientDocs?.length, '| error:', pdErr?.message)
-        if (patientDocs?.length) console.log('[Docs] patient_documents[0]:', JSON.stringify(patientDocs[0]))
-
+        // 3. patient_documents diretti (already fetched in parallel above)
         const pendingSig = []
         for (const d of patientDocs || []) {
           if (d.requires_signature && !d.signed_at) {
