@@ -1084,6 +1084,7 @@ export default function DocumentsPage() {
     // Normalize print_image_url: if it's a JSON array string, parse into print_image_urls
     function normalizePrintUrl(doc) {
       const raw = doc.print_image_url
+      console.log(`[normalizePrintUrl] ${doc.source || doc.type} raw="${raw ? raw.substring(0, 80) : 'null'}"`)
       if (!raw) return doc
       if (raw.startsWith('[')) {
         try {
@@ -1091,8 +1092,11 @@ export default function DocumentsPage() {
           if (Array.isArray(urls) && urls.length > 0) {
             doc.print_image_url  = urls[0]
             doc.print_image_urls = urls
+            console.log(`[normalizePrintUrl] → parsed ${urls.length} URLs`)
           }
-        } catch (_) {}
+        } catch (e) {
+          console.warn('[normalizePrintUrl] JSON parse failed:', e.message, 'raw=', raw.substring(0, 120))
+        }
       }
       return doc
     }
@@ -1350,18 +1354,19 @@ export default function DocumentsPage() {
               return a.fname.localeCompare(b.fname)
             })
 
-            const signedUrls = (await Promise.all(sorted.map(async ({ fname, folder }) => {
-              const { data } = await supabase.storage
+            // Public bucket → use permanent public URLs (no token, no expiry)
+            const publicUrls = sorted.map(({ fname, folder }) => {
+              const { data } = supabase.storage
                 .from('document-prints')
-                .createSignedUrl(`${folder}/${fname}`, 86400)
-              return data?.signedUrl || null
-            }))).filter(Boolean)
+                .getPublicUrl(`${folder}/${fname}`)
+              return data?.publicUrl || null
+            }).filter(Boolean)
 
-            if (signedUrls.length > 0) {
-              // Keep the existing long-lived DB URL as primary if already set;
+            if (publicUrls.length > 0) {
+              // Keep the existing DB URL as primary if already set;
               // always populate print_image_urls so the modal can show all pages.
-              if (!doc.print_image_url) doc.print_image_url = signedUrls[0]
-              doc.print_image_urls = signedUrls
+              if (!doc.print_image_url) doc.print_image_url = publicUrls[0]
+              doc.print_image_urls = publicUrls
             }
           }))
         } catch (e) {
@@ -1372,6 +1377,10 @@ export default function DocumentsPage() {
       console.log('[Docs] total allDocs:', allDocs.length)
       const missingImg = allDocs.filter(d => !d.print_image_url).map(d => `${d.source || d.type}:${d.id}`)
       if (missingImg.length) console.log('[Docs] still missing print_image_url:', missingImg)
+      // Diagnostic: log print_image_url and print_image_urls for key doc types
+      allDocs.filter(d => ['bia','ncpt','valutazione','note'].includes(d.source)).forEach(d => {
+        console.log(`[Docs] ${d.source} id=${d.id} print_image_url="${d.print_image_url?.substring(0,80)}" pages=${d.print_image_urls?.length ?? '(none)'}`)
+      })
       setDocs(allDocs)
       setLoading(false)
     }
