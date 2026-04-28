@@ -1354,19 +1354,22 @@ export default function DocumentsPage() {
               return a.fname.localeCompare(b.fname)
             })
 
-            // Public bucket → use permanent public URLs (no token, no expiry)
-            const publicUrls = sorted.map(({ fname, folder }) => {
-              const { data } = supabase.storage
+            // Create short-lived signed URLs (1 year) for authenticated patient.
+            // Patient has SELECT access to their own folder via storage RLS policy.
+            const ONE_YEAR = 365 * 24 * 3600
+            const signedUrls = (await Promise.all(sorted.map(async ({ fname, folder }) => {
+              const { data } = await supabase.storage
                 .from('document-prints')
-                .getPublicUrl(`${folder}/${fname}`)
-              return data?.publicUrl || null
-            }).filter(Boolean)
+                .createSignedUrl(`${folder}/${fname}`, ONE_YEAR)
+              return data?.signedUrl || null
+            }))).filter(Boolean)
 
-            if (publicUrls.length > 0) {
+            if (signedUrls.length > 0) {
               // Keep the existing DB URL as primary if already set;
               // always populate print_image_urls so the modal can show all pages.
-              if (!doc.print_image_url) doc.print_image_url = publicUrls[0]
-              doc.print_image_urls = publicUrls
+              if (!doc.print_image_url) doc.print_image_url = signedUrls[0]
+              doc.print_image_urls = signedUrls
+              console.log(`[Docs] storage fallback set ${signedUrls.length} signed URL(s) for ${doc.source} ${doc.id}`)
             }
           }))
         } catch (e) {
