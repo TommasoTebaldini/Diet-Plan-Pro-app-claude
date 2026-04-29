@@ -844,6 +844,7 @@ const FOLDER_DEFS = [
   { key: 'disfagia',     label: 'Disfagia',               icon: '🗣️', color: '#0369A1', bg: '#E0F2FE', types: ['disfagia'] },
   { key: 'ristorazione', label: 'Ristorazione',           icon: '🍽️', color: '#0369A1', bg: '#F0F9FF', types: ['ristorazione'] },
   { key: 'dca',          label: 'Sessione DCA',           icon: '🫀', color: '#991B1B', bg: '#FEE2E2', types: ['dca'] },
+  { key: 'paziente_sano', label: 'Paziente Sano',         icon: '🌿', color: '#16A34A', bg: '#F0FDF4', types: ['paziente_sano', 'paziente-sano'] },
 ]
 
 // Costruisce l'HTML di patient-view.html con i dati del documento iniettati.
