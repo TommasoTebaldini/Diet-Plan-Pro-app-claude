@@ -721,7 +721,7 @@ export default function ChatPage() {
                         {dietitianName[0]}
                       </div>
                     )}
-                    <div style={{ maxWidth: '75%', background: isMe ? 'linear-gradient(135deg, var(--green-main), var(--green-mid))' : 'white', color: isMe ? 'white' : 'var(--text-primary)', padding: type === 'image' ? '4px 4px 8px' : '9px 13px', borderRadius: isMe ? '16px 16px 3px 16px' : '16px 16px 16px 3px', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', border: isMe ? 'none' : '1px solid var(--border-light)', overflow: 'hidden' }}>
+                    <div style={{ maxWidth: '75%', background: isMe ? 'linear-gradient(135deg, var(--green-main), var(--green-mid))' : 'var(--surface-3)', color: isMe ? 'white' : 'var(--text-primary)', padding: type === 'image' ? '4px 4px 8px' : '9px 13px', borderRadius: isMe ? '16px 16px 3px 16px' : '16px 16px 16px 3px', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', border: isMe ? 'none' : '1px solid var(--border-light)', overflow: 'hidden' }}>
                       {type === 'text' && (
                         <p style={{ fontSize: 14, lineHeight: 1.5, wordBreak: 'break-word' }}>{msg.content}</p>
                       )}

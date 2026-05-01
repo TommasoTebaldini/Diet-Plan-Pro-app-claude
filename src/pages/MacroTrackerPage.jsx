@@ -597,7 +597,7 @@ export default function MacroTrackerPage() {
                                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
                                   <p style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.3, flex: 1 }}>{f.name}</p>
                                   {(() => {
-                                    const badges = { recent: ['Recente', '#fff4e6', '#c45e00'], diet: ['Piano', 'var(--green-pale)', 'var(--green-main)'], recipe: ['Ricetta', '#fff4e6', '#c45e00'], custom_meal: ['Pasto', '#f0fdf4', 'var(--green-dark)'], openfoodfacts: ['OFF', '#f1f5f9', 'var(--text-muted)'], dietitian: ['CREA', '#e8f5e9', '#1b5e20'] }
+                                    const badges = { recent: ['Recente', 'var(--icon-bg-orange)', 'var(--alert-warning-text)'], diet: ['Piano', 'var(--green-pale)', 'var(--green-main)'], recipe: ['Ricetta', 'var(--icon-bg-orange)', 'var(--alert-warning-text)'], custom_meal: ['Pasto', 'var(--icon-bg-green)', 'var(--green-dark)'], openfoodfacts: ['OFF', 'var(--surface-3)', 'var(--text-muted)'], dietitian: ['CREA', 'var(--icon-bg-green)', 'var(--green-dark)'] }
                                     const [label, bg, color] = badges[f.source] || badges.openfoodfacts
                                     return <span style={{ fontSize: 9, background: bg, color, padding: '2px 6px', borderRadius: 100, fontWeight: 700, flexShrink: 0 }}>{label}</span>
                                   })()}
