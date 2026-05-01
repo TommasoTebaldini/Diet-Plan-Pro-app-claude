@@ -33,11 +33,11 @@ function getActivityMeta(type) {
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload?.length) {
     return (
-      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 12px', boxShadow: 'var(--shadow-sm)' }}>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 12px', boxShadow: 'var(--shadow-sm)' }}>
         <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 2 }}>{label}</p>
-        <p style={{ fontSize: 14, fontWeight: 700, color: '#f97316' }}>{payload[0].value} kcal</p>
+        <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--orange)' }}>{payload[0].value} kcal</p>
         {payload[0].payload?.minutes > 0 && (
-          <p style={{ fontSize: 12, color: '#8b5cf6' }}>{payload[0].payload.minutes} min</p>
+          <p style={{ fontSize: 12, color: 'var(--purple)' }}>{payload[0].payload.minutes} min</p>
         )}
       </div>
     )
@@ -135,11 +135,11 @@ function LogForm({ onClose, onSaved, userWeight, userId }) {
 
         {/* Estimated calories preview */}
         {estimatedCalories && (
-          <div style={{ background: '#fff7ed', borderRadius: 12, padding: '12px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, border: '1px solid #fed7aa' }}>
-            <Flame size={18} color="#f97316" />
+          <div style={{ background: 'var(--icon-bg-amber)', borderRadius: 12, padding: '12px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, border: '1px solid var(--alert-warning-border)' }}>
+            <Flame size={18} color="var(--orange)" />
             <div>
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#ea580c' }}>~{estimatedCalories} kcal bruciate stimate</p>
-              <p style={{ fontSize: 11, color: '#9a3412' }}>Basato su MET {meta.met} × {userWeight} kg × {form.duration_minutes} min</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--orange)' }}>~{estimatedCalories} kcal bruciate stimate</p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Basato su MET {meta.met} × {userWeight} kg × {form.duration_minutes} min</p>
             </div>
           </div>
         )}
@@ -366,23 +366,23 @@ export default function ActivityPage() {
         </div>
 
         {/* ── Health app integration ── */}
-        <div className="card" style={{ padding: '16px 18px', borderLeft: '3px solid #3b82f6' }}>
-          <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, color: '#1d4ed8' }}>📱 Collega la tua app salute</p>
+        <div className="card" style={{ padding: '16px 18px', borderLeft: '3px solid var(--blue)' }}>
+          <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, color: 'var(--blue)' }}>📱 Collega la tua app salute</p>
           <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
             Apri Apple Health o Google Fit per sincronizzare passi e attività con i tuoi dati di salute.
           </p>
           <div style={{ display: 'flex', gap: 8 }}>
             <a href="x-apple-health://" style={{
               flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 10, padding: '10px 8px',
-              textDecoration: 'none', color: '#0369a1', fontSize: 12, fontWeight: 600,
+              background: 'var(--icon-bg-blue)', border: '1px solid var(--alert-info-border)', borderRadius: 10, padding: '10px 8px',
+              textDecoration: 'none', color: 'var(--blue)', fontSize: 12, fontWeight: 600,
             }}>
               <span>🍎</span> Apple Health <ExternalLink size={11} />
             </a>
             <a href="https://fit.google.com" target="_blank" rel="noopener noreferrer" style={{
               flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '10px 8px',
-              textDecoration: 'none', color: '#15803d', fontSize: 12, fontWeight: 600,
+              background: 'var(--icon-bg-lime)', border: '1px solid var(--alert-success-border)', borderRadius: 10, padding: '10px 8px',
+              textDecoration: 'none', color: 'var(--green-mid)', fontSize: 12, fontWeight: 600,
             }}>
               <span>🏃</span> Google Fit <ExternalLink size={11} />
             </a>
@@ -448,19 +448,19 @@ export default function ActivityPage() {
                 {/* Daily totals row */}
                 <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 12, marginTop: 2, display: 'flex', gap: 16, justifyContent: 'center' }}>
                   <div style={{ textAlign: 'center' }}>
-                    <p style={{ fontSize: 18, fontWeight: 700, color: '#f97316' }}>{todayCalories}</p>
+                    <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--orange)' }}>{todayCalories}</p>
                     <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>kcal bruciate</p>
                   </div>
                   <div style={{ width: 1, background: 'var(--border)' }} />
                   <div style={{ textAlign: 'center' }}>
-                    <p style={{ fontSize: 18, fontWeight: 700, color: '#8b5cf6' }}>{todayMinutes}</p>
+                    <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--purple)' }}>{todayMinutes}</p>
                     <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>min attivi</p>
                   </div>
                   {todaySteps > 0 && (
                     <>
                       <div style={{ width: 1, background: 'var(--border)' }} />
                       <div style={{ textAlign: 'center' }}>
-                        <p style={{ fontSize: 18, fontWeight: 700, color: '#f59e0b' }}>{todaySteps.toLocaleString('it-IT')}</p>
+                        <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--orange)' }}>{todaySteps.toLocaleString('it-IT')}</p>
                         <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>passi</p>
                       </div>
                     </>
@@ -478,11 +478,11 @@ export default function ActivityPage() {
             <div style={{ display: 'flex', gap: 20, marginBottom: 16 }}>
               <div>
                 <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Media kcal/giorno</p>
-                <p style={{ fontSize: 18, fontWeight: 700, color: '#f97316' }}>{weekCaloriesAvg}</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--orange)' }}>{weekCaloriesAvg}</p>
               </div>
               <div>
                 <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Media min/giorno</p>
-                <p style={{ fontSize: 18, fontWeight: 700, color: '#8b5cf6' }}>{weekMinutesAvg}</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--purple)' }}>{weekMinutesAvg}</p>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={200}>

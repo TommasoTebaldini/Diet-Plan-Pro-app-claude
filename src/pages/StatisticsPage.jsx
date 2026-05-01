@@ -605,7 +605,7 @@ export default function StatisticsPage() {
                 <div style={{ display: 'flex', gap: 12 }}>
                   <div style={{ flex: 1, textAlign: 'center', padding: '14px 10px', background: 'rgba(59,130,246,0.08)', borderRadius: 12 }}>
                     <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Questa settimana</p>
-                    <p style={{ fontSize: 22, fontWeight: 800, color: '#3b82f6' }}>{weekAvg.water ? `${Math.round(weekAvg.water)}` : '–'} <span style={{ fontSize: 13 }}>ml/die</span></p>
+                    <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--blue)' }}>{weekAvg.water ? `${Math.round(weekAvg.water)}` : '–'} <span style={{ fontSize: 13 }}>ml/die</span></p>
                   </div>
                   <div style={{ flex: 1, textAlign: 'center', padding: '14px 10px', background: 'var(--surface-2)', borderRadius: 12 }}>
                     <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Settimana prec.</p>

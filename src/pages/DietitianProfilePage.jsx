@@ -261,7 +261,7 @@ export default function DietitianProfilePage() {
 
         {/* Error */}
         {error && (
-          <div style={{ background: '#fff0f0', border: '1px solid #fca5a5', borderRadius: 10, padding: '10px 14px', color: '#dc2626', fontSize: 13 }}>
+          <div style={{ background: 'var(--alert-error-bg)', border: '1px solid var(--alert-error-border)', borderRadius: 10, padding: '10px 14px', color: 'var(--alert-error-text)', fontSize: 13 }}>
             {error}
           </div>
         )}

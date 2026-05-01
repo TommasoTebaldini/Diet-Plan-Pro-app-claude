@@ -25,6 +25,16 @@
   --font-d: 'Fraunces', Georgia, serif;
   --font-b: 'DM Sans', system-ui, sans-serif;
   --nav: 64px;
+  /* ── Alert / semantic color tokens ── */
+  --alert-error-bg: #fff0f0; --alert-error-border: #ffd4d4; --alert-error-text: #dc4a4a;
+  --alert-warning-bg: #fff4e6; --alert-warning-border: #fde68a; --alert-warning-text: #92400e;
+  --alert-info-bg: #eff6ff; --alert-info-border: #bfdbfe; --alert-info-text: #1d4ed8;
+  --alert-success-bg: #f0fdf4; --alert-success-border: #bbf7d0; --alert-success-text: #166534;
+  /* ── Tinted icon container backgrounds ── */
+  --icon-bg-green: #e6f5ee; --icon-bg-orange: #fff4e6; --icon-bg-blue: #eff6ff;
+  --icon-bg-purple: #f5f3ff; --icon-bg-red: #fff0f0; --icon-bg-teal: #ccfbf1;
+  --icon-bg-cyan: #ecfeff; --icon-bg-pink: #fdf2f8; --icon-bg-amber: #fff7ed;
+  --icon-bg-gray: #f8fafc; --icon-bg-lime: #f0fdf4;
 }
 
 /* ── Dark mode ── */
@@ -51,6 +61,16 @@ html.dark {
   --shadow-sm: 0 2px 8px rgba(0,0,0,0.4);
   --shadow-md: 0 4px 20px rgba(0,0,0,0.5);
   --shadow-lg: 0 12px 48px rgba(0,0,0,0.6);
+  /* ── Alert tokens ── */
+  --alert-error-bg: #3d0000; --alert-error-border: #7f2020; --alert-error-text: #f07070;
+  --alert-warning-bg: #2d1500; --alert-warning-border: #7f4400; --alert-warning-text: #f0a060;
+  --alert-info-bg: #001230; --alert-info-border: #004080; --alert-info-text: #60a0f0;
+  --alert-success-bg: #003d10; --alert-success-border: #006620; --alert-success-text: #60f090;
+  /* ── Icon container backgrounds ── */
+  --icon-bg-green: #157a4a26; --icon-bg-orange: #e8882a26; --icon-bg-blue: #2f7de826;
+  --icon-bg-purple: #7c3aed26; --icon-bg-red: #dc4a4a26; --icon-bg-teal: #0f766e26;
+  --icon-bg-cyan: #0891b226; --icon-bg-pink: #ec489926; --icon-bg-amber: #f9731626;
+  --icon-bg-gray: #64748b26; --icon-bg-lime: #16a34a26;
 }
 
 /* ── High contrast ── */
@@ -127,6 +147,24 @@ select.input-field{cursor:pointer}
 .badge-blue{background:#eff6ff;color:#1d4ed8}
 .badge-purple{background:#f5f3ff;color:#6d28d9}
 .badge-gray{background:var(--surface-3);color:var(--text-muted)}
+html.dark .badge-orange{background:#3d1800;color:#f0a060}
+html.dark .badge-red{background:#3d0000;color:#f07070}
+html.dark .badge-blue{background:#001230;color:#60a0f0}
+html.dark .badge-purple{background:#18003d;color:#a070f0}
+
+/* ── Alert boxes (error/warning/info/success) ── */
+.alert-error{background:#fff0f0;border:1px solid #ffd4d4;border-radius:10px;padding:10px 14px;color:#dc4a4a;font-size:13px}
+.alert-warning{background:#fff4e6;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;color:#92400e;font-size:13px}
+.alert-info{background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 14px;color:#1d4ed8;font-size:13px}
+.alert-success{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 14px;color:#166534;font-size:13px}
+html.dark .alert-error{background:#3d0000;border-color:#7f2020;color:#f07070}
+html.dark .alert-warning{background:#2d1500;border-color:#7f4400;color:#f0a060}
+html.dark .alert-info{background:#001230;border-color:#004080;color:#60a0f0}
+html.dark .alert-success{background:#003d10;border-color:#006620;color:#60f090}
+
+/* ── Colored icon containers ── */
+.icon-wrap{display:flex;align-items:center;justify-content:center;border-radius:14px;flex-shrink:0}
+html.dark .icon-wrap{filter:brightness(1.8) saturate(0.7)}
 
 /* ── Divider ── */
 .divider{height:1px;background:var(--border-light);margin:14px 0}

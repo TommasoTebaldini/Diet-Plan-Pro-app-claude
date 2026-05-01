@@ -662,23 +662,23 @@ export default function ChatPage() {
 
       {/* Unsigned documents banner */}
       {unsignedDocs.length > 0 && (
-        <div style={{ background: '#fffbeb', borderBottom: '1px solid #fde68a', padding: '10px 16px', flexShrink: 0 }}>
+        <div style={{ background: 'var(--alert-warning-bg)', borderBottom: '1px solid var(--alert-warning-border)', padding: '10px 16px', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-            <AlertTriangle size={16} color="#92400e" style={{ flexShrink: 0, marginTop: 2 }} />
+            <AlertTriangle size={16} color="var(--alert-warning-text)" style={{ flexShrink: 0, marginTop: 2 }} />
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#92400e', marginBottom: 4 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--alert-warning-text)', marginBottom: 4 }}>
                 {unsignedDocs.length === 1 ? 'Documento da firmare' : `${unsignedDocs.length} documenti da firmare`}
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 {unsignedDocs.map(doc => (
                   <div key={doc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <FileText size={13} color="#92400e" />
-                      <span style={{ fontSize: 13, color: '#78350f' }}>{doc.title || 'Informativa privacy'}</span>
+                      <FileText size={13} color="var(--alert-warning-text)" />
+                      <span style={{ fontSize: 13, color: 'var(--alert-warning-text)' }}>{doc.title || 'Informativa privacy'}</span>
                     </div>
                     <button
                       onClick={() => setSigningDoc(doc)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#92400e', color: 'white', border: 'none', borderRadius: 8, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--alert-warning-text)', color: 'white', border: 'none', borderRadius: 8, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
                     >
                       <PenLine size={12} />
                       Firma

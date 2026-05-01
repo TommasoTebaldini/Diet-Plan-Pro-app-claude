@@ -283,7 +283,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
               </div>
 
               {error && (
-                <p style={{ fontSize: 13, color: '#dc2626', background: '#fef2f2', padding: '10px 12px', borderRadius: 8, marginBottom: 12 }}>
+                <p style={{ fontSize: 13, color: 'var(--alert-error-text)', background: 'var(--alert-error-bg)', padding: '10px 12px', borderRadius: 8, marginBottom: 12 }}>
                   {error}
                 </p>
               )}

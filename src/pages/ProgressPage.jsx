@@ -158,12 +158,12 @@ export default function ProgressPage() {
 
         {/* Success / Error feedback */}
         {saveOk && (
-          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '12px 16px', fontSize: 14, color: '#166534', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ background: 'var(--alert-success-bg)', border: '1px solid var(--alert-success-border)', borderRadius: 12, padding: '12px 16px', fontSize: 14, color: 'var(--alert-success-text)', display: 'flex', alignItems: 'center', gap: 8 }}>
             ✅ Dati salvati con successo!
           </div>
         )}
         {saveError && (
-          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, padding: '12px 16px', fontSize: 13, color: '#991b1b' }}>
+          <div style={{ background: 'var(--alert-error-bg)', border: '1px solid var(--alert-error-border)', borderRadius: 12, padding: '12px 16px', fontSize: 13, color: 'var(--alert-error-text)' }}>
             ⚠️ {saveError}
             <p style={{ fontSize: 11, marginTop: 4, opacity: 0.8 }}>
               Se l'errore persiste, esegui questo SQL su Supabase:<br />

@@ -106,7 +106,7 @@ export default function BarcodeScanner({ onFound, onClose }) {
 
         {/* Error */}
         {stage === 'error' && (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: '#fff0f0', padding: '10px 12px', borderRadius: 10, marginBottom: 14, color: '#dc4a4a', fontSize: 13 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: 'var(--alert-error-bg)', padding: '10px 12px', borderRadius: 10, marginBottom: 14, color: 'var(--alert-error-text)', fontSize: 13 }}>
             <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
             <span>{error}</span>
           </div>

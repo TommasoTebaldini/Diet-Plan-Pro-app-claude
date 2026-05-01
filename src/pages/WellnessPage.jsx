@@ -303,7 +303,7 @@ export default function WellnessPage() {
           <button
             onClick={() => setShowForm(v => !v)}
             className="btn"
-            style={{ background: 'white', color: '#7c3aed', borderRadius: 14, padding: '10px 16px', fontSize: 14, fontWeight: 600, gap: 6 }}
+            style={{ background: 'rgba(255,255,255,0.18)', color: 'white', backdropFilter: 'blur(8px)', border: '1.5px solid rgba(255,255,255,0.25)', borderRadius: 14, padding: '10px 16px', fontSize: 14, fontWeight: 600, gap: 6 }}
           >
             <Plus size={16} />Oggi
           </button>
@@ -342,7 +342,7 @@ export default function WellnessPage() {
 
         {/* Error feedback */}
         {error && (
-          <div className="animate-slideUp" style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fff0f0', border: '1.5px solid #ffd4d4', borderRadius: 14, padding: '12px 16px', color: '#dc2626' }}>
+          <div className="animate-slideUp" style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--alert-error-bg)', border: '1.5px solid var(--alert-error-border)', borderRadius: 14, padding: '12px 16px', color: 'var(--alert-error-text)' }}>
             <span style={{ fontSize: 14, fontWeight: 500 }}>{error}</span>
           </div>
         )}
@@ -618,11 +618,11 @@ export default function WellnessPage() {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
-                        {moodOpt && <span style={{ fontSize: 11, background: '#f5f3ff', color: '#7c3aed', borderRadius: 100, padding: '2px 8px', fontWeight: 500 }}>😊 {moodOpt.label}</span>}
-                        {energyOpt && <span style={{ fontSize: 11, background: '#fffbeb', color: '#b45309', borderRadius: 100, padding: '2px 8px', fontWeight: 500 }}>⚡ {energyOpt.label}</span>}
-                        {sleepOpt && <span style={{ fontSize: 11, background: '#ecfeff', color: '#0e7490', borderRadius: 100, padding: '2px 8px', fontWeight: 500 }}>🌙 {sleepOpt.label}</span>}
-                        {entry.sleep_hours != null && <span style={{ fontSize: 11, background: '#f0f0ff', color: '#4338ca', borderRadius: 100, padding: '2px 8px', fontWeight: 500 }}>🕐 {entry.sleep_hours}h</span>}
-                        {restednessOpt && <span style={{ fontSize: 11, background: '#f0fdf4', color: '#166534', borderRadius: 100, padding: '2px 8px', fontWeight: 500 }}>😴 {restednessOpt.label}</span>}
+                        {moodOpt && <span style={{ fontSize: 11, background: 'var(--icon-bg-purple)', color: 'var(--purple)', borderRadius: 100, padding: '2px 8px', fontWeight: 500 }}>😊 {moodOpt.label}</span>}
+                        {energyOpt && <span style={{ fontSize: 11, background: 'var(--icon-bg-amber)', color: 'var(--orange)', borderRadius: 100, padding: '2px 8px', fontWeight: 500 }}>⚡ {energyOpt.label}</span>}
+                        {sleepOpt && <span style={{ fontSize: 11, background: 'var(--icon-bg-cyan)', color: 'var(--blue)', borderRadius: 100, padding: '2px 8px', fontWeight: 500 }}>🌙 {sleepOpt.label}</span>}
+                        {entry.sleep_hours != null && <span style={{ fontSize: 11, background: 'var(--icon-bg-purple)', color: 'var(--purple)', borderRadius: 100, padding: '2px 8px', fontWeight: 500 }}>🕐 {entry.sleep_hours}h</span>}
+                        {restednessOpt && <span style={{ fontSize: 11, background: 'var(--icon-bg-lime)', color: 'var(--green-mid)', borderRadius: 100, padding: '2px 8px', fontWeight: 500 }}>😴 {restednessOpt.label}</span>}
                       </div>
                       {entry.symptoms?.length > 0 && (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 4 }}>

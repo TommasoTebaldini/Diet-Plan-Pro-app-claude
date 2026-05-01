@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useAppSettings } from '../context/AppSettingsContext'
 import { supabase } from '../lib/supabase'
 import { Utensils, Droplets, TrendingUp, Apple, Flame, Leaf, MessageCircle, FileText, BookOpen, User, ChevronRight, Activity, Scale, Calendar, Zap, Award, Heart, BarChart2 } from 'lucide-react'
 
@@ -85,6 +86,8 @@ const ACTIONS = [
 
 export default function DashboardPage() {
   const { profile, user } = useAuth()
+  const { settings } = useAppSettings()
+  const dark = settings.darkMode
   const [todayLog, setTodayLog] = useState(null)
   const [waterLog, setWaterLog] = useState(0)
   const [diet, setDiet] = useState(null)
@@ -277,7 +280,7 @@ export default function DashboardPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
             {ACTIONS.map(({ label, icon: Icon, to, color, bg }) => (
               <Link key={to} to={to} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
-                <div style={{ width: 54, height: 54, borderRadius: 18, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color, boxShadow: 'var(--shadow-xs)', border: '1px solid rgba(0,0,0,.04)', transition: 'transform .15s', position: 'relative' }}>
+                <div style={{ width: 54, height: 54, borderRadius: 18, background: dark ? color + '26' : bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: dark ? color + 'cc' : color, boxShadow: 'var(--shadow-xs)', border: dark ? `1px solid ${color}30` : '1px solid rgba(0,0,0,.04)', transition: 'transform .15s', position: 'relative' }}>
                   <Icon size={22} strokeWidth={1.8} />
                   {label === 'Chat' && unreadChat > 0 && (
                     <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: '#dc4a4a', color: 'white', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--surface-2)' }}>{unreadChat}</span>
@@ -293,7 +296,7 @@ export default function DashboardPage() {
         <div className="card" style={{ padding: '14px 16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 10, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: dark ? '#2f7de826' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Droplets size={16} color="#2f7de8" />
               </div>
               <div>
@@ -312,7 +315,7 @@ export default function DashboardPage() {
         {nextMealInfo && (
           <Link to="/dieta" style={{ textDecoration: 'none' }}>
             <div className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 14, background: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 22 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 14, background: dark ? '#f9731626' : '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 22 }}>
                 {nextMealInfo.meta.icon}
               </div>
               <div style={{ flex: 1 }}>
@@ -331,7 +334,7 @@ export default function DashboardPage() {
         {/* Weight + diet summary */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div className="card" style={{ padding: '14px' }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 10, background: dark ? '#7c3aed26' : '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
               <Scale size={16} color="#7c3aed" />
             </div>
             <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Peso attuale</p>
@@ -369,7 +372,7 @@ export default function DashboardPage() {
         {unreadChat > 0 && (
           <Link to="/chat" style={{ textDecoration: 'none' }}>
             <div className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, borderLeft: '3px solid #dc4a4a' }}>
-              <div style={{ width: 44, height: 44, borderRadius: 14, background: '#fff0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
+              <div style={{ width: 44, height: 44, borderRadius: 14, background: dark ? '#dc4a4a26' : '#fff0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
                 <MessageCircle size={20} color="#dc4a4a" />
                 <span style={{ position: 'absolute', top: -4, right: -4, width: 18, height: 18, borderRadius: '50%', background: '#dc4a4a', color: 'white', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--surface-2)' }}>{unreadChat}</span>
               </div>

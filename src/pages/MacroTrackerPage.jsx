@@ -536,7 +536,7 @@ export default function MacroTrackerPage() {
                       )}
                       {/* Error feedback */}
                       {saveError && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff0f0', borderRadius: 10, padding: '9px 12px', marginBottom: 10, color: '#dc4a4a', fontSize: 13, fontWeight: 500 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--alert-error-bg)', borderRadius: 10, padding: '9px 12px', marginBottom: 10, color: 'var(--alert-error-text)', fontSize: 13, fontWeight: 500 }}>
                           <span>⚠️</span> <span>{saveError}</span>
                         </div>
                       )}
@@ -568,7 +568,7 @@ export default function MacroTrackerPage() {
 
                         {/* Barcode error */}
                         {barcodeError && (
-                          <div style={{ display: 'flex', gap: 6, alignItems: 'center', background: '#fff0f0', padding: '8px 12px', borderRadius: 8, marginTop: 8, color: '#dc4a4a', fontSize: 12 }}>
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center', background: 'var(--alert-error-bg)', padding: '8px 12px', borderRadius: 8, marginTop: 8, color: 'var(--alert-error-text)', fontSize: 12 }}>
                             <AlertCircle size={14} style={{ flexShrink: 0 }} />
                             <span>{barcodeError}</span>
                           </div>
