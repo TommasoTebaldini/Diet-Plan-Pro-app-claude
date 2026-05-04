@@ -8,7 +8,14 @@
       "Bash(git commit -m 'fix: add created_at column migration for food_logs *)",
       "Bash(git push *)",
       "Bash(git commit *)",
-      "Bash(python3 -c \" import sys, json lines = sys.stdin.read\\(\\).strip\\(\\).split\\('\\\\n'\\) for line in lines[-20:]: try: obj = json.loads\\(line\\) role = obj.get\\('role',''\\) content = obj.get\\('content',''\\) if isinstance\\(content, list\\): for c in content: if isinstance\\(c, dict\\) and c.get\\('type'\\) == 'text': print\\(f'[{role}]: {c[\\\\\"text\\\\\"][:500]}'\\) elif isinstance\\(content, str\\): print\\(f'[{role}]: {content[:500]}'\\) except: pass \")"
+      "Bash(python3 -c \" import sys, json lines = sys.stdin.read\\(\\).strip\\(\\).split\\('\\\\n'\\) for line in lines[-20:]: try: obj = json.loads\\(line\\) role = obj.get\\('role',''\\) content = obj.get\\('content',''\\) if isinstance\\(content, list\\): for c in content: if isinstance\\(c, dict\\) and c.get\\('type'\\) == 'text': print\\(f'[{role}]: {c[\\\\\"text\\\\\"][:500]}'\\) elif isinstance\\(content, str\\): print\\(f'[{role}]: {content[:500]}'\\) except: pass \")",
+      "Bash(xargs -I{} basename {})",
+      "Bash(git checkout *)",
+      "Bash(grep -E \"\\\\.html$\")",
+      "Bash(python3 -c \" import sys, json data = sys.stdin.read\\(\\) lines = data.strip\\(\\).split\\('\\\\n'\\) for line in lines[-10:]: try: obj = json.loads\\(line\\) if obj.get\\('type'\\) == 'assistant': for block in obj.get\\('message', {}\\).get\\('content', []\\): if block.get\\('type'\\) == 'text': print\\('ASSISTANT:', block['text'][:500]\\) elif obj.get\\('type'\\) == 'user': for block in obj.get\\('message', {}\\).get\\('content', []\\): if isinstance\\(block, dict\\) and block.get\\('type'\\) == 'text': print\\('USER:', block['text'][:300]\\) except: pass \")",
+      "Bash(python3 *)",
+      "Bash(git *)",
+      "Bash(dir \"C:\\\\Users\\\\Manutenzione\\\\Desktop\\\\Nut\" /b)"
     ]
   }
 }

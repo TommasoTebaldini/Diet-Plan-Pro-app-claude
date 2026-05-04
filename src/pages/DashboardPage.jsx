@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useAppSettings } from '../context/AppSettingsContext'
 import { supabase } from '../lib/supabase'
+import { useT } from '../i18n'
 import { Utensils, Droplets, TrendingUp, Apple, Flame, Leaf, MessageCircle, FileText, BookOpen, User, ChevronRight, Activity, Scale, Calendar, Zap, Award, Heart, BarChart2 } from 'lucide-react'
 
 // Animated progress ring: starts at 0, transitions to target pct on mount
@@ -28,19 +29,19 @@ function Ring({ pct, color, size = 60, strokeWidth = 7 }) {
 
 // Meal types with time windows (startHour as decimal)
 const MEAL_ORDER = ['colazione', 'spuntino_mattina', 'pranzo', 'spuntino_pomeriggio', 'cena']
-const MEAL_META = {
-  colazione:           { label: 'Colazione',            icon: '☀️', time: '07:00–08:30', startHour: 7 },
-  spuntino_mattina:    { label: 'Spuntino mattina',      icon: '🍎', time: '10:00–10:30', startHour: 10 },
-  pranzo:              { label: 'Pranzo',                icon: '🍽️', time: '12:30–13:30', startHour: 12.5 },
-  spuntino_pomeriggio: { label: 'Spuntino pomeriggio',   icon: '🥤', time: '15:30–16:00', startHour: 15.5 },
-  cena:                { label: 'Cena',                  icon: '🌙', time: '19:30–20:30', startHour: 19.5 },
+const MEAL_STATIC = {
+  colazione:           { icon: '☀️', time: '07:00–08:30', startHour: 7 },
+  spuntino_mattina:    { icon: '🍎', time: '10:00–10:30', startHour: 10 },
+  pranzo:              { icon: '🍽️', time: '12:30–13:30', startHour: 12.5 },
+  spuntino_pomeriggio: { icon: '🥤', time: '15:30–16:00', startHour: 15.5 },
+  cena:                { icon: '🌙', time: '19:30–20:30', startHour: 19.5 },
 }
 
 function getNextMeal(meals, nowHour) {
   for (const type of MEAL_ORDER) {
-    if (MEAL_META[type].startHour > nowHour) {
+    if (MEAL_STATIC[type].startHour > nowHour) {
       const meal = meals.find(m => m.meal_type === type)
-      if (meal) return { meal, meta: MEAL_META[type] }
+      if (meal) return { meal, type }
     }
   }
   return null
@@ -87,6 +88,7 @@ const ACTIONS = [
 export default function DashboardPage() {
   const { profile, user } = useAuth()
   const { settings } = useAppSettings()
+  const t = useT()
   const dark = settings.darkMode
   const [todayLog, setTodayLog] = useState(null)
   const [waterLog, setWaterLog] = useState(0)
@@ -97,8 +99,12 @@ export default function DashboardPage() {
   const [nextMealInfo, setNextMealInfo] = useState(null)
   const [appointment, setAppointment] = useState(null)
 
+  const MEAL_META = Object.fromEntries(
+    MEAL_ORDER.map(k => [k, { ...MEAL_STATIC[k], label: t(`meal.${k}`) }])
+  )
+
   const hour = new Date().getHours()
-  const greet = hour < 6 ? 'Buona notte' : hour < 12 ? 'Buongiorno' : hour < 18 ? 'Buon pomeriggio' : 'Buona sera'
+  const greet = hour < 6 ? t('dash.greeting_evening') : hour < 12 ? t('dash.greeting_morning') : hour < 18 ? t('dash.greeting_afternoon') : t('dash.greeting_evening')
 
   useEffect(() => {
     async function load() {
@@ -158,6 +164,7 @@ export default function DashboardPage() {
           .order('meal_order')
         if (mealRows?.length) {
           const found = getNextMeal(mealRows, nowDecimalHour)
+          // found: { meal, type } — label resolved at render via t()
           setNextMealInfo(found)
         }
       }
@@ -316,13 +323,13 @@ export default function DashboardPage() {
           <Link to="/dieta" style={{ textDecoration: 'none' }}>
             <div className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ width: 44, height: 44, borderRadius: 14, background: dark ? '#f9731626' : '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 22 }}>
-                {nextMealInfo.meta.icon}
+                {MEAL_STATIC[nextMealInfo.type]?.icon}
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Prossimo pasto</p>
-                <p style={{ fontSize: 15, fontWeight: 600 }}>{nextMealInfo.meta.label}</p>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('dash.next_meal')}</p>
+                <p style={{ fontSize: 15, fontWeight: 600 }}>{t(`meal.${nextMealInfo.type}`)}</p>
                 <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>
-                  🕐 {nextMealInfo.meta.time}
+                  🕐 {MEAL_STATIC[nextMealInfo.type]?.time}
                   {nextMealInfo.meal.kcal ? ` · ${nextMealInfo.meal.kcal} kcal` : ''}
                 </p>
               </div>

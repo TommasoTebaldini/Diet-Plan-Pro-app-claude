@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../i18n'
 import {
   Send, CheckCheck, Check, MessageCircle,
   ImagePlus, Mic, MicOff, X, Play, Pause, Bell, BellOff,
@@ -276,6 +277,7 @@ function SignatureModal({ doc, onClose, onSigned }) {
 
 export default function ChatPage() {
   const { user } = useAuth()
+  const t = useT()
 
   const [messages, setMessages] = useState([])
   const [text, setText] = useState('')
@@ -809,7 +811,7 @@ export default function ChatPage() {
                 ref={inputRef} value={text}
                 onChange={e => setText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
-                placeholder="Scrivi un messaggio…" rows={1}
+                placeholder={t('chat.placeholder')} rows={1}
                 style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontFamily: 'var(--font-b)', fontSize: 15, color: 'var(--text-primary)', resize: 'none', maxHeight: 100, lineHeight: 1.5 }}
               />
             </div>

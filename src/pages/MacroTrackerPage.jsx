@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../i18n'
 import { searchFoods, searchByBarcode } from '../lib/foodSearch'
 import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle, Pencil, Check } from 'lucide-react'
 import BarcodeScanner from '../components/BarcodeScanner'
@@ -16,13 +17,13 @@ function calcMacros(food, grams) {
   }
 }
 
-const MEALS = [
-  { key: 'colazione', label: 'Colazione', emoji: '☀️', defaultTime: '07:30' },
-  { key: 'spuntino_mattina', label: 'Spuntino', emoji: '🍎', defaultTime: '10:00' },
-  { key: 'pranzo', label: 'Pranzo', emoji: '🍽️', defaultTime: '12:30' },
-  { key: 'spuntino_pomeriggio', label: 'Merenda', emoji: '🥤', defaultTime: '15:30' },
-  { key: 'cena', label: 'Cena', emoji: '🌙', defaultTime: '19:30' },
-  { key: 'extra', label: 'Extra', emoji: '➕', defaultTime: '12:00' },
+const MEALS_STATIC = [
+  { key: 'colazione', emoji: '☀️', defaultTime: '07:30' },
+  { key: 'spuntino_mattina', emoji: '🍎', defaultTime: '10:00' },
+  { key: 'pranzo', emoji: '🍽️', defaultTime: '12:30' },
+  { key: 'spuntino_pomeriggio', emoji: '🥤', defaultTime: '15:30' },
+  { key: 'cena', emoji: '🌙', defaultTime: '19:30' },
+  { key: 'extra', emoji: '➕', defaultTime: '12:00' },
 ]
 
 const MOOD_OPTIONS = [
@@ -50,6 +51,11 @@ function MacroBar({ label, value, target, color }) {
 
 export default function MacroTrackerPage() {
   const { user } = useAuth()
+  const t = useT()
+  const MEALS = MEALS_STATIC.map(m => ({
+    ...m,
+    label: m.key === 'extra' ? 'Extra' : t(`meal.${m.key}`),
+  }))
   const todayStr = new Date().toISOString().split('T')[0]
   const [date, setDate] = useState(todayStr)
   const [query, setQuery] = useState('')

@@ -680,22 +680,22 @@ function LanguageModal({ onClose }) {
   const { settings, update } = useAppSettings()
 
   const langs = [
-    { val: 'it', label: 'Italiano', flag: '🇮🇹', available: true },
-    { val: 'en', label: 'English', flag: '🇬🇧', available: false },
+    { val: 'it', label: 'Italiano', flag: '🇮🇹', desc: 'Lingua predefinita' },
+    { val: 'en', label: 'English', flag: '🇬🇧', desc: 'English interface' },
+    { val: 'de', label: 'Deutsch', flag: '🇩🇪', desc: 'Deutsche Benutzeroberfläche' },
   ]
 
+  const title = settings.language === 'de' ? 'Sprache' : settings.language === 'en' ? 'Language' : 'Lingua'
+
   return (
-    <Modal title="Lingua" onClose={onClose}>
+    <Modal title={title} onClose={onClose}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 4, lineHeight: 1.6 }}>
-          Seleziona la lingua dell'app.
-        </p>
         {langs.map(l => (
-          <button key={l.val} onClick={() => l.available && update({ language: l.val })} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px', borderRadius: 14, border: `2px solid ${settings.language === l.val ? 'var(--green-main)' : 'var(--border)'}`, background: settings.language === l.val ? 'var(--green-pale)' : 'var(--surface)', cursor: l.available ? 'pointer' : 'default', font: 'inherit', textAlign: 'left', opacity: l.available ? 1 : 0.6, transition: 'all 0.15s' }}>
+          <button key={l.val} onClick={() => update({ language: l.val })} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px', borderRadius: 14, border: `2px solid ${settings.language === l.val ? 'var(--green-main)' : 'var(--border)'}`, background: settings.language === l.val ? 'var(--green-pale)' : 'var(--surface)', cursor: 'pointer', font: 'inherit', textAlign: 'left', transition: 'all 0.15s' }}>
             <span style={{ fontSize: 28 }}>{l.flag}</span>
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: 15, fontWeight: 600, color: settings.language === l.val ? 'var(--green-dark)' : 'var(--text-primary)' }}>{l.label}</p>
-              {!l.available && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Disponibile prossimamente</p>}
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{l.desc}</p>
             </div>
             {settings.language === l.val && <Check size={18} color="var(--green-main)" />}
           </button>

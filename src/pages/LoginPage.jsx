@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../i18n'
 import { Leaf, Eye, EyeOff, AlertCircle, Fingerprint } from 'lucide-react'
 import {
   isBiometricSupported,
@@ -12,6 +13,7 @@ import {
 import { supabase } from '../lib/supabase'
 
 export default function LoginPage() {
+  const t = useT()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
@@ -188,10 +190,10 @@ export default function LoginPage() {
             fontSize: 22, fontWeight: 600, marginBottom: 6,
             color: 'var(--text-primary)', letterSpacing: '-0.2px',
           }}>
-            Accedi
+            {t('auth.login')}
           </h2>
           <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 24 }}>
-            Inserisci le tue credenziali per continuare
+            {t('auth.login', 'Inserisci le tue credenziali per continuare')}
           </p>
 
           {error && (
@@ -207,7 +209,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             <div className="input-group">
-              <label className="input-label">Email</label>
+              <label className="input-label">{t('auth.email')}</label>
               <input
                 type="email" className="input-field"
                 placeholder="nome@email.com"
@@ -217,7 +219,7 @@ export default function LoginPage() {
             </div>
 
             <div className="input-group">
-              <label className="input-label">Password</label>
+              <label className="input-label">{t('auth.password')}</label>
               <div style={{ position: 'relative' }}>
                 <input
                   type={showPass ? 'text' : 'password'}
@@ -246,7 +248,7 @@ export default function LoginPage() {
                     <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
                     Accesso in corso…
                   </span>
-                : 'Accedi'}
+                : t('auth.login_btn')}
             </button>
           </form>
 
@@ -254,7 +256,7 @@ export default function LoginPage() {
             <>
               <div style={{ margin: '20px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>oppure</span>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>or</span>
                 <span style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
               </div>
               <button
@@ -267,7 +269,7 @@ export default function LoginPage() {
                   ? <span style={{ width: 16, height: 16, border: '2px solid var(--green-main)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
                   : <Fingerprint size={20} />
                 }
-                {biometricLoading ? 'Verifica in corso…' : 'Accedi con Face ID / Touch ID'}
+                {biometricLoading ? '…' : t('auth.login_with_biometric')}
               </button>
             </>
           )}
@@ -275,9 +277,9 @@ export default function LoginPage() {
           <div className="divider" />
 
           <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--text-muted)' }}>
-            Non hai un account?{' '}
+            {t('auth.no_account')}{' '}
             <Link to="/register" style={{ color: 'var(--green-main)', fontWeight: 600, textDecoration: 'none' }}>
-              Registrati
+              {t('auth.register')}
             </Link>
           </p>
         </div>
