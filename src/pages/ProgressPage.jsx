@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../i18n'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { TrendingDown, TrendingUp, Minus, Target, Plus, Scale, Activity } from 'lucide-react'
 
@@ -26,6 +27,7 @@ function CustomTooltip({ active, payload, label }) {
 
 export default function ProgressPage() {
   const { user, profile } = useAuth()
+  const t = useT()
   const [weights, setWeights] = useState([])
   const [todayLog, setTodayLog] = useState(null)
   const [newWeight, setNewWeight] = useState('')
@@ -131,17 +133,17 @@ export default function ProgressPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
             <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Il mio percorso</p>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'white', fontWeight: 300 }}>Progressi</h1>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'white', fontWeight: 300 }}>{t('progress.title')}</h1>
           </div>
           <button onClick={() => setShowAdd(v => !v)} className="btn" style={{ background: 'white', color: 'var(--green-main)', borderRadius: 14, padding: '10px 16px', fontSize: 14, fontWeight: 600, gap: 6 }}>
-            <Plus size={16} />Oggi
+            <Plus size={16} />{t('common.today')}
           </button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
           {[
-            { label: 'Peso attuale', val: latest ? `${latest} kg` : '–', sub: diff ? `${diff > 0 ? '+' : ''}${diff} kg` : '', icon: <Scale size={14} /> },
-            { label: 'Cambiamento', val: totalChange ? `${totalChange > 0 ? '+' : ''}${totalChange} kg` : '–', sub: "dall'inizio", icon: <Activity size={14} /> },
-            { label: 'Obiettivo', val: target ? `${target} kg` : '–', sub: latest && target ? `Mancano ${Math.abs(latest - target).toFixed(1)} kg` : '', icon: <Target size={14} /> },
+            { label: t('progress.weight'), val: latest ? `${latest} kg` : '–', sub: diff ? `${diff > 0 ? '+' : ''}${diff} kg` : '', icon: <Scale size={14} /> },
+            { label: t('progress.trend'), val: totalChange ? `${totalChange > 0 ? '+' : ''}${totalChange} kg` : '–', sub: "dall'inizio", icon: <Activity size={14} /> },
+            { label: t('dash.goal'), val: target ? `${target} kg` : '–', sub: latest && target ? `Mancano ${Math.abs(latest - target).toFixed(1)} kg` : '', icon: <Target size={14} /> },
           ].map(s => (
             <div key={s.label} style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 14, padding: '12px', border: '1px solid rgba(255,255,255,0.15)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>
@@ -199,7 +201,7 @@ export default function ProgressPage() {
             <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>📝 Aggiorna di oggi</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div className="input-group">
-                <label className="input-label">⚖️ Peso (kg)</label>
+                <label className="input-label">⚖️ {t('progress.weight')}</label>
                 <input type="number" step="0.1" className="input-field" placeholder="es. 72.5" value={newWeight} onChange={e => setNewWeight(e.target.value)} />
               </div>
               <div>
@@ -228,7 +230,7 @@ export default function ProgressPage() {
                 <textarea className="input-field" rows={3} placeholder="Come è andata oggi? Annotazioni sulla dieta…" value={notes} onChange={e => setNotes(e.target.value)} style={{ resize: 'vertical' }} />
               </div>
               <button className="btn btn-primary" onClick={saveEntry} disabled={saving}>
-                {saving ? 'Salvataggio…' : 'Salva'}
+                {saving ? `${t('common.save')}…` : t('common.save')}
               </button>
             </div>
           </div>

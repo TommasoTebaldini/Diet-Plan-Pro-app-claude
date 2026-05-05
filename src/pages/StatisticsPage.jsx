@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../i18n'
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine, Cell, RadialBarChart,
@@ -16,11 +17,11 @@ import { it } from 'date-fns/locale'
 import jsPDF from 'jspdf'
 
 // ── helpers ────────────────────────────────────────────────────
-const TABS = [
-  { key: 'weekly', label: '📊 Settimana' },
-  { key: 'adherence', label: '✅ Aderenza' },
-  { key: 'comparison', label: '⚖️ Confronto' },
-  { key: 'report', label: '📄 Report PDF' },
+const TABS_STATIC = [
+  { key: 'weekly', emoji: '📊', label: '📊 Settimana' },
+  { key: 'adherence', emoji: '✅', label: '✅ Aderenza' },
+  { key: 'comparison', emoji: '⚖️', label: '⚖️ Confronto' },
+  { key: 'report', emoji: '📄', label: '📄 Report PDF' },
 ]
 
 const MEAL_TYPES = ['colazione', 'spuntino_mattina', 'pranzo', 'spuntino_pomeriggio', 'cena']
@@ -81,6 +82,7 @@ function StatCard({ icon, label, value, sub, trend }) {
 // ── main component ─────────────────────────────────────────────
 export default function StatisticsPage() {
   const { user, profile } = useAuth()
+  const t = useT()
   const [tab, setTab] = useState('weekly')
   const [loading, setLoading] = useState(true)
 
@@ -352,14 +354,14 @@ export default function StatisticsPage() {
       {/* header */}
       <div style={{ background: 'linear-gradient(160deg, var(--green-dark), var(--green-main))', padding: 'calc(env(safe-area-inset-top) + 20px) 24px 24px' }}>
         <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Analisi avanzata</p>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'white', fontWeight: 300 }}>Statistiche</h1>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'white', fontWeight: 300 }}>{t('stats.title')}</h1>
       </div>
 
       {/* tab bar */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--border-light)', background: 'var(--surface)' }}>
-        {TABS.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)} style={{ flex: 1, padding: '11px 6px', background: 'none', border: 'none', font: 'inherit', fontSize: 11.5, fontWeight: tab === t.key ? 700 : 400, color: tab === t.key ? 'var(--green-main)' : 'var(--text-muted)', borderBottom: `2px solid ${tab === t.key ? 'var(--green-main)' : 'transparent'}`, cursor: 'pointer', transition: 'all 0.15s', textAlign: 'center', lineHeight: 1.3 }}>
-            {t.label}
+        {TABS_STATIC.map(tab_ => (
+          <button key={tab_.key} onClick={() => setTab(tab_.key)} style={{ flex: 1, padding: '11px 6px', background: 'none', border: 'none', font: 'inherit', fontSize: 11.5, fontWeight: tab === tab_.key ? 700 : 400, color: tab === tab_.key ? 'var(--green-main)' : 'var(--text-muted)', borderBottom: `2px solid ${tab === tab_.key ? 'var(--green-main)' : 'transparent'}`, cursor: 'pointer', transition: 'all 0.15s', textAlign: 'center', lineHeight: 1.3 }}>
+            {tab_.label}
           </button>
         ))}
       </div>

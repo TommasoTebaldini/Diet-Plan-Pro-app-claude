@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../i18n'
 import { Droplets, Plus, Trash2, Bell, BellOff, BarChart2, List } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { subDays, format, parseISO } from 'date-fns'
@@ -82,6 +83,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export default function WaterPage() {
   const { profile, user } = useAuth()
+  const t = useT()
   const today = new Date().toISOString().split('T')[0]
   const [latestWeight, setLatestWeight] = useState(null)
   const target = calcTarget({ ...profile, weight_kg: latestWeight })
@@ -146,7 +148,7 @@ export default function WaterPage() {
   const total = logs.reduce((s, l) => s + l.amount_ml, 0)
   const pct = Math.min(100, Math.round((total / target) * 100))
   const remaining = Math.max(0, target - total)
-  const statusMsg = pct >= 100 ? '🎉 Obiettivo raggiunto!' : pct >= 60 ? '👍 Stai andando bene!' : pct >= 30 ? '💧 Continua a bere!' : '⚠️ Hai bevuto poco'
+  const statusMsg = pct >= 100 ? `🎉 ${t('water.goal_reached')}` : pct >= 60 ? `👍 ${t('water.well_done')}` : pct >= 30 ? `💧 ${t('water.keep_going')}` : '⚠️ Hai bevuto poco'
 
   async function addWater(ml) {
     setLoading(true)
@@ -181,10 +183,10 @@ export default function WaterPage() {
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
           <button onClick={toggleNotifications} title={notifEnabled ? 'Disattiva promemoria' : 'Attiva promemoria'} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, padding: '7px 10px', cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
             {notifEnabled ? <Bell size={15} /> : <BellOff size={15} />}
-            {notifEnabled ? 'Promemoria ON' : 'Promemoria OFF'}
+            {notifEnabled ? 'ON' : 'OFF'}
           </button>
         </div>
-        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Idratazione di oggi</p>
+        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>{t('water.title')}</p>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, color: 'white', fontWeight: 300, marginBottom: 8 }}>
           {total} <span style={{ fontSize: 16, opacity: 0.75 }}>ml</span>
         </h1>
@@ -237,7 +239,7 @@ export default function WaterPage() {
 
         {/* Quick add */}
         <div className="card" style={{ padding: '18px 20px' }}>
-          <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>Aggiungi veloce</h3>
+          <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>{t('water.add')}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(58px, 1fr))', gap: 8, marginBottom: 14 }}>
             {QUICK_PRESETS.map(({ label, icon, ml }) => (
               <button key={ml} onClick={() => addWater(ml)} disabled={loading} style={{
@@ -257,7 +259,7 @@ export default function WaterPage() {
             <input
               type="number"
               className="input-field"
-              placeholder="Quantità personalizzata (ml)"
+              placeholder={t('water.custom_amount') + ' (ml)'}
               value={custom}
               onChange={e => setCustom(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') { const v = parseInt(custom, 10); if (v > 0) addWater(v) } }}
@@ -274,8 +276,8 @@ export default function WaterPage() {
         {/* Tabs: oggi / settimana */}
         <div style={{ display: 'flex', gap: 8 }}>
           {[
-            { key: 'oggi', icon: <List size={14} />, label: 'Registro oggi' },
-            { key: 'settimana', icon: <BarChart2 size={14} />, label: 'Grafico settimanale' },
+            { key: 'oggi', icon: <List size={14} />, label: t('common.today') },
+            { key: 'settimana', icon: <BarChart2 size={14} />, label: t('common.week') },
           ].map(t => (
             <button key={t.key} onClick={() => setTab(t.key)} style={{
               flex: 1, padding: '10px 8px', borderRadius: 12, border: 'none', font: 'inherit',
@@ -292,7 +294,7 @@ export default function WaterPage() {
         {tab === 'oggi' && (
           <div className="card" style={{ padding: '18px 20px' }}>
             {logs.length === 0 ? (
-              <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 14, padding: '12px 0' }}>Nessun consumo registrato oggi</p>
+              <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 14, padding: '12px 0' }}>{t('common.no_data')}</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {[...logs].reverse().map(l => (
@@ -316,7 +318,7 @@ export default function WaterPage() {
 
         {tab === 'settimana' && (
           <div className="card" style={{ padding: '18px 20px' }}>
-            <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Ultimi 7 giorni</h3>
+            <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{t('water.history')}</h3>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
               Media: {weekData.length ? Math.round(weekData.reduce((s, d) => s + d.total, 0) / weekData.length) : 0} ml/giorno
             </p>

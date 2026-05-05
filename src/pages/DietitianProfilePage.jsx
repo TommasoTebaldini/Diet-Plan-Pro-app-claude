@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../i18n'
 import { ArrowLeft, User, MapPin, Phone, Mail, Globe, GraduationCap, Eye, EyeOff, Save, CheckCircle } from 'lucide-react'
 
 function Field({ label, icon: Icon, children }) {
@@ -17,6 +18,7 @@ function Field({ label, icon: Icon, children }) {
 
 export default function DietitianProfilePage() {
   const { user, profile } = useAuth()
+  const t = useT()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -121,7 +123,7 @@ export default function DietitianProfilePage() {
         </button>
         <div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 19, color: 'white', fontWeight: 300 }}>
-            Il mio profilo
+            {t('dietitian.profile')}
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12 }}>
             Visibile ai pazienti nell'app
@@ -274,10 +276,10 @@ export default function DietitianProfilePage() {
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
         >
           {saved
-            ? <><CheckCircle size={16} /> Salvato!</>
+            ? <><CheckCircle size={16} /> {t('profile.saved')}</>
             : saving
               ? '…'
-              : <><Save size={16} /> Salva profilo</>
+              : <><Save size={16} /> {t('common.save')}</>
           }
         </button>
       </div>

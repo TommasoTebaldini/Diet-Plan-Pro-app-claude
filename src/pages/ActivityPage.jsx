@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../i18n'
 import { Plus, Trash2, Flame, Activity, List, BarChart2, Clock, X, Check, ExternalLink } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { subDays, format, parseISO } from 'date-fns'
@@ -155,6 +156,7 @@ function LogForm({ onClose, onSaved, userWeight, userId }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function ActivityPage() {
   const { profile, user } = useAuth()
+  const t = useT()
   const today = new Date().toISOString().split('T')[0]
 
   const [logs, setLogs] = useState([])
@@ -283,7 +285,7 @@ export default function ActivityPage() {
         <div style={{ position: 'absolute', top: -30, right: -30, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
         <div style={{ position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, marginBottom: 4 }}>Attività di oggi</p>
+          <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, marginBottom: 4 }}>{t('nav.activities')}</p>
           <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 34, color: 'white', fontWeight: 300, lineHeight: 1, marginBottom: 6 }}>
             {todayCalories} <span style={{ fontSize: 16, opacity: 0.75 }}>kcal bruciate</span>
           </h1>
@@ -310,7 +312,7 @@ export default function ActivityPage() {
 
         {/* ── Log activity button ── */}
         <button className="btn btn-primary btn-full" onClick={() => setShowForm(true)} style={{ gap: 8, fontSize: 15 }}>
-          <Plus size={18} /> Registra attività
+          <Plus size={18} /> {t('common.add')}
         </button>
 
         {/* ── Steps goal card ── */}
@@ -330,7 +332,7 @@ export default function ActivityPage() {
             {!editingStepGoal ? (
               <button onClick={() => { setStepGoalInput(String(stepGoal)); setEditingStepGoal(true) }}
                 style={{ fontSize: 12, color: 'var(--green-main)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>
-                Modifica
+                {t('common.edit')}
               </button>
             ) : (
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>

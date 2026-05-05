@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { Leaf, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
+import { useT } from '../i18n'
 
 export default function RegisterPage() {
+  const t = useT()
   const [form, setForm] = useState({ name: '', surname: '', email: '', password: '', confirm: '' })
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -58,14 +60,14 @@ export default function RegisterPage() {
           <div style={{ width: 56, height: 56, borderRadius: 18, background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', border: '1px solid rgba(255,255,255,0.2)' }}>
             <Leaf size={28} color="white" />
           </div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 26, color: 'white', fontWeight: 300 }}>Crea il tuo profilo</h1>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 26, color: 'white', fontWeight: 300 }}>{t('auth.register')}</h1>
           <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginTop: 6 }}>Inizia il tuo percorso nutrizionale</p>
         </div>
       </div>
 
       <div style={{ flex: 1, padding: '0 20px 40px', marginTop: -20 }}>
         <div className="card animate-slideUp" style={{ borderRadius: 'var(--radius-xl)', padding: 28 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 20 }}>Registrazione</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 20 }}>{t('auth.register')}</h2>
 
           {error && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fff0f0', border: '1px solid #ffd4d4', borderRadius: 'var(--radius-sm)', padding: '12px 14px', marginBottom: 16, color: 'var(--red)', fontSize: 14 }}>
@@ -76,22 +78,22 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div className="input-group">
-                <label className="input-label">Nome</label>
+                <label className="input-label">{t('profile.first_name')}</label>
                 <input type="text" className="input-field" placeholder="Mario" value={form.name} onChange={set('name')} required />
               </div>
               <div className="input-group">
-                <label className="input-label">Cognome</label>
+                <label className="input-label">{t('profile.last_name')}</label>
                 <input type="text" className="input-field" placeholder="Rossi" value={form.surname} onChange={set('surname')} required />
               </div>
             </div>
 
             <div className="input-group">
-              <label className="input-label">Email</label>
+              <label className="input-label">{t('auth.email')}</label>
               <input type="email" className="input-field" placeholder="mario@email.com" value={form.email} onChange={set('email')} required autoComplete="email" />
             </div>
 
             <div className="input-group">
-              <label className="input-label">Password</label>
+              <label className="input-label">{t('auth.password')}</label>
               <div style={{ position: 'relative' }}>
                 <input type={showPass ? 'text' : 'password'} className="input-field" placeholder="Min. 6 caratteri" value={form.password} onChange={set('password')} required style={{ paddingRight: 48 }} />
                 <button type="button" onClick={() => setShowPass(v => !v)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
@@ -101,7 +103,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="input-group">
-              <label className="input-label">Conferma password</label>
+              <label className="input-label">{t('auth.confirm_password')}</label>
               <input type="password" className="input-field" placeholder="Ripeti la password" value={form.confirm} onChange={set('confirm')} required />
             </div>
 
@@ -109,16 +111,16 @@ export default function RegisterPage() {
               {loading
                 ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-                    Registrazione…
+                    {t('auth.register')}…
                   </span>
-                : 'Crea account'}
+                : t('auth.register_btn')}
             </button>
           </form>
 
           <div className="divider" />
           <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--text-muted)' }}>
-            Hai già un account?{' '}
-            <Link to="/login" style={{ color: 'var(--green-main)', fontWeight: 500, textDecoration: 'none' }}>Accedi</Link>
+            {t('auth.have_account')}{' '}
+            <Link to="/login" style={{ color: 'var(--green-main)', fontWeight: 500, textDecoration: 'none' }}>{t('auth.login')}</Link>
           </p>
         </div>
       </div>

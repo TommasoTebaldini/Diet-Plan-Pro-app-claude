@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../i18n'
 
 const DOCS_EPOCH = '1970-01-01T00:00:00Z'
 
@@ -27,6 +28,7 @@ function useIsDesktop() {
 export default function BottomNav() {
   const { pathname } = useLocation()
   const { user } = useAuth()
+  const t = useT()
   const [newDocs, setNewDocs] = useState(0)
   const [sidebarOpen, setSidebarOpen] = useState(
     () => localStorage.getItem('sidebar_open') !== 'false'
@@ -97,17 +99,17 @@ export default function BottomNav() {
   }, [pathname])
 
   const TABS = [
-    { to: '/', icon: Home, label: 'Home' },
-    { to: '/dieta', icon: Utensils, label: 'Dieta' },
-    { to: '/macro', icon: BookOpen, label: 'Diario' },
-    { to: '/chat', icon: MessageCircle, label: 'Chat', badge: unreadChat },
-    { to: '/documenti', icon: FileText, label: 'Documenti', badge: newDocs },
-    { to: '/dietisti', icon: Users, label: 'Dietisti' },
-    { to: '/progressi', icon: TrendingUp, label: 'Progressi' },
-    { to: '/attivita', icon: Activity, label: 'Attività' },
-    { to: '/statistiche', icon: BarChart2, label: 'Report' },
-    { to: '/benessere', icon: Heart, label: 'Benessere' },
-    { to: '/profilo', icon: User, label: 'Profilo' },
+    { to: '/', icon: Home, label: t('nav.dashboard') },
+    { to: '/dieta', icon: Utensils, label: t('nav.diet') },
+    { to: '/macro', icon: BookOpen, label: t('nav.diary') },
+    { to: '/chat', icon: MessageCircle, label: t('nav.chat'), badge: unreadChat },
+    { to: '/documenti', icon: FileText, label: t('nav.documents'), badge: newDocs },
+    { to: '/dietisti', icon: Users, label: t('nav.dietitians') },
+    { to: '/progressi', icon: TrendingUp, label: t('nav.progress') },
+    { to: '/attivita', icon: Activity, label: t('nav.activities') },
+    { to: '/statistiche', icon: BarChart2, label: t('nav.report') },
+    { to: '/benessere', icon: Heart, label: t('nav.wellness') },
+    { to: '/profilo', icon: User, label: t('nav.profile') },
   ]
 
   if (isDesktop) {

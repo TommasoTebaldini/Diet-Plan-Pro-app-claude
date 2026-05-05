@@ -3,6 +3,7 @@ import patientViewRaw from '../assets/patientViewHtml.js'
 import { CONSIGLI_BASE } from '../data/consigliBase.js'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../i18n'
 import { FileText, Download, Calendar, Utensils, Apple, Heart, Bookmark, BookmarkCheck, ArrowUpDown, Star, Printer, BookOpen, PenLine, CheckCircle2, XCircle, RefreshCw, Shield } from 'lucide-react'
 
 // ─── Document type metadata ───────────────────────────────────────────────────
@@ -1022,6 +1023,7 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function DocumentsPage() {
   const { user } = useAuth()
+  const t = useT()
   const [docs,                   setDocs]                   = useState([])
   const [loading,                setLoading]                = useState(true)
   const [loadError,              setLoadError]              = useState(null)
@@ -1438,7 +1440,7 @@ export default function DocumentsPage() {
               </span>
             )}
           </div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'white', fontWeight: 300, marginBottom: 14 }}>I miei documenti</h1>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'white', fontWeight: 300, marginBottom: 14 }}>{t('docs.title')}</h1>
 
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 10, WebkitOverflowScrolling: 'touch' }}>
             {types.map(t => (

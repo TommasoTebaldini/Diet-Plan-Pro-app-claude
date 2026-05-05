@@ -2,15 +2,16 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { Clock, ChevronDown, ChevronUp, Flame, Leaf, FileText, CheckCircle2, Circle, History, RefreshCw, TrendingUp, Calendar, Download, ClipboardList, ImageOff } from 'lucide-react'
+import { useT } from '../i18n'
 
 const DAYS = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
 
-const MEAL_LABELS = {
-  colazione: { label: 'Colazione', icon: '☀️', time: '07:00–08:30', accent: '#f59e0b', pale: '#fffbeb' },
-  spuntino_mattina: { label: 'Spuntino mattina', icon: '🍎', time: '10:00–10:30', accent: '#10b981', pale: '#ecfdf5' },
-  pranzo: { label: 'Pranzo', icon: '🍽️', time: '12:30–13:30', accent: '#3b82f6', pale: '#eff6ff' },
-  spuntino_pomeriggio: { label: 'Spuntino pomeriggio', icon: '🥤', time: '15:30–16:00', accent: '#8b5cf6', pale: '#f5f3ff' },
-  cena: { label: 'Cena', icon: '🌙', time: '19:30–20:30', accent: '#6366f1', pale: '#eef2ff' },
+const MEAL_META_STATIC = {
+  colazione: { icon: '☀️', time: '07:00–08:30', accent: '#f59e0b', pale: '#fffbeb' },
+  spuntino_mattina: { icon: '🍎', time: '10:00–10:30', accent: '#10b981', pale: '#ecfdf5' },
+  pranzo: { icon: '🍽️', time: '12:30–13:30', accent: '#3b82f6', pale: '#eff6ff' },
+  spuntino_pomeriggio: { icon: '🥤', time: '15:30–16:00', accent: '#8b5cf6', pale: '#f5f3ff' },
+  cena: { icon: '🌙', time: '19:30–20:30', accent: '#6366f1', pale: '#eef2ff' },
 }
 
 function MacroBar({ label, value, max, color }) {
@@ -29,6 +30,7 @@ function MacroBar({ label, value, max, color }) {
 }
 
 function DailyNutritionSummary({ meals, diet }) {
+  const t = useT()
   const total = meals.reduce((acc, m) => ({
     kcal: acc.kcal + (m.kcal || 0),
     proteins: acc.proteins + Number(m.proteins || 0),
@@ -53,9 +55,9 @@ function DailyNutritionSummary({ meals, diet }) {
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         {[
           { label: 'Kcal', val: total.kcal, color: '#f0922b' },
-          { label: 'Proteine', val: Math.round(total.proteins) + 'g', color: '#3b82f6' },
-          { label: 'Carbo', val: Math.round(total.carbs) + 'g', color: '#f0922b' },
-          { label: 'Grassi', val: Math.round(total.fats) + 'g', color: '#e05a5a' },
+          { label: t('diet.proteins'), val: Math.round(total.proteins) + 'g', color: '#3b82f6' },
+          { label: t('diet.carbs'), val: Math.round(total.carbs) + 'g', color: '#f0922b' },
+          { label: t('diet.fats'), val: Math.round(total.fats) + 'g', color: '#e05a5a' },
         ].map(m => (
           <div key={m.label} style={{ flex: 1, textAlign: 'center', padding: '10px 4px', background: 'var(--surface-2)', borderRadius: 10 }}>
             <p style={{ fontSize: 15, fontWeight: 700, color: m.color }}>{m.val}</p>
@@ -66,9 +68,9 @@ function DailyNutritionSummary({ meals, diet }) {
 
       {(diet?.protein_target || diet?.carbs_target || diet?.fats_target) && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {diet.protein_target && <MacroBar label={`Proteine / ${diet.protein_target}g`} value={Math.round(total.proteins)} max={diet.protein_target} color="#3b82f6" />}
-          {diet.carbs_target && <MacroBar label={`Carboidrati / ${diet.carbs_target}g`} value={Math.round(total.carbs)} max={diet.carbs_target} color="#f0922b" />}
-          {diet.fats_target && <MacroBar label={`Grassi / ${diet.fats_target}g`} value={Math.round(total.fats)} max={diet.fats_target} color="#e05a5a" />}
+          {diet.protein_target && <MacroBar label={`${t('diet.proteins')} / ${diet.protein_target}g`} value={Math.round(total.proteins)} max={diet.protein_target} color="#3b82f6" />}
+          {diet.carbs_target && <MacroBar label={`${t('diet.carbs')} / ${diet.carbs_target}g`} value={Math.round(total.carbs)} max={diet.carbs_target} color="#f0922b" />}
+          {diet.fats_target && <MacroBar label={`${t('diet.fats')} / ${diet.fats_target}g`} value={Math.round(total.fats)} max={diet.fats_target} color="#e05a5a" />}
         </div>
       )}
     </div>
@@ -454,6 +456,7 @@ function OlderClinicalPlanCard({ piano }) {
 
 export default function DietPage() {
   const { user } = useAuth()
+  const t = useT()
   const [diet, setDiet] = useState(null)
   const [meals, setMeals] = useState([])
   const [loading, setLoading] = useState(true)
@@ -467,6 +470,9 @@ export default function DietPage() {
   const [showOlderPlans, setShowOlderPlans] = useState(false)
 
   const today = useMemo(() => new Date().toISOString().split('T')[0], [])
+  const MEAL_LABELS = useMemo(() => Object.fromEntries(
+    Object.entries(MEAL_META_STATIC).map(([k, v]) => [k, { ...v, label: t(`meal.${k}`) }])
+  ), [t])
 
   useEffect(() => {
     async function load() {
@@ -560,8 +566,8 @@ export default function DietPage() {
     <div className="page" style={{ padding: 32 }}>
       <div style={{ textAlign: 'center', paddingTop: 40, paddingBottom: 32 }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>🥗</div>
-        <h2 style={{ fontFamily: 'var(--font-d)', fontSize: 22, fontWeight: 300, marginBottom: 8 }}>Nessun piano attivo</h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.6 }}>Il tuo dietista non ha ancora caricato un piano alimentare. Contattalo per iniziare il percorso.</p>
+        <h2 style={{ fontFamily: 'var(--font-d)', fontSize: 22, fontWeight: 300, marginBottom: 8 }}>{t('diet.no_plan')}</h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.6 }}>{t('diet.contact_dietitian')}</p>
       </div>
 
       {history.length > 0 && (
@@ -598,7 +604,7 @@ export default function DietPage() {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 2 }}>
-              {diet ? 'Piano attivo' : 'La mia dieta'}
+              {diet ? 'Piano attivo' : t('diet.title')}
             </p>
             <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 21, color: 'white', fontWeight: 300, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {diet ? (diet.name || 'Piano personalizzato') : 'Piani alimentari'}

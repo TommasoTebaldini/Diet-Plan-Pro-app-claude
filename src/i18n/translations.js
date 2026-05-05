@@ -61,6 +61,9 @@ const translations = {
     'nav.profile': 'Profilo',
     'nav.settings': 'Impostazioni',
     'nav.statistics': 'Statistiche',
+    'nav.activities': 'Attività',
+    'nav.dietitians': 'Dietisti',
+    'nav.report': 'Report',
     // ── Dashboard ──
     'dash.greeting_morning': 'Buongiorno',
     'dash.greeting_afternoon': 'Buon pomeriggio',
@@ -279,6 +282,9 @@ const translations = {
     'nav.profile': 'Profile',
     'nav.settings': 'Settings',
     'nav.statistics': 'Statistics',
+    'nav.activities': 'Activity',
+    'nav.dietitians': 'Dietitians',
+    'nav.report': 'Report',
     // ── Dashboard ──
     'dash.greeting_morning': 'Good morning',
     'dash.greeting_afternoon': 'Good afternoon',
@@ -497,6 +503,9 @@ const translations = {
     'nav.profile': 'Profil',
     'nav.settings': 'Einstellungen',
     'nav.statistics': 'Statistiken',
+    'nav.activities': 'Aktivität',
+    'nav.dietitians': 'Ernährungsberater',
+    'nav.report': 'Bericht',
     // ── Dashboard ──
     'dash.greeting_morning': 'Guten Morgen',
     'dash.greeting_afternoon': 'Guten Tag',

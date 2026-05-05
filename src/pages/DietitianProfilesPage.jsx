@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { useT } from '../i18n'
 import { Search, MapPin, Phone, Mail, Globe, Users, X } from 'lucide-react'
 
 function DietitianCard({ profile }) {
@@ -92,6 +93,7 @@ function DietitianCard({ profile }) {
 }
 
 export default function DietitianProfilesPage() {
+  const t = useT()
   const [profiles, setProfiles] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -153,7 +155,7 @@ export default function DietitianProfilesPage() {
           <Users size={22} color="white" />
           <div>
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 20, color: 'white', fontWeight: 300 }}>
-              Trova un Dietista
+              {t('dietitian.title')}
             </h1>
             <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12 }}>
               {profiles.length > 0 ? `${profiles.length} professionisti disponibili` : 'Professionisti della nutrizione'}
@@ -169,7 +171,7 @@ export default function DietitianProfilesPage() {
           <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input
             className="input-field"
-            placeholder="Cerca per nome o specializzazione…"
+            placeholder={t('common.search')}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             style={{ paddingLeft: 36, paddingRight: searchQuery ? 36 : 14 }}
@@ -227,15 +229,15 @@ export default function DietitianProfilesPage() {
         {loading ? (
           <div style={{ textAlign: 'center', padding: '50px 20px' }}>
             <div style={{ width: 26, height: 26, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto 12px' }} />
-            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Caricamento…</p>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('common.loading')}</p>
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '50px 20px' }}>
             <div style={{ fontSize: 44, marginBottom: 12 }}>🔍</div>
-            <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 6 }}>Nessun risultato</p>
+            <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 6 }}>{t('common.no_data')}</p>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
               {profiles.length === 0
-                ? 'Non ci sono ancora profili di dietisti disponibili.'
+                ? t('dietitian.no_dietitian')
                 : 'Prova a cambiare i filtri di ricerca.'}
             </p>
             {(searchQuery || cityFilter) && (

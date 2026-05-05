@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../i18n'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, ComposedChart, Bar,
@@ -109,6 +110,7 @@ function CustomCorrelationTooltip({ active, payload, label }) {
 
 export default function WellnessPage() {
   const { user } = useAuth()
+  const t = useT()
   const today = new Date().toISOString().split('T')[0]
 
   const [todayLog, setTodayLog] = useState(null)
@@ -298,14 +300,14 @@ export default function WellnessPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
             <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Come stai?</p>
-            <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300 }}>Benessere</h1>
+            <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300 }}>{t('nav.wellness')}</h1>
           </div>
           <button
             onClick={() => setShowForm(v => !v)}
             className="btn"
             style={{ background: 'rgba(255,255,255,0.18)', color: 'white', backdropFilter: 'blur(8px)', border: '1.5px solid rgba(255,255,255,0.25)', borderRadius: 14, padding: '10px 16px', fontSize: 14, fontWeight: 600, gap: 6 }}
           >
-            <Plus size={16} />Oggi
+            <Plus size={16} />{t('common.today')}
           </button>
         </div>
 
@@ -336,7 +338,7 @@ export default function WellnessPage() {
         {saved && (
           <div className="animate-slideUp" style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--green-pale)', border: '1.5px solid var(--green-light)', borderRadius: 14, padding: '12px 16px', color: 'var(--green-dark)' }}>
             <CheckCircle size={18} />
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Check-in salvato con successo!</span>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>{t('wellness.saved')}</span>
           </div>
         )}
 
@@ -352,7 +354,7 @@ export default function WellnessPage() {
           <div className="card animate-slideUp" style={{ padding: 18 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
               <h3 style={{ fontSize: 15, fontWeight: 600 }}>Check-in di oggi</h3>
-              <button onClick={() => setShowForm(true)} style={{ fontSize: 12, color: '#7c3aed', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}>Modifica</button>
+              <button onClick={() => setShowForm(true)} style={{ fontSize: 12, color: '#7c3aed', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}>{t('common.edit')}</button>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 14 }}>
               {[
@@ -479,7 +481,7 @@ export default function WellnessPage() {
               <div style={{ display: 'flex', gap: 10 }}>
                 {todayLog && (
                   <button className="btn btn-secondary" onClick={() => setShowForm(false)} style={{ flex: 1 }}>
-                    Annulla
+                    {t('common.cancel')}
                   </button>
                 )}
                 <button
@@ -488,7 +490,7 @@ export default function WellnessPage() {
                   disabled={saving || (!mood && !energy && !sleepQuality && sleepHours == null && !sleepRestedness && !symptoms.length && !notes)}
                   style={{ flex: 2, background: 'linear-gradient(135deg, #4c1d95, #7c3aed)' }}
                 >
-                  {saving ? 'Salvataggio…' : '✓ Salva check-in'}
+                  {saving ? `${t('wellness.save')}…` : `✓ ${t('wellness.save')}`}
                 </button>
               </div>
             </div>
@@ -600,7 +602,7 @@ export default function WellnessPage() {
         {/* History list */}
         {history.length > 0 && (
           <div className="card" style={{ padding: '18px 20px' }}>
-            <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>Storico benessere</h3>
+            <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>{t('water.history')}</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[...history].reverse().slice(0, 14).map(entry => {
                 const moodOpt = MOOD_OPTIONS.find(o => o.value === entry.mood)
@@ -613,7 +615,7 @@ export default function WellnessPage() {
                     <div style={{ flexShrink: 0, textAlign: 'center', minWidth: 44 }}>
                       <p style={{ fontSize: 22 }}>{moodOpt?.emoji || '–'}</p>
                       <p style={{ fontSize: 10, color: isToday ? '#7c3aed' : 'var(--text-muted)', fontWeight: isToday ? 600 : 400 }}>
-                        {isToday ? 'Oggi' : new Date(entry.date + 'T12:00:00').toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}
+                        {isToday ? t('common.today') : new Date(entry.date + 'T12:00:00').toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}
                       </p>
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
