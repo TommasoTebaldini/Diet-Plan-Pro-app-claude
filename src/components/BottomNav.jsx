@@ -113,61 +113,77 @@ export default function BottomNav() {
   ]
 
   if (isDesktop) {
-    const W = sidebarOpen ? 220 : 56
     return (
-      <nav className="app-sidebar" style={{ display: 'flex', flexDirection: 'column', zIndex: 999, width: W, transition: 'width 0.22s ease', overflow: 'hidden' }}>
-        {/* Logo / brand + toggle */}
-        <div style={{ padding: sidebarOpen ? '16px 14px 12px' : '16px 10px 12px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 8, justifyContent: sidebarOpen ? 'flex-start' : 'center', flexShrink: 0 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 9, background: 'linear-gradient(135deg, var(--green-main), var(--green-mid))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Leaf size={15} color="white" />
-          </div>
-          {sidebarOpen && (
+      <>
+        {/* Floating hamburger button shown only when sidebar is closed */}
+        {!sidebarOpen && (
+          <button onClick={toggleSidebar} style={{
+            position: 'fixed', top: 12, left: 12, zIndex: 1001,
+            width: 34, height: 34, borderRadius: 9,
+            border: '1px solid var(--border-light)', background: 'var(--surface)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+          }}>☰</button>
+        )}
+        <nav className="app-sidebar" style={{
+          display: 'flex', flexDirection: 'column', zIndex: 999,
+          width: sidebarOpen ? 220 : 0,
+          minWidth: 0,
+          transition: 'width 0.22s ease',
+          overflow: 'hidden',
+        }}>
+          {/* Logo / brand + toggle */}
+          <div style={{ padding: '16px 14px 12px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, minWidth: 220 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 9, background: 'linear-gradient(135deg, var(--green-main), var(--green-mid))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Leaf size={15} color="white" />
+            </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.1, whiteSpace: 'nowrap' }}>Diet Plan</p>
               <p style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Dashboard</p>
             </div>
-          )}
-          <button onClick={toggleSidebar} style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid var(--border-light)', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, color: 'var(--text-muted)', fontSize: 13, fontWeight: 700 }}>
-            {sidebarOpen ? '←' : '→'}
-          </button>
-        </div>
+            <button onClick={toggleSidebar} style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid var(--border-light)', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, color: 'var(--text-muted)', fontSize: 13, fontWeight: 700 }}>
+              ←
+            </button>
+          </div>
 
-        {/* Nav items */}
-        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: sidebarOpen ? '10px 8px' : '10px 6px' }}>
-          {TABS.map(({ to, icon: Icon, label, badge }) => {
-            const active = pathname === to || (to !== '/' && pathname.startsWith(to))
-            return (
-              <Link key={to} to={to} title={!sidebarOpen ? label : undefined} style={{
-                display: 'flex', alignItems: 'center', gap: sidebarOpen ? 10 : 0,
-                justifyContent: sidebarOpen ? 'flex-start' : 'center',
-                padding: sidebarOpen ? '9px 10px' : '9px 0', borderRadius: 10, marginBottom: 2,
-                textDecoration: 'none',
-                background: active ? 'var(--green-pale)' : 'transparent',
-                color: active ? 'var(--green-main)' : 'var(--text-secondary)',
-                fontWeight: active ? 600 : 400,
-                fontSize: 13,
-                transition: 'background 0.12s, color 0.12s',
-                position: 'relative',
-              }}>
-                <div style={{ position: 'relative', flexShrink: 0 }}>
-                  <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
+          {/* Nav items */}
+          <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '10px 8px', minWidth: 220 }}>
+            {TABS.map(({ to, icon: Icon, label, badge }) => {
+              const active = pathname === to || (to !== '/' && pathname.startsWith(to))
+              return (
+                <Link key={to} to={to} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '9px 10px', borderRadius: 10, marginBottom: 2,
+                  textDecoration: 'none',
+                  background: active ? 'var(--green-pale)' : 'transparent',
+                  color: active ? 'var(--green-main)' : 'var(--text-secondary)',
+                  fontWeight: active ? 600 : 400,
+                  fontSize: 13,
+                  transition: 'background 0.12s, color 0.12s',
+                  position: 'relative',
+                  whiteSpace: 'nowrap',
+                }}>
+                  <div style={{ position: 'relative', flexShrink: 0 }}>
+                    <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
+                    {badge > 0 && (
+                      <span style={{ ...badgeStyle, top: -5, right: -5, border: `2px solid ${active ? 'var(--green-pale)' : 'var(--surface)'}` }}>
+                        {badge}
+                      </span>
+                    )}
+                  </div>
+                  <span>{label}</span>
                   {badge > 0 && (
-                    <span style={{ ...badgeStyle, top: -5, right: -5, border: `2px solid ${active ? 'var(--green-pale)' : 'var(--surface)'}` }}>
+                    <span style={{ marginLeft: 'auto', background: '#0891b2', color: 'white', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 100 }}>
                       {badge}
                     </span>
                   )}
-                </div>
-                {sidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>{label}</span>}
-                {sidebarOpen && badge > 0 && (
-                  <span style={{ marginLeft: 'auto', background: '#0891b2', color: 'white', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 100 }}>
-                    {badge}
-                  </span>
-                )}
-              </Link>
-            )
-          })}
-        </div>
-      </nav>
+                </Link>
+              )
+            })}
+          </div>
+        </nav>
+      </>
     )
   }
 
