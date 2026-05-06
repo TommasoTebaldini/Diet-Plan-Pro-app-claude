@@ -6,6 +6,17 @@ import { searchFoods } from '../lib/foodSearch'
 import { Search, Plus, X, Trash2, ChevronDown, ChevronUp, Globe, Lock } from 'lucide-react'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
+
+// Defensive parse: ingredienti/fasi_preparazione can be a JSON string if the DB
+// column was TEXT when the row was first inserted (admin-app table schema conflict).
+function safeArray(v) {
+  if (Array.isArray(v)) return v
+  if (typeof v === 'string' && v.trim()) {
+    try { const p = JSON.parse(v); return Array.isArray(p) ? p : [] } catch { return [] }
+  }
+  return []
+}
+
 function calcMacros(food, grams) {
   const f = (parseFloat(grams) || 100) / 100
   return {
@@ -261,7 +272,7 @@ function RecipeCard({ r, isOwn, expandedId, setExpandedId, setLogRecipe, onToggl
 
           {/* Ingredients */}
           <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Ingredienti</p>
-          {(r.ingredienti || []).map((ing, i, arr) => (
+          {safeArray(r.ingredienti).map((ing, i, arr) => (
             <div key={i} style={{ display: 'flex', gap: 8, padding: '5px 0', borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
               <p style={{ flex: 1, fontSize: 13 }}>{ing.food_name}</p>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0 }}>{ing.grams}g · {ing.kcal} kcal</p>
@@ -269,10 +280,10 @@ function RecipeCard({ r, isOwn, expandedId, setExpandedId, setLogRecipe, onToggl
           ))}
 
           {/* Preparation steps */}
-          {(r.fasi_preparazione || []).length > 0 && (
+          {safeArray(r.fasi_preparazione).length > 0 && (
             <>
               <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginTop: 14, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Preparazione</p>
-              {r.fasi_preparazione.map((step, i, arr) => (
+              {safeArray(r.fasi_preparazione).map((step, i, arr) => (
                 <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 0', borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none', alignItems: 'flex-start' }}>
                   <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--green-main)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0, marginTop: 1 }}>
                     {i + 1}

@@ -9,6 +9,99 @@ import {
   FileText, PenLine, AlertTriangle
 } from 'lucide-react'
 
+// ── Default GDPR privacy document (shown when doc.content is absent) ─────────
+const PRIVACY_DEFAULT = `MODULO DI CONSENSO INFORMATO AL TRATTAMENTO DEI DATI PERSONALI
+ai sensi del Regolamento UE 2016/679 (GDPR) e del D.Lgs. 196/2003 e ss.mm.ii.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TITOLARE DEL TRATTAMENTO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Il titolare del trattamento è il Professionista della Nutrizione che ha attivato il Suo account su questa piattaforma. I suoi dati di contatto sono indicati nel profilo del professionista all'interno dell'applicazione.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. FINALITÀ E BASE GIURIDICA DEL TRATTAMENTO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+I dati personali, inclusi i dati relativi alla salute (categorie particolari ai sensi dell'art. 9 GDPR), vengono trattati per le seguenti finalità:
+
+a) Gestione della cartella nutrizionale e clinica del paziente
+b) Elaborazione e aggiornamento di piani alimentari personalizzati
+c) Monitoraggio dell'andamento nutrizionale, del peso corporeo e del benessere generale
+d) Comunicazioni relative agli appuntamenti e al percorso terapeutico-nutrizionale
+e) Archiviazione di documenti clinici, referti e prescrizioni
+f) Adempimento degli obblighi di legge in materia sanitaria e professionale
+
+La base giuridica del trattamento è:
+- Il consenso esplicito dell'interessato (art. 6, par. 1, lett. a e art. 9, par. 2, lett. a GDPR)
+- L'esecuzione del contratto di prestazione professionale (art. 6, par. 1, lett. b GDPR)
+- Il rispetto di obblighi legali (art. 6, par. 1, lett. c GDPR)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. CATEGORIE DI DATI TRATTATI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Vengono trattati i seguenti dati personali:
+
+▸ Dati anagrafici e di contatto: nome, cognome, data di nascita, codice fiscale, indirizzo, numero di telefono, indirizzo e-mail
+▸ Dati antropometrici: peso attuale e storico, altezza, indice di massa corporea (BMI), composizione corporea
+▸ Dati sanitari: patologie diagnosticate, farmaci assunti, intolleranze e allergie alimentari, esami del sangue e referti forniti volontariamente, anamnesi alimentare
+▸ Dati relativi alle abitudini di vita: attività fisica svolta, abitudini alimentari, preferenze e restrizioni dietetiche
+▸ Fotografie corporee, se concordato espressamente con il professionista
+▸ Dati di utilizzo dell'applicazione NutriPlan (accessi, alimenti registrati, obiettivi)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. MODALITÀ DI TRATTAMENTO E SICUREZZA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+I dati sono trattati con strumenti elettronici e/o cartacei, con misure di sicurezza tecniche e organizzative adeguate a prevenire accessi non autorizzati, perdita, distruzione o divulgazione non consentita. La piattaforma NutriPlan utilizza connessioni cifrate (TLS/SSL), autenticazione sicura e infrastrutture cloud conformi al GDPR.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. PERIODO DI CONSERVAZIONE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+I dati vengono conservati per il periodo strettamente necessario al raggiungimento delle finalità per cui sono stati raccolti, e comunque:
+- Per tutta la durata del rapporto professionale
+- Per un massimo di 10 anni dalla cessazione del rapporto, salvo obblighi di legge che prevedano conservazione più lunga
+- Per tutta la durata prevista dalla normativa fiscale e contabile applicabile
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. COMUNICAZIONE E CONDIVISIONE DEI DATI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+I dati personali non vengono diffusi a terzi. Possono essere comunicati esclusivamente a:
+▸ Medici curanti e altri specialisti sanitari, previo esplicito consenso dell'interessato
+▸ Personale amministrativo dello studio, nei limiti strettamente necessari
+▸ Fornitori di servizi tecnologici (infrastruttura cloud, applicativi software) vincolati da accordi di riservatezza conformi al GDPR
+▸ Autorità pubbliche, nei casi previsti dalla legge
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. TRASFERIMENTO DATI ALL'ESTERO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+I dati potrebbero essere trattati da fornitori di servizi cloud ubicati in Paesi dell'Unione Europea o in Paesi terzi che garantiscono un livello di protezione adeguato ai sensi degli artt. 44-49 GDPR, come gli USA nell'ambito del Data Privacy Framework.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. DIRITTI DELL'INTERESSATO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+In qualsiasi momento Lei potrà esercitare i seguenti diritti (artt. 15–22 GDPR), inviando richiesta scritta al Titolare del trattamento:
+
+▸ Diritto di accesso (art. 15): ottenere conferma che i Suoi dati siano trattati e riceverne copia
+▸ Diritto di rettifica (art. 16): correggere dati inesatti o incompleti
+▸ Diritto alla cancellazione / "diritto all'oblio" (art. 17): chiedere la cancellazione dei dati quando non più necessari
+▸ Diritto alla limitazione del trattamento (art. 18): ottenere la sospensione temporanea del trattamento
+▸ Diritto alla portabilità dei dati (art. 20): ricevere i Suoi dati in formato strutturato e leggibile da dispositivo automatico
+▸ Diritto di opposizione (art. 21): opporsi al trattamento in qualsiasi momento
+▸ Diritto di revocare il consenso (art. 7, par. 3): la revoca non pregiudica la liceità del trattamento effettuato prima della stessa
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8. RECLAMO AL GARANTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Lei ha il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali qualora ritenga che il trattamento dei Suoi dati personali sia effettuato in violazione del GDPR.
+Sito ufficiale: www.garanteprivacy.it
+Indirizzo: Piazza Venezia 11, 00187 Roma
+E-mail: garante@gpdp.it
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DICHIARAZIONE DI CONSENSO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Il/La sottoscritto/a dichiara di aver letto integralmente la presente informativa, di averla compresa in ogni sua parte e di prestare il proprio consenso libero, specifico, informato e inequivocabile al trattamento dei propri dati personali, inclusi quelli relativi allo stato di salute, per le finalità sopra indicate.
+
+Data: ${new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })}`
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function formatTime(ts) {
@@ -202,11 +295,9 @@ function SignatureModal({ doc, onClose, onSigned }) {
 
         {/* Document content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '14px 20px' }}>
-          {doc.content && (
-            <div style={{ background: 'var(--surface-2)', borderRadius: 12, padding: '14px 16px', marginBottom: 16, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, maxHeight: 200, overflowY: 'auto', border: '1px solid var(--border-light)', whiteSpace: 'pre-wrap' }}>
-              {doc.content}
-            </div>
-          )}
+          <div style={{ background: 'var(--surface-2)', borderRadius: 12, padding: '14px 16px', marginBottom: 16, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.75, border: '1px solid var(--border-light)', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono, monospace)', letterSpacing: '0.01em' }}>
+            {doc.content && doc.content.trim().length > 30 ? doc.content : PRIVACY_DEFAULT}
+          </div>
 
           {/* Mode toggle */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>

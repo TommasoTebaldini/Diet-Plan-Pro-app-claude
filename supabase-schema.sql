@@ -655,6 +655,15 @@ create policy "utente gestisce propri pasti" on custom_meals
   with check (auth.uid() = user_id);
 
 -- ── ricette ─────────────────────────────────────────────────
+-- If ingredienti was a TEXT column in the admin-app version of the table, cast it to jsonb
+do $$ begin
+  begin
+    alter table ricette alter column ingredienti type jsonb
+      using case when ingredienti is null or ingredienti::text = '' then '[]'::jsonb
+                 else ingredienti::text::jsonb end;
+  exception when others then null; end;
+end$$;
+
 -- Columns added by NutriPlan patient app (table may exist from admin app with fewer columns)
 alter table ricette add column if not exists user_id uuid references auth.users(id);
 alter table ricette add column if not exists ingredienti jsonb default '[]'::jsonb;

@@ -214,12 +214,13 @@ export async function searchFoods(query) {
   })
   const localItems = [...dedup(a), ...dedup(b), ...dedup(c), ...dedup(d), ...dedup(e)]
 
-  // Skip OFF if local sources already have enough results or query is too short
-  if (normalizedQuery.length < 3 || localItems.length >= 8) {
+  // Skip OFF if local sources already have enough results, query is too short,
+  // or we are on a production build (OFF blocks CORS from production origins).
+  if (normalizedQuery.length < 3 || localItems.length >= 8 || !import.meta.env.DEV) {
     return localItems.slice(0, 30)
   }
 
-  // Fetch Open Food Facts only when local results are sparse
+  // Fetch Open Food Facts only in development where CORS is not restricted
   const offItems = await searchOpenFoodFacts(normalizedQuery)
   const dedupArr = arr => arr.filter(food => {
     if (!food || typeof food !== 'object') return false
