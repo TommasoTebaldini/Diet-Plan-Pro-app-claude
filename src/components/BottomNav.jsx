@@ -114,18 +114,28 @@ export default function BottomNav() {
   ]
 
   if (isDesktop) {
+    const tabMap = Object.fromEntries(TABS.map(t => [t.to, t]))
+    const DESKTOP_SECTIONS = [
+      { label: null, items: ['/'] },
+      { label: 'Nutrizione', items: ['/dieta', '/macro', '/ricette'] },
+      { label: 'Professionisti', items: ['/chat', '/documenti', '/dietisti'] },
+      { label: 'Monitoraggio', items: ['/progressi', '/attivita', '/benessere', '/statistiche'] },
+      { label: null, items: ['/profilo'] },
+    ]
+
     return (
       <>
-        {/* Floating hamburger button shown only when sidebar is closed */}
+        {/* Hamburger handle — vertically centred on left edge when sidebar is closed */}
         {!sidebarOpen && (
           <button onClick={toggleSidebar} style={{
-            position: 'fixed', top: 12, left: 12, zIndex: 1001,
-            width: 34, height: 34, borderRadius: 9,
-            border: '1px solid var(--border-light)', background: 'var(--surface)',
+            position: 'fixed', top: '50%', transform: 'translateY(-50%)', left: 0, zIndex: 1001,
+            width: 22, height: 48, borderRadius: '0 8px 8px 0',
+            border: '1px solid var(--border-light)', borderLeft: 'none',
+            background: 'var(--surface)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-          }}>☰</button>
+            cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13,
+            boxShadow: '2px 0 8px rgba(0,0,0,0.08)',
+          }}>›</button>
         )}
         <nav className="app-sidebar" style={{
           display: 'flex', flexDirection: 'column', zIndex: 999,
@@ -148,40 +158,55 @@ export default function BottomNav() {
             </button>
           </div>
 
-          {/* Nav items */}
+          {/* Nav items with sections */}
           <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '10px 8px', minWidth: 220 }}>
-            {TABS.map(({ to, icon: Icon, label, badge }) => {
-              const active = pathname === to || (to !== '/' && pathname.startsWith(to))
-              return (
-                <Link key={to} to={to} style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '9px 10px', borderRadius: 10, marginBottom: 2,
-                  textDecoration: 'none',
-                  background: active ? 'var(--green-pale)' : 'transparent',
-                  color: active ? 'var(--green-main)' : 'var(--text-secondary)',
-                  fontWeight: active ? 600 : 400,
-                  fontSize: 13,
-                  transition: 'background 0.12s, color 0.12s',
-                  position: 'relative',
-                  whiteSpace: 'nowrap',
-                }}>
-                  <div style={{ position: 'relative', flexShrink: 0 }}>
-                    <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
-                    {badge > 0 && (
-                      <span style={{ ...badgeStyle, top: -5, right: -5, border: `2px solid ${active ? 'var(--green-pale)' : 'var(--surface)'}` }}>
-                        {badge}
-                      </span>
-                    )}
-                  </div>
-                  <span>{label}</span>
-                  {badge > 0 && (
-                    <span style={{ marginLeft: 'auto', background: '#0891b2', color: 'white', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 100 }}>
-                      {badge}
-                    </span>
-                  )}
-                </Link>
-              )
-            })}
+            {DESKTOP_SECTIONS.map((section, si) => (
+              <div key={si}>
+                {section.label && (
+                  <p style={{
+                    fontSize: 9.5, fontWeight: 700, color: 'var(--text-muted)',
+                    textTransform: 'uppercase', letterSpacing: '0.7px',
+                    padding: si === 0 ? '4px 10px' : '14px 10px 4px',
+                    whiteSpace: 'nowrap', opacity: 0.65,
+                  }}>{section.label}</p>
+                )}
+                {section.items.map(to => {
+                  const tab = tabMap[to]
+                  if (!tab) return null
+                  const { icon: Icon, label, badge } = tab
+                  const active = pathname === to || (to !== '/' && pathname.startsWith(to))
+                  return (
+                    <Link key={to} to={to} style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '9px 10px', borderRadius: 10, marginBottom: 2,
+                      textDecoration: 'none',
+                      background: active ? 'var(--green-pale)' : 'transparent',
+                      color: active ? 'var(--green-main)' : 'var(--text-secondary)',
+                      fontWeight: active ? 600 : 400,
+                      fontSize: 13,
+                      transition: 'background 0.12s, color 0.12s',
+                      position: 'relative',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      <div style={{ position: 'relative', flexShrink: 0 }}>
+                        <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
+                        {badge > 0 && (
+                          <span style={{ ...badgeStyle, top: -5, right: -5, border: `2px solid ${active ? 'var(--green-pale)' : 'var(--surface)'}` }}>
+                            {badge}
+                          </span>
+                        )}
+                      </div>
+                      <span>{label}</span>
+                      {badge > 0 && (
+                        <span style={{ marginLeft: 'auto', background: '#0891b2', color: 'white', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 100 }}>
+                          {badge}
+                        </span>
+                      )}
+                    </Link>
+                  )
+                })}
+              </div>
+            ))}
           </div>
         </nav>
       </>

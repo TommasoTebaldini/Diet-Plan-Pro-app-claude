@@ -9,7 +9,11 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Safety net: if getSession() never resolves (e.g. SW interference), release loading after 8s
+    const safetyTimer = setTimeout(() => setLoading(false), 8000)
+
     supabase.auth.getSession().then(({ data: { session } }) => {
+      clearTimeout(safetyTimer)
       setUser(session?.user ?? null)
       if (session?.user) fetchProfile(session.user.id)
       else setLoading(false)
@@ -21,7 +25,7 @@ export function AuthProvider({ children }) {
       else { setProfile(null); setLoading(false) }
     })
 
-    return () => subscription.unsubscribe()
+    return () => { clearTimeout(safetyTimer); subscription.unsubscribe() }
   }, [])
 
   async function fetchProfile(userId) {

@@ -165,13 +165,11 @@ export async function searchOpenFoodFacts(query) {
   const fields = 'code,product_name,product_name_it,product_name_en,brands,nutriments'
   const q = encodeURIComponent(query)
 
-  // Primary: world database filtered by Italian country tag, sorted by scans
-  // Note: it.openfoodfacts.org and search.openfoodfacts.org block CORS from production
-  // domains — only world.openfoodfacts.org sends the required headers.
+  // API v2 sends proper CORS headers; cgi/search.pl is blocked by production origins.
   try {
     const res = await fetch(
-      `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${q}&search_simple=1&action=process&json=1&fields=${fields}&page_size=24&tagtype_0=countries&tag_contains_0=contains&tag_0=italy&sort_by=unique_scans_n`,
-      { signal: AbortSignal.timeout(8000) }
+      `https://world.openfoodfacts.org/api/v2/search?search_terms=${q}&fields=${fields}&page_size=24&sort_by=unique_scans_n&countries_tags_en=italy`,
+      { signal: AbortSignal.timeout(3000) }
     )
     if (res.ok) {
       const data = await res.json()
@@ -183,8 +181,8 @@ export async function searchOpenFoodFacts(query) {
   // Fallback: world database (no country filter)
   try {
     const res = await fetch(
-      `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${q}&search_simple=1&action=process&json=1&fields=${fields}&page_size=24&sort_by=unique_scans_n`,
-      { signal: AbortSignal.timeout(8000) }
+      `https://world.openfoodfacts.org/api/v2/search?search_terms=${q}&fields=${fields}&page_size=24&sort_by=unique_scans_n`,
+      { signal: AbortSignal.timeout(3000) }
     )
     if (res.ok) {
       const data = await res.json()
@@ -198,16 +196,14 @@ export async function searchOpenFoodFacts(query) {
 export async function searchFoods(query) {
   const normalizedQuery = query.toLowerCase().trim()
   if (!normalizedQuery) return []
-  // Avoid expensive remote lookups on very short terms.
-  const shouldSearchOpenFoodFacts = normalizedQuery.length >= 3
-  // Priority order: Dietitian DB (trusted) → Recent → Diet meals → Recipes → Custom meals → OpenFoodFacts
-  const [a, b, c, d, e, f] = await Promise.allSettled([
+
+  // Run all fast local sources in parallel first
+  const [a, b, c, d, e] = await Promise.allSettled([
     Promise.resolve(searchDietitianFoods(normalizedQuery)),
     searchRecentFoods(normalizedQuery),
     searchDietMealFoods(normalizedQuery),
     searchRicette(normalizedQuery),
     searchCustomMeals(normalizedQuery),
-    shouldSearchOpenFoodFacts ? searchOpenFoodFacts(normalizedQuery) : Promise.resolve([]),
   ])
   const seen = new Set()
   const dedup = arr => (arr.status === 'fulfilled' ? arr.value : []).filter(food => {
@@ -216,7 +212,22 @@ export async function searchFoods(query) {
     if (!k || seen.has(k)) return false
     seen.add(k); return true
   })
-  return [...dedup(a), ...dedup(b), ...dedup(c), ...dedup(d), ...dedup(e), ...dedup(f)].slice(0, 30)
+  const localItems = [...dedup(a), ...dedup(b), ...dedup(c), ...dedup(d), ...dedup(e)]
+
+  // Skip OFF if local sources already have enough results or query is too short
+  if (normalizedQuery.length < 3 || localItems.length >= 8) {
+    return localItems.slice(0, 30)
+  }
+
+  // Fetch Open Food Facts only when local results are sparse
+  const offItems = await searchOpenFoodFacts(normalizedQuery)
+  const dedupArr = arr => arr.filter(food => {
+    if (!food || typeof food !== 'object') return false
+    const k = (food.name || '').toLowerCase().trim()
+    if (!k || seen.has(k)) return false
+    seen.add(k); return true
+  })
+  return [...localItems, ...dedupArr(offItems)].slice(0, 30)
 }
 
 export async function searchDatabaseFoods(query) {

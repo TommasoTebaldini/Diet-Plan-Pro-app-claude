@@ -655,11 +655,28 @@ create policy "utente gestisce propri pasti" on custom_meals
   with check (auth.uid() = user_id);
 
 -- ── ricette ─────────────────────────────────────────────────
+-- Columns added by NutriPlan patient app (table may exist from admin app with fewer columns)
+alter table ricette add column if not exists user_id uuid references auth.users(id);
+alter table ricette add column if not exists ingredienti jsonb default '[]'::jsonb;
+alter table ricette add column if not exists porzioni int default 1;
+alter table ricette add column if not exists peso_totale_g numeric default 0;
+alter table ricette add column if not exists kcal_100g numeric default 0;
+alter table ricette add column if not exists proteins_100g numeric default 0;
+alter table ricette add column if not exists carbs_100g numeric default 0;
+alter table ricette add column if not exists fats_100g numeric default 0;
+alter table ricette add column if not exists calorie_porzione numeric default 0;
+alter table ricette add column if not exists proteine numeric default 0;
+alter table ricette add column if not exists carboidrati numeric default 0;
+alter table ricette add column if not exists grassi numeric default 0;
+alter table ricette add column if not exists fibra numeric default 0;
+alter table ricette add column if not exists note text;
 alter table ricette add column if not exists fasi_preparazione jsonb default '[]'::jsonb;
 alter table ricette add column if not exists tempo_preparazione_min int default 0;
 alter table ricette add column if not exists tempo_cottura_min int default 0;
 alter table ricette add column if not exists tempo_raffreddamento_min int default 0;
 alter table ricette add column if not exists is_public boolean default false;
+-- Enable RLS if not already enabled
+alter table ricette enable row level security;
 
 drop policy if exists "utente gestisce proprie ricette" on ricette;
 drop policy if exists "leggi ricette proprie e pubbliche" on ricette;
