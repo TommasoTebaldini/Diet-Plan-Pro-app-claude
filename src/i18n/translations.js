@@ -64,6 +64,7 @@ const translations = {
     'nav.activities': 'Attività',
     'nav.dietitians': 'Dietisti',
     'nav.report': 'Report',
+    'nav.recipes': 'Ricette',
     // ── Dashboard ──
     'dash.greeting_morning': 'Buongiorno',
     'dash.greeting_afternoon': 'Buon pomeriggio',
@@ -285,6 +286,7 @@ const translations = {
     'nav.activities': 'Activity',
     'nav.dietitians': 'Dietitians',
     'nav.report': 'Report',
+    'nav.recipes': 'Recipes',
     // ── Dashboard ──
     'dash.greeting_morning': 'Good morning',
     'dash.greeting_afternoon': 'Good afternoon',
@@ -506,6 +508,7 @@ const translations = {
     'nav.activities': 'Aktivität',
     'nav.dietitians': 'Ernährungsberater',
     'nav.report': 'Bericht',
+    'nav.recipes': 'Rezepte',
     // ── Dashboard ──
     'dash.greeting_morning': 'Guten Morgen',
     'dash.greeting_afternoon': 'Guten Tag',

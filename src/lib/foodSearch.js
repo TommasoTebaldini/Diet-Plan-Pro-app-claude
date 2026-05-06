@@ -86,14 +86,14 @@ async function searchDietMealFoods(query) {
   } catch { return [] }
 }
 
-// Recipes table
+// Recipes table (own + public)
 async function searchRicette(query) {
   try {
-    const { data } = await supabase.from('ricette').select('*').ilike('nome', `%${query}%`).limit(8)
+    const { data } = await supabase.from('ricette').select('*').ilike('nome', `%${query}%`).limit(10)
     if (!data?.length) return []
     return data.map(r => ({
       id: `ricetta_${r.id}`, name: r.nome || r.name || '',
-      brand: '🍳 Ricetta',
+      brand: r.is_public ? '🌐 Ricetta condivisa' : '🍳 Ricetta',
       kcal_100g: r.kcal_100g || r.calorie_porzione || r.calorie || r.kcal || 0,
       proteins_100g: r.proteins_100g || r.proteine || r.proteins || 0,
       carbs_100g: r.carbs_100g || r.carboidrati || r.carbs || 0,

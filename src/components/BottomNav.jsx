@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users } from 'lucide-react'
+import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users, ChefHat } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
@@ -102,6 +102,7 @@ export default function BottomNav() {
     { to: '/', icon: Home, label: t('nav.dashboard') },
     { to: '/dieta', icon: Utensils, label: t('nav.diet') },
     { to: '/macro', icon: BookOpen, label: t('nav.diary') },
+    { to: '/ricette', icon: ChefHat, label: t('nav.recipes') },
     { to: '/chat', icon: MessageCircle, label: t('nav.chat'), badge: unreadChat },
     { to: '/documenti', icon: FileText, label: t('nav.documents'), badge: newDocs },
     { to: '/dietisti', icon: Users, label: t('nav.dietitians') },

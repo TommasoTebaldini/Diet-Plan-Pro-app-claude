@@ -655,10 +655,26 @@ create policy "utente gestisce propri pasti" on custom_meals
   with check (auth.uid() = user_id);
 
 -- ── ricette ─────────────────────────────────────────────────
+alter table ricette add column if not exists fasi_preparazione jsonb default '[]'::jsonb;
+alter table ricette add column if not exists tempo_preparazione_min int default 0;
+alter table ricette add column if not exists tempo_cottura_min int default 0;
+alter table ricette add column if not exists tempo_raffreddamento_min int default 0;
+alter table ricette add column if not exists is_public boolean default false;
+
 drop policy if exists "utente gestisce proprie ricette" on ricette;
-create policy "utente gestisce proprie ricette" on ricette
-  for all using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+drop policy if exists "leggi ricette proprie e pubbliche" on ricette;
+drop policy if exists "inserisci ricette" on ricette;
+drop policy if exists "modifica ricette" on ricette;
+drop policy if exists "elimina ricette" on ricette;
+
+create policy "leggi ricette proprie e pubbliche" on ricette
+  for select using (auth.uid() = user_id or is_public = true);
+create policy "inserisci ricette" on ricette
+  for insert with check (auth.uid() = user_id);
+create policy "modifica ricette" on ricette
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "elimina ricette" on ricette
+  for delete using (auth.uid() = user_id);
 
 -- ── appointments ────────────────────────────────────────────
 drop policy if exists "paziente vede i propri appuntamenti" on appointments;
