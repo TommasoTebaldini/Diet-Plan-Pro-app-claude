@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { searchFoods } from '../lib/foodSearch'
-import { Search, Plus, X, Trash2, ChevronDown, ChevronUp, Globe, Lock } from 'lucide-react'
+import { Search, Plus, X, Trash2, ChevronDown, ChevronUp, Globe, Lock, Bookmark } from 'lucide-react'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -125,96 +124,8 @@ function IngredientSearch({ onAdd }) {
   )
 }
 
-// ── LogModal ─────────────────────────────────────────────────────────────────
-const MEAL_TYPES = [
-  { val: 'colazione', label: 'Colazione' },
-  { val: 'spuntino_mattina', label: 'Spunt. mattina' },
-  { val: 'pranzo', label: 'Pranzo' },
-  { val: 'spuntino_pomeriggio', label: 'Spunt. pomeriggio' },
-  { val: 'cena', label: 'Cena' },
-]
-
-function LogModal({ recipe, userId, onClose }) {
-  const [meal, setMeal] = useState('pranzo')
-  const [portions, setPortions] = useState('1')
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
-  const [saving, setSaving] = useState(false)
-
-  const porz = parseInt(recipe.porzioni) || 1
-  const num = Math.max(0.5, parseFloat(portions) || 1)
-  const gramPerPortion = (recipe.peso_totale_g || 100) / porz
-  const kcal = Math.round((recipe.calorie_porzione || 0) * num)
-  const proteins = Math.round((recipe.proteine || 0) * num * 10) / 10
-  const carbs = Math.round((recipe.carboidrati || 0) * num * 10) / 10
-  const fats = Math.round((recipe.grassi || 0) * num * 10) / 10
-
-  async function save() {
-    setSaving(true)
-    await supabase.from('food_logs').insert({
-      user_id: userId, date, meal_type: meal,
-      food_name: recipe.nome,
-      grams: Math.round(gramPerPortion * num),
-      kcal, proteins, carbs, fats,
-      food_data: {
-        id: `ricetta_${recipe.id}`, name: recipe.nome,
-        brand: recipe.is_public ? '🌐 Ricetta condivisa' : '🍳 Ricetta',
-        kcal_100g: recipe.kcal_100g, proteins_100g: recipe.proteins_100g,
-        carbs_100g: recipe.carbs_100g, fats_100g: recipe.fats_100g,
-        source: 'recipe',
-      },
-    })
-    setSaving(false)
-    onClose(true)
-  }
-
-  return createPortal(
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 2000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(false) }}>
-      <div style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', padding: '20px 16px calc(20px + env(safe-area-inset-bottom))', width: '100%', maxWidth: 520, maxHeight: '85vh', overflowY: 'auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
-          <p style={{ fontSize: 16, fontWeight: 700, flex: 1 }}>Aggiungi al diario</p>
-          <button onClick={() => onClose(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}><X size={18} /></button>
-        </div>
-
-        <div style={{ background: 'var(--green-pale)', borderRadius: 12, padding: '10px 14px', marginBottom: 14 }}>
-          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--green-dark)' }}>🍳 {recipe.nome}</p>
-          <p style={{ fontSize: 12, color: 'var(--green-dark)', marginTop: 2 }}>{kcal} kcal · P:{proteins}g · C:{carbs}g · G:{fats}g</p>
-          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{num} porz. × {Math.round(gramPerPortion)}g</p>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-          <div className="input-group">
-            <label className="input-label">Porzioni</label>
-            <input type="number" className="input-field" value={portions} onChange={e => setPortions(e.target.value)} min="0.5" step="0.5" inputMode="decimal" />
-          </div>
-          <div className="input-group">
-            <label className="input-label">Data</label>
-            <input type="date" className="input-field" value={date} onChange={e => setDate(e.target.value)} />
-          </div>
-        </div>
-
-        <div style={{ marginBottom: 16 }}>
-          <p className="input-label" style={{ marginBottom: 8 }}>Pasto</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-            {MEAL_TYPES.map(m => (
-              <button key={m.val} onClick={() => setMeal(m.val)} style={{ padding: '7px 13px', borderRadius: 100, border: `1.5px solid ${meal === m.val ? 'var(--green-main)' : 'var(--border)'}`, background: meal === m.val ? 'var(--green-pale)' : 'var(--surface)', color: meal === m.val ? 'var(--green-main)' : 'var(--text-secondary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', font: 'inherit' }}>
-                {m.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <button className="btn btn-primary btn-full" onClick={save} disabled={saving}>
-          {saving ? 'Registrazione...' : '+ Registra nel diario'}
-        </button>
-      </div>
-    </div>,
-    document.body
-  )
-}
-
 // ── RecipeCard ────────────────────────────────────────────────────────────────
-function RecipeCard({ r, isOwn, expandedId, setExpandedId, setLogRecipe, onTogglePublic, onDelete }) {
+function RecipeCard({ r, isOwn, expandedId, setExpandedId, onSave, onTogglePublic, onDelete }) {
   const isOpen = expandedId === r.id
   const tt = totalTime(r)
 
@@ -239,9 +150,11 @@ function RecipeCard({ r, isOwn, expandedId, setExpandedId, setLogRecipe, onToggl
               {r.is_public ? <Globe size={15} /> : <Lock size={15} />}
             </button>
           )}
-          <button onClick={() => setLogRecipe(r)} title="Aggiungi al diario" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--green-main)' }}>
-            <Plus size={15} />
-          </button>
+          {!isOwn && (
+            <button onClick={() => onSave(r)} title="Salva nelle mie ricette" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--green-main)' }}>
+              <Bookmark size={15} />
+            </button>
+          )}
           {isOwn && (
             <button onClick={() => onDelete(r.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)' }}>
               <Trash2 size={15} />
@@ -296,9 +209,11 @@ function RecipeCard({ r, isOwn, expandedId, setExpandedId, setLogRecipe, onToggl
 
           {r.note && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 10, fontStyle: 'italic', lineHeight: 1.5 }}>📝 {r.note}</p>}
 
-          <button className="btn btn-primary btn-full" onClick={() => setLogRecipe(r)} style={{ marginTop: 14 }}>
-            + Aggiungi al diario
-          </button>
+          {!isOwn && (
+            <button className="btn btn-primary btn-full" onClick={() => onSave(r)} style={{ marginTop: 14 }}>
+              + Salva nelle mie ricette
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -323,7 +238,6 @@ export default function RecipesPage() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [newStep, setNewStep] = useState('')
   const [expandedId, setExpandedId] = useState(null)
-  const [logRecipe, setLogRecipe] = useState(null)
   const [pubQuery, setPubQuery] = useState('')
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
@@ -386,6 +300,27 @@ export default function RecipesPage() {
   async function deleteRecipe(id) {
     await supabase.from('ricette').delete().eq('id', id)
     setMyRecipes(r => r.filter(x => x.id !== id))
+  }
+
+  async function savePublicRecipe(recipe) {
+    const { data, error } = await supabase.from('ricette').insert({
+      user_id: user.id,
+      nome: recipe.nome, porzioni: recipe.porzioni,
+      peso_totale_g: recipe.peso_totale_g,
+      kcal_100g: recipe.kcal_100g, proteins_100g: recipe.proteins_100g,
+      carbs_100g: recipe.carbs_100g, fats_100g: recipe.fats_100g,
+      calorie_porzione: recipe.calorie_porzione,
+      proteine: recipe.proteine, carboidrati: recipe.carboidrati, grassi: recipe.grassi,
+      fibra: recipe.fibra,
+      ingredienti: safeArray(recipe.ingredienti),
+      fasi_preparazione: safeArray(recipe.fasi_preparazione),
+      tempo_preparazione_min: recipe.tempo_preparazione_min || 0,
+      tempo_cottura_min: recipe.tempo_cottura_min || 0,
+      tempo_raffreddamento_min: recipe.tempo_raffreddamento_min || 0,
+      note: recipe.note, is_public: false,
+    }).select().single()
+    if (error) { showToast('Errore nel salvataggio'); return }
+    if (data) { setMyRecipes(r => [data, ...r]); showToast('Ricetta salvata nelle tue ricette! ✓') }
   }
 
   async function togglePublic(recipe) {
@@ -553,7 +488,7 @@ export default function RecipesPage() {
               )
               : myRecipes.map(r => (
                 <RecipeCard key={r.id} r={r} isOwn expandedId={expandedId} setExpandedId={setExpandedId}
-                  setLogRecipe={setLogRecipe} onTogglePublic={togglePublic} onDelete={deleteRecipe} />
+                  onSave={savePublicRecipe} onTogglePublic={togglePublic} onDelete={deleteRecipe} />
               ))
         )}
 
@@ -580,7 +515,7 @@ export default function RecipesPage() {
                 )
                 : filtered.map(r => (
                   <RecipeCard key={r.id} r={r} isOwn={false} expandedId={expandedId} setExpandedId={setExpandedId}
-                    setLogRecipe={setLogRecipe} onTogglePublic={togglePublic} onDelete={deleteRecipe} />
+                    onSave={savePublicRecipe} onTogglePublic={togglePublic} onDelete={deleteRecipe} />
                 ))
             }
           </>
@@ -588,11 +523,6 @@ export default function RecipesPage() {
 
         <div style={{ height: 16 }} />
       </div>
-
-      {/* Diary log modal */}
-      {logRecipe && (
-        <LogModal recipe={logRecipe} userId={user.id} onClose={saved => { setLogRecipe(null); if (saved) showToast('Registrato nel diario! ✓') }} />
-      )}
 
       {/* Toast */}
       {toast && (

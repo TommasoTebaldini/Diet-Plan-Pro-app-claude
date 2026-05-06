@@ -634,6 +634,29 @@ export default function MacroTrackerPage() {
                             </div>
                             <button onClick={() => { setSelected(null); setQuery('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-muted)' }}><X size={15} /></button>
                           </div>
+                          {selected.serving_size_g && (
+                            <div style={{ marginBottom: 8 }}>
+                              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 5 }}>
+                                Porzioni ({selected.serving_size_label || 'porzione'} = {selected.serving_size_g}g):
+                              </p>
+                              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                                {[1, 2, 3, 4].map(n => {
+                                  const g = Math.round(selected.serving_size_g * n)
+                                  const isActive = parseInt(grams) === g
+                                  return (
+                                    <button key={n} type="button" onClick={() => setGrams(String(g))} style={{
+                                      padding: '5px 10px', borderRadius: 100, fontSize: 11, fontWeight: 600,
+                                      border: `1.5px solid ${isActive ? 'var(--green-main)' : 'var(--border)'}`,
+                                      background: isActive ? 'var(--green-pale)' : 'var(--surface-2)',
+                                      color: isActive ? 'var(--green-dark)' : 'var(--text-muted)', cursor: 'pointer',
+                                    }}>
+                                      {n}× · {g}g
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
                           <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
                             <div className="input-group" style={{ flex: 1 }}>
                               <label className="input-label">Quantità (g)</label>

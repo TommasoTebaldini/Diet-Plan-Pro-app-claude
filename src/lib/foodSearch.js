@@ -86,20 +86,33 @@ async function searchDietMealFoods(query) {
   } catch { return [] }
 }
 
-// Recipes table (own + public)
+// Recipes table (own recipes only — public recipes saved by user become their own copy)
 async function searchRicette(query) {
   try {
-    const { data } = await supabase.from('ricette').select('*').ilike('nome', `%${query}%`).limit(10)
+    const { data: { session } } = await supabase.auth.getSession()
+    const userId = session?.user?.id
+    if (!userId) return []
+    const { data } = await supabase.from('ricette')
+      .select('*')
+      .eq('user_id', userId)
+      .ilike('nome', `%${query}%`)
+      .limit(10)
     if (!data?.length) return []
-    return data.map(r => ({
-      id: `ricetta_${r.id}`, name: r.nome || r.name || '',
-      brand: r.is_public ? '🌐 Ricetta condivisa' : '🍳 Ricetta',
-      kcal_100g: r.kcal_100g || r.calorie_porzione || r.calorie || r.kcal || 0,
-      proteins_100g: r.proteins_100g || r.proteine || r.proteins || 0,
-      carbs_100g: r.carbs_100g || r.carboidrati || r.carbs || 0,
-      fats_100g: r.fats_100g || r.grassi || r.lipidi || 0,
-      fiber_100g: r.fibra || 0, source: 'recipe',
-    })).filter(r => r.name)
+    return data.map(r => {
+      const porzG = r.peso_totale_g && r.porzioni ? Math.round(r.peso_totale_g / r.porzioni) : null
+      return {
+        id: `ricetta_${r.id}`, name: r.nome || '',
+        brand: '🍳 Ricetta',
+        kcal_100g: r.kcal_100g || 0,
+        proteins_100g: r.proteins_100g || 0,
+        carbs_100g: r.carbs_100g || 0,
+        fats_100g: r.fats_100g || 0,
+        fiber_100g: r.fibra || 0,
+        source: 'recipe',
+        serving_size_g: porzG || null,
+        serving_size_label: 'porzione',
+      }
+    }).filter(r => r.name)
   } catch { return [] }
 }
 
