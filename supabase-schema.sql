@@ -675,14 +675,19 @@ alter table ricette add column if not exists tempo_preparazione_min int default 
 alter table ricette add column if not exists tempo_cottura_min int default 0;
 alter table ricette add column if not exists tempo_raffreddamento_min int default 0;
 alter table ricette add column if not exists is_public boolean default false;
--- Enable RLS if not already enabled
+-- user_id must default to the current user so RLS insert check passes
+alter table ricette alter column user_id set default auth.uid();
+-- Grant table-level privileges to authenticated role
+grant select, insert, update, delete on ricette to authenticated;
+-- Enable RLS
 alter table ricette enable row level security;
-
-drop policy if exists "utente gestisce proprie ricette" on ricette;
-drop policy if exists "leggi ricette proprie e pubbliche" on ricette;
-drop policy if exists "inserisci ricette" on ricette;
-drop policy if exists "modifica ricette" on ricette;
-drop policy if exists "elimina ricette" on ricette;
+-- Drop ALL existing policies regardless of name (handles admin-app policy names)
+do $$ declare pol record; begin
+  for pol in select policyname from pg_policies
+             where tablename = 'ricette' and schemaname = 'public' loop
+    execute format('drop policy if exists %I on ricette', pol.policyname);
+  end loop;
+end$$;
 
 create policy "leggi ricette proprie e pubbliche" on ricette
   for select using (auth.uid() = user_id or is_public = true);

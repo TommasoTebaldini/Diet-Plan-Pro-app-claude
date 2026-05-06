@@ -42,11 +42,23 @@ function IngredientSearch({ onAdd }) {
   const [pending, setPending] = useState(null)
   const [pendingGrams, setPendingGrams] = useState('100')
 
+  useEffect(() => {
+    const trimmed = q.trim()
+    if (trimmed.length < 2) { setRes([]); return }
+    const timer = setTimeout(async () => {
+      setBusy(true)
+      setRes(await searchFoods(trimmed))
+      setBusy(false)
+    }, 350)
+    return () => clearTimeout(timer)
+  }, [q])
+
   async function doSearch(e) {
     e?.preventDefault()
-    if (!q.trim() || q.trim().length < 2) return
+    const trimmed = q.trim()
+    if (!trimmed || trimmed.length < 2) return
     setBusy(true); setRes([])
-    setRes(await searchFoods(q.trim()))
+    setRes(await searchFoods(trimmed))
     setBusy(false)
   }
 
@@ -328,7 +340,8 @@ export default function RecipesPage() {
     const peso = form.ingredienti.reduce((s, i) => s + (parseFloat(i.grams) || 0), 0)
     const porzioni = Math.max(1, parseInt(form.porzioni) || 1)
     const fibra = form.ingredienti.reduce((s, i) => s + (i.food_data?.fiber_100g || 0) * (i.grams || 0) / 100, 0)
-    const { data } = await supabase.from('ricette').insert({
+    const { data, error } = await supabase.from('ricette').insert({
+      user_id: user.id,
       nome: form.nome, porzioni,
       peso_totale_g: peso,
       kcal_100g: peso > 0 ? Math.round(t.kcal / peso * 100) : 0,
@@ -349,8 +362,10 @@ export default function RecipesPage() {
       is_public: form.is_public,
     }).select().single()
     setSaving(false)
+    if (error) { showToast('Errore nel salvataggio'); return }
     if (data) {
       setMyRecipes(r => [data, ...r])
+      setTab('mine')
       setForm(EMPTY_FORM); setNewStep('')
       setShowCreate(false)
       showToast('Ricetta salvata!')
