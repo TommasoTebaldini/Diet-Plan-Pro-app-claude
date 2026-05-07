@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { searchFoods } from '../lib/foodSearch'
-import { Search, Plus, X, Trash2, ChevronDown, ChevronUp, Globe, Lock, Bookmark } from 'lucide-react'
+import { Search, Plus, X, Trash2, ChevronDown, ChevronUp, Globe, Lock, Bookmark, Pencil } from 'lucide-react'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -35,6 +35,20 @@ function sumIngredients(ings) {
 
 function totalTime(r) {
   return (r.tempo_preparazione_min || 0) + (r.tempo_cottura_min || 0) + (r.tempo_raffreddamento_min || 0)
+}
+
+function recipeToForm(r) {
+  return {
+    nome: r.nome || '',
+    porzioni: String(r.porzioni || 4),
+    tempo_preparazione_min: r.tempo_preparazione_min ? String(r.tempo_preparazione_min) : '',
+    tempo_cottura_min: r.tempo_cottura_min ? String(r.tempo_cottura_min) : '',
+    tempo_raffreddamento_min: r.tempo_raffreddamento_min ? String(r.tempo_raffreddamento_min) : '',
+    ingredienti: safeArray(r.ingredienti),
+    fasi: safeArray(r.fasi_preparazione),
+    note: r.note || '',
+    is_public: r.is_public || false,
+  }
 }
 
 function fmtTime(min) {
@@ -125,7 +139,7 @@ function IngredientSearch({ onAdd }) {
 }
 
 // ── RecipeCard ────────────────────────────────────────────────────────────────
-function RecipeCard({ r, isOwn, expandedId, setExpandedId, onSave, onTogglePublic, onDelete }) {
+function RecipeCard({ r, isOwn, expandedId, setExpandedId, onSave, onTogglePublic, onDelete, onEdit }) {
   const isOpen = expandedId === r.id
   const tt = totalTime(r)
 
@@ -153,6 +167,11 @@ function RecipeCard({ r, isOwn, expandedId, setExpandedId, onSave, onTogglePubli
           {!isOwn && (
             <button onClick={() => onSave(r)} title="Salva nelle mie ricette" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--green-main)' }}>
               <Bookmark size={15} />
+            </button>
+          )}
+          {isOwn && (
+            <button onClick={() => onEdit(r)} title="Modifica ricetta" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)' }}>
+              <Pencil size={15} />
             </button>
           )}
           {isOwn && (
@@ -241,6 +260,7 @@ export default function RecipesPage() {
   const [pubQuery, setPubQuery] = useState('')
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
+  const [editingRecipe, setEditingRecipe] = useState(null)
 
   useEffect(() => {
     setLoadingMine(true)
@@ -265,8 +285,7 @@ export default function RecipesPage() {
     const peso = form.ingredienti.reduce((s, i) => s + (parseFloat(i.grams) || 0), 0)
     const porzioni = Math.max(1, parseInt(form.porzioni) || 1)
     const fibra = form.ingredienti.reduce((s, i) => s + (i.food_data?.fiber_100g || 0) * (i.grams || 0) / 100, 0)
-    const { data, error } = await supabase.from('ricette').insert({
-      user_id: user.id,
+    const payload = {
       nome: form.nome, porzioni,
       peso_totale_g: peso,
       kcal_100g: peso > 0 ? Math.round(t.kcal / peso * 100) : 0,
@@ -285,16 +304,37 @@ export default function RecipesPage() {
       tempo_raffreddamento_min: parseInt(form.tempo_raffreddamento_min) || 0,
       note: form.note,
       is_public: form.is_public,
-    }).select().single()
-    setSaving(false)
-    if (error) { showToast('Errore nel salvataggio'); return }
-    if (data) {
-      setMyRecipes(r => [data, ...r])
-      setTab('mine')
-      setForm(EMPTY_FORM); setNewStep('')
-      setShowCreate(false)
-      showToast('Ricetta salvata!')
     }
+    if (editingRecipe) {
+      const { data, error } = await supabase.from('ricette').update(payload).eq('id', editingRecipe.id).select().single()
+      setSaving(false)
+      if (error) { showToast('Errore nel salvataggio'); return }
+      if (data) {
+        setMyRecipes(r => r.map(x => x.id === data.id ? data : x))
+        setEditingRecipe(null)
+        setForm(EMPTY_FORM); setNewStep('')
+        setShowCreate(false)
+        showToast('Ricetta aggiornata!')
+      }
+    } else {
+      const { data, error } = await supabase.from('ricette').insert({ user_id: user.id, ...payload }).select().single()
+      setSaving(false)
+      if (error) { showToast('Errore nel salvataggio'); return }
+      if (data) {
+        setMyRecipes(r => [data, ...r])
+        setTab('mine')
+        setForm(EMPTY_FORM); setNewStep('')
+        setShowCreate(false)
+        showToast('Ricetta salvata!')
+      }
+    }
+  }
+
+  function handleEditRecipe(r) {
+    setEditingRecipe(r)
+    setForm(recipeToForm(r))
+    setShowCreate(true)
+    setTab('mine')
   }
 
   async function deleteRecipe(id) {
@@ -348,7 +388,12 @@ export default function RecipesPage() {
         <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, marginBottom: 4 }}>Cucina</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'white', fontWeight: 300, flex: 1 }}>Ricette</h1>
-          <button onClick={() => { setShowCreate(v => !v); setTab('mine') }}
+          <button onClick={() => {
+            const next = !showCreate
+            setShowCreate(next)
+            if (!next) { setEditingRecipe(null); setForm(EMPTY_FORM); setNewStep('') }
+            setTab('mine')
+          }}
             style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.2)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0 }}>
             {showCreate ? <X size={18} /> : <Plus size={18} />}
           </button>
@@ -367,7 +412,7 @@ export default function RecipesPage() {
         {/* ── CREATE FORM ── */}
         {showCreate && (
           <div className="card animate-slideUp" style={{ padding: 16 }}>
-            <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>Nuova ricetta</p>
+            <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>{editingRecipe ? 'Modifica ricetta' : 'Nuova ricetta'}</p>
 
             {/* Nome + porzioni */}
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10, marginBottom: 12 }}>
@@ -466,7 +511,7 @@ export default function RecipesPage() {
             </div>
 
             <button className="btn btn-primary btn-full" onClick={saveRecipe} disabled={saving || !form.nome || form.ingredienti.length === 0}>
-              {saving ? 'Salvataggio...' : '✓ Salva ricetta'}
+              {saving ? 'Salvataggio...' : editingRecipe ? '✓ Aggiorna ricetta' : '✓ Salva ricetta'}
             </button>
           </div>
         )}
@@ -488,7 +533,7 @@ export default function RecipesPage() {
               )
               : myRecipes.map(r => (
                 <RecipeCard key={r.id} r={r} isOwn expandedId={expandedId} setExpandedId={setExpandedId}
-                  onSave={savePublicRecipe} onTogglePublic={togglePublic} onDelete={deleteRecipe} />
+                  onSave={savePublicRecipe} onTogglePublic={togglePublic} onDelete={deleteRecipe} onEdit={handleEditRecipe} />
               ))
         )}
 

@@ -212,11 +212,11 @@ export async function searchFoods(query) {
 
   // Run all fast local sources in parallel first
   const [a, b, c, d, e] = await Promise.allSettled([
-    Promise.resolve(searchDietitianFoods(normalizedQuery)),
     searchRecentFoods(normalizedQuery),
-    searchDietMealFoods(normalizedQuery),
     searchRicette(normalizedQuery),
+    searchDietMealFoods(normalizedQuery),
     searchCustomMeals(normalizedQuery),
+    Promise.resolve(searchDietitianFoods(normalizedQuery)),
   ])
   const seen = new Set()
   const dedup = arr => (arr.status === 'fulfilled' ? arr.value : []).filter(food => {
