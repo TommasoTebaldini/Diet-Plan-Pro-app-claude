@@ -1,14 +1,19 @@
 import { supabase } from './supabase'
-import { DIETITIAN_FOODS } from '../data/foods'
 
 // ─── Dietitian food database (primary, trusted source) ───────────────────────
-// Uses the comprehensive database from the dietitian app (Diet-Plan-Pro).
-// This is prioritised over OpenFoodFacts as it contains professionally
-// curated nutritional values per 100 g.
+// Lazy-loaded on first search so the 117 KB array stays out of the main bundle.
+let _dietitianFoods = null
+async function getDietitianFoods() {
+  if (_dietitianFoods) return _dietitianFoods
+  const mod = await import('../data/foods.js')
+  _dietitianFoods = mod.DIETITIAN_FOODS
+  return _dietitianFoods
+}
 
-function searchDietitianFoods(query) {
+async function searchDietitianFoods(query) {
   const q = query.toLowerCase().trim()
   if (!q) return []
+  const DIETITIAN_FOODS = await getDietitianFoods()
   const tokens = q.split(/\s+/)
   const results = DIETITIAN_FOODS.filter(f => {
     if (!f?.name) return false
@@ -216,7 +221,7 @@ export async function searchFoods(query) {
     searchRicette(normalizedQuery),
     searchDietMealFoods(normalizedQuery),
     searchCustomMeals(normalizedQuery),
-    Promise.resolve(searchDietitianFoods(normalizedQuery)),
+    searchDietitianFoods(normalizedQuery),
   ])
   const seen = new Set()
   const dedup = arr => (arr.status === 'fulfilled' ? arr.value : []).filter(food => {
