@@ -7,6 +7,7 @@ import BottomNav from './components/BottomNav'
 import InstallBanner from './components/InstallBanner'
 import { NotificationProvider } from './context/NotificationContext'
 import OfflineBar from './components/OfflineBar'
+import { useT } from './i18n'
 
 const LoginPage            = lazy(() => import('./pages/LoginPage'))
 const RegisterPage         = lazy(() => import('./pages/RegisterPage'))
@@ -59,6 +60,7 @@ function DietitianRoute({ children }) {
 
 function AppInner() {
   const { user, isDietitian, refreshProfile } = useAuth()
+  const t = useT()
 
   // When connectivity is restored, refresh profile and let pages react to auth state
   async function handleReconnect() {
@@ -95,7 +97,7 @@ function AppInner() {
           </Routes>
         </Suspense>
         <footer className="global-copyright-app">
-          © {new Date().getFullYear()} DietPlan Pro — Tutti i diritti riservati.
+          {t('app.copyright', { year: new Date().getFullYear() })}
         </footer>
       </div>
     </NotificationProvider>

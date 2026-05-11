@@ -7,7 +7,6 @@ import {
   isBiometricSupported,
   isBiometricAvailable,
   getBiometricCredentialId,
-  getBiometricUserId,
   authenticateBiometric,
 } from '../lib/biometric'
 import { supabase } from '../lib/supabase'
@@ -42,7 +41,7 @@ export default function LoginPage() {
     const { error } = await signIn(email, password)
     if (error) {
       setError(error.message === 'Invalid login credentials'
-        ? 'Email o password non corretti'
+        ? t('auth.error_credentials')
         : error.message)
     } else {
       navigate('/')
@@ -55,7 +54,7 @@ export default function LoginPage() {
     setBiometricLoading(true)
     try {
       const ok = await authenticateBiometric()
-      if (!ok) { setError('Autenticazione biometrica annullata.'); return }
+      if (!ok) { setError(t('auth.error_biometric_cancelled')); return }
 
       // Re-use the existing Supabase session (user already authenticated before,
       // the biometric gesture just confirms physical presence).
@@ -63,10 +62,10 @@ export default function LoginPage() {
       if (session) {
         navigate('/')
       } else {
-        setError('Sessione scaduta. Accedi con email e password.')
+        setError(t('auth.error_session_expired'))
       }
     } catch (e) {
-      setError(e?.message || 'Autenticazione biometrica non riuscita.')
+      setError(e?.message || t('auth.error_biometric_cancelled'))
     } finally {
       setBiometricLoading(false)
     }
@@ -117,15 +116,15 @@ export default function LoginPage() {
             Diet Plan Pro
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 17, lineHeight: 1.6 }}>
-            Il tuo piano nutrizionale personalizzato, sempre a portata di mano
+            {t('auth.branding_title')}
           </p>
           <div style={{
             display: 'flex', gap: 20, justifyContent: 'center', marginTop: 40,
           }}>
             {[
-              { icon: '🥗', label: 'Dieta su misura' },
-              { icon: '📊', label: 'Traccia i macro' },
-              { icon: '💧', label: 'Obiettivi idrici' },
+              { icon: '🥗', label: t('auth.branding_feature1') },
+              { icon: '📊', label: t('auth.branding_feature2') },
+              { icon: '💧', label: t('auth.branding_feature3') },
             ].map((item, i) => (
               <div key={i} style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
@@ -172,10 +171,10 @@ export default function LoginPage() {
             fontFamily: 'var(--font-d)', fontSize: 28, color: 'var(--text-primary)',
             fontWeight: 400, letterSpacing: '-0.3px', lineHeight: 1.2,
           }}>
-            Bentornato
+            {t('auth.welcome_back')}
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 6 }}>
-            Il tuo piano nutrizionale ti aspetta
+            {t('auth.subtitle')}
           </p>
         </div>
 
@@ -192,9 +191,6 @@ export default function LoginPage() {
           }}>
             {t('auth.login')}
           </h2>
-          <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 24 }}>
-            {t('auth.login', 'Inserisci le tue credenziali per continuare')}
-          </p>
 
           {error && (
             <div style={{
@@ -246,7 +242,7 @@ export default function LoginPage() {
               {loading
                 ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-                    Accesso in corso…
+                    {t('auth.logging_in')}
                   </span>
                 : t('auth.login_btn')}
             </button>
@@ -285,9 +281,9 @@ export default function LoginPage() {
         </div>
 
         <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-muted)', marginTop: 28 }}>
-          Sei un dietista?{' '}
+          {t('auth.dietitian_prompt')}{' '}
           <a href="https://nutri-plan-pro-cxee.vercel.app" style={{ color: 'var(--green-main)', fontWeight: 500, textDecoration: 'none' }}>
-            Accedi alla piattaforma professionale →
+            {t('auth.dietitian_link')}
           </a>
         </p>
       </div>

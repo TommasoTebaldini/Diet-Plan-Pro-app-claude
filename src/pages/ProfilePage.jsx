@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { useAppSettings } from '../context/AppSettingsContext'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useT } from '../i18n'
 import {
   LogOut, User, Mail, ChevronRight, Bell, Shield, X, Check,
   Eye, EyeOff, Camera, Utensils, AlertCircle, Globe, Moon, Sun, Type, Contrast,
@@ -908,6 +909,7 @@ function BackupModal({ user, onClose }) {
 export default function ProfilePage() {
   const { user, profile, signOut, refreshProfile } = useAuth()
   const { settings } = useAppSettings()
+  const t = useT()
   const navigate = useNavigate()
   const fileInputRef = useRef(null)
   const [modal, setModal] = useState(null) // 'personal' | 'intolerances' | 'foodprefs' | 'security' | 'notifications' | 'appearance' | 'language' | 'biometric' | 'backup'
@@ -955,15 +957,15 @@ export default function ProfilePage() {
   const avatarUrl = localProfile?.avatar_url
 
   const menuItems = [
-    { icon: <User size={18} />, label: 'Dati personali', desc: 'Nome, data nascita, altezza, peso', color: 'var(--green-main)', bg: 'var(--green-pale)', action: () => setModal('personal') },
-    { icon: <AlertCircle size={18} />, label: 'Intolleranze e allergie', desc: 'Glutine, lattosio e altro', color: '#e8882a', bg: '#fff4e6', action: () => setModal('intolerances') },
-    { icon: <Utensils size={18} />, label: 'Preferenze alimentari', desc: 'Vegetariano, vegano, ecc.', color: '#10b981', bg: '#ecfdf5', action: () => setModal('foodprefs') },
-    { icon: <Bell size={18} />, label: 'Notifiche', desc: 'Gestisci gli avvisi', color: '#f0922b', bg: '#fff4e6', action: () => setModal('notifications') },
-    { icon: <Shield size={18} />, label: 'Privacy e sicurezza', desc: 'Cambia password', color: '#8b5cf6', bg: '#f5f3ff', action: () => setModal('security') },
-    { icon: <Fingerprint size={18} />, label: 'Face ID / Touch ID', desc: 'Accesso rapido biometrico', color: '#0ea5e9', bg: '#e0f2fe', action: () => setModal('biometric') },
-    { icon: <Accessibility size={18} />, label: 'Aspetto e accessibilità', desc: settings.darkMode ? 'Tema scuro attivo' : 'Tema chiaro attivo', color: '#6366f1', bg: '#eef2ff', action: () => setModal('appearance') },
-    { icon: <Globe size={18} />, label: 'Lingua', desc: settings.language === 'en' ? 'English' : settings.language === 'de' ? 'Deutsch' : 'Italiano', color: '#0ea5e9', bg: '#f0f9ff', action: () => setModal('language') },
-    { icon: <Download size={18} />, label: 'Backup e ripristino', desc: 'Esporta o importa i tuoi dati', color: '#059669', bg: '#d1fae5', action: () => setModal('backup') },
+    { icon: <User size={18} />, label: t('profile.personal_data'), desc: t('profile.personal_data_desc'), color: 'var(--green-main)', bg: 'var(--green-pale)', action: () => setModal('personal') },
+    { icon: <AlertCircle size={18} />, label: t('profile.intolerances'), desc: t('profile.intolerances_desc'), color: '#e8882a', bg: '#fff4e6', action: () => setModal('intolerances') },
+    { icon: <Utensils size={18} />, label: t('profile.food_prefs'), desc: t('profile.food_prefs_desc'), color: '#10b981', bg: '#ecfdf5', action: () => setModal('foodprefs') },
+    { icon: <Bell size={18} />, label: t('profile.notifications'), desc: t('profile.notifications_desc'), color: '#f0922b', bg: '#fff4e6', action: () => setModal('notifications') },
+    { icon: <Shield size={18} />, label: t('profile.security'), desc: t('profile.security_desc'), color: '#8b5cf6', bg: '#f5f3ff', action: () => setModal('security') },
+    { icon: <Fingerprint size={18} />, label: 'Face ID / Touch ID', desc: t('profile.biometric'), color: '#0ea5e9', bg: '#e0f2fe', action: () => setModal('biometric') },
+    { icon: <Accessibility size={18} />, label: t('profile.appearance'), desc: t('profile.appearance_desc'), color: '#6366f1', bg: '#eef2ff', action: () => setModal('appearance') },
+    { icon: <Globe size={18} />, label: t('profile.language'), desc: t('profile.language_desc'), color: '#0ea5e9', bg: '#f0f9ff', action: () => setModal('language') },
+    { icon: <Download size={18} />, label: t('profile.backup'), desc: t('profile.backup_desc'), color: '#059669', bg: '#d1fae5', action: () => setModal('backup') },
   ]
 
   return (
@@ -995,8 +997,8 @@ export default function ProfilePage() {
           {localProfile?.height_cm && localProfile?.target_weight && (
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 12 }}>
               {[
-                { label: 'Altezza', val: `${localProfile.height_cm} cm` },
-                { label: 'Obiettivo', val: `${localProfile.target_weight} kg` },
+                { label: t('profile.height_short', 'Altezza'), val: `${localProfile.height_cm} cm` },
+                { label: t('profile.goal', 'Obiettivo'), val: `${localProfile.target_weight} kg` },
               ].map(s => (
                 <div key={s.label} style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: '6px 14px' }}>
                   <p style={{ color: 'white', fontSize: 14, fontWeight: 600 }}>{s.val}</p>
@@ -1032,7 +1034,7 @@ export default function ProfilePage() {
 
           {/* Sign out */}
           <button onClick={handleSignOut} disabled={loggingOut} className="btn btn-danger" style={{ borderRadius: 'var(--r-md)', padding: '14px', fontSize: 15, fontWeight: 500, width: '100%', justifyContent: 'center', gap: 8 }}>
-            <LogOut size={17} />{loggingOut ? 'Uscita…' : 'Esci dall\'account'}
+            <LogOut size={17} />{loggingOut ? '…' : t('profile.sign_out')}
           </button>
         </div>
       </div>

@@ -19,8 +19,8 @@ export default function RegisterPage() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
-    if (form.password !== form.confirm) return setError('Le password non coincidono')
-    if (form.password.length < 6) return setError('La password deve avere almeno 6 caratteri')
+    if (form.password !== form.confirm) return setError(t('auth.error_passwords_mismatch'))
+    if (form.password.length < 6) return setError(t('auth.error_password_short'))
     setLoading(true)
     const { error } = await signUp(form.email, form.password, {
       full_name: `${form.name} ${form.surname}`,
@@ -29,7 +29,7 @@ export default function RegisterPage() {
     })
     if (error) {
       setError(error.message === 'User already registered'
-        ? 'Email già registrata. Prova ad accedere.'
+        ? t('auth.error_email_taken')
         : error.message)
     } else {
       setSuccess(true)
@@ -42,10 +42,10 @@ export default function RegisterPage() {
       <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
         <CheckCircle size={36} color="var(--green-main)" />
       </div>
-      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 300, marginBottom: 12 }}>Registrazione completata!</h2>
-      <p style={{ color: 'var(--text-secondary)', marginBottom: 8 }}>Controlla la tua email per confermare l'account.</p>
-      <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 32 }}>Il tuo dietista dovrà collegare il tuo profilo per mostrarti la dieta.</p>
-      <button className="btn btn-primary" onClick={() => navigate('/login')}>Vai al login</button>
+      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 300, marginBottom: 12 }}>{t('auth.register_success')}</h2>
+      <p style={{ color: 'var(--text-secondary)', marginBottom: 8 }}>{t('auth.register_check_email')}</p>
+      <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 32 }}>{t('auth.register_dietitian_note')}</p>
+      <button className="btn btn-primary" onClick={() => navigate('/login')}>{t('auth.go_to_login')}</button>
     </div>
   )
 
@@ -61,7 +61,7 @@ export default function RegisterPage() {
             <Leaf size={28} color="white" />
           </div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 26, color: 'white', fontWeight: 300 }}>{t('auth.register')}</h1>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginTop: 6 }}>Inizia il tuo percorso nutrizionale</p>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginTop: 6 }}>{t('auth.register_title')}</p>
         </div>
       </div>
 
@@ -95,7 +95,7 @@ export default function RegisterPage() {
             <div className="input-group">
               <label className="input-label">{t('auth.password')}</label>
               <div style={{ position: 'relative' }}>
-                <input type={showPass ? 'text' : 'password'} className="input-field" placeholder="Min. 6 caratteri" value={form.password} onChange={set('password')} required style={{ paddingRight: 48 }} />
+                <input type={showPass ? 'text' : 'password'} className="input-field" placeholder={t('auth.password_placeholder')} value={form.password} onChange={set('password')} required style={{ paddingRight: 48 }} />
                 <button type="button" onClick={() => setShowPass(v => !v)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
                   {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -104,7 +104,7 @@ export default function RegisterPage() {
 
             <div className="input-group">
               <label className="input-label">{t('auth.confirm_password')}</label>
-              <input type="password" className="input-field" placeholder="Ripeti la password" value={form.confirm} onChange={set('confirm')} required />
+              <input type="password" className="input-field" placeholder={t('auth.confirm_password_placeholder')} value={form.confirm} onChange={set('confirm')} required />
             </div>
 
             <button type="submit" className="btn btn-primary btn-full" disabled={loading} style={{ marginTop: 4 }}>

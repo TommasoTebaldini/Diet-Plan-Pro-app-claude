@@ -117,9 +117,9 @@ export default function BottomNav() {
     const tabMap = Object.fromEntries(TABS.map(t => [t.to, t]))
     const DESKTOP_SECTIONS = [
       { label: null, items: ['/'] },
-      { label: 'Nutrizione', items: ['/dieta', '/macro', '/ricette'] },
-      { label: 'Professionisti', items: ['/chat', '/documenti', '/dietisti'] },
-      { label: 'Monitoraggio', items: ['/progressi', '/attivita', '/benessere', '/statistiche'] },
+      { label: t('nav.section_nutrition'), items: ['/dieta', '/macro', '/ricette'] },
+      { label: t('nav.section_professionals'), items: ['/chat', '/documenti', '/dietisti'] },
+      { label: t('nav.section_monitoring'), items: ['/progressi', '/attivita', '/benessere', '/statistiche'] },
       { label: null, items: ['/profilo'] },
     ]
 

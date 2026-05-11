@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { WifiOff, Wifi, RefreshCw } from 'lucide-react'
+import { useT } from '../i18n'
 
 /**
  * Shows a banner when the device is offline.
  * When connectivity is restored, fires onReconnect so callers can refresh data.
  */
 export default function OfflineBar({ onReconnect }) {
+  const t = useT()
   const [online, setOnline] = useState(() => navigator.onLine)
   const [justReconnected, setJustReconnected] = useState(false)
   const [syncing, setSyncing] = useState(false)
@@ -52,10 +54,10 @@ export default function OfflineBar({ onReconnect }) {
       animation: 'slideDown 0.3s ease',
     }}>
       {isOffline
-        ? <><WifiOff size={15} /> Nessuna connessione – modalità offline</>
+        ? <><WifiOff size={15} /> {t('offline.no_connection')}</>
         : syncing
-          ? <><RefreshCw size={15} style={{ animation: 'spin 0.7s linear infinite' }} /> Sincronizzazione in corso…</>
-          : <><Wifi size={15} /> Connessione ripristinata!</>
+          ? <><RefreshCw size={15} style={{ animation: 'spin 0.7s linear infinite' }} /> {t('offline.syncing')}</>
+          : <><Wifi size={15} /> {t('offline.reconnected')}</>
       }
     </div>
   )

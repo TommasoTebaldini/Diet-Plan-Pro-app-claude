@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { searchFoods } from '../lib/foodSearch'
 import { Search, Plus, X, Trash2, ChevronDown, ChevronUp, Globe, Lock, Bookmark, Pencil } from 'lucide-react'
+import { useT } from '../i18n'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -60,6 +61,7 @@ function fmtTime(min) {
 
 // ── IngredientSearch ──────────────────────────────────────────────────────────
 function IngredientSearch({ onAdd }) {
+  const t = useT()
   const [q, setQ] = useState('')
   const [res, setRes] = useState([])
   const [busy, setBusy] = useState(false)
@@ -103,10 +105,10 @@ function IngredientSearch({ onAdd }) {
             <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>{pending.name}</p>
             <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
               <div className="input-group" style={{ flex: 1 }}>
-                <label className="input-label">Quantità (g)</label>
+                <label className="input-label">{t('food.quantity_g')}</label>
                 <input type="number" className="input-field" value={pendingGrams} onChange={e => setPendingGrams(e.target.value)} min={1} inputMode="decimal" autoFocus />
               </div>
-              <button type="submit" className="btn btn-primary" style={{ flexShrink: 0, height: 42 }}>Aggiungi</button>
+              <button type="submit" className="btn btn-primary" style={{ flexShrink: 0, height: 42 }}>{t('common.add')}</button>
               <button type="button" onClick={() => setPending(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)', height: 42, display: 'flex', alignItems: 'center' }}>
                 <X size={15} />
               </button>
@@ -116,7 +118,7 @@ function IngredientSearch({ onAdd }) {
         </form>
       ) : (
         <form onSubmit={doSearch} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-          <input type="text" className="input-field" placeholder="Cerca ingrediente…" value={q} onChange={e => setQ(e.target.value)} style={{ flex: 1 }} autoComplete="off" />
+          <input type="text" className="input-field" placeholder={t('recipes.search_ingredient')} value={q} onChange={e => setQ(e.target.value)} style={{ flex: 1 }} autoComplete="off" />
           <button type="submit" className="btn btn-primary" style={{ padding: '0 14px', flexShrink: 0 }} disabled={busy || q.trim().length < 2}>
             {busy
               ? <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'block' }} />
@@ -248,6 +250,7 @@ const EMPTY_FORM = {
 
 export default function RecipesPage() {
   const { user } = useAuth()
+  const t = useT()
   const [tab, setTab] = useState('mine')
   const [myRecipes, setMyRecipes] = useState([])
   const [publicRecipes, setPublicRecipes] = useState([])
@@ -281,21 +284,21 @@ export default function RecipesPage() {
   async function saveRecipe() {
     if (!form.nome || form.ingredienti.length === 0) return
     setSaving(true)
-    const t = sumIngredients(form.ingredienti)
+    const totals = sumIngredients(form.ingredienti)
     const peso = form.ingredienti.reduce((s, i) => s + (parseFloat(i.grams) || 0), 0)
     const porzioni = Math.max(1, parseInt(form.porzioni) || 1)
     const fibra = form.ingredienti.reduce((s, i) => s + (i.food_data?.fiber_100g || 0) * (i.grams || 0) / 100, 0)
     const payload = {
       nome: form.nome, porzioni,
       peso_totale_g: peso,
-      kcal_100g: peso > 0 ? Math.round(t.kcal / peso * 100) : 0,
-      proteins_100g: peso > 0 ? Math.round(t.proteins / peso * 1000) / 10 : 0,
-      carbs_100g: peso > 0 ? Math.round(t.carbs / peso * 1000) / 10 : 0,
-      fats_100g: peso > 0 ? Math.round(t.fats / peso * 1000) / 10 : 0,
-      calorie_porzione: Math.round(t.kcal / porzioni),
-      proteine: Math.round(t.proteins / porzioni * 10) / 10,
-      carboidrati: Math.round(t.carbs / porzioni * 10) / 10,
-      grassi: Math.round(t.fats / porzioni * 10) / 10,
+      kcal_100g: peso > 0 ? Math.round(totals.kcal / peso * 100) : 0,
+      proteins_100g: peso > 0 ? Math.round(totals.proteins / peso * 1000) / 10 : 0,
+      carbs_100g: peso > 0 ? Math.round(totals.carbs / peso * 1000) / 10 : 0,
+      fats_100g: peso > 0 ? Math.round(totals.fats / peso * 1000) / 10 : 0,
+      calorie_porzione: Math.round(totals.kcal / porzioni),
+      proteine: Math.round(totals.proteins / porzioni * 10) / 10,
+      carboidrati: Math.round(totals.carbs / porzioni * 10) / 10,
+      grassi: Math.round(totals.fats / porzioni * 10) / 10,
       fibra: Math.round(fibra * 10) / 10,
       ingredienti: form.ingredienti,
       fasi_preparazione: form.fasi,
@@ -308,24 +311,24 @@ export default function RecipesPage() {
     if (editingRecipe) {
       const { data, error } = await supabase.from('ricette').update(payload).eq('id', editingRecipe.id).select().single()
       setSaving(false)
-      if (error) { showToast('Errore nel salvataggio'); return }
+      if (error) { showToast(t('recipes.error_save')); return }
       if (data) {
         setMyRecipes(r => r.map(x => x.id === data.id ? data : x))
         setEditingRecipe(null)
         setForm(EMPTY_FORM); setNewStep('')
         setShowCreate(false)
-        showToast('Ricetta aggiornata!')
+        showToast(t('recipes.updated'))
       }
     } else {
       const { data, error } = await supabase.from('ricette').insert({ user_id: user.id, ...payload }).select().single()
       setSaving(false)
-      if (error) { showToast('Errore nel salvataggio'); return }
+      if (error) { showToast(t('recipes.error_save')); return }
       if (data) {
         setMyRecipes(r => [data, ...r])
         setTab('mine')
         setForm(EMPTY_FORM); setNewStep('')
         setShowCreate(false)
-        showToast('Ricetta salvata!')
+        showToast(t('recipes.saved'))
       }
     }
   }
@@ -359,8 +362,8 @@ export default function RecipesPage() {
       tempo_raffreddamento_min: recipe.tempo_raffreddamento_min || 0,
       note: recipe.note, is_public: false,
     }).select().single()
-    if (error) { showToast('Errore nel salvataggio'); return }
-    if (data) { setMyRecipes(r => [data, ...r]); showToast('Ricetta salvata nelle tue ricette! ✓') }
+    if (error) { showToast(t('recipes.error_save')); return }
+    if (data) { setMyRecipes(r => [data, ...r]); showToast(t('recipes.saved_yours')) }
   }
 
   async function togglePublic(recipe) {
@@ -385,9 +388,9 @@ export default function RecipesPage() {
     <div className="page">
       {/* Header */}
       <div style={{ background: 'linear-gradient(160deg, #b45309, #d97706)', padding: 'calc(env(safe-area-inset-top) + 18px) 16px 22px', flexShrink: 0 }}>
-        <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, marginBottom: 4 }}>Cucina</p>
+        <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, marginBottom: 4 }}>{t('recipes.cuisine')}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'white', fontWeight: 300, flex: 1 }}>Ricette</h1>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'white', fontWeight: 300, flex: 1 }}>{t('recipes.title')}</h1>
           <button onClick={() => {
             const next = !showCreate
             setShowCreate(next)
@@ -399,7 +402,7 @@ export default function RecipesPage() {
           </button>
         </div>
         <div style={{ display: 'flex', gap: 7 }}>
-          {[['mine', '👨‍🍳 Le mie'], ['public', '🌐 Pubbliche']].map(([val, label]) => (
+          {[['mine', `👨‍🍳 ${t('recipes.mine')}`], ['public', `🌐 ${t('recipes.public')}`]].map(([val, label]) => (
             <button key={val} onClick={() => setTab(val)} style={{ padding: '7px 14px', borderRadius: 100, background: tab === val ? 'white' : 'rgba(255,255,255,0.18)', color: tab === val ? '#b45309' : 'white', border: 'none', font: 'inherit', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
               {label}
             </button>
@@ -412,16 +415,16 @@ export default function RecipesPage() {
         {/* ── CREATE FORM ── */}
         {showCreate && (
           <div className="card animate-slideUp" style={{ padding: 16 }}>
-            <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>{editingRecipe ? 'Modifica ricetta' : 'Nuova ricetta'}</p>
+            <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>{editingRecipe ? t('recipes.edit') : t('recipes.new')}</p>
 
             {/* Nome + porzioni */}
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10, marginBottom: 12 }}>
               <div className="input-group" style={{ gridColumn: '1 / -1' }}>
-                <label className="input-label">Nome ricetta *</label>
+                <label className="input-label">{t('recipes.name_label')}</label>
                 <input className="input-field" value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} placeholder="es. Pasta al pomodoro" />
               </div>
               <div className="input-group">
-                <label className="input-label">Porzioni</label>
+                <label className="input-label">{t('recipes.portions')}</label>
                 <input type="number" className="input-field" value={form.porzioni} onChange={e => setForm(f => ({ ...f, porzioni: e.target.value }))} min={1} inputMode="numeric" />
               </div>
             </div>
@@ -443,7 +446,7 @@ export default function RecipesPage() {
             </div>
 
             {/* Ingredienti */}
-            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Ingredienti *</p>
+            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('recipes.ingredients')}</p>
             <IngredientSearch onAdd={ing => setForm(f => ({ ...f, ingredienti: [...f.ingredienti, ing] }))} />
             {form.ingredienti.length > 0 && (
               <div style={{ marginBottom: 12 }}>
@@ -466,7 +469,7 @@ export default function RecipesPage() {
             )}
 
             {/* Fasi preparazione */}
-            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Fasi di preparazione</p>
+            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('recipes.steps')}</p>
             {form.fasi.map((step, idx) => (
               <div key={idx} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '7px 0', borderBottom: '1px solid var(--border-light)' }}>
                 <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--green-main)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0, marginTop: 2 }}>
@@ -490,7 +493,7 @@ export default function RecipesPage() {
 
             {/* Note */}
             <div className="input-group" style={{ marginBottom: 14 }}>
-              <label className="input-label">Note (opzionale)</label>
+              <label className="input-label">{t('recipes.notes')}</label>
               <textarea className="input-field" rows={2} value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Varianti, consigli, sostituzioni…" style={{ resize: 'vertical' }} />
             </div>
 
@@ -499,7 +502,7 @@ export default function RecipesPage() {
               onClick={() => setForm(f => ({ ...f, is_public: !f.is_public }))}>
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: 13, fontWeight: 600, color: form.is_public ? '#1d4ed8' : 'var(--text-secondary)' }}>
-                  {form.is_public ? '🌐 Ricetta pubblica' : '🔒 Ricetta privata'}
+                  {form.is_public ? `🌐 ${t('recipes.public_label')}` : `🔒 ${t('recipes.private_label')}`}
                 </p>
                 <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
                   {form.is_public ? 'Visibile a tutti gli utenti' : 'Visibile solo a te'}
@@ -511,7 +514,7 @@ export default function RecipesPage() {
             </div>
 
             <button className="btn btn-primary btn-full" onClick={saveRecipe} disabled={saving || !form.nome || form.ingredienti.length === 0}>
-              {saving ? 'Salvataggio...' : editingRecipe ? '✓ Aggiorna ricetta' : '✓ Salva ricetta'}
+              {saving ? `${t('common.loading')}` : editingRecipe ? `✓ ${t('recipes.update')}` : `✓ ${t('recipes.save')}`}
             </button>
           </div>
         )}
@@ -519,15 +522,15 @@ export default function RecipesPage() {
         {/* ── LE MIE RICETTE ── */}
         {tab === 'mine' && (
           loadingMine
-            ? <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 13 }}>Caricamento...</div>
+            ? <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 13 }}>{t('common.loading')}</div>
             : myRecipes.length === 0 && !showCreate
               ? (
                 <div style={{ textAlign: 'center', padding: '50px 0 30px', color: 'var(--text-muted)' }}>
                   <div style={{ fontSize: 52, marginBottom: 12 }}>🍳</div>
-                  <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Nessuna ricetta</p>
-                  <p style={{ fontSize: 12, lineHeight: 1.7 }}>Crea la tua prima ricetta e calcola<br />i macro automaticamente</p>
+                  <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{t('recipes.empty_mine')}</p>
+                  <p style={{ fontSize: 12, lineHeight: 1.7 }}>{t('recipes.create_first')}</p>
                   <button className="btn btn-primary" onClick={() => setShowCreate(true)} style={{ marginTop: 16 }}>
-                    + Crea ricetta
+                    + {t('recipes.new')}
                   </button>
                 </div>
               )
@@ -545,13 +548,13 @@ export default function RecipesPage() {
               {pubQuery && <button onClick={() => setPubQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '0 8px' }}><X size={16} /></button>}
             </div>
             {loadingPublic
-              ? <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 13 }}>Caricamento...</div>
+              ? <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 13 }}>{t('common.loading')}</div>
               : filtered.length === 0
                 ? (
                   <div style={{ textAlign: 'center', padding: '50px 0', color: 'var(--text-muted)' }}>
                     <div style={{ fontSize: 52, marginBottom: 12 }}>🌐</div>
                     <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>
-                      {pubQuery ? 'Nessun risultato' : 'Nessuna ricetta pubblica'}
+                      {pubQuery ? t('common.no_data') : t('recipes.empty_public')}
                     </p>
                     <p style={{ fontSize: 12 }}>
                       {pubQuery ? 'Prova un termine diverso' : 'Sii il primo a condividere una ricetta!'}

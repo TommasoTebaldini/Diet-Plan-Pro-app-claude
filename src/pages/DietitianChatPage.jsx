@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { Send, CheckCheck, Check, MessageCircle, LogOut, Users, ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Apple, Clock, UserPlus, Search, X, FolderOpen, User } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useT } from '../i18n'
 
 const MEALS = [
   { key: 'colazione', label: 'Colazione', emoji: '☀️' },
@@ -418,6 +419,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
 
 function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkPatient }) {
   const navigate = useNavigate()
+  const t = useT()
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'white' }}>
       {/* Header */}
@@ -430,9 +432,9 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkP
           <Users size={20} color="white" />
           <div>
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'white', fontWeight: 400 }}>
-              Chat Pazienti
+              {t('dchat.title')}
             </h1>
-            <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>Vista dietista</p>
+            <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>{t('dchat.subtitle')}</p>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -441,21 +443,21 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkP
             padding: '7px 10px', cursor: 'pointer', color: 'white',
             display: 'flex', alignItems: 'center', gap: 5, fontSize: 12,
           }}>
-            <User size={14} /> Profilo
+            <User size={14} /> {t('dchat.profile_btn')}
           </button>
           <button onClick={onLinkPatient} style={{
             background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10,
             padding: '7px 10px', cursor: 'pointer', color: 'white',
             display: 'flex', alignItems: 'center', gap: 5, fontSize: 12,
           }}>
-            <UserPlus size={14} /> Collega
+            <UserPlus size={14} /> {t('dchat.connect')}
           </button>
           <button onClick={onSignOut} style={{
             background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10,
             padding: '7px 10px', cursor: 'pointer', color: 'white',
             display: 'flex', alignItems: 'center', gap: 5, fontSize: 12,
           }}>
-            <LogOut size={14} /> Esci
+            <LogOut size={14} /> {t('dchat.sign_out')}
           </button>
         </div>
       </div>
@@ -465,14 +467,14 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkP
         {loading ? (
           <div style={{ textAlign: 'center', padding: 40 }}>
             <div style={{ width: 24, height: 24, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto 10px' }} />
-            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Caricamento…</p>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('common.loading')}</p>
           </div>
         ) : patients.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '50px 24px' }}>
             <MessageCircle size={40} color="var(--border)" style={{ marginBottom: 12 }} />
-            <p style={{ fontSize: 14, fontWeight: 500 }}>Nessun paziente collegato</p>
+            <p style={{ fontSize: 14, fontWeight: 500 }}>{t('dchat.no_patients')}</p>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.6, maxWidth: 280 }}>
-              Collega i pazienti dal tuo pannello di gestione per avviare le chat.
+              {t('dchat.no_patients_desc')}
             </p>
           </div>
         ) : patients.map(p => {
@@ -651,6 +653,7 @@ function PatientDiary({ patientId }) {
 function ChatView({ currentPatient, messages, text, setText, sending, bottomRef, inputRef, onSend, onBack }) {
   const groups = groupByDate(messages)
   const [tab, setTab] = useState('chat')
+  const t = useT()
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--surface-2)' }}>
@@ -677,28 +680,28 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
                 <p style={{ color: 'white', fontSize: 16, fontWeight: 600 }}>
                   {patientDisplayName(currentPatient.profile)}
                 </p>
-                <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>Paziente</p>
+                <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>{t('dchat.patient_label')}</p>
               </div>
             </>
           ) : (
-            <p style={{ color: 'white', fontSize: 15 }}>Seleziona un paziente</p>
+            <p style={{ color: 'white', fontSize: 15 }}>{t('dchat.select_patient')}</p>
           )}
         </div>
         {/* Tabs */}
         {currentPatient && (
           <div style={{ display: 'flex', gap: 0 }}>
             {[
-              { key: 'chat', label: 'Chat', icon: <MessageCircle size={13} /> },
-              { key: 'diario', label: 'Diario alimentare', icon: <BookOpen size={13} /> },
-            ].map(t => (
-              <button key={t.key} onClick={() => setTab(t.key)} style={{
+              { key: 'chat', label: t('dchat.tab_chat'), icon: <MessageCircle size={13} /> },
+              { key: 'diario', label: t('dchat.tab_diary'), icon: <BookOpen size={13} /> },
+            ].map(tab_item => (
+              <button key={tab_item.key} onClick={() => setTab(tab_item.key)} style={{
                 flex: 1, background: 'none', border: 'none', cursor: 'pointer', padding: '8px 10px',
-                color: tab === t.key ? 'white' : 'rgba(255,255,255,0.55)',
-                borderBottom: `2px solid ${tab === t.key ? 'white' : 'transparent'}`,
+                color: tab === tab_item.key ? 'white' : 'rgba(255,255,255,0.55)',
+                borderBottom: `2px solid ${tab === tab_item.key ? 'white' : 'transparent'}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                fontSize: 12, fontWeight: tab === t.key ? 600 : 400, transition: 'all 0.15s',
+                fontSize: 12, fontWeight: tab === tab_item.key ? 600 : 400, transition: 'all 0.15s',
               }}>
-                {t.icon} {t.label}
+                {tab_item.icon} {tab_item.label}
               </button>
             ))}
           </div>
@@ -708,9 +711,9 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
       {!currentPatient ? (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', textAlign: 'center' }}>
           <MessageCircle size={48} color="var(--border)" style={{ marginBottom: 14 }} />
-          <p style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-muted)' }}>Seleziona un paziente</p>
+          <p style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-muted)' }}>{t('dchat.select_patient')}</p>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.6, maxWidth: 260 }}>
-            Clicca su un paziente nella lista per leggere e rispondere ai messaggi.
+            {t('dchat.select_patient_desc')}
           </p>
         </div>
       ) : tab === 'diario' ? (
@@ -722,9 +725,9 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
             {messages.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '50px 20px' }}>
                 <div style={{ fontSize: 44, marginBottom: 12 }}>💬</div>
-                <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 6 }}>Nessun messaggio</p>
+                <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 6 }}>{t('dchat.no_messages')}</p>
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                  Inizia la conversazione con {patientDisplayName(currentPatient.profile)}.
+                  {t('dchat.no_messages_desc', { name: patientDisplayName(currentPatient.profile) })}
                 </p>
               </div>
             ) : (
@@ -772,7 +775,7 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
                   ref={inputRef} value={text}
                   onChange={e => setText(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(e) } }}
-                  placeholder="Scrivi un messaggio…" rows={1}
+                  placeholder={t('chat.placeholder')} rows={1}
                   style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontFamily: 'var(--font-body)', fontSize: 15, color: 'var(--text-primary)', resize: 'none', maxHeight: 100, lineHeight: 1.5 }}
                 />
               </div>

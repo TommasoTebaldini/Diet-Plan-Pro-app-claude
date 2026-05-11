@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Download, X } from 'lucide-react'
+import { useT } from '../i18n'
 
 export default function InstallBanner() {
+  const t = useT()
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [show, setShow] = useState(false)
   const [isIOS, setIsIOS] = useState(false)
@@ -58,15 +60,15 @@ export default function InstallBanner() {
         <Download size={18} color="white" />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 1 }}>Installa NutriPlan</p>
+        <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 1 }}>{t('install.title')}</p>
         {isIOS
-          ? <p style={{ fontSize: 12, opacity: 0.8 }}>Tocca <strong>Condividi</strong> poi <strong>"Aggiungi a schermata Home"</strong></p>
-          : <p style={{ fontSize: 12, opacity: 0.8 }}>Aggiungi l'app al tuo dispositivo</p>
+          ? <p style={{ fontSize: 12, opacity: 0.8 }} dangerouslySetInnerHTML={{ __html: t('install.ios_hint').replace('Condividi', '<strong>Condividi</strong>').replace('"Aggiungi a schermata Home"', '<strong>"Aggiungi a schermata Home"</strong>') }} />
+          : <p style={{ fontSize: 12, opacity: 0.8 }}>{t('install.android_hint')}</p>
         }
       </div>
       {!isIOS && (
         <button onClick={install} style={{ background: 'white', color: 'var(--green-dark)', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
-          Installa
+          {t('install.install_btn')}
         </button>
       )}
       <button onClick={dismiss} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}>
