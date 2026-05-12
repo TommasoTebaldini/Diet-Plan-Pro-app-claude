@@ -37,11 +37,12 @@ const BUILD_ID = __BUILD_ID__
 registerSW({ immediate: true })
 
 // Ascolta il messaggio SW_RELOAD inviato da sw-reload.js quando il nuovo
-// service worker prende il controllo. client.navigate() può fallire su iOS
-// Safari, quindi usiamo anche questo handler come fallback garantito.
+// service worker prende il controllo. Ricarica solo se c'era già un controller
+// attivo (aggiornamento), non al primo install.
 if ('serviceWorker' in navigator) {
+  const hadController = !!navigator.serviceWorker.controller
   navigator.serviceWorker.addEventListener('message', event => {
-    if (event.data && event.data.type === 'SW_RELOAD') {
+    if (event.data && event.data.type === 'SW_RELOAD' && hadController) {
       window.location.reload()
     }
   })
