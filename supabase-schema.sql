@@ -278,6 +278,8 @@ create table if not exists dietitian_profiles (
   telefono        text default '',
   email_contatto  text default '',
   sito_web        text default '',
+  metodi_lavoro   text default '',
+  avatar_url      text default '',
   visible         boolean default true,
   created_at      timestamptz default now(),
   updated_at      timestamptz default now()
@@ -287,6 +289,42 @@ create table if not exists dietitian_profiles (
 -- ============================================================
 -- COLONNE AGGIUNTIVE (profiles, tabelle cliniche, documenti)
 -- ============================================================
+
+-- dietitian_profiles: nuove colonne
+alter table dietitian_profiles add column if not exists metodi_lavoro text default '';
+alter table dietitian_profiles add column if not exists avatar_url     text default '';
+
+-- Permetti ai pazienti di prenotare appuntamenti autonomamente
+drop policy if exists "paziente prenota appuntamento" on appointments;
+create policy "paziente prenota appuntamento" on appointments
+  for insert with check (auth.uid() = patient_id);
+
+-- Storage: bucket per le foto profilo dei dietisti
+-- Eseguire nel dashboard Supabase → Storage oppure via SQL:
+insert into storage.buckets (id, name, public)
+values ('dietitian-avatars', 'dietitian-avatars', true)
+on conflict (id) do nothing;
+
+drop policy if exists "dietitian upload own avatar" on storage.objects;
+create policy "dietitian upload own avatar"
+  on storage.objects for insert to authenticated
+  with check (
+    bucket_id = 'dietitian-avatars'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "dietitian update own avatar" on storage.objects;
+create policy "dietitian update own avatar"
+  on storage.objects for update to authenticated
+  using (
+    bucket_id = 'dietitian-avatars'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "public read dietitian avatars" on storage.objects;
+create policy "public read dietitian avatars"
+  on storage.objects for select
+  using (bucket_id = 'dietitian-avatars');
 
 -- Profili utente: colonne estese
 alter table profiles add column if not exists role text default 'patient';

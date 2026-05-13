@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
-import { ArrowLeft, User, MapPin, Phone, Mail, Globe, GraduationCap, Eye, EyeOff, Save, CheckCircle } from 'lucide-react'
+import { ArrowLeft, User, MapPin, Phone, Mail, Globe, GraduationCap, Eye, EyeOff, Save, CheckCircle, Camera, Briefcase } from 'lucide-react'
 
 function Field({ label, icon: Icon, children }) {
   return (
@@ -20,20 +20,24 @@ export default function DietitianProfilePage() {
   const { user, profile } = useAuth()
   const t = useT()
   const navigate = useNavigate()
+  const fileInputRef = useRef(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
     nome: '',
     cognome: '',
     titoli: '',
     descrizione: '',
+    metodi_lavoro: '',
     citta: '',
     indirizzo: '',
     telefono: '',
     email_contatto: '',
     sito_web: '',
+    avatar_url: '',
     visible: true,
   })
 
@@ -51,15 +55,16 @@ export default function DietitianProfilePage() {
         cognome: data.cognome || '',
         titoli: data.titoli || '',
         descrizione: data.descrizione || '',
+        metodi_lavoro: data.metodi_lavoro || '',
         citta: data.citta || '',
         indirizzo: data.indirizzo || '',
         telefono: data.telefono || '',
         email_contatto: data.email_contatto || '',
         sito_web: data.sito_web || '',
+        avatar_url: data.avatar_url || '',
         visible: data.visible !== false,
       })
     } else {
-      // Pre-fill from auth profile
       setForm(f => ({
         ...f,
         nome: profile?.first_name || '',
@@ -72,6 +77,28 @@ export default function DietitianProfilePage() {
 
   function set(field) {
     return e => setForm(f => ({ ...f, [field]: e.target.value }))
+  }
+
+  async function handlePhotoChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) { setError('La foto non deve superare 5 MB.'); return }
+    setUploadingPhoto(true)
+    setError('')
+    const ext = file.name.split('.').pop().toLowerCase() || 'jpg'
+    const path = `${user.id}/avatar.${ext}`
+    const { error: uploadErr } = await supabase.storage
+      .from('dietitian-avatars')
+      .upload(path, file, { upsert: true, contentType: file.type })
+    if (uploadErr) {
+      setError('Errore nel caricamento della foto. Verifica che il bucket "dietitian-avatars" esista.')
+      setUploadingPhoto(false)
+      return
+    }
+    const { data: urlData } = supabase.storage.from('dietitian-avatars').getPublicUrl(path)
+    const publicUrl = urlData?.publicUrl + `?t=${Date.now()}`
+    setForm(f => ({ ...f, avatar_url: publicUrl }))
+    setUploadingPhoto(false)
   }
 
   async function saveProfile() {
@@ -88,10 +115,7 @@ export default function DietitianProfilePage() {
         updated_at: new Date().toISOString(),
       }, { onConflict: 'dietitian_id' })
     setSaving(false)
-    if (err) {
-      setError('Errore nel salvataggio. Riprova.')
-      return
-    }
+    if (err) { setError('Errore nel salvataggio. Riprova.'); return }
     setSaved(true)
     setTimeout(() => setSaved(false), 3000)
   }
@@ -104,7 +128,6 @@ export default function DietitianProfilePage() {
     )
   }
 
-  // Preview card
   const initials = `${form.nome?.[0] || ''}${form.cognome?.[0] || ''}`.toUpperCase() || '?'
 
   return (
@@ -137,13 +160,39 @@ export default function DietitianProfilePage() {
         <div className="card" style={{ padding: 16 }}>
           <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Anteprima profilo</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: form.descrizione ? 10 : 0 }}>
-            <div style={{
-              width: 52, height: 52, borderRadius: '50%', flexShrink: 0,
-              background: 'linear-gradient(135deg, var(--green-main), var(--green-mid))',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 18, fontWeight: 700, color: 'white',
-            }}>
-              {initials}
+            {/* Avatar with upload */}
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              {form.avatar_url ? (
+                <img
+                  src={form.avatar_url} alt="Foto profilo"
+                  style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border-light)' }}
+                />
+              ) : (
+                <div style={{
+                  width: 60, height: 60, borderRadius: '50%',
+                  background: 'linear-gradient(135deg, var(--green-main), var(--green-mid))',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 20, fontWeight: 700, color: 'white',
+                }}>
+                  {initials}
+                </div>
+              )}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingPhoto}
+                style={{
+                  position: 'absolute', bottom: -2, right: -2, width: 22, height: 22,
+                  borderRadius: '50%', background: 'var(--green-main)', border: '2px solid white',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                }}
+                title="Cambia foto"
+              >
+                {uploadingPhoto
+                  ? <span style={{ width: 9, height: 9, border: '1.5px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'block' }} />
+                  : <Camera size={10} color="white" />
+                }
+              </button>
+              <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoChange} />
             </div>
             <div>
               <p style={{ fontSize: 16, fontWeight: 700 }}>
@@ -173,11 +222,32 @@ export default function DietitianProfilePage() {
           </div>
         </div>
 
+        {/* Foto profilo */}
+        <div className="card" style={{ padding: 16 }}>
+          <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Foto profilo</p>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
+            La foto sarà visibile ai pazienti nella lista e sulla tua pagina profilo. Formato consigliato: quadrato, max 5 MB.
+          </p>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingPhoto}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: 'var(--green-pale)', border: '1.5px dashed var(--green-main)',
+              borderRadius: 10, padding: '10px 16px', cursor: 'pointer',
+              fontSize: 13, fontWeight: 600, color: 'var(--green-main)', fontFamily: 'var(--font-b)',
+            }}
+          >
+            <Camera size={15} />
+            {uploadingPhoto ? 'Caricamento…' : form.avatar_url ? 'Cambia foto' : 'Carica foto'}
+          </button>
+        </div>
+
         {/* Personal info */}
         <div className="card" style={{ padding: 16 }}>
           <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Informazioni personali</p>
           <div style={{ display: 'flex', gap: 10 }}>
-            <Field label="Nome *" icon={User} >
+            <Field label="Nome *" icon={User}>
               <input className="input-field" value={form.nome} onChange={set('nome')} placeholder="es. Marco" />
             </Field>
             <Field label="Cognome">
@@ -194,7 +264,7 @@ export default function DietitianProfilePage() {
           </Field>
         </div>
 
-        {/* Bio */}
+        {/* Presentazione */}
         <div className="card" style={{ padding: 16 }}>
           <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Presentazione</p>
           <Field label="Descrizione (visibile ai pazienti)">
@@ -212,10 +282,28 @@ export default function DietitianProfilePage() {
           </p>
         </div>
 
+        {/* Metodi di lavoro */}
+        <div className="card" style={{ padding: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14 }}>
+            <Briefcase size={14} color="var(--green-main)" />
+            <p style={{ fontSize: 14, fontWeight: 600 }}>Metodi di lavoro</p>
+          </div>
+          <Field label="Come lavori con i pazienti">
+            <textarea
+              className="input-field"
+              value={form.metodi_lavoro}
+              onChange={set('metodi_lavoro')}
+              placeholder="es. Approccio personalizzato basato sulla bioimpedenziometria, colloqui mensili, supporto continuo via app…"
+              rows={4}
+              style={{ resize: 'vertical', minHeight: 95 }}
+            />
+          </Field>
+        </div>
+
         {/* Location & contacts */}
         <div className="card" style={{ padding: 16 }}>
           <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Sede e contatti</p>
-          <Field label="Città" icon={MapPin}>
+          <Field label="Città dove operi" icon={MapPin}>
             <input className="input-field" value={form.citta} onChange={set('citta')} placeholder="es. Milano" />
           </Field>
           <Field label="Indirizzo dello studio (opzionale)" icon={MapPin}>
@@ -228,7 +316,7 @@ export default function DietitianProfilePage() {
             <input className="input-field" value={form.email_contatto} onChange={set('email_contatto')} placeholder="es. info@studiodietistico.it" type="email" />
           </Field>
           <Field label="Sito web (opzionale)" icon={Globe}>
-            <input className="input-field" value={form.sito_web} onChange={set('sito_web')} placeholder="es. www.miostudio.it" type="url" />
+            <input className="input-field" value={form.sito_web} onChange={set('sito_web')} placeholder="es. www.miostudio.it" />
           </Field>
         </div>
 

@@ -17,21 +17,33 @@
     <link rel="dns-prefetch" href="https://supabase.co">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&display=swap" rel="stylesheet"></noscript>
-    <script type="module" crossorigin src="/assets/index-BlcupvXw.js"></script>
+    <script type="module" crossorigin src="/assets/index--IHgv2tI.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-Rdifpdtz.css">
   <link rel="manifest" href="/manifest.webmanifest"></head>
+  <style>
+    #_initial-loader{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#f8faf9;z-index:9999}
+    #_initial-loader div{width:38px;height:38px;border:3px solid #d1e7db;border-top-color:#1a7f5a;border-radius:50%;animation:_il-spin .8s linear infinite}
+    @keyframes _il-spin{to{transform:rotate(360deg)}}
+  </style>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="_initial-loader"><div></div></div>
+    </div>
     <script>
       if ('serviceWorker' in navigator) {
         var _swRefreshing = false
+        // Capture whether a SW was already controlling the page BEFORE this load.
+        // Only reload when it's an UPDATE (replacing an existing controller), not on first install.
+        var _hadController = !!navigator.serviceWorker.controller
         function _swDoReload() {
           if (!_swRefreshing) { _swRefreshing = true; window.location.reload(true) }
         }
         navigator.serviceWorker.addEventListener('message', function (e) {
-          if (e.data && e.data.type === 'SW_RELOAD') { _swDoReload() }
+          if (e.data && e.data.type === 'SW_RELOAD' && _hadController) { _swDoReload() }
         })
-        navigator.serviceWorker.addEventListener('controllerchange', _swDoReload)
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+          if (_hadController) { _swDoReload() }
+        })
         // Force immediate SW update check; if a waiting SW exists, skip waiting immediately
         navigator.serviceWorker.ready.then(function (reg) {
           if (reg.waiting) {

@@ -26,6 +26,7 @@ const WellnessPage         = lazy(() => import('./pages/WellnessPage'))
 const DietitianChatPage    = lazy(() => import('./pages/DietitianChatPage'))
 const DietitianProfilesPage = lazy(() => import('./pages/DietitianProfilesPage'))
 const DietitianProfilePage = lazy(() => import('./pages/DietitianProfilePage'))
+const DietitianDetailPage  = lazy(() => import('./pages/DietitianDetailPage'))
 const RecipesPage          = lazy(() => import('./pages/RecipesPage'))
 
 function PrivateRoute({ children }) {
@@ -92,6 +93,7 @@ function AppInner() {
             <Route path="/statistiche" element={<PatientRoute><StatisticsPage /></PatientRoute>} />
             <Route path="/benessere" element={<PatientRoute><WellnessPage /></PatientRoute>} />
             <Route path="/dietisti" element={<PatientRoute><DietitianProfilesPage /></PatientRoute>} />
+            <Route path="/dietisti/:dietitianId" element={<PatientRoute><DietitianDetailPage /></PatientRoute>} />
             <Route path="/profilo" element={<PatientRoute><ProfilePage /></PatientRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

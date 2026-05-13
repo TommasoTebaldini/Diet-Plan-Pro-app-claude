@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { Send, CheckCheck, Check, MessageCircle, LogOut, Users, ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Apple, Clock, UserPlus, Search, X, FolderOpen, User } from 'lucide-react'
+import { Send, CheckCheck, Check, MessageCircle, LogOut, Users, ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Apple, Clock, UserPlus, Search, X, FolderOpen, User, MapPin, Eye, EyeOff, Pencil } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useT } from '../i18n'
 
@@ -417,9 +417,11 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
 
 // ─── PatientList sidebar ──────────────────────────────────────────────────────
 
-function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkPatient }) {
+function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkPatient, dietitianProfile, profileLoading }) {
   const navigate = useNavigate()
   const t = useT()
+  const profileInitials = `${dietitianProfile?.nome?.[0] || ''}${dietitianProfile?.cognome?.[0] || ''}`.toUpperCase() || '?'
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'white' }}>
       {/* Header */}
@@ -438,13 +440,6 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkP
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button onClick={() => navigate('/dietitian/profilo')} style={{
-            background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10,
-            padding: '7px 10px', cursor: 'pointer', color: 'white',
-            display: 'flex', alignItems: 'center', gap: 5, fontSize: 12,
-          }}>
-            <User size={14} /> {t('dchat.profile_btn')}
-          </button>
           <button onClick={onLinkPatient} style={{
             background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10,
             padding: '7px 10px', cursor: 'pointer', color: 'white',
@@ -460,6 +455,77 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkP
             <LogOut size={14} /> {t('dchat.sign_out')}
           </button>
         </div>
+      </div>
+
+      {/* ── Profilo section ── */}
+      <div style={{ flexShrink: 0, borderBottom: '1px solid var(--border-light)', padding: '12px 14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Profilo pubblico
+          </p>
+          <button
+            onClick={() => navigate('/dietitian/profilo')}
+            style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--green-pale)', border: 'none', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--green-main)', fontFamily: 'var(--font-b)' }}
+          >
+            <Pencil size={11} /> Modifica
+          </button>
+        </div>
+        {profileLoading ? (
+          <div style={{ height: 48, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--surface-2)', flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ height: 12, borderRadius: 6, background: 'var(--surface-2)', width: '60%', marginBottom: 6 }} />
+              <div style={{ height: 10, borderRadius: 5, background: 'var(--surface-2)', width: '40%' }} />
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {dietitianProfile?.avatar_url ? (
+              <img src={dietitianProfile.avatar_url} alt="Foto profilo" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid var(--border-light)' }} />
+            ) : (
+              <div style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg, var(--green-main), var(--green-mid))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, color: 'white' }}>
+                {profileInitials}
+              </div>
+            )}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {dietitianProfile ? (
+                <>
+                  <p style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {[dietitianProfile.nome, dietitianProfile.cognome].filter(Boolean).join(' ') || 'Imposta il tuo nome'}
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                    {dietitianProfile.citta && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <MapPin size={10} color="var(--text-muted)" />
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{dietitianProfile.citta}</span>
+                      </div>
+                    )}
+                    {dietitianProfile.citta && (
+                      <span style={{ fontSize: 10, color: 'var(--border)' }}>·</span>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                      {dietitianProfile.visible
+                        ? <><Eye size={10} color="var(--green-main)" /><span style={{ fontSize: 11, color: 'var(--green-main)', fontWeight: 500 }}>Pubblico</span></>
+                        : <><EyeOff size={10} color="var(--text-muted)" /><span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Nascosto</span></>
+                      }
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                  Configura il tuo profilo per essere trovato dai pazienti.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Pazienti section ── */}
+      <div style={{ padding: '10px 14px 6px', flexShrink: 0 }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          Pazienti
+        </p>
       </div>
 
       {/* Patient list */}
@@ -802,8 +868,20 @@ export default function DietitianChatPage() {
   const [sending, setSending] = useState(false)
   const [mobilePanel, setMobilePanel] = useState('list')
   const [showLinkModal, setShowLinkModal] = useState(false)
+  const [dietitianProfile, setDietitianProfile] = useState(null)
+  const [profileLoading, setProfileLoading] = useState(true)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
+
+  // ── Load own profile ─────────────────────────────────────────────────────
+  useEffect(() => {
+    supabase
+      .from('dietitian_profiles')
+      .select('nome, cognome, citta, avatar_url, visible')
+      .eq('dietitian_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => { setDietitianProfile(data); setProfileLoading(false) })
+  }, [user.id])
 
   // ── Load patient list ────────────────────────────────────────────────────
   useEffect(() => {
@@ -931,7 +1009,7 @@ export default function DietitianChatPage() {
 
   const currentPatient = patients.find(p => p.id === selected) ?? null
 
-  const listProps = { patients, loading: loadingList, selected, onSelect: openChat, onSignOut: signOut, onLinkPatient: () => setShowLinkModal(true) }
+  const listProps = { patients, loading: loadingList, selected, onSelect: openChat, onSignOut: signOut, onLinkPatient: () => setShowLinkModal(true), dietitianProfile, profileLoading }
   const chatProps = { currentPatient, messages, text, setText, sending, bottomRef, inputRef, onSend: sendMessage, onBack: () => setMobilePanel('list') }
 
   return (
