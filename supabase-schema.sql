@@ -1187,3 +1187,59 @@ $$;
 --
 -- L'UUID del paziente si trova in Supabase → Authentication → Users
 -- ============================================================
+
+
+-- ============================================================
+-- DISPONIBILITÀ DIETISTA — Prenotazione slot da app pazienti
+-- ============================================================
+
+-- Colonne aggiuntive per appointments (prenotazioni da app)
+alter table appointments add column if not exists status text default 'pending'
+  check (status in ('pending','confirmed','cancelled'));
+alter table appointments add column if not exists booked_by_patient boolean default false;
+alter table appointments add column if not exists duration_minutes int default 60;
+alter table appointments add column if not exists cancelled_at timestamptz;
+
+-- Coordinate geografiche per filtro distanza
+alter table dietitian_profiles add column if not exists latitude numeric;
+alter table dietitian_profiles add column if not exists longitude numeric;
+
+-- Disponibilità settimanale del dietista
+create table if not exists dietitian_availability (
+  id                   uuid primary key default gen_random_uuid(),
+  dietitian_id         uuid references auth.users not null,
+  day_of_week          int not null check (day_of_week between 0 and 6), -- 0=Lun, 6=Dom
+  enabled              boolean default false,
+  start_time_1         time,   -- es. '09:00'
+  end_time_1           time,   -- es. '13:00'
+  start_time_2         time,   -- es. '15:00' (pomeriggio, opzionale)
+  end_time_2           time,   -- es. '18:00'
+  slot_duration_minutes int default 60,
+  created_at           timestamptz default now(),
+  updated_at           timestamptz default now(),
+  unique(dietitian_id, day_of_week)
+);
+
+alter table dietitian_availability enable row level security;
+
+drop policy if exists "dietitian manage own availability" on dietitian_availability;
+create policy "dietitian manage own availability" on dietitian_availability
+  for all using (auth.uid() = dietitian_id)
+  with check (auth.uid() = dietitian_id);
+
+drop policy if exists "public read availability" on dietitian_availability;
+create policy "public read availability" on dietitian_availability
+  for select using (true);
+
+-- Aggiornamento policy appointments: pazienti possono vedere tutti gli slot (per verifica disponibilità)
+drop policy if exists "paziente vede slot prenotati" on appointments;
+create policy "paziente vede slot prenotati" on appointments
+  for select to authenticated
+  using (true);
+
+-- Pazienti possono aggiornare (annullare) i propri appuntamenti
+drop policy if exists "paziente annulla appuntamento" on appointments;
+create policy "paziente annulla appuntamento" on appointments
+  for update to authenticated
+  using (auth.uid() = patient_id)
+  with check (auth.uid() = patient_id);
