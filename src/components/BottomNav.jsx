@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users, ChefHat } from 'lucide-react'
+import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users, ChefHat, Star } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
+import { PAYMENTS_ACTIVE, useSubscription } from '../hooks/useSubscription'
 
 const DOCS_EPOCH = '1970-01-01T00:00:00Z'
 
@@ -28,6 +29,7 @@ function useIsDesktop() {
 export default function BottomNav() {
   const { pathname } = useLocation()
   const { user } = useAuth()
+  const { isPro } = useSubscription()
   const t = useT()
   const [newDocs, setNewDocs] = useState(0)
   const [sidebarOpen, setSidebarOpen] = useState(
@@ -111,6 +113,7 @@ export default function BottomNav() {
     { to: '/statistiche', icon: BarChart2, label: t('nav.report') },
     { to: '/benessere', icon: Heart, label: t('nav.wellness') },
     { to: '/profilo', icon: User, label: t('nav.profile') },
+    ...(PAYMENTS_ACTIVE ? [{ to: '/abbonamento', icon: Star, label: isPro ? '⭐ Pro' : 'Abbonamento' }] : []),
   ]
 
   if (isDesktop) {
@@ -120,7 +123,7 @@ export default function BottomNav() {
       { label: t('nav.section_nutrition'), items: ['/dieta', '/macro', '/ricette'] },
       { label: t('nav.section_professionals'), items: ['/chat', '/documenti', '/dietisti'] },
       { label: t('nav.section_monitoring'), items: ['/progressi', '/attivita', '/benessere', '/statistiche'] },
-      { label: null, items: ['/profilo'] },
+      { label: null, items: PAYMENTS_ACTIVE ? ['/profilo', '/abbonamento'] : ['/profilo'] },
     ]
 
     return (

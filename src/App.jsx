@@ -28,6 +28,7 @@ const DietitianProfilesPage = lazy(() => import('./pages/DietitianProfilesPage')
 const DietitianProfilePage = lazy(() => import('./pages/DietitianProfilePage'))
 const DietitianDetailPage  = lazy(() => import('./pages/DietitianDetailPage'))
 const RecipesPage          = lazy(() => import('./pages/RecipesPage'))
+const SubscriptionPage     = lazy(() => import('./pages/SubscriptionPage'))
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -95,6 +96,7 @@ function AppInner() {
             <Route path="/dietisti" element={<PatientRoute><DietitianProfilesPage /></PatientRoute>} />
             <Route path="/dietisti/:dietitianId" element={<PatientRoute><DietitianDetailPage /></PatientRoute>} />
             <Route path="/profilo" element={<PatientRoute><ProfilePage /></PatientRoute>} />
+            <Route path="/abbonamento" element={<PatientRoute><SubscriptionPage /></PatientRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
