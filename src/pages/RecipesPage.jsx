@@ -2,8 +2,12 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { searchFoods } from '../lib/foodSearch'
+import ProGate from '../components/ProGate'
+import { useSubscription } from '../hooks/useSubscription'
 import { Search, Plus, X, Trash2, ChevronDown, ChevronUp, Globe, Lock, Bookmark, Pencil } from 'lucide-react'
 import { useT } from '../i18n'
+
+const FREE_RECIPES_LIMIT = 5
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -250,6 +254,7 @@ const EMPTY_FORM = {
 
 export default function RecipesPage() {
   const { user } = useAuth()
+  const { isPro } = useSubscription()
   const t = useT()
   const [tab, setTab] = useState('mine')
   const [myRecipes, setMyRecipes] = useState([])
@@ -283,6 +288,10 @@ export default function RecipesPage() {
 
   async function saveRecipe() {
     if (!form.nome || form.ingredienti.length === 0) return
+    if (!editingRecipe && !isPro && myRecipes.length >= FREE_RECIPES_LIMIT) {
+      showToast(`Piano gratuito: max ${FREE_RECIPES_LIMIT} ricette. Passa al Pro per ricette illimitate.`)
+      return
+    }
     setSaving(true)
     const totals = sumIngredients(form.ingredienti)
     const peso = form.ingredienti.reduce((s, i) => s + (parseFloat(i.grams) || 0), 0)
@@ -413,7 +422,12 @@ export default function RecipesPage() {
       <div style={{ padding: '14px 14px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
         {/* ── CREATE FORM ── */}
-        {showCreate && (
+        {showCreate && !editingRecipe && !isPro && myRecipes.length >= FREE_RECIPES_LIMIT && (
+          <ProGate feature="Ricette illimitate" teaser={`Hai raggiunto il limite di ${FREE_RECIPES_LIMIT} ricette del piano gratuito. Passa al Pro per ricette illimitate.`}>
+            <div />
+          </ProGate>
+        )}
+        {showCreate && (editingRecipe || isPro || myRecipes.length < FREE_RECIPES_LIMIT) && (
           <div className="card animate-slideUp" style={{ padding: 16 }}>
             <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>{editingRecipe ? t('recipes.edit') : t('recipes.new')}</p>
 

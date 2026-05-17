@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
+import ProGate from '../components/ProGate'
+import { useSubscription } from '../hooks/useSubscription'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { TrendingDown, TrendingUp, Minus, Target, Plus, Scale, Activity } from 'lucide-react'
 
@@ -27,6 +29,7 @@ function CustomTooltip({ active, payload, label }) {
 
 export default function ProgressPage() {
   const { user, profile } = useAuth()
+  const { isPro } = useSubscription()
   const t = useT()
   const [weights, setWeights] = useState([])
   const [todayLog, setTodayLog] = useState(null)
@@ -236,8 +239,9 @@ export default function ProgressPage() {
           </div>
         )}
 
-        {/* Chart */}
+        {/* Chart — Pro only */}
         {chartData.length > 1 && (
+          <ProGate feature="Grafico andamento peso" teaser="Visualizza il grafico dell'andamento del tuo peso nel tempo">
           <div className="card" style={{ padding: '18px 12px 12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px', marginBottom: 16 }}>
               <h3 style={{ fontSize: 15, fontWeight: 600 }}>Andamento peso</h3>
@@ -260,6 +264,7 @@ export default function ProgressPage() {
               </LineChart>
             </ResponsiveContainer>
           </div>
+          </ProGate>
         )}
 
         {/* History */}
@@ -267,7 +272,7 @@ export default function ProgressPage() {
           <div className="card" style={{ padding: '18px 20px' }}>
             <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>Storico misurazioni</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[...weights].reverse().slice(0, 10).map((w, i) => {
+              {[...weights].reverse().slice(0, isPro ? 10 : 3).map((w, i) => {
                 const prev = [...weights].reverse()[i + 1]
                 const d = prev ? (w.weight_kg - prev.weight_kg).toFixed(1) : null
                 return (
@@ -289,6 +294,11 @@ export default function ProgressPage() {
                 )
               })}
             </div>
+            {!isPro && weights.length > 3 && (
+              <ProGate feature="Storico completo" teaser={`Sblocca tutte le ${weights.length} misurazioni nel piano Pro`}>
+                <div />
+              </ProGate>
+            )}
           </div>
         )}
 

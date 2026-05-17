@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
+import ProGate from '../components/ProGate'
+import { useSubscription } from '../hooks/useSubscription'
 import { Plus, Trash2, Flame, Activity, List, BarChart2, Clock, X, Check, ExternalLink } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { subDays, format, parseISO } from 'date-fns'
@@ -156,6 +158,7 @@ function LogForm({ onClose, onSaved, userWeight, userId }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function ActivityPage() {
   const { profile, user } = useAuth()
+  const { isPro } = useSubscription()
   const t = useT()
   const today = new Date().toISOString().split('T')[0]
 
@@ -475,6 +478,7 @@ export default function ActivityPage() {
 
         {/* ── Weekly chart ── */}
         {tab === 'settimana' && (
+          <ProGate feature="Grafico settimanale" teaser="Visualizza il riepilogo settimanale delle tue attività e calorie bruciate">
           <div className="card" style={{ padding: '18px 20px' }}>
             <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Grafico settimanale</h3>
             <div style={{ display: 'flex', gap: 20, marginBottom: 16 }}>
@@ -520,10 +524,12 @@ export default function ActivityPage() {
               })}
             </div>
           </div>
+          </ProGate>
         )}
 
         {/* ── History tab ── */}
         {tab === 'storico' && (
+          <ProGate feature="Storico allenamenti" teaser="Accedi allo storico completo dei tuoi allenamenti degli ultimi 30 giorni">
           <div className="card" style={{ padding: '18px 20px' }}>
             <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>Storico allenamenti (30 giorni)</h3>
             {historyLogs.length === 0 ? (
@@ -555,6 +561,7 @@ export default function ActivityPage() {
               </div>
             )}
           </div>
+          </ProGate>
         )}
       </div>
 

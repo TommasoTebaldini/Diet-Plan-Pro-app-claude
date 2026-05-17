@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
+import ProGate from '../components/ProGate'
+import { useSubscription } from '../hooks/useSubscription'
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine, Cell, RadialBarChart,
@@ -10,7 +12,7 @@ import {
 import {
   BarChart2, TrendingUp, TrendingDown, Minus, FileText,
   Download, Droplets, Scale, Flame, ChevronLeft, ChevronRight,
-  Check, X as XIcon,
+  Check, X as XIcon, Lock,
 } from 'lucide-react'
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, parseISO, addWeeks, subWeeks } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -82,6 +84,7 @@ function StatCard({ icon, label, value, sub, trend }) {
 // ── main component ─────────────────────────────────────────────
 export default function StatisticsPage() {
   const { user, profile } = useAuth()
+  const { isPro } = useSubscription()
   const t = useT()
   const [tab, setTab] = useState('weekly')
   const [loading, setLoading] = useState(true)
@@ -102,8 +105,9 @@ export default function StatisticsPage() {
   const prevWeekEnd = subWeeks(weekEnd, 1)
 
   useEffect(() => {
+    if (!isPro && weekOffset > 0) { setWeekOffset(0); return }
     loadAll()
-  }, [weekOffset])
+  }, [weekOffset, isPro])
 
   async function loadAll() {
     setLoading(true)
@@ -375,8 +379,8 @@ export default function StatisticsPage() {
 
           {/* week navigator */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface)', borderRadius: 14, padding: '10px 16px', border: '1px solid var(--border-light)' }}>
-            <button onClick={() => setWeekOffset(v => v + 1)} style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-              <ChevronLeft size={16} color="var(--text-secondary)" />
+            <button onClick={() => isPro && setWeekOffset(v => v + 1)} disabled={!isPro} style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', cursor: isPro ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', opacity: isPro ? 1 : 0.5 }}>
+              {isPro ? <ChevronLeft size={16} color="var(--text-secondary)" /> : <Lock size={14} color="var(--text-muted)" />}
             </button>
             <div style={{ textAlign: 'center' }}>
               <p style={{ fontSize: 14, fontWeight: 600 }}>{weekLabel}</p>
@@ -399,37 +403,38 @@ export default function StatisticsPage() {
                 <StatCard icon={<Check size={13} />} label="Aderenza media" value={`${avgAdherence}%`} sub={`${weekAdherenceData.filter(d => d.pct >= 80).length}/7 giorni ≥80%`} />
               </div>
 
-              {/* weekly macro chart */}
-              <div className="card" style={{ padding: '16px 10px 14px' }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14, paddingLeft: 6 }}>📊 Calorie giornaliere</h3>
-                <ResponsiveContainer width="100%" height={160}>
-                  <BarChart data={dailyChart} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
-                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-                    <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
-                    <Tooltip content={<SmallTooltip unit=" kcal" />} />
-                    {dietTarget?.kcal_target && <ReferenceLine y={dietTarget.kcal_target} stroke="var(--orange)" strokeDasharray="4 3" strokeWidth={1.5} label={{ value: 'Target', fontSize: 9, fill: 'var(--orange)', position: 'insideTopRight' }} />}
-                    <Bar dataKey="kcal" name="Kcal" radius={[4, 4, 0, 0]}>
-                      {dailyChart.map((e, i) => <Cell key={i} fill={dietTarget?.kcal_target && e.kcal > dietTarget.kcal_target * 1.05 ? '#e05a5a' : 'var(--green-main)'} fillOpacity={0.85} />)}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              {/* weekly macro chart — Pro only */}
+              <ProGate feature="Grafici settimanali" teaser="Visualizza i grafici di calorie e idratazione giorno per giorno">
+                <div className="card" style={{ padding: '16px 10px 14px' }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14, paddingLeft: 6 }}>📊 Calorie giornaliere</h3>
+                  <ResponsiveContainer width="100%" height={160}>
+                    <BarChart data={dailyChart} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
+                      <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                      <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                      <Tooltip content={<SmallTooltip unit=" kcal" />} />
+                      {dietTarget?.kcal_target && <ReferenceLine y={dietTarget.kcal_target} stroke="var(--orange)" strokeDasharray="4 3" strokeWidth={1.5} label={{ value: 'Target', fontSize: 9, fill: 'var(--orange)', position: 'insideTopRight' }} />}
+                      <Bar dataKey="kcal" name="Kcal" radius={[4, 4, 0, 0]}>
+                        {dailyChart.map((e, i) => <Cell key={i} fill={dietTarget?.kcal_target && e.kcal > dietTarget.kcal_target * 1.05 ? '#e05a5a' : 'var(--green-main)'} fillOpacity={0.85} />)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
 
-              {/* macro breakdown bars */}
-              <div className="card" style={{ padding: 16 }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>💧 Idratazione giornaliera</h3>
-                <ResponsiveContainer width="100%" height={140}>
-                  <BarChart data={dailyChart} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
-                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-                    <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
-                    <Tooltip content={<SmallTooltip unit=" ml" />} />
-                    <ReferenceLine y={2000} stroke="#3b82f6" strokeDasharray="4 3" strokeWidth={1.5} label={{ value: '2 L', fontSize: 9, fill: '#3b82f6', position: 'insideTopRight' }} />
-                    <Bar dataKey="water" name="Acqua" fill="#3b82f6" fillOpacity={0.75} radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+                <div className="card" style={{ padding: 16 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>💧 Idratazione giornaliera</h3>
+                  <ResponsiveContainer width="100%" height={140}>
+                    <BarChart data={dailyChart} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
+                      <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                      <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                      <Tooltip content={<SmallTooltip unit=" ml" />} />
+                      <ReferenceLine y={2000} stroke="#3b82f6" strokeDasharray="4 3" strokeWidth={1.5} label={{ value: '2 L', fontSize: 9, fill: '#3b82f6', position: 'insideTopRight' }} />
+                      <Bar dataKey="water" name="Acqua" fill="#3b82f6" fillOpacity={0.75} radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </ProGate>
 
               {/* macro averages table */}
               <div className="card" style={{ padding: 16 }}>
@@ -462,6 +467,7 @@ export default function StatisticsPage() {
 
           {/* ── TAB: adherence ── */}
           {tab === 'adherence' && (
+            <ProGate feature="Analisi aderenza" teaser="Monitora quanto segui la tua dieta giorno per giorno">
             <>
               {/* adherence score */}
               <div className="card" style={{ padding: 20, textAlign: 'center' }}>
@@ -527,10 +533,12 @@ export default function StatisticsPage() {
                 </div>
               </div>
             </>
+            </ProGate>
           )}
 
           {/* ── TAB: comparison ── */}
           {tab === 'comparison' && (
+            <ProGate feature="Confronto settimane" teaser="Confronta due settimane di dati per misurare i tuoi progressi">
             <>
               <div className="card" style={{ padding: 16 }}>
                 <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>⚖️ Confronto settimane</h3>
@@ -616,10 +624,12 @@ export default function StatisticsPage() {
                 </div>
               </div>
             </>
+            </ProGate>
           )}
 
           {/* ── TAB: report PDF ── */}
           {tab === 'report' && (
+            <ProGate feature="Report PDF" teaser="Genera report professionali da condividere con il tuo dietista">
             <>
               <div className="card" style={{ padding: 20, textAlign: 'center' }}>
                 <div style={{ width: 64, height: 64, borderRadius: 20, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
@@ -667,6 +677,7 @@ export default function StatisticsPage() {
                 Il PDF viene salvato sul tuo dispositivo e può essere inviato via email o WhatsApp al tuo dietista.
               </p>
             </>
+            </ProGate>
           )}
 
         </div>

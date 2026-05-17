@@ -4,8 +4,12 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
 import { searchFoods, searchByBarcode } from '../lib/foodSearch'
-import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle, Pencil, Check } from 'lucide-react'
+import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle, Pencil, Check, Lock } from 'lucide-react'
 import BarcodeScanner from '../components/BarcodeScanner'
+import ProGate from '../components/ProGate'
+import { useSubscription } from '../hooks/useSubscription'
+
+const FREE_HISTORY_DAYS = 7
 
 function calcMacros(food, grams) {
   const f = (parseFloat(grams) || 100) / 100
@@ -51,6 +55,7 @@ function MacroBar({ label, value, target, color }) {
 
 export default function MacroTrackerPage() {
   const { user } = useAuth()
+  const { isPro } = useSubscription()
   const t = useT()
   const MEALS = MEALS_STATIC.map(m => ({
     ...m,
@@ -347,6 +352,10 @@ export default function MacroTrackerPage() {
     const d = new Date(date)
     d.setDate(d.getDate() + delta)
     const next = d.toISOString().split('T')[0]
+    if (!isPro && delta < 0) {
+      const daysBack = Math.round((new Date(todayStr) - new Date(next)) / (1000 * 60 * 60 * 24))
+      if (daysBack > FREE_HISTORY_DAYS) return
+    }
     setDate(next)
     setActiveMealAdd(null)
     setSelected(null)
@@ -354,6 +363,9 @@ export default function MacroTrackerPage() {
     setResults([])
     setExpandedMeal('colazione')
   }
+
+  const daysFromToday = Math.round((new Date(todayStr) - new Date(date)) / (1000 * 60 * 60 * 24))
+  const atFreeLimit = !isPro && daysFromToday >= FREE_HISTORY_DAYS - 1
 
   const totals = log.reduce((a, f) => ({
     kcal: a.kcal + (f.kcal || 0), proteins: a.proteins + (f.proteins || 0),
@@ -370,8 +382,12 @@ export default function MacroTrackerPage() {
       <div style={{ background: 'linear-gradient(160deg, var(--green-dark), var(--green-main))', padding: 'calc(env(safe-area-inset-top) + 16px) 16px 18px', flexShrink: 0 }}>
         {/* Date navigation */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-          <button onClick={() => changeDate(-1)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0 }}>
-            <ChevronLeft size={18} />
+          <button
+            onClick={() => changeDate(-1)}
+            disabled={atFreeLimit}
+            title={atFreeLimit ? `Piano Free: storico limitato a ${FREE_HISTORY_DAYS} giorni` : undefined}
+            style={{ background: atFreeLimit ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: atFreeLimit ? 'default' : 'pointer', color: atFreeLimit ? 'rgba(255,255,255,0.35)' : 'white', flexShrink: 0 }}>
+            {atFreeLimit ? <Lock size={15} /> : <ChevronLeft size={18} />}
           </button>
 
           <div style={{ textAlign: 'center', flex: 1 }}>
@@ -438,6 +454,22 @@ export default function MacroTrackerPage() {
       </div>
 
       <div style={{ padding: '14px 14px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+        {/* Free plan history limit banner */}
+        {atFreeLimit && (
+          <div style={{ background: '#fefce8', border: '1.5px solid #fde68a', borderRadius: 12, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Lock size={15} color="#92400e" style={{ flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 12.5, fontWeight: 600, color: '#92400e', margin: 0 }}>
+                Storico limitato a {FREE_HISTORY_DAYS} giorni nel piano Free
+              </p>
+              <p style={{ fontSize: 11.5, color: '#78350f', margin: '2px 0 0' }}>
+                Passa al Pro per accedere a tutto lo storico del diario.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* ── Macro targets ── */}
         {diet && (
           <div className="card" style={{ padding: 14 }}>
@@ -679,6 +711,36 @@ export default function MacroTrackerPage() {
             </div>
           )
         })}
+
+        {/* Micronutrient section — Pro only */}
+        <ProGate feature="Micronutrienti" teaser="Monitora vitamine, minerali e fibre con il piano Pro">
+          <div className="card" style={{ padding: 16 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>🔬 Micronutrienti del giorno</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {[
+                { label: 'Fibra', val: '–', unit: 'g', icon: '🌾' },
+                { label: 'Sodio', val: '–', unit: 'mg', icon: '🧂' },
+                { label: 'Calcio', val: '–', unit: 'mg', icon: '🦴' },
+                { label: 'Ferro', val: '–', unit: 'mg', icon: '🔴' },
+                { label: 'Vitamina C', val: '–', unit: 'mg', icon: '🍋' },
+                { label: 'Vitamina D', val: '–', unit: 'µg', icon: '☀️' },
+              ].map(n => (
+                <div key={n.label} style={{ background: 'var(--surface-2)', borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 18 }}>{n.icon}</span>
+                  <div>
+                    <p style={{ fontSize: 12, fontWeight: 600 }}>{n.label}</p>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--green-main)' }}>{n.val} <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-muted)' }}>{n.unit}</span></p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 10, textAlign: 'center' }}>
+              I dati nutrizionali dettagliati saranno disponibili nella prossima versione.
+            </p>
+          </div>
+        </ProGate>
+
+        <div style={{ height: 24 }} />
       </div>
 
       {showScanner && (
