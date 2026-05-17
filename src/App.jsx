@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, Component } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import { AppSettingsProvider } from './context/AppSettingsContext'
@@ -29,6 +29,24 @@ const DietitianProfilePage = lazy(() => import('./pages/DietitianProfilePage'))
 const DietitianDetailPage  = lazy(() => import('./pages/DietitianDetailPage'))
 const RecipesPage          = lazy(() => import('./pages/RecipesPage'))
 const SubscriptionPage     = lazy(() => import('./pages/SubscriptionPage'))
+
+class ErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null } }
+  static getDerivedStateFromError(error) { return { error } }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: '2rem', textAlign: 'center' }}>
+          <p style={{ color: '#DC2626', marginBottom: '1rem' }}>Si è verificato un errore imprevisto.</p>
+          <button onClick={() => this.setState({ error: null })} style={{ padding: '0.5rem 1.5rem', borderRadius: '8px', border: 'none', background: '#1a7f5a', color: '#fff', cursor: 'pointer' }}>
+            Riprova
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -75,6 +93,7 @@ function AppInner() {
       <InstallBanner />
       {user && !isDietitian && <BottomNav />}
       <div className={user && !isDietitian ? 'app-content' : 'app-content-public'}>
+        <ErrorBoundary>
         <Suspense fallback={<LoadingScreen />}>
           <Routes>
             <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
@@ -100,6 +119,7 @@ function AppInner() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
+        </ErrorBoundary>
         <footer className="global-copyright-app">
           {t('app.copyright', { year: new Date().getFullYear() })}
         </footer>

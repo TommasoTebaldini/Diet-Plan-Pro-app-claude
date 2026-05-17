@@ -19,6 +19,18 @@ export default defineConfig({
   define: {
     __BUILD_ID__: JSON.stringify(Date.now().toString())
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          motion: ['framer-motion'],
+          charts: ['recharts'],
+          supabase: ['@supabase/supabase-js'],
+        }
+      }
+    }
+  },
   plugins: [
     react(),
     VitePWA({
@@ -55,7 +67,7 @@ export default defineConfig({
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
             handler: 'NetworkFirst',
-            options: { cacheName: 'supabase-cache', networkTimeoutSeconds: 10 }
+            options: { cacheName: 'supabase-cache', networkTimeoutSeconds: 3 }
           },
           {
             urlPattern: /\.(?:js|css)$/,

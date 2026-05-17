@@ -12,11 +12,10 @@ export function NotificationProvider({ children, user }) {
     if (!user) return
 
     // Scheduled local notifications
-    const prefs = loadPrefs()
-    initScheduledNotifications(prefs)
+    const p = loadPrefs()
+    initScheduledNotifications(p)
 
     // ── Supabase Realtime subscriptions ───────────────────────────────────────
-    const p = loadPrefs()
 
     // New chat message from dietitian
     const chatChannel = supabase
