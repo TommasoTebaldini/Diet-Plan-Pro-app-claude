@@ -1,0 +1,17 @@
+{
+  "appId": "com.dietplanpro.nutriplan",
+  "appName": "NutriPlan",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#ffffff"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#0F766E",
+      "androidSplashResourceName": "splash",
+      "showSpinner": false
+    }
+  }
+}

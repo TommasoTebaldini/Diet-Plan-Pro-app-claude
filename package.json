@@ -6,12 +6,17 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "android": "npm run build && npx cap sync android && npx cap open android",
+    "sync": "npm run build && npx cap sync android"
   },
   "engines": {
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.3",
+    "@capacitor/cli": "^8.3.3",
+    "@capacitor/core": "^8.3.3",
     "@supabase/supabase-js": "^2.39.0",
     "@vitejs/plugin-react": "^4.2.1",
     "date-fns": "^3.3.0",
