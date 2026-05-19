@@ -320,6 +320,7 @@ function PianoAlimentareContent({ piano }) {
                 </div>
                 <div style={{ padding: '10px 14px' }}>
                   {foods.length > 0 ? (
+                    <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <tbody>
                         {foods.map((food, fi) => (
@@ -337,6 +338,7 @@ function PianoAlimentareContent({ piano }) {
                         )}
                       </tbody>
                     </table>
+                    </div>
                   ) : (meal.descrizione || meal.description) ? (
                     <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{meal.descrizione || meal.description}</p>
                   ) : null}

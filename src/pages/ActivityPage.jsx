@@ -344,11 +344,11 @@ export default function ActivityPage() {
                   value={stepGoalInput}
                   onChange={e => setStepGoalInput(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') saveStepGoal() }}
-                  style={{ width: 84, padding: '6px 8px', borderRadius: 8, border: '1.5px solid var(--green-main)', fontSize: 13, fontFamily: 'var(--font-b)', outline: 'none' }}
+                  style={{ width: 84, padding: '6px 8px', borderRadius: 8, border: '1.5px solid var(--green-main)', fontSize: 16, fontFamily: 'var(--font-b)', outline: 'none' }}
                   inputMode="numeric"
                   min="500"
                 />
-                <button onClick={saveStepGoal} style={{ background: 'var(--green-main)', border: 'none', borderRadius: 8, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <button onClick={saveStepGoal} style={{ background: 'var(--green-main)', border: 'none', borderRadius: 8, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                   <Check size={14} color="white" />
                 </button>
               </div>

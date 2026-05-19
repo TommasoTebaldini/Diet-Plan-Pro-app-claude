@@ -207,3 +207,27 @@ html.dark .icon-wrap{filter:brightness(1.8) saturate(0.7)}
   border-top:1px solid var(--border-light);
   background:var(--surface);
 }
+
+/* ── Mobile: prevent iOS zoom on input focus (requires font-size ≥ 16px) ── */
+@media(max-width:768px){
+  .input-field{font-size:16px}
+}
+
+/* ── Very small screens (≤360px) ── */
+@media(max-width:360px){
+  .btn-primary,.btn-secondary{padding:11px 16px;font-size:14px}
+  .card,.card-flat{padding:12px}
+}
+
+/* ── Bottom nav: hide scrollbar on all browsers ── */
+.bottom-nav-scroll::-webkit-scrollbar{display:none}
+
+/* ── Chat input bar: on desktop no bottom-nav gap ── */
+@media(min-width:1024px){
+  .chat-input-bar{bottom:env(safe-area-inset-bottom)!important}
+}
+
+/* ── Modal form grids: collapse to 1 column on small screens ── */
+@media(max-width:400px){
+  .form-grid-2{grid-template-columns:1fr!important}
+}

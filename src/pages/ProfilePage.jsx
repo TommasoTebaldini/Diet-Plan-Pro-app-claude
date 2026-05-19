@@ -85,7 +85,7 @@ function PersonalDataModal({ profile, user, onClose, onSaved }) {
   return (
     <Modal title="Dati personali" onClose={onClose}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div className="input-group">
             <label className="input-label">Nome</label>
             <input className="input-field" value={form.first_name} onChange={set('first_name')} placeholder="Mario" />
@@ -109,7 +109,7 @@ function PersonalDataModal({ profile, user, onClose, onSaved }) {
             ))}
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div className="input-group">
             <label className="input-label">Altezza (cm)</label>
             <input type="number" className="input-field" value={form.height_cm} onChange={set('height_cm')} placeholder="170" inputMode="decimal" />
@@ -402,7 +402,7 @@ function NotificationsModal({ onClose }) {
   const sectionStyle = { marginBottom: 0 }
   const sectionHeaderStyle = { fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', padding: '18px 0 8px', borderBottom: '1px solid var(--border-light)', marginBottom: 0 }
   const rowStyle = { display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0', borderBottom: '1px solid var(--border-light)' }
-  const inputStyle = { background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 10, padding: '8px 12px', fontSize: 14, color: 'var(--text-primary)', font: 'inherit', width: '100%' }
+  const inputStyle = { background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 10, padding: '8px 12px', fontSize: 16, color: 'var(--text-primary)', font: 'inherit', width: '100%' }
 
   return (
     <Modal title="Notifiche e promemoria" onClose={onClose}>
@@ -533,7 +533,7 @@ function NotificationsModal({ onClose }) {
           <Toggle on={prefs.weighReminder} onClick={() => update({ weighReminder: !prefs.weighReminder })} />
         </div>
         {prefs.weighReminder && (
-          <div style={{ padding: '10px 0 4px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div className="form-grid-2" style={{ padding: '10px 0 4px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>Giorno</p>
               <select
@@ -563,7 +563,7 @@ function NotificationsModal({ onClose }) {
           <Toggle on={prefs.appointmentReminder} onClick={() => update({ appointmentReminder: !prefs.appointmentReminder })} />
         </div>
         {prefs.appointmentReminder && (
-          <div style={{ padding: '10px 0 4px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div className="form-grid-2" style={{ padding: '10px 0 4px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>Data visita</p>
               <input type="date" value={prefs.appointmentDate} onChange={e => update({ appointmentDate: e.target.value })} style={inputStyle} min={new Date().toISOString().split('T')[0]} />

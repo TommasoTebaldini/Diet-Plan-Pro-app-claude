@@ -648,6 +648,15 @@ export const DIETITIAN_FOODS = [
   { id: 'dt_578', name: 'Lenticchie verdi', category: 'Legumi', kcal_100g: 116, proteins_100g: 9, carbs_100g: 20, fats_100g: 0.4, fiber_100g: 8, sugar_100g: 1.8, fatSat_100g: 0.1 },
   { id: 'dt_579', name: 'Fagioli di Lima', category: 'Legumi', kcal_100g: 115, proteins_100g: 7.8, carbs_100g: 21, fats_100g: 0.4, fiber_100g: 7, sugar_100g: 1, fatSat_100g: 0.1 },
   { id: 'dt_580', name: 'Azuki', category: 'Legumi', kcal_100g: 128, proteins_100g: 8, carbs_100g: 25, fats_100g: 0.1, fiber_100g: 7.3, sugar_100g: 0, fatSat_100g: 0 },
+  { id: 'dt_581', name: 'Soia edamame', category: 'Legumi', kcal_100g: 122, proteins_100g: 11, carbs_100g: 9, fats_100g: 5, fiber_100g: 4, sugar_100g: 2.2, fatSat_100g: 0.6 },
+
+  // ─── Cereali (completamento CREA) ────────────────────────────────────
+  { id: 'dt_582', name: 'Spelta integrale', category: 'Cereali', kcal_100g: 329, proteins_100g: 14.7, carbs_100g: 64, fats_100g: 2.4, fiber_100g: 10.7, sugar_100g: 0.5, fatSat_100g: 0.4, serving_size_g: 80 },
+  { id: 'dt_583', name: 'Segale', category: 'Cereali', kcal_100g: 335, proteins_100g: 10, carbs_100g: 69.8, fats_100g: 1.6, fiber_100g: 15.1, sugar_100g: 1, fatSat_100g: 0.2, serving_size_g: 80 },
+
+  // ─── Verdure (completamento CREA) ────────────────────────────────────
+  { id: 'dt_584', name: 'Scorzonera', category: 'Verdure', kcal_100g: 60, proteins_100g: 1.3, carbs_100g: 14, fats_100g: 0.1, fiber_100g: 3.1, sugar_100g: 6, fatSat_100g: 0 },
+  { id: 'dt_585', name: 'Cavolrapa', category: 'Verdure', kcal_100g: 27, proteins_100g: 1.7, carbs_100g: 6.3, fats_100g: 0.1, fiber_100g: 3.6, sugar_100g: 2.6, fatSat_100g: 0 },
 ]
 
 export const DIETITIAN_CATEGORIES = ['Tutti', 'Proteine', 'Cereali', 'Verdure', 'Frutta', 'Latticini', 'Grassi', 'Legumi', 'Dolci e Zuccheri', 'Condimenti e Salse', 'Bevande', 'Pane e Prodotti da Forno', 'Salumi e Insaccati', 'Piatti Pronti']

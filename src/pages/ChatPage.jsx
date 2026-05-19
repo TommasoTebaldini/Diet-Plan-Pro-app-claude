@@ -859,7 +859,7 @@ export default function ChatPage() {
       )}
 
       {/* Input bar */}
-      <div style={{ position: 'fixed', bottom: 'calc(64px + env(safe-area-inset-bottom))', left: 0, right: 0, padding: '8px 10px', background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(12px)', borderTop: '1px solid var(--border-light)', zIndex: 50 }}>
+      <div className="chat-input-bar" style={{ position: 'fixed', bottom: 'calc(64px + env(safe-area-inset-bottom))', left: 0, right: 0, padding: '8px 10px', background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(12px)', borderTop: '1px solid var(--border-light)', zIndex: 50 }}>
         {isRecording ? (
           // ── Recording UI ──
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 4px' }}>

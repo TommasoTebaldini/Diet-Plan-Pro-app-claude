@@ -543,14 +543,14 @@ export default function MacroTrackerPage() {
                             type="number" min={1} inputMode="decimal"
                             value={editGrams}
                             onChange={e => setEditGrams(e.target.value)}
-                            style={{ width: 80, padding: '5px 10px', fontSize: 13, border: '1.5px solid var(--border)', borderRadius: 8, background: 'var(--surface-2)', color: 'var(--text-primary)', outline: 'none' }}
+                            style={{ width: 80, padding: '5px 10px', border: '1.5px solid var(--border)', borderRadius: 8, background: 'var(--surface-2)', color: 'var(--text-primary)', outline: 'none' }}
                             autoFocus
                           />
                           <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>g</span>
-                          <button onClick={() => updateFoodGrams(f)} disabled={editSaving} style={{ background: 'var(--green-main)', border: 'none', borderRadius: 8, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                          <button onClick={() => updateFoodGrams(f)} disabled={editSaving} style={{ background: 'var(--green-main)', border: 'none', borderRadius: 8, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
                             {editSaving ? <span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'block' }} /> : <Check size={14} color="white" />}
                           </button>
-                          <button onClick={() => setEditingFood(null)} style={{ background: 'var(--surface-3)', border: 'none', borderRadius: 8, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                          <button onClick={() => setEditingFood(null)} style={{ background: 'var(--surface-3)', border: 'none', borderRadius: 8, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
                             <X size={14} color="var(--text-muted)" />
                           </button>
                         </div>
@@ -666,9 +666,9 @@ export default function MacroTrackerPage() {
                             </div>
                             <button onClick={() => { setSelected(null); setQuery('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-muted)' }}><X size={15} /></button>
                           </div>
-                          <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
-                            <div className="input-group" style={{ flex: 1 }}>
-                              <label className="input-label">Porzioni ({selected.serving_size_label || 'porzione'} = {selected.serving_size_g || 100}g)</label>
+                          <div style={{ display: 'flex', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                            <div className="input-group" style={{ flex: '1 1 80px' }}>
+                              <label className="input-label">Porzioni</label>
                               <input type="number" className="input-field"
                                 value={parseFloat(grams) > 0 ? Math.round(parseFloat(grams) / (selected.serving_size_g || 100) * 100) / 100 : ''}
                                 onChange={e => {
@@ -678,11 +678,11 @@ export default function MacroTrackerPage() {
                                 }}
                                 min={0} step="any" inputMode="decimal" />
                             </div>
-                            <div className="input-group" style={{ flex: 1 }}>
+                            <div className="input-group" style={{ flex: '1 1 80px' }}>
                               <label className="input-label">Quantità (g)</label>
                               <input type="number" className="input-field" value={grams} onChange={e => setGrams(e.target.value)} min={1} inputMode="decimal" />
                             </div>
-                            <div className="input-group" style={{ width: 100 }}>
+                            <div className="input-group" style={{ flex: '1 1 80px' }}>
                               <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={11} />Orario</label>
                               <input type="time" className="input-field" value={mealTime} onChange={e => setMealTime(e.target.value)} style={{ cursor: 'pointer' }} />
                             </div>

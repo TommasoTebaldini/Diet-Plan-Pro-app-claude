@@ -218,7 +218,7 @@ export default function BottomNav() {
 
   // Bottom nav for mobile
   return (
-    <nav style={{
+    <nav className="bottom-nav-scroll" style={{
       position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 999,
       height: 'calc(64px + env(safe-area-inset-bottom))',
       background: 'rgba(255,255,255,0.97)',
@@ -227,12 +227,15 @@ export default function BottomNav() {
       display: 'flex', alignItems: 'stretch',
       boxShadow: '0 -2px 16px rgba(13,92,58,0.07)',
       paddingBottom: 'env(safe-area-inset-bottom)',
+      overflowX: 'auto', overflowY: 'hidden',
+      scrollbarWidth: 'none', msOverflowStyle: 'none',
     }}>
       {TABS.map(({ to, icon: Icon, label, badge }) => {
         const active = pathname === to || (to !== '/' && pathname.startsWith(to))
         return (
           <Link key={to} to={to} style={{
-            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+            flex: '0 0 auto', minWidth: 58,
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
             justifyContent: 'center', gap: 3, textDecoration: 'none',
             color: active ? 'var(--green-main)' : '#94a3b8',
             WebkitTapHighlightColor: 'transparent',
