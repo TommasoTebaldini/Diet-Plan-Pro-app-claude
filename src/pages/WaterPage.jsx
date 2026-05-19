@@ -181,7 +181,7 @@ export default function WaterPage() {
       {/* Header */}
       <div style={{ background: 'linear-gradient(160deg, #1e40af 0%, #3b82f6 100%)', padding: 'calc(env(safe-area-inset-top) + 20px) 24px 28px', textAlign: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-          <button onClick={toggleNotifications} title={notifEnabled ? 'Disattiva promemoria' : 'Attiva promemoria'} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, padding: '7px 10px', cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
+          <button onClick={toggleNotifications} title={notifEnabled ? 'Disattiva promemoria' : 'Attiva promemoria'} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, padding: '10px 14px', cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, minHeight: 44 }}>
             {notifEnabled ? <Bell size={15} /> : <BellOff size={15} />}
             {notifEnabled ? 'ON' : 'OFF'}
           </button>
@@ -306,7 +306,7 @@ export default function WaterPage() {
                       <p style={{ fontSize: 14, fontWeight: 500 }}>{l.amount_ml} ml</p>
                       <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(l.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
-                    <button onClick={() => removeLog(l.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 6 }}>
+                    <button onClick={() => removeLog(l.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 12, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Trash2 size={15} />
                     </button>
                   </div>

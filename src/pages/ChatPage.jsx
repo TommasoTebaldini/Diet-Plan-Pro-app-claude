@@ -173,7 +173,7 @@ function AudioPlayer({ src, isMe }) {
       />
       <button
         onClick={toggle}
-        style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', cursor: 'pointer', background: isMe ? 'rgba(255,255,255,0.25)' : 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+        style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', cursor: 'pointer', background: isMe ? 'rgba(255,255,255,0.25)' : 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
       >
         {playing
           ? <Pause size={14} color={isMe ? 'white' : 'var(--green-main)'} />
@@ -744,7 +744,7 @@ export default function ChatPage() {
           <button
             onClick={requestNotifications}
             title={notifPermission === 'granted' ? 'Notifiche attive' : 'Attiva notifiche'}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 8, display: 'flex', alignItems: 'center', opacity: notifPermission === 'granted' ? 1 : 0.55 }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: notifPermission === 'granted' ? 1 : 0.55 }}
           >
             {notifPermission === 'granted'
               ? <Bell size={18} color="white" />

@@ -284,7 +284,7 @@ export default function DashboardPage() {
         {/* Quick actions 4x2 */}
         <div>
           <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12 }}>Accesso rapido</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(70px, 1fr))', gap: 10 }}>
             {ACTIONS.map(({ label, icon: Icon, to, color, bg }) => (
               <Link key={to} to={to} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
                 <div style={{ width: 54, height: 54, borderRadius: 18, background: dark ? color + '26' : bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: dark ? color + 'cc' : color, boxShadow: 'var(--shadow-xs)', border: dark ? `1px solid ${color}30` : '1px solid rgba(0,0,0,.04)', transition: 'transform .15s', position: 'relative' }}>

@@ -166,22 +166,22 @@ function RecipeCard({ r, isOwn, expandedId, setExpandedId, onSave, onTogglePubli
         </div>
         <div style={{ display: 'flex', gap: 2, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
           {isOwn && (
-            <button onClick={() => onTogglePublic(r)} title={r.is_public ? 'Rendi privata' : 'Pubblica'} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: r.is_public ? '#1d4ed8' : 'var(--text-muted)' }}>
+            <button onClick={() => onTogglePublic(r)} title={r.is_public ? 'Rendi privata' : 'Pubblica'} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', color: r.is_public ? '#1d4ed8' : 'var(--text-muted)' }}>
               {r.is_public ? <Globe size={15} /> : <Lock size={15} />}
             </button>
           )}
           {!isOwn && (
-            <button onClick={() => onSave(r)} title="Salva nelle mie ricette" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--green-main)' }}>
+            <button onClick={() => onSave(r)} title="Salva nelle mie ricette" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green-main)' }}>
               <Bookmark size={15} />
             </button>
           )}
           {isOwn && (
-            <button onClick={() => onEdit(r)} title="Modifica ricetta" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)' }}>
+            <button onClick={() => onEdit(r)} title="Modifica ricetta" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
               <Pencil size={15} />
             </button>
           )}
           {isOwn && (
-            <button onClick={() => onDelete(r.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)' }}>
+            <button onClick={() => onDelete(r.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
               <Trash2 size={15} />
             </button>
           )}
@@ -444,7 +444,7 @@ export default function RecipesPage() {
             </div>
 
             {/* Tempi */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 8, marginBottom: 14 }}>
               <div className="input-group">
                 <label className="input-label">⏱ Prep (min)</label>
                 <input type="number" className="input-field" value={form.tempo_preparazione_min} onChange={e => setForm(f => ({ ...f, tempo_preparazione_min: e.target.value }))} min={0} inputMode="numeric" placeholder="0" />

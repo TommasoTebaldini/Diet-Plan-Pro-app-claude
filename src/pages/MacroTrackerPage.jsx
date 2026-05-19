@@ -510,7 +510,7 @@ export default function MacroTrackerPage() {
                 <button
                   onClick={() => { if (isSearching) { closeSearch() } else { openMealSearch(m.key); setExpandedMeal(m.key) } }}
                   title={`Aggiungi a ${m.label}`}
-                  style={{ flexShrink: 0, width: 30, height: 30, borderRadius: 8, background: isSearching ? 'var(--green-main)' : 'var(--green-pale)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isSearching ? 'white' : 'var(--green-main)' }}
+                  style={{ flexShrink: 0, minWidth: 44, minHeight: 44, borderRadius: 8, background: isSearching ? 'var(--green-main)' : 'var(--green-pale)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isSearching ? 'white' : 'var(--green-main)' }}
                 >
                   {isSearching ? <X size={14} /> : <Plus size={14} />}
                 </button>
@@ -530,10 +530,10 @@ export default function MacroTrackerPage() {
                             {f.food_data?.meal_time && <> · <Clock size={9} style={{ display: 'inline', verticalAlign: 'middle' }} /> {f.food_data.meal_time}</>}
                           </p>
                         </div>
-                        <button onClick={() => { setEditingFood(f.id); setEditGrams(String(f.grams || 100)) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 5, flexShrink: 0 }}>
+                        <button onClick={() => { setEditingFood(f.id); setEditGrams(String(f.grams || 100)) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Pencil size={13} />
                         </button>
-                        <button onClick={() => removeFood(f.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 5, flexShrink: 0 }}>
+                        <button onClick={() => removeFood(f.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -543,7 +543,7 @@ export default function MacroTrackerPage() {
                             type="number" min={1} inputMode="decimal"
                             value={editGrams}
                             onChange={e => setEditGrams(e.target.value)}
-                            style={{ width: 80, padding: '5px 10px', border: '1.5px solid var(--border)', borderRadius: 8, background: 'var(--surface-2)', color: 'var(--text-primary)', outline: 'none' }}
+                            style={{ width: 80, padding: '5px 10px', border: '1.5px solid var(--border)', borderRadius: 8, background: 'var(--surface-2)', color: 'var(--text-primary)', outline: 'none', fontSize: 16 }}
                             autoFocus
                           />
                           <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>g</span>

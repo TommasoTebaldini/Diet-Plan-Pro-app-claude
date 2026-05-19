@@ -101,7 +101,7 @@ function LogForm({ onClose, onSaved, userWeight, userId }) {
         {/* Activity type selector */}
         <div style={{ marginBottom: 14 }}>
           <label className="input-label" style={{ display: 'block', marginBottom: 8 }}>Tipo di attività</label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(60px, 1fr))', gap: 8 }}>
             {ACTIVITIES.map(a => (
               <button key={a.type} onClick={() => setForm(f => ({ ...f, activity_type: a.type }))} style={{
                 padding: '10px 4px', borderRadius: 12,
@@ -443,7 +443,7 @@ export default function ActivityPage() {
                         </p>
                         {l.notes && <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{l.notes}</p>}
                       </div>
-                      <button onClick={() => deleteLog(l.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 6 }}>
+                      <button onClick={() => deleteLog(l.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 12, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Trash2 size={15} />
                       </button>
                     </div>

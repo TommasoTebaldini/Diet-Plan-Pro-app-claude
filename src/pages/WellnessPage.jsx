@@ -312,7 +312,7 @@ export default function WellnessPage() {
         </div>
 
         {/* Stats row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: 10 }}>
           {[
             { label: 'Umore medio', val: moodAvg ? `${moodAvg}/5` : '–', icon: <Heart size={14} />, emoji: MOOD_OPTIONS.find(o => o.value === Math.round(Number(moodAvg)))?.emoji },
             { label: 'Energia media', val: energyAvg ? `${energyAvg}/5` : '–', icon: <Zap size={14} />, emoji: ENERGY_OPTIONS.find(o => o.value === Math.round(Number(energyAvg)))?.emoji },
@@ -415,7 +415,7 @@ export default function WellnessPage() {
                   <button
                     onClick={() => setSleepHours(h => Math.max(0, (h ?? 7) - 0.5))}
                     style={{
-                      width: 36, height: 36, borderRadius: 10, border: '1.5px solid var(--border)',
+                      width: 44, height: 44, borderRadius: 10, border: '1.5px solid var(--border)',
                       background: 'var(--surface-2)', cursor: 'pointer', fontSize: 18, fontWeight: 600,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed',
                     }}
@@ -430,7 +430,7 @@ export default function WellnessPage() {
                   <button
                     onClick={() => setSleepHours(h => Math.min(24, (h ?? 7) + 0.5))}
                     style={{
-                      width: 36, height: 36, borderRadius: 10, border: '1.5px solid var(--border)',
+                      width: 44, height: 44, borderRadius: 10, border: '1.5px solid var(--border)',
                       background: 'var(--surface-2)', cursor: 'pointer', fontSize: 18, fontWeight: 600,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed',
                     }}
