@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
 import { Leaf, Eye, EyeOff, AlertCircle, Fingerprint } from 'lucide-react'
@@ -155,18 +156,27 @@ export default function LoginPage() {
         overflow: 'auto',
       }}>
         {/* Mobile-only header with gradient */}
-        <div className="login-mobile-header" style={{
-          textAlign: 'center', marginBottom: 32,
-        }}>
-          <div style={{
-            width: 64, height: 64, borderRadius: 20,
-            background: 'linear-gradient(135deg, var(--green-main), var(--green-mid))',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 18px',
-            boxShadow: '0 8px 28px rgba(21,122,74,0.3)',
-          }}>
+        <motion.div
+          className="login-mobile-header"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+          style={{ textAlign: 'center', marginBottom: 32 }}
+        >
+          <motion.div
+            initial={{ scale: 0.6, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.1, type: 'spring', stiffness: 200 }}
+            style={{
+              width: 64, height: 64, borderRadius: 20,
+              background: 'linear-gradient(135deg, var(--green-main), var(--green-mid))',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 18px',
+              boxShadow: '0 8px 28px rgba(21,122,74,0.3)',
+            }}
+          >
             <Leaf size={32} color="white" />
-          </div>
+          </motion.div>
           <h1 style={{
             fontFamily: 'var(--font-d)', fontSize: 28, color: 'var(--text-primary)',
             fontWeight: 400, letterSpacing: '-0.3px', lineHeight: 1.2,
@@ -176,15 +186,21 @@ export default function LoginPage() {
           <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 6 }}>
             {t('auth.subtitle')}
           </p>
-        </div>
+        </motion.div>
 
         {/* Form card */}
-        <div className="card animate-slideUp" style={{
-          borderRadius: 'var(--r-xl)', padding: '36px 32px',
-          width: '100%', maxWidth: 440,
-          boxShadow: '0 20px 60px rgba(10,74,46,0.08), 0 1px 3px rgba(10,74,46,0.06)',
-          border: '1px solid var(--border-light)',
-        }}>
+        <motion.div
+          className="card"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.15, ease: [0.25, 0.46, 0.45, 0.94] }}
+          style={{
+            borderRadius: 'var(--r-xl)', padding: '36px 32px',
+            width: '100%', maxWidth: 440,
+            boxShadow: '0 20px 60px rgba(10,74,46,0.08), 0 1px 3px rgba(10,74,46,0.06)',
+            border: '1px solid var(--border-light)',
+          }}
+        >
           <h2 style={{
             fontSize: 22, fontWeight: 600, marginBottom: 6,
             color: 'var(--text-primary)', letterSpacing: '-0.2px',
@@ -204,7 +220,7 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <div className="input-group">
+            <motion.div className="input-group" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 }}>
               <label className="input-label">{t('auth.email')}</label>
               <input
                 type="email" className="input-field"
@@ -212,9 +228,9 @@ export default function LoginPage() {
                 value={email} onChange={e => setEmail(e.target.value)}
                 required autoComplete="email"
               />
-            </div>
+            </motion.div>
 
-            <div className="input-group">
+            <motion.div className="input-group" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
               <label className="input-label">{t('auth.password')}</label>
               <div style={{ position: 'relative' }}>
                 <input
@@ -235,8 +251,9 @@ export default function LoginPage() {
                   {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-            </div>
+            </motion.div>
 
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
             <button type="submit" className="btn btn-primary btn-full" disabled={loading}
               style={{ marginTop: 6, padding: '14px 22px', fontSize: 15 }}>
               {loading
@@ -246,6 +263,7 @@ export default function LoginPage() {
                   </span>
                 : t('auth.login_btn')}
             </button>
+            </motion.div>
           </form>
 
           {hasBiometric && (
@@ -272,13 +290,13 @@ export default function LoginPage() {
 
           <div className="divider" />
 
-          <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--text-muted)' }}>
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} style={{ textAlign: 'center', fontSize: 14, color: 'var(--text-muted)' }}>
             {t('auth.no_account')}{' '}
             <Link to="/register" style={{ color: 'var(--green-main)', fontWeight: 600, textDecoration: 'none' }}>
               {t('auth.register')}
             </Link>
-          </p>
-        </div>
+          </motion.p>
+        </motion.div>
 
         <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-muted)', marginTop: 28 }}>
           {t('auth.dietitian_prompt')}{' '}

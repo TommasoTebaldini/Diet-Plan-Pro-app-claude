@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { useAppSettings } from '../context/AppSettingsContext'
 import { supabase } from '../lib/supabase'
@@ -285,16 +286,24 @@ export default function DashboardPage() {
         <div>
           <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12 }}>Accesso rapido</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(70px, 1fr))', gap: 10 }}>
-            {ACTIONS.map(({ label, icon: Icon, to, color, bg }) => (
-              <Link key={to} to={to} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
-                <div style={{ width: 54, height: 54, borderRadius: 18, background: dark ? color + '26' : bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: dark ? color + 'cc' : color, boxShadow: 'var(--shadow-xs)', border: dark ? `1px solid ${color}30` : '1px solid rgba(0,0,0,.04)', transition: 'transform .15s', position: 'relative' }}>
-                  <Icon size={22} strokeWidth={1.8} />
-                  {label === 'Chat' && unreadChat > 0 && (
-                    <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: '#dc4a4a', color: 'white', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--surface-2)' }}>{unreadChat}</span>
-                  )}
-                </div>
-                <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 500, textAlign: 'center' }}>{label}</span>
-              </Link>
+            {ACTIONS.map(({ label, icon: Icon, to, color, bg }, idx) => (
+              <motion.div
+                key={to}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 * idx, duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <Link to={to} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
+                  <div style={{ width: 54, height: 54, borderRadius: 18, background: dark ? color + '26' : bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: dark ? color + 'cc' : color, boxShadow: 'var(--shadow-xs)', border: dark ? `1px solid ${color}30` : '1px solid rgba(0,0,0,.04)', transition: 'transform .15s', position: 'relative' }}>
+                    <Icon size={22} strokeWidth={1.8} />
+                    {label === 'Chat' && unreadChat > 0 && (
+                      <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: '#dc4a4a', color: 'white', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--surface-2)' }}>{unreadChat}</span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 500, textAlign: 'center' }}>{label}</span>
+                </Link>
+              </motion.div>
             ))}
           </div>
         </div>

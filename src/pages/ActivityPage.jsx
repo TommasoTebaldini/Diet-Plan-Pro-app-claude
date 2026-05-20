@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
 import ProGate from '../components/ProGate'
 import { useSubscription } from '../hooks/useSubscription'
-import { Plus, Trash2, Flame, Activity, List, BarChart2, Clock, X, Check, ExternalLink } from 'lucide-react'
+import { Plus, Trash2, Flame, Activity, List, BarChart2, Clock, X, Check, ExternalLink, Footprints, Play, Square, Info } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { subDays, format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { getPedometer, isPedometerSupported, getTodaySteps, getStepGoal, setStepGoal as saveStepGoal } from '../lib/pedometer'
 
 const STEP_GOAL_KEY = 'nutriplan_step_goal'
 const DEFAULT_STEP_GOAL = 10000
@@ -169,12 +171,15 @@ export default function ActivityPage() {
   const [tab, setTab] = useState('oggi')
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [stepGoal, setStepGoal] = useState(() => {
-    const v = parseInt(localStorage.getItem(STEP_GOAL_KEY), 10)
-    return isNaN(v) ? DEFAULT_STEP_GOAL : v
-  })
+  const [stepGoal, setStepGoalState] = useState(() => getStepGoal())
   const [editingStepGoal, setEditingStepGoal] = useState(false)
   const [stepGoalInput, setStepGoalInput] = useState(String(DEFAULT_STEP_GOAL))
+
+  // Live pedometer state
+  const [liveSteps, setLiveSteps] = useState(() => getTodaySteps())
+  const [pedoActive, setPedoActive] = useState(false)
+  const [pedoPermErr, setPedoPermErr] = useState(false)
+  const pedoRef = useRef(null)
 
   const userWeight = latestWeight || profile?.weight_kg || profile?.target_weight || 70
 
@@ -244,10 +249,12 @@ export default function ActivityPage() {
     loadHistory()
   }, [tab, user.id])
 
-  // Computed totals for today
+  // Computed totals for today — use liveSteps as total (pedometer + logged)
   const todayCalories = logs.reduce((s, l) => s + (l.calories_burned || 0), 0)
   const todayMinutes = logs.reduce((s, l) => s + l.duration_minutes, 0)
-  const todaySteps = logs.reduce((s, l) => s + (l.steps || 0), 0)
+  const loggedSteps = logs.reduce((s, l) => s + (l.steps || 0), 0)
+  const totalSteps = Math.max(liveSteps, loggedSteps)
+  const todaySteps = totalSteps
   const stepPct = Math.min(100, Math.round((todaySteps / stepGoal) * 100))
 
   async function deleteLog(id) {
@@ -255,14 +262,48 @@ export default function ActivityPage() {
     setLogs(l => l.filter(x => x.id !== id))
   }
 
-  function saveStepGoal() {
+  // ── Live pedometer ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    const pedo = getPedometer()
+    pedoRef.current = pedo
+    const onStep = e => setLiveSteps(e.detail.steps)
+    const onStart = () => setPedoActive(true)
+    const onStop = () => setPedoActive(false)
+    pedo.addEventListener('step', onStep)
+    pedo.addEventListener('start', onStart)
+    pedo.addEventListener('stop', onStop)
+    setPedoActive(pedo.active)
+    setLiveSteps(pedo.steps)
+    return () => {
+      pedo.removeEventListener('step', onStep)
+      pedo.removeEventListener('start', onStart)
+      pedo.removeEventListener('stop', onStop)
+    }
+  }, [])
+
+  async function togglePedometer() {
+    const pedo = pedoRef.current
+    if (!pedo) return
+    if (pedo.active) {
+      pedo.stop()
+    } else {
+      setPedoPermErr(false)
+      const ok = await pedo.start()
+      if (!ok) setPedoPermErr(true)
+    }
+  }
+
+  function handleSaveGoal() {
     const v = parseInt(stepGoalInput, 10)
     if (!isNaN(v) && v > 0) {
-      setStepGoal(v)
-      localStorage.setItem(STEP_GOAL_KEY, String(v))
+      setStepGoalState(v)
+      saveStepGoal(v)
     }
     setEditingStepGoal(false)
   }
+
+  // Keep backward compat name
+  function saveStepGoalFn() { handleSaveGoal() }
 
   function reloadToday() {
     supabase.from('activity_logs').select('*').eq('user_id', user.id).eq('date', today).order('created_at')
@@ -318,6 +359,69 @@ export default function ActivityPage() {
           <Plus size={18} /> {t('common.add')}
         </button>
 
+        {/* ── Live Pedometer card ── */}
+        {isPedometerSupported() && (
+          <motion.div className="card" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} style={{ padding: '18px 20px', background: pedoActive ? 'linear-gradient(135deg, #fff7ed, #fff)' : 'var(--surface)', border: pedoActive ? '1.5px solid #fed7aa' : '1px solid var(--border-light)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 14, background: pedoActive ? '#fff7ed' : 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: pedoActive ? '1.5px solid #fed7aa' : '1.5px solid var(--border)' }}>
+                  <motion.span style={{ fontSize: 22 }} animate={pedoActive ? { rotate: [0, -10, 10, -5, 5, 0] } : {}} transition={{ repeat: pedoActive ? Infinity : 0, duration: 1.2, repeatDelay: 0.5 }}>
+                    🦶
+                  </motion.span>
+                </div>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 700 }}>Contapassi</p>
+                  <p style={{ fontSize: 11, color: pedoActive ? '#f97316' : 'var(--text-muted)', fontWeight: pedoActive ? 600 : 400 }}>
+                    {pedoActive ? '● In registrazione' : 'Avvia per contare i passi'}
+                  </p>
+                </div>
+              </div>
+              <motion.button
+                onClick={togglePedometer}
+                whileTap={{ scale: 0.92 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, background: pedoActive ? '#f97316' : 'linear-gradient(135deg, var(--green-main), var(--green-mid))', color: 'white', minHeight: 44 }}
+              >
+                {pedoActive ? <><Square size={14} /> Stop</> : <><Play size={14} /> Avvia</>}
+              </motion.button>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, marginBottom: 12 }}>
+              <motion.span
+                key={liveSteps}
+                initial={{ scale: 1.2, color: '#f97316' }}
+                animate={{ scale: 1, color: 'var(--text-primary)' }}
+                transition={{ duration: 0.3 }}
+                style={{ fontSize: 44, fontWeight: 800, fontFamily: 'var(--font-d)', lineHeight: 1 }}
+              >
+                {liveSteps.toLocaleString('it-IT')}
+              </motion.span>
+              <span style={{ fontSize: 15, color: 'var(--text-muted)', paddingBottom: 8 }}>passi</span>
+              <span style={{ fontSize: 13, color: 'var(--text-muted)', paddingBottom: 8, marginLeft: 6 }}>
+                · ~{Math.round(liveSteps * 0.0008 * 10) / 10} km
+              </span>
+            </div>
+
+            <div style={{ height: 8, background: 'var(--border-light)', borderRadius: 4, overflow: 'hidden', marginBottom: 8 }}>
+              <motion.div
+                style={{ height: '100%', background: 'linear-gradient(90deg, #fbbf24, #f97316)', borderRadius: 4 }}
+                animate={{ width: `${Math.min(100, Math.round((liveSteps / stepGoal) * 100))}%` }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+              />
+            </div>
+
+            {pedoPermErr && (
+              <div className="alert-error" style={{ marginTop: 8, fontSize: 12 }}>
+                Accesso al sensore negato. Su iOS, vai in Impostazioni → Safari → Sensori movimento.
+              </div>
+            )}
+            {!pedoActive && (
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Info size={11} /> Su Android tieni l'app aperta nelle app recenti per contare in background
+              </p>
+            )}
+          </motion.div>
+        )}
+
         {/* ── Steps goal card ── */}
         <div className="card" style={{ padding: '18px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -348,7 +452,7 @@ export default function ActivityPage() {
                   inputMode="numeric"
                   min="500"
                 />
-                <button onClick={saveStepGoal} style={{ background: 'var(--green-main)', border: 'none', borderRadius: 8, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <button onClick={handleSaveGoal} style={{ background: 'var(--green-main)', border: 'none', borderRadius: 8, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                   <Check size={14} color="white" />
                 </button>
               </div>

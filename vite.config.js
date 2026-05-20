@@ -46,6 +46,36 @@ export default defineConfig({
         orientation: 'portrait',
         scope: '/',
         start_url: '/',
+        shortcuts: [
+          {
+            name: 'Registra pasto',
+            short_name: 'Pasto',
+            description: 'Aggiungi alimenti al diario',
+            url: '/macro',
+            icons: [{ src: 'icons/icon-96x96.png', sizes: '96x96', type: 'image/png' }],
+          },
+          {
+            name: 'Acqua',
+            short_name: 'Acqua',
+            description: 'Registra idratazione',
+            url: '/acqua',
+            icons: [{ src: 'icons/icon-96x96.png', sizes: '96x96', type: 'image/png' }],
+          },
+          {
+            name: 'Attività fisica',
+            short_name: 'Attività',
+            description: 'Contapassi e attività',
+            url: '/attivita',
+            icons: [{ src: 'icons/icon-96x96.png', sizes: '96x96', type: 'image/png' }],
+          },
+          {
+            name: 'Chat dietista',
+            short_name: 'Chat',
+            description: 'Messaggia con il tuo dietista',
+            url: '/chat',
+            icons: [{ src: 'icons/icon-96x96.png', sizes: '96x96', type: 'image/png' }],
+          },
+        ],
         icons: [
           { src: 'icons/icon-72x72.png', sizes: '72x72', type: 'image/png' },
           { src: 'icons/icon-96x96.png', sizes: '96x96', type: 'image/png' },

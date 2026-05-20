@@ -1,5 +1,6 @@
 import { lazy, Suspense, Component } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { AnimatePresence } from 'framer-motion'
 import { useAuth } from './context/AuthContext'
 import { AppSettingsProvider } from './context/AppSettingsContext'
 import LoadingScreen from './components/LoadingScreen'
@@ -7,6 +8,7 @@ import BottomNav from './components/BottomNav'
 import InstallBanner from './components/InstallBanner'
 import { NotificationProvider } from './context/NotificationContext'
 import OfflineBar from './components/OfflineBar'
+import PageTransition from './components/PageTransition'
 import { useT } from './i18n'
 
 const LoginPage            = lazy(() => import('./pages/LoginPage'))
@@ -78,11 +80,41 @@ function DietitianRoute({ children }) {
   return children
 }
 
+function AnimatedRoutes() {
+  const location = useLocation()
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      <Routes location={location} key={location.pathname}>
+        <Route path="/login" element={<PublicRoute><PageTransition><LoginPage /></PageTransition></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><PageTransition><RegisterPage /></PageTransition></PublicRoute>} />
+        <Route path="/dietitian/chat" element={<PrivateRoute><PageTransition><DietitianChatPage /></PageTransition></PrivateRoute>} />
+        <Route path="/dietitian/profilo" element={<DietitianRoute><PageTransition><DietitianProfilePage /></PageTransition></DietitianRoute>} />
+        <Route path="/" element={<PatientRoute><PageTransition><DashboardPage /></PageTransition></PatientRoute>} />
+        <Route path="/dieta" element={<PatientRoute><PageTransition><DietPage /></PageTransition></PatientRoute>} />
+        <Route path="/macro" element={<PatientRoute><PageTransition><MacroTrackerPage /></PageTransition></PatientRoute>} />
+        <Route path="/acqua" element={<PatientRoute><PageTransition><WaterPage /></PageTransition></PatientRoute>} />
+        <Route path="/alimenti" element={<PatientRoute><PageTransition><FoodDatabasePage /></PageTransition></PatientRoute>} />
+        <Route path="/ricette" element={<PatientRoute><PageTransition><RecipesPage /></PageTransition></PatientRoute>} />
+        <Route path="/chat" element={<PatientRoute><PageTransition><ChatPage /></PageTransition></PatientRoute>} />
+        <Route path="/documenti" element={<PatientRoute><PageTransition><DocumentsPage /></PageTransition></PatientRoute>} />
+        <Route path="/progressi" element={<PatientRoute><PageTransition><ProgressPage /></PageTransition></PatientRoute>} />
+        <Route path="/attivita" element={<PatientRoute><PageTransition><ActivityPage /></PageTransition></PatientRoute>} />
+        <Route path="/statistiche" element={<PatientRoute><PageTransition><StatisticsPage /></PageTransition></PatientRoute>} />
+        <Route path="/benessere" element={<PatientRoute><PageTransition><WellnessPage /></PageTransition></PatientRoute>} />
+        <Route path="/dietisti" element={<PatientRoute><PageTransition><DietitianProfilesPage /></PageTransition></PatientRoute>} />
+        <Route path="/dietisti/:dietitianId" element={<PatientRoute><PageTransition><DietitianDetailPage /></PageTransition></PatientRoute>} />
+        <Route path="/profilo" element={<PatientRoute><PageTransition><ProfilePage /></PageTransition></PatientRoute>} />
+        <Route path="/abbonamento" element={<PatientRoute><PageTransition><SubscriptionPage /></PageTransition></PatientRoute>} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AnimatePresence>
+  )
+}
+
 function AppInner() {
   const { user, isDietitian, refreshProfile } = useAuth()
   const t = useT()
 
-  // When connectivity is restored, refresh profile and let pages react to auth state
   async function handleReconnect() {
     if (user) await refreshProfile()
   }
@@ -94,31 +126,9 @@ function AppInner() {
       {user && !isDietitian && <BottomNav />}
       <div className={user && !isDietitian ? 'app-content' : 'app-content-public'}>
         <ErrorBoundary>
-        <Suspense fallback={<LoadingScreen />}>
-          <Routes>
-            <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-            <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
-            <Route path="/dietitian/chat" element={<PrivateRoute><DietitianChatPage /></PrivateRoute>} />
-            <Route path="/dietitian/profilo" element={<DietitianRoute><DietitianProfilePage /></DietitianRoute>} />
-            <Route path="/" element={<PatientRoute><DashboardPage /></PatientRoute>} />
-            <Route path="/dieta" element={<PatientRoute><DietPage /></PatientRoute>} />
-            <Route path="/macro" element={<PatientRoute><MacroTrackerPage /></PatientRoute>} />
-            <Route path="/acqua" element={<PatientRoute><WaterPage /></PatientRoute>} />
-            <Route path="/alimenti" element={<PatientRoute><FoodDatabasePage /></PatientRoute>} />
-            <Route path="/ricette" element={<PatientRoute><RecipesPage /></PatientRoute>} />
-            <Route path="/chat" element={<PatientRoute><ChatPage /></PatientRoute>} />
-            <Route path="/documenti" element={<PatientRoute><DocumentsPage /></PatientRoute>} />
-            <Route path="/progressi" element={<PatientRoute><ProgressPage /></PatientRoute>} />
-            <Route path="/attivita" element={<PatientRoute><ActivityPage /></PatientRoute>} />
-            <Route path="/statistiche" element={<PatientRoute><StatisticsPage /></PatientRoute>} />
-            <Route path="/benessere" element={<PatientRoute><WellnessPage /></PatientRoute>} />
-            <Route path="/dietisti" element={<PatientRoute><DietitianProfilesPage /></PatientRoute>} />
-            <Route path="/dietisti/:dietitianId" element={<PatientRoute><DietitianDetailPage /></PatientRoute>} />
-            <Route path="/profilo" element={<PatientRoute><ProfilePage /></PatientRoute>} />
-            <Route path="/abbonamento" element={<PatientRoute><SubscriptionPage /></PatientRoute>} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
+          <Suspense fallback={<LoadingScreen />}>
+            <AnimatedRoutes />
+          </Suspense>
         </ErrorBoundary>
         <footer className="global-copyright-app">
           {t('app.copyright', { year: new Date().getFullYear() })}

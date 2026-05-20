@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users, ChefHat, Star } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -233,30 +234,37 @@ export default function BottomNav() {
       {TABS.map(({ to, icon: Icon, label, badge }) => {
         const active = pathname === to || (to !== '/' && pathname.startsWith(to))
         return (
-          <Link key={to} to={to} style={{
-            flex: '0 0 auto', minWidth: 58,
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', gap: 3, textDecoration: 'none',
-            color: active ? 'var(--green-main)' : '#94a3b8',
-            WebkitTapHighlightColor: 'transparent',
-            transition: 'color 0.15s',
-            paddingTop: 6,
-          }}>
-            <div style={{
-              width: 38, height: 26,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: 8,
-              background: active ? 'var(--green-pale)' : 'transparent',
-              transition: 'background 0.15s',
-              position: 'relative',
+          <motion.div key={to} whileTap={{ scale: 0.85 }} style={{ flex: '0 0 auto', minWidth: 58, display: 'contents' }}>
+            <Link to={to} style={{
+              flex: '0 0 auto', minWidth: 58,
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              justifyContent: 'center', gap: 3, textDecoration: 'none',
+              color: active ? 'var(--green-main)' : '#94a3b8',
+              WebkitTapHighlightColor: 'transparent',
+              transition: 'color 0.15s',
+              paddingTop: 6,
             }}>
-              <Icon size={20} strokeWidth={active ? 2.2 : 1.8} />
-              {badge > 0 && <span style={badgeStyle}>{badge}</span>}
-            </div>
-            <span style={{ fontSize: 9.5, fontWeight: active ? 600 : 400, letterSpacing: '0.01em' }}>
-              {label}
-            </span>
-          </Link>
+              <div style={{
+                width: 38, height: 26,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                borderRadius: 8,
+                background: active ? 'var(--green-pale)' : 'transparent',
+                transition: 'background 0.2s',
+                position: 'relative',
+              }}>
+                <motion.div
+                  animate={active ? { y: [-3, 0] } : { y: 0 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                >
+                  <Icon size={20} strokeWidth={active ? 2.2 : 1.8} />
+                </motion.div>
+                {badge > 0 && <span style={badgeStyle}>{badge}</span>}
+              </div>
+              <span style={{ fontSize: 9.5, fontWeight: active ? 600 : 400, letterSpacing: '0.01em' }}>
+                {label}
+              </span>
+            </Link>
+          </motion.div>
         )
       })}
     </nav>

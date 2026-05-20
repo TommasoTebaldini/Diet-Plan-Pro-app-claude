@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
 import { searchFoods, searchByBarcode } from '../lib/foodSearch'
-import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle, Pencil, Check, Lock } from 'lucide-react'
+import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle, Pencil, Check, Lock, Camera } from 'lucide-react'
 import BarcodeScanner from '../components/BarcodeScanner'
+import MealPhotoAnalyzer from '../components/MealPhotoAnalyzer'
 import ProGate from '../components/ProGate'
 import { useSubscription } from '../hooks/useSubscription'
 
@@ -85,6 +87,7 @@ export default function MacroTrackerPage() {
   const [editingFood, setEditingFood] = useState(null) // food log id being edited
   const [editGrams, setEditGrams] = useState('')
   const [editSaving, setEditSaving] = useState(false)
+  const [showPhotoAnalyzer, setShowPhotoAnalyzer] = useState(false)
   const searchRef = useRef(null)
   const searchCacheRef = useRef(new Map())
   const latestSearchIdRef = useRef(0)
@@ -288,6 +291,20 @@ export default function MacroTrackerPage() {
     }
   }
 
+  async function addFoodsFromPhoto(foods) {
+    const inserts = foods.map(f => ({
+      user_id: user.id, date, meal_type: meal,
+      food_name: f.food_name, grams: f.grams,
+      kcal: f.kcal, proteins: f.proteins, carbs: f.carbs, fats: f.fats,
+      food_data: f.food_data || {},
+    }))
+    const { data, error } = await supabase.from('food_logs').insert(inserts).select()
+    if (!error && data) {
+      setLog(l => [...l, ...data])
+      await updateDailyLog()
+    }
+  }
+
   async function updateDailyLog() {
     const { data } = await supabase.from('food_logs').select('*').eq('user_id', user.id).eq('date', date)
     if (!data) return
@@ -398,6 +415,13 @@ export default function MacroTrackerPage() {
           </div>
 
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+            <button
+              onClick={() => setShowPhotoAnalyzer(true)}
+              title="Analizza foto pasto con AI"
+              style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}
+            >
+              <Camera size={18} />
+            </button>
             <button
               onClick={() => setShowScanner(true)}
               title="Scansiona codice a barre"
@@ -749,6 +773,15 @@ export default function MacroTrackerPage() {
           onClose={() => setShowScanner(false)}
         />
       )}
+
+      <AnimatePresence>
+        {showPhotoAnalyzer && (
+          <MealPhotoAnalyzer
+            onAddFoods={addFoodsFromPhoto}
+            onClose={() => setShowPhotoAnalyzer(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Barcode food modal — opened when scanning from header (no meal open) */}
       {barcodeFoodModal && (() => {
