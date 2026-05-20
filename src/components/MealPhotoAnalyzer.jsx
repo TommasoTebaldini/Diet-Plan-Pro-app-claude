@@ -106,13 +106,7 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
           </button>
         </div>
 
-        {/* No API key warning */}
-        {!isMealAIAvailable() && (
-          <div className="alert-warning" style={{ marginBottom: 16, display: 'flex', gap: 8 }}>
-            <AlertCircle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
-            <span>Aggiungi <strong>VITE_ANTHROPIC_API_KEY</strong> nel file <code>.env.local</code> per usare questa funzione.</span>
-          </div>
-        )}
+        {/* Server setup hint — shown only on specific error */}
 
         {/* Idle: show capture button */}
         {phase === 'idle' && (
@@ -124,16 +118,14 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
             <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>L'AI identificherà gli alimenti e stimerà le calorie</p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <button
-                disabled={!isMealAIAvailable()}
                 onClick={() => { inputRef.current.capture = 'environment'; inputRef.current.click() }}
-                style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: 'white', border: 'none', borderRadius: 14, padding: '13px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, opacity: isMealAIAvailable() ? 1 : 0.5 }}
+                style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: 'white', border: 'none', borderRadius: 14, padding: '13px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
               >
                 <Camera size={16} /> Fotocamera
               </button>
               <button
-                disabled={!isMealAIAvailable()}
                 onClick={() => { inputRef.current.removeAttribute('capture'); inputRef.current.click() }}
-                style={{ background: 'var(--surface-3)', color: 'var(--text-primary)', border: '1.5px solid var(--border)', borderRadius: 14, padding: '13px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', opacity: isMealAIAvailable() ? 1 : 0.5 }}
+                style={{ background: 'var(--surface-3)', color: 'var(--text-primary)', border: '1.5px solid var(--border)', borderRadius: 14, padding: '13px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
               >
                 Galleria
               </button>
@@ -158,8 +150,19 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
 
         {/* Error */}
         {phase === 'error' && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ textAlign: 'center', padding: '20px 0' }}>
-            <div className="alert-error" style={{ marginBottom: 16 }}>{error}</div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ padding: '10px 0' }}>
+            <div className="alert-error" style={{ marginBottom: 12, lineHeight: 1.5 }}>
+              <strong>Errore analisi</strong><br />{error}
+            </div>
+            {error?.includes('chiave AI') || error?.includes('Secrets') ? (
+              <div className="alert-info" style={{ marginBottom: 16, fontSize: 12, lineHeight: 1.6 }}>
+                <strong>Setup richiesto (una volta sola):</strong><br />
+                1. Ottieni una chiave gratuita su <strong>aistudio.google.com</strong><br />
+                2. Supabase Dashboard → Edge Functions → <code>analyze-meal</code> → Secrets<br />
+                3. Aggiungi <code>GEMINI_API_KEY</code> con la tua chiave<br />
+                4. Deploy: <code>supabase functions deploy analyze-meal</code>
+              </div>
+            ) : null}
             <button onClick={() => setPhase('idle')} className="btn btn-secondary btn-full">Riprova</button>
           </motion.div>
         )}
