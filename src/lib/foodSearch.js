@@ -1,7 +1,6 @@
 import { supabase } from './supabase'
 
-// ─── Dietitian food database (primary, trusted source) ───────────────────────
-// Lazy-loaded on first search so the 117 KB array stays out of the main bundle.
+// ─── Dietitian curated database (primary, trusted source) ────────────────────
 let _dietitianFoods = null
 async function getDietitianFoods() {
   if (_dietitianFoods) return _dietitianFoods
@@ -20,7 +19,33 @@ async function searchDietitianFoods(query) {
     const name = f.name.toLowerCase()
     return tokens.every(t => name.includes(t))
   })
-  // Sort: exact-start matches first, then partial matches
+  results.sort((a, b) => {
+    const aStarts = (a.name || '').toLowerCase().startsWith(q) ? 0 : 1
+    const bStarts = (b.name || '').toLowerCase().startsWith(q) ? 0 : 1
+    return aStarts - bStarts
+  })
+  return results.map(f => ({ ...f, brand: `CREA — ${f.category || 'Generico'}`, source: 'dietitian' }))
+}
+
+// ─── CREA Italian national food database (shared with dietitian site) ─────────
+let _creaFoods = null
+async function getCreaFoods() {
+  if (_creaFoods) return _creaFoods
+  const mod = await import('../data/crea-foods.js')
+  _creaFoods = mod.CREA_FOODS
+  return _creaFoods
+}
+
+async function searchCreaFoods(query) {
+  const q = query.toLowerCase().trim()
+  if (!q) return []
+  const CREA_FOODS = await getCreaFoods()
+  const tokens = q.split(/\s+/)
+  const results = CREA_FOODS.filter(f => {
+    if (!f?.name) return false
+    const name = f.name.toLowerCase()
+    return tokens.every(t => name.includes(t))
+  })
   results.sort((a, b) => {
     const aStarts = (a.name || '').toLowerCase().startsWith(q) ? 0 : 1
     const bStarts = (b.name || '').toLowerCase().startsWith(q) ? 0 : 1
@@ -216,12 +241,13 @@ export async function searchFoods(query) {
   if (!normalizedQuery) return []
 
   // Run all fast local sources in parallel first
-  const [a, b, c, d, e] = await Promise.allSettled([
+  const [a, b, c, d, e, f] = await Promise.allSettled([
     searchRecentFoods(normalizedQuery),
     searchRicette(normalizedQuery),
     searchDietMealFoods(normalizedQuery),
     searchCustomMeals(normalizedQuery),
     searchDietitianFoods(normalizedQuery),
+    searchCreaFoods(normalizedQuery),
   ])
   const seen = new Set()
   const dedup = arr => (arr.status === 'fulfilled' ? arr.value : []).filter(food => {
@@ -230,7 +256,7 @@ export async function searchFoods(query) {
     if (!k || seen.has(k)) return false
     seen.add(k); return true
   })
-  const localItems = [...dedup(a), ...dedup(b), ...dedup(c), ...dedup(d), ...dedup(e)]
+  const localItems = [...dedup(a), ...dedup(b), ...dedup(c), ...dedup(d), ...dedup(e), ...dedup(f)]
 
   // Skip OFF if local sources already have enough results, query is too short,
   // or we are on a production build (OFF blocks CORS from production origins).

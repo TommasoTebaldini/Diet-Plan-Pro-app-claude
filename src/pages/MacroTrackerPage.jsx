@@ -23,6 +23,28 @@ function calcMacros(food, grams) {
   }
 }
 
+function getDefaultServingSize(food) {
+  if (food.serving_size_g) return food.serving_size_g
+  if (food.default_grams) return food.default_grams
+  const cat = food.category || ''
+  if (cat === 'Proteine') return 100
+  if (cat === 'Legumi') return 150
+  if (cat === 'Verdure') return 200
+  if (cat === 'Frutta') return 150
+  if (cat === 'Frutta secca') return 30
+  if (cat === 'Latticini') return 125
+  if (cat === 'Grassi') return 10
+  if (cat === 'Cereali') return 80
+  if (cat === 'Condimenti e Salse') return 15
+  if (cat === 'Bevande') return 200
+  if (cat === 'Dolci e Zuccheri') return 50
+  if (cat === 'Salumi e Insaccati') return 50
+  if (cat === 'Pane e Prodotti da Forno') return 50
+  if (cat === 'Piatti Pronti') return 200
+  if (cat === 'Snack e Ultra-Processati') return 30
+  return 100
+}
+
 const MEALS_STATIC = [
   { key: 'colazione', emoji: '☀️', defaultTime: '07:30', accent: '#f59e0b', pale: '#fffbeb' },
   { key: 'spuntino_mattina', emoji: '🍎', defaultTime: '10:00', accent: '#10b981', pale: '#ecfdf5' },
@@ -200,12 +222,12 @@ export default function MacroTrackerPage() {
       if (activeMealAdd) {
         // Inside meal search — fill directly
         setSelected(food)
-        setGrams(food.default_grams ? String(food.default_grams) : '100')
+        setGrams(String(getDefaultServingSize(food)))
         setQuery(food.name)
         setResults([])
       } else {
         // Header scan — open dedicated modal
-        setBarcodeFoodModal({ food, grams: String(food.default_grams || 100), meal: autoMealFromTime() })
+        setBarcodeFoodModal({ food, grams: String(getDefaultServingSize(food)), meal: autoMealFromTime() })
       }
     } else {
       setBarcodeError(`Prodotto con codice "${barcode}" non trovato. Prova la ricerca manuale.`)
@@ -726,7 +748,7 @@ export default function MacroTrackerPage() {
                             overflowY: 'auto',
                           }}>
                             {results.map((f, i) => (
-                              <button key={`${f.id}_${i}`} onClick={() => { setSelected(f); setGrams(f.default_grams ? String(f.default_grams) : '100'); setResults([]) }} style={{
+                              <button key={`${f.id}_${i}`} onClick={() => { setSelected(f); setGrams(String(getDefaultServingSize(f))); setResults([]) }} style={{
                                 width: '100%', background: 'none', border: 'none', borderBottom: i < results.length - 1 ? '1px solid var(--border-light, #f3f4f6)' : 'none',
                                 padding: '10px 13px', textAlign: 'left', cursor: 'pointer', font: 'inherit',
                               }}>
@@ -768,10 +790,10 @@ export default function MacroTrackerPage() {
                             <div className="input-group" style={{ flex: '1 1 80px' }}>
                               <label className="input-label">Porzioni</label>
                               <input type="number" className="input-field"
-                                value={parseFloat(grams) > 0 ? Math.round(parseFloat(grams) / (selected.serving_size_g || 100) * 100) / 100 : ''}
+                                value={parseFloat(grams) > 0 ? Math.round(parseFloat(grams) / getDefaultServingSize(selected) * 100) / 100 : ''}
                                 onChange={e => {
                                   const p = parseFloat(e.target.value)
-                                  if (!isNaN(p) && p > 0) setGrams(String(Math.round(p * (selected.serving_size_g || 100))))
+                                  if (!isNaN(p) && p > 0) setGrams(String(Math.round(p * getDefaultServingSize(selected))))
                                   else setGrams('')
                                 }}
                                 min={0} step="any" inputMode="decimal" />
@@ -782,23 +804,15 @@ export default function MacroTrackerPage() {
                             </div>
                             <div className="input-group" style={{ flex: '1 1 80px' }}>
                               <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={11} />Orario</label>
-                              <input type="time" className="input-field" value={mealTime} onChange={e => setMealTime(e.target.value)} style={{ cursor: 'pointer' }} />
+                              <select className="input-field" value={mealTime} onChange={e => setMealTime(e.target.value)} style={{ cursor: 'pointer' }}>
+                                {Array.from({ length: 38 }, (_, i) => {
+                                  const h = Math.floor(i / 2) + 5
+                                  const mn = i % 2 === 0 ? '00' : '30'
+                                  const t = `${String(h).padStart(2, '0')}:${mn}`
+                                  return <option key={t} value={t}>{t}</option>
+                                })}
+                              </select>
                             </div>
-                          </div>
-                          <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
-                            {[
-                              { time: '07:30', emoji: '☀️' },
-                              { time: '10:00', emoji: '🍎' },
-                              { time: '12:30', emoji: '🍽️' },
-                              { time: '15:30', emoji: '🥤' },
-                              { time: '19:30', emoji: '🌙' },
-                            ].map(p => (
-                              <button key={p.time} type="button" onClick={() => setMealTime(p.time)}
-                                style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '7px 4px', borderRadius: 10, border: `1.5px solid ${mealTime === p.time ? 'var(--green-main)' : 'var(--border)'}`, background: mealTime === p.time ? 'var(--green-pale)' : 'var(--surface-2)', cursor: 'pointer', transition: 'all 0.15s', boxShadow: mealTime === p.time ? '0 0 0 2px rgba(21,122,74,0.12)' : 'none' }}>
-                                <span style={{ fontSize: 17 }}>{p.emoji}</span>
-                                <span style={{ fontSize: 10, fontWeight: 600, color: mealTime === p.time ? 'var(--green-dark)' : 'var(--text-muted)' }}>{p.time}</span>
-                              </button>
-                            ))}
                           </div>
                           <button className="btn btn-primary btn-full" onClick={addFood} disabled={saving}>
                             {saving ? '…' : 'Aggiungi al diario'}
