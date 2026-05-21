@@ -117,7 +117,11 @@ function FoodItem({ food }) {
 
 function MealCard({ meal, completed, onToggleComplete }) {
   const [open, setOpen] = useState(false)
-  const meta = MEAL_LABELS[meal.meal_type] || { label: meal.meal_type, icon: '🍴', time: '', accent: 'var(--green-main)', pale: 'var(--green-pale)' }
+  const t = useT()
+  const mealLabels = useMemo(() => Object.fromEntries(
+    Object.entries(MEAL_META_STATIC).map(([k, v]) => [k, { ...v, label: t(`meal.${k}`) }])
+  ), [t])
+  const meta = mealLabels[meal.meal_type] || { label: meal.meal_type, icon: '🍴', time: '', accent: 'var(--green-main)', pale: 'var(--green-pale)' }
 
   return (
     <div style={{
@@ -197,6 +201,10 @@ function MealCard({ meal, completed, onToggleComplete }) {
 
 function HistoryDietCard({ diet, onSelect, selected, meals }) {
   const [historyTab, setHistoryTab] = useState(0)
+  const t = useT()
+  const mealLabels = useMemo(() => Object.fromEntries(
+    Object.entries(MEAL_META_STATIC).map(([k, v]) => [k, { ...v, label: t(`meal.${k}`) }])
+  ), [t])
   const hasWeekly = meals.some(m => m.day_number)
   const dayMeals = meals.filter(m => m.day_number === historyTab + 1 || !m.day_number)
 
@@ -245,13 +253,13 @@ function HistoryDietCard({ diet, onSelect, selected, meals }) {
                 {dayMeals.length === 0 ? (
                   <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '8px 0' }}>Nessun pasto per questo giorno</p>
                 ) : dayMeals.map((m, i) => {
-                  const meta = MEAL_LABELS[m.meal_type] || { label: m.meal_type, icon: '🍴' }
+                  const meta = mealLabels[m.meal_type] || { label: m.meal_type, icon: '🍴', accent: 'var(--green-main)', pale: 'var(--green-pale)' }
                   return (
-                    <div key={m.id || i} style={{ padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 10 }}>
+                    <div key={m.id || i} style={{ padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 10, borderLeft: `3px solid ${meta.accent || 'var(--green-main)'}` }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ fontSize: 18 }}>{meta.icon}</span>
                         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{meta.label}</span>
-                        {m.kcal && <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 'auto' }}>{m.kcal} kcal</span>}
+                        {m.kcal && <span style={{ fontSize: 12, fontWeight: 600, color: meta.accent || 'var(--green-main)', background: meta.pale || 'var(--green-pale)', padding: '2px 8px', borderRadius: 100, marginLeft: 'auto' }}>{m.kcal} kcal</span>}
                       </div>
                       {m.foods && m.foods.length > 0 && (
                         <div style={{ marginTop: 8, paddingLeft: 26, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -472,9 +480,6 @@ export default function DietPage() {
   const [showOlderPlans, setShowOlderPlans] = useState(false)
 
   const today = useMemo(() => new Date().toISOString().split('T')[0], [])
-  const MEAL_LABELS = useMemo(() => Object.fromEntries(
-    Object.entries(MEAL_META_STATIC).map(([k, v]) => [k, { ...v, label: t(`meal.${k}`) }])
-  ), [t])
 
   useEffect(() => {
     async function load() {

@@ -295,13 +295,13 @@ export default function DashboardPage() {
                 whileTap={{ scale: 0.9 }}
               >
                 <Link to={to} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
-                  <div style={{ width: 54, height: 54, borderRadius: 18, background: dark ? color + '26' : bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: dark ? color + 'cc' : color, boxShadow: 'var(--shadow-xs)', border: dark ? `1px solid ${color}30` : '1px solid rgba(0,0,0,.04)', transition: 'transform .15s', position: 'relative' }}>
+                  <div style={{ width: 56, height: 56, borderRadius: 18, background: dark ? color + '26' : bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: dark ? color + 'cc' : color, boxShadow: `0 2px 8px ${color}22`, border: dark ? `1px solid ${color}30` : `1.5px solid ${color}18`, transition: 'transform .15s', position: 'relative' }}>
                     <Icon size={22} strokeWidth={1.8} />
                     {label === 'Chat' && unreadChat > 0 && (
                       <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: '#dc4a4a', color: 'white', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--surface-2)' }}>{unreadChat}</span>
                     )}
                   </div>
-                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 500, textAlign: 'center' }}>{label}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'center' }}>{label}</span>
                 </Link>
               </motion.div>
             ))}

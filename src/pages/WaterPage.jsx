@@ -243,14 +243,22 @@ export default function WaterPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(58px, 1fr))', gap: 8, marginBottom: 14 }}>
             {QUICK_PRESETS.map(({ label, icon, ml }) => (
               <button key={ml} onClick={() => addWater(ml)} disabled={loading} style={{
-                padding: '10px 4px', borderRadius: 12,
-                background: 'var(--surface-2)', border: '1.5px solid var(--border)',
+                padding: '12px 4px', borderRadius: 14,
+                background: 'linear-gradient(145deg, #eff6ff, #dbeafe)',
+                border: '1.5px solid #bfdbfe',
                 font: 'inherit', cursor: 'pointer',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3
-              }}>
-                <span style={{ fontSize: 20 }}>{icon}</span>
-                <span style={{ fontSize: 10, fontWeight: 600, color: '#3b82f6' }}>{ml} ml</span>
-                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{label}</span>
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                transition: 'transform .12s ease, box-shadow .12s ease',
+                boxShadow: '0 1px 4px rgba(59,130,246,.1)',
+              }}
+              onMouseDown={e => e.currentTarget.style.transform = 'scale(0.93)'}
+              onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+              onTouchStart={e => e.currentTarget.style.transform = 'scale(0.93)'}
+              onTouchEnd={e => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                <span style={{ fontSize: 22 }}>{icon}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#2563eb' }}>{ml} ml</span>
+                <span style={{ fontSize: 10, color: '#60a5fa', fontWeight: 500 }}>{label}</span>
               </button>
             ))}
           </div>

@@ -275,19 +275,22 @@ export default function ProgressPage() {
               {[...weights].reverse().slice(0, isPro ? 10 : 3).map((w, i) => {
                 const prev = [...weights].reverse()[i + 1]
                 const d = prev ? (w.weight_kg - prev.weight_kg).toFixed(1) : null
+                const dVal = d !== null ? parseFloat(d) : null
+                const trendColor = dVal === null ? null : dVal < 0 ? 'var(--green-main)' : dVal > 0 ? 'var(--red)' : 'var(--text-muted)'
+                const trendBg = dVal === null ? null : dVal < 0 ? 'var(--green-pale)' : dVal > 0 ? '#fff0f0' : 'var(--surface-2)'
                 return (
                   <div key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Scale size={18} color="var(--green-main)" />
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: dVal !== null && dVal < 0 ? 'var(--green-pale)' : dVal !== null && dVal > 0 ? '#fff0f0' : 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Scale size={18} color={dVal !== null && dVal < 0 ? 'var(--green-main)' : dVal !== null && dVal > 0 ? 'var(--red)' : 'var(--text-muted)'} />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: 15, fontWeight: 600 }}>{w.weight_kg} kg</p>
-                      <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(w.date).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}</p>
+                      <p style={{ fontSize: 15, fontWeight: 700 }}>{w.weight_kg} kg</p>
+                      <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(w.date + 'T12:00:00').toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}</p>
                     </div>
                     {d !== null && (
-                      <span style={{ fontSize: 13, fontWeight: 600, color: parseFloat(d) < 0 ? 'var(--green-main)' : parseFloat(d) > 0 ? 'var(--red)' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 2 }}>
-                        {parseFloat(d) < 0 ? <TrendingDown size={14} /> : parseFloat(d) > 0 ? <TrendingUp size={14} /> : <Minus size={14} />}
-                        {d > 0 ? '+' : ''}{d}
+                      <span style={{ fontSize: 12, fontWeight: 700, color: trendColor, background: trendBg, padding: '4px 9px', borderRadius: 100, display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+                        {dVal < 0 ? <TrendingDown size={12} /> : dVal > 0 ? <TrendingUp size={12} /> : <Minus size={12} />}
+                        {dVal > 0 ? '+' : ''}{d} kg
                       </span>
                     )}
                   </div>
@@ -303,12 +306,14 @@ export default function ProgressPage() {
         )}
 
         {weights.length === 0 && !showAdd && (
-          <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)' }}>
-            <Scale size={40} style={{ marginBottom: 12, opacity: 0.3 }} />
-            <p style={{ fontSize: 15, fontWeight: 500 }}>Inizia a tracciare i tuoi progressi</p>
-            <p style={{ fontSize: 13, marginTop: 4 }}>Registra il tuo peso e come ti senti ogni giorno.</p>
-            <button className="btn btn-primary" onClick={() => setShowAdd(true)} style={{ marginTop: 20 }}>
-              <Plus size={16} />Aggiungi prima misurazione
+          <div className="card" style={{ textAlign: 'center', padding: '36px 20px' }}>
+            <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <Scale size={36} color="var(--green-main)" />
+            </div>
+            <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>Inizia a tracciare i progressi</p>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 20 }}>Registra il tuo peso ogni settimana per vedere il tuo percorso.</p>
+            <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
+              <Plus size={16} />Prima misurazione
             </button>
           </div>
         )}
