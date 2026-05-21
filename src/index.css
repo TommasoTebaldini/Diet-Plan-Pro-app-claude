@@ -244,3 +244,57 @@ html.dark .icon-wrap{filter:brightness(1.8) saturate(0.7)}
 @media(max-width:400px){
   .form-grid-2{grid-template-columns:1fr!important}
 }
+
+/* ══════════════════════════════════════════
+   ANIMAZIONI — Diet Plan Pro App
+   ══════════════════════════════════════════ */
+
+/* Keyframes aggiuntivi */
+@keyframes slideUpSheet{from{opacity:0;transform:translateY(100%)}to{opacity:1;transform:translateY(0)}}
+@keyframes navActiveGlow{0%,100%{background:var(--green-pale)}50%{background:var(--border-light)}}
+
+/* Card: entrance automatico */
+.card{animation:fadeIn .3s cubic-bezier(.25,.46,.45,.94) both}
+.card-flat{animation:fadeIn .3s cubic-bezier(.25,.46,.45,.94) both}
+
+/* Stagger utility (da applicare in JSX come className) */
+.stagger-1{animation-delay:.04s}
+.stagger-2{animation-delay:.09s}
+.stagger-3{animation-delay:.13s}
+.stagger-4{animation-delay:.17s}
+.stagger-5{animation-delay:.21s}
+.stagger-6{animation-delay:.25s}
+
+/* Alert box entrance */
+.alert-error,.alert-warning,.alert-info,.alert-success{animation:fadeIn .25s ease both}
+
+/* Bottom-sheet slide-up (modale da sotto) */
+.animate-slideUpSheet{animation:slideUpSheet .35s cubic-bezier(.22,1,.36,1) both}
+
+/* Emoji bounce per empty state */
+.animate-bounceEmoji{animation:bounceIn .65s cubic-bezier(.36,.07,.19,.97) both .1s;display:inline-block}
+
+/* Desktop sidebar nav item: hover slide */
+.app-sidebar a{transition:background .12s,color .12s,transform .18s cubic-bezier(.25,.46,.45,.94)!important}
+@media(hover:hover){
+  .app-sidebar a:hover{transform:translateX(3px)!important}
+}
+
+/* Btn-primary: hover lift su desktop */
+@media(hover:hover){
+  .btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 20px rgba(21,122,74,.42)}
+}
+
+/* Rispetta preferenza sistema per animazioni ridotte */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+  }
+}
+
+/* Disabilita animazioni in stampa */
+@media print{
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}

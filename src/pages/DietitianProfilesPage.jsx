@@ -376,7 +376,7 @@ export default function DietitianProfilesPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '50px 20px' }}>
-            <div style={{ fontSize: 44, marginBottom: 12 }}>🔍</div>
+            <div className="animate-bounceEmoji" style={{ fontSize: 44, marginBottom: 12 }}>🔍</div>
             <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 6 }}>{t('common.no_data')}</p>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
               {nearMode && locCoords

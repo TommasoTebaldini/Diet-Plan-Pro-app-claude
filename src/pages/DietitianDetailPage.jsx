@@ -155,6 +155,7 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
       onClick={onClose}
     >
       <div
+        className="animate-slideUpSheet"
         style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 560, margin: '0 auto', maxHeight: '88dvh', display: 'flex', flexDirection: 'column', boxShadow: '0 -8px 40px rgba(0,0,0,0.15)' }}
         onClick={e => e.stopPropagation()}
       >
@@ -174,7 +175,7 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
 
           {saved ? (
             <div style={{ textAlign: 'center', padding: '32px 0' }}>
-              <CheckCircle size={52} color="var(--green-main)" style={{ marginBottom: 16 }} />
+              <CheckCircle size={52} color="var(--green-main)" className="animate-bounceIn" style={{ marginBottom: 16, display: 'block', margin: '0 auto 16px' }} />
               <p style={{ fontSize: 17, fontWeight: 700 }}>Prenotazione inviata!</p>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.6 }}>
                 Il dietista riceverà la tua richiesta di colloquio. Ti contatteranno per conferma.
