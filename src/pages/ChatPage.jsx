@@ -393,6 +393,7 @@ export default function ChatPage() {
   )
 
   const bottomRef = useRef(null)
+  const messagesContainerRef = useRef(null)
   const inputRef = useRef(null)
   const fileInputRef = useRef(null)
   const mediaRecorderRef = useRef(null)
@@ -457,7 +458,8 @@ export default function ChatPage() {
   }, [user.id])
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const el = messagesContainerRef.current
+    if (el) el.scrollTop = el.scrollHeight
   }, [messages])
 
   async function updateLastSeen() {
@@ -708,7 +710,7 @@ export default function ChatPage() {
   const groups = groupByDate(messages)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--surface-2)', paddingBottom: 'calc(72px + env(safe-area-inset-bottom))' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--surface-2)', overflow: 'hidden' }}>
       {/* Hidden file input for photos */}
       <input
         ref={fileInputRef} type="file"
@@ -785,7 +787,7 @@ export default function ChatPage() {
       )}
 
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px 0', WebkitOverflowScrolling: 'touch' }}>
+      <div ref={messagesContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '12px 14px 0', paddingBottom: 'calc(72px + env(safe-area-inset-bottom))', WebkitOverflowScrolling: 'touch' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: 40 }}>
             <div style={{ width: 24, height: 24, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto 10px' }} />

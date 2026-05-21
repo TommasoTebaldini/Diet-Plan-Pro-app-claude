@@ -362,9 +362,9 @@ export default function StatisticsPage() {
       </div>
 
       {/* tab bar */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--border-light)', background: 'var(--surface)', overflowX: 'auto', scrollbarWidth: 'none' }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border-light)', background: 'var(--surface)' }}>
         {TABS_STATIC.map(tab_ => (
-          <button key={tab_.key} onClick={() => setTab(tab_.key)} style={{ flex: '0 0 auto', minWidth: 80, padding: '11px 10px', background: 'none', border: 'none', font: 'inherit', fontSize: 11.5, fontWeight: tab === tab_.key ? 700 : 400, color: tab === tab_.key ? 'var(--green-main)' : 'var(--text-muted)', borderBottom: `2px solid ${tab === tab_.key ? 'var(--green-main)' : 'transparent'}`, cursor: 'pointer', transition: 'all 0.15s', textAlign: 'center', lineHeight: 1.3, whiteSpace: 'nowrap' }}>
+          <button key={tab_.key} onClick={() => setTab(tab_.key)} style={{ flex: 1, padding: '11px 4px', background: 'none', border: 'none', font: 'inherit', fontSize: 11.5, fontWeight: tab === tab_.key ? 700 : 400, color: tab === tab_.key ? 'var(--green-main)' : 'var(--text-muted)', borderBottom: `2px solid ${tab === tab_.key ? 'var(--green-main)' : 'transparent'}`, cursor: 'pointer', transition: 'all 0.15s', textAlign: 'center', lineHeight: 1.3 }}>
             {tab_.label}
           </button>
         ))}
