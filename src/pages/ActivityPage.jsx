@@ -9,7 +9,7 @@ import { Plus, Trash2, Flame, Activity, List, BarChart2, Clock, X, Check, Extern
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { subDays, format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { getPedometer, isPedometerSupported, getTodaySteps, getStepGoal, setStepGoal as saveStepGoal } from '../lib/pedometer'
+import { getPedometer, isPedometerSupported, getTodaySteps, getStepGoal, setStepGoal as saveStepGoal, hasMotionPermission } from '../lib/pedometer'
 
 const STEP_GOAL_KEY = 'nutriplan_step_goal'
 const DEFAULT_STEP_GOAL = 10000
@@ -179,6 +179,7 @@ export default function ActivityPage() {
   const [liveSteps, setLiveSteps] = useState(() => getTodaySteps())
   const [pedoActive, setPedoActive] = useState(false)
   const [pedoPermErr, setPedoPermErr] = useState(false)
+  const [pedoNeedsGesture, setPedoNeedsGesture] = useState(false)
   const pedoRef = useRef(null)
 
   const userWeight = latestWeight || profile?.weight_kg || profile?.target_weight || 70
@@ -264,22 +265,43 @@ export default function ActivityPage() {
 
   // ── Live pedometer ──────────────────────────────────────────────────────────
   useEffect(() => {
+    if (!isPedometerSupported()) return
     const pedo = getPedometer()
     pedoRef.current = pedo
     const onStep = e => setLiveSteps(e.detail.steps)
-    const onStart = () => setPedoActive(true)
+    const onStart = () => { setPedoActive(true); setPedoNeedsGesture(false) }
     const onStop = () => setPedoActive(false)
     pedo.addEventListener('step', onStep)
     pedo.addEventListener('start', onStart)
     pedo.addEventListener('stop', onStop)
     setPedoActive(pedo.active)
     setLiveSteps(pedo.steps)
+
+    // Auto-start: if permission already granted (or not needed on this platform), start immediately
+    if (!pedo.active) {
+      if (hasMotionPermission()) {
+        pedo.start()
+      } else {
+        // iOS without prior permission: needs a user gesture to request
+        setPedoNeedsGesture(true)
+      }
+    }
+
     return () => {
       pedo.removeEventListener('step', onStep)
       pedo.removeEventListener('start', onStart)
       pedo.removeEventListener('stop', onStop)
     }
   }, [])
+
+  async function activatePedometer() {
+    const pedo = pedoRef.current
+    if (!pedo) return
+    setPedoPermErr(false)
+    const ok = await pedo.start()
+    if (!ok) setPedoPermErr(true)
+    else setPedoNeedsGesture(false)
+  }
 
   async function togglePedometer() {
     const pedo = pedoRef.current
@@ -372,17 +394,27 @@ export default function ActivityPage() {
                 <div>
                   <p style={{ fontSize: 14, fontWeight: 700 }}>Contapassi</p>
                   <p style={{ fontSize: 11, color: pedoActive ? '#f97316' : 'var(--text-muted)', fontWeight: pedoActive ? 600 : 400 }}>
-                    {pedoActive ? '● In registrazione' : 'Avvia per contare i passi'}
+                    {pedoActive ? '● Attivo automaticamente' : pedoNeedsGesture ? 'Tocca per attivare' : 'In avvio…'}
                   </p>
                 </div>
               </div>
-              <motion.button
-                onClick={togglePedometer}
-                whileTap={{ scale: 0.92 }}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, background: pedoActive ? '#f97316' : 'linear-gradient(135deg, var(--green-main), var(--green-mid))', color: 'white', minHeight: 44 }}
-              >
-                {pedoActive ? <><Square size={14} /> Stop</> : <><Play size={14} /> Avvia</>}
-              </motion.button>
+              {pedoNeedsGesture ? (
+                <motion.button
+                  onClick={activatePedometer}
+                  whileTap={{ scale: 0.92 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, background: 'linear-gradient(135deg, var(--green-main), var(--green-mid))', color: 'white', minHeight: 44 }}
+                >
+                  <Footprints size={14} /> Attiva
+                </motion.button>
+              ) : pedoActive ? (
+                <motion.button
+                  onClick={togglePedometer}
+                  whileTap={{ scale: 0.92 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 13px', borderRadius: 10, border: '1.5px solid #fed7aa', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: 'transparent', color: '#f97316', minHeight: 36 }}
+                >
+                  <Square size={12} /> Ferma
+                </motion.button>
+              ) : null}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, marginBottom: 12 }}>
@@ -411,12 +443,17 @@ export default function ActivityPage() {
 
             {pedoPermErr && (
               <div className="alert-error" style={{ marginTop: 8, fontSize: 12 }}>
-                Accesso al sensore negato. Su iOS, vai in Impostazioni → Safari → Sensori movimento.
+                Accesso al sensore negato. Su iOS vai in Impostazioni → Privacy → Movimento e fitness.
               </div>
             )}
-            {!pedoActive && (
+            {!pedoActive && !pedoNeedsGesture && !pedoPermErr && (
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Info size={11} /> Su Android tieni l'app aperta nelle app recenti per contare in background
+                <Info size={11} /> Tieni l'app aperta nelle app recenti per continuare il conteggio
+              </p>
+            )}
+            {pedoNeedsGesture && (
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Info size={11} /> Su iOS è richiesta l'autorizzazione al primo utilizzo
               </p>
             )}
           </motion.div>

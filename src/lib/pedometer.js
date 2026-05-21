@@ -4,6 +4,7 @@
 
 const STORAGE_PREFIX = 'nutriplan_steps_'
 const GOAL_KEY = 'nutriplan_step_goal'
+const PERM_KEY = 'nutriplan_motion_perm'
 const DEFAULT_GOAL = 10000
 
 const THRESHOLD = 1.5        // m/s² above gravity to count as peak
@@ -36,12 +37,24 @@ export function isPedometerSupported() {
   return typeof window !== 'undefined' && 'DeviceMotionEvent' in window
 }
 
-// iOS 13+ requires explicit permission request from a user gesture
+// Returns true if permission is already known (granted or not needed on this platform)
+export function hasMotionPermission() {
+  if (typeof DeviceMotionEvent?.requestPermission !== 'function') return true
+  return localStorage.getItem(PERM_KEY) === 'granted'
+}
+
+// iOS 13+ requires explicit permission request from a user gesture.
+// If already granted (stored), skips the dialog.
 export async function requestMotionPermission() {
   if (typeof DeviceMotionEvent?.requestPermission === 'function') {
+    if (localStorage.getItem(PERM_KEY) === 'granted') return true
     try {
       const result = await DeviceMotionEvent.requestPermission()
-      return result === 'granted'
+      if (result === 'granted') {
+        localStorage.setItem(PERM_KEY, 'granted')
+        return true
+      }
+      return false
     } catch {
       return false
     }
