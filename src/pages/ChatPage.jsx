@@ -710,7 +710,7 @@ export default function ChatPage() {
   const groups = groupByDate(messages)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--surface-2)', overflow: 'hidden' }}>
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', background: 'var(--surface-2)', zIndex: 10 }}>
       {/* Hidden file input for photos */}
       <input
         ref={fileInputRef} type="file"

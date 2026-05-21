@@ -92,6 +92,8 @@ export default function MacroTrackerPage() {
   const searchCacheRef = useRef(new Map())
   const latestSearchIdRef = useRef(0)
   const [, forceUpdate] = useState(0)
+  const [mealNoteInputs, setMealNoteInputs] = useState({})
+  const [savingNote, setSavingNote] = useState(null)
 
   // Reposition portal dropdown on scroll/resize
   useEffect(() => {
@@ -222,6 +224,7 @@ export default function MacroTrackerPage() {
         kcal_100g: food.kcal_100g || 0, proteins_100g: food.proteins_100g || 0,
         carbs_100g: food.carbs_100g || 0, fats_100g: food.fats_100g || 0,
         fiber_100g: food.fiber_100g || 0, source: food.source || '',
+      sugar_100g: food.sugar_100g || 0, fatSat_100g: food.fatSat_100g || 0,
       }
       const { data, error } = await supabase.from('food_logs').insert({
         user_id: user.id,
@@ -257,6 +260,7 @@ export default function MacroTrackerPage() {
         kcal_100g: selected.kcal_100g || 0, proteins_100g: selected.proteins_100g || 0,
         carbs_100g: selected.carbs_100g || 0, fats_100g: selected.fats_100g || 0,
         fiber_100g: selected.fiber_100g || 0, source: selected.source || '',
+        sugar_100g: selected.sugar_100g || 0, fatSat_100g: selected.fatSat_100g || 0,
         meal_time: mealTime || null,
       }
       const { data, error } = await supabase.from('food_logs').insert({
@@ -319,6 +323,23 @@ export default function MacroTrackerPage() {
     await supabase.from('food_logs').delete().eq('id', id)
     setLog(l => l.filter(x => x.id !== id))
     await updateDailyLog()
+  }
+
+  async function saveNote(mealKey) {
+    const note = (mealNoteInputs[mealKey] || '').trim()
+    if (!note) return
+    setSavingNote(mealKey)
+    const { data, error } = await supabase.from('food_logs').insert({
+      user_id: user.id,
+      date, meal_type: mealKey, food_name: '__note__',
+      grams: 0, kcal: 0, proteins: 0, carbs: 0, fats: 0,
+      food_data: { isNote: true, note },
+    }).select().single()
+    if (!error && data) {
+      setLog(l => [...l, data])
+      setMealNoteInputs(prev => ({ ...prev, [mealKey]: '' }))
+    }
+    setSavingNote(null)
   }
 
   async function updateFoodGrams(foodLog) {
@@ -384,10 +405,22 @@ export default function MacroTrackerPage() {
   const daysFromToday = Math.round((new Date(todayStr) - new Date(date)) / (1000 * 60 * 60 * 24))
   const atFreeLimit = !isPro && daysFromToday >= FREE_HISTORY_DAYS - 1
 
-  const totals = log.reduce((a, f) => ({
+  const totals = log.filter(f => f.food_name !== '__note__').reduce((a, f) => ({
     kcal: a.kcal + (f.kcal || 0), proteins: a.proteins + (f.proteins || 0),
     carbs: a.carbs + (f.carbs || 0), fats: a.fats + (f.fats || 0),
   }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
+
+  const microTotals = log
+    .filter(f => f.food_name !== '__note__')
+    .reduce((a, f) => {
+      const fd = f.food_data || {}
+      const g = f.grams || 100
+      return {
+        fiber: a.fiber + (fd.fiber_100g || 0) * g / 100,
+        sugar: a.sugar + (fd.sugar_100g || 0) * g / 100,
+        fatSat: a.fatSat + (fd.fatSat_100g || 0) * g / 100,
+      }
+    }, { fiber: 0, sugar: 0, fatSat: 0 })
 
   const preview = selected ? calcMacros(selected, grams) : null
   const isToday = date === todayStr
@@ -508,7 +541,8 @@ export default function MacroTrackerPage() {
 
         {/* ── Meal cards ── */}
         {MEALS.map(m => {
-          const mealFoods = log.filter(f => f.meal_type === m.key)
+          const mealFoods = log.filter(f => f.meal_type === m.key && f.food_name !== '__note__')
+          const mealNotes = log.filter(f => f.meal_type === m.key && f.food_name === '__note__')
           const mealKcal = mealFoods.reduce((s, f) => s + (f.kcal || 0), 0)
           const isOpen = expandedMeal === m.key
           const isSearching = activeMealAdd === m.key
@@ -587,10 +621,44 @@ export default function MacroTrackerPage() {
                       )}
                     </div>
                   ))}
-                  {mealFoods.length === 0 && !isSearching && (
+                  {/* Meal notes */}
+                  {mealNotes.map(n => (
+                    <div key={n.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 6, padding: '7px 10px', background: '#fffbeb', borderRadius: 8, border: '1px dashed #fde68a' }}>
+                      <span style={{ fontSize: 15, lineHeight: 1.4 }}>📝</span>
+                      <p style={{ flex: 1, fontSize: 12.5, color: '#78350f', lineHeight: 1.5, margin: 0 }}>{n.food_data?.note}</p>
+                      <button onClick={() => removeFood(n.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b45309', padding: '2px 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))}
+
+                  {mealFoods.length === 0 && mealNotes.length === 0 && !isSearching && (
                     <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '8px 0' }}>
                       Nessun alimento — tocca + per aggiungere
                     </p>
+                  )}
+
+                  {/* Note input */}
+                  {!isSearching && (
+                    <div style={{ marginTop: (mealFoods.length > 0 || mealNotes.length > 0) ? 6 : 0, display: 'flex', gap: 6 }}>
+                      <input
+                        type="text"
+                        placeholder="📝 Aggiungi nota al pasto…"
+                        value={mealNoteInputs[m.key] || ''}
+                        onChange={e => setMealNoteInputs(prev => ({ ...prev, [m.key]: e.target.value }))}
+                        onKeyDown={e => { if (e.key === 'Enter' && mealNoteInputs[m.key]?.trim()) saveNote(m.key) }}
+                        style={{ flex: 1, padding: '7px 11px', border: '1.5px solid var(--border)', borderRadius: 10, background: 'var(--surface-2)', fontSize: 13, outline: 'none', color: 'var(--text-primary)', fontFamily: 'var(--font-b)' }}
+                      />
+                      <button
+                        onClick={() => saveNote(m.key)}
+                        disabled={!mealNoteInputs[m.key]?.trim() || savingNote === m.key}
+                        style={{ flexShrink: 0, padding: '0 14px', height: 40, background: mealNoteInputs[m.key]?.trim() ? 'var(--green-pale)' : 'var(--surface-3)', border: `1.5px solid ${mealNoteInputs[m.key]?.trim() ? 'var(--green-main)' : 'var(--border)'}`, borderRadius: 10, cursor: mealNoteInputs[m.key]?.trim() ? 'pointer' : 'default', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: mealNoteInputs[m.key]?.trim() ? 1 : 0.4, transition: 'all 0.15s' }}
+                      >
+                        {savingNote === m.key
+                          ? <span style={{ width: 12, height: 12, border: '2px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'block' }} />
+                          : '📝'}
+                      </button>
+                    </div>
                   )}
 
                   {/* ── Inline search form ── */}
@@ -717,15 +785,18 @@ export default function MacroTrackerPage() {
                               <input type="time" className="input-field" value={mealTime} onChange={e => setMealTime(e.target.value)} style={{ cursor: 'pointer' }} />
                             </div>
                           </div>
-                          <div style={{ display: 'flex', gap: 5, marginBottom: 8, flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
                             {[
-                              { label: '07:30', key: 'colazione' }, { label: '10:00', key: 'spuntino_mattina' },
-                              { label: '12:30', key: 'pranzo' }, { label: '15:30', key: 'spuntino_pomeriggio' },
-                              { label: '19:30', key: 'cena' },
+                              { time: '07:30', emoji: '☀️' },
+                              { time: '10:00', emoji: '🍎' },
+                              { time: '12:30', emoji: '🍽️' },
+                              { time: '15:30', emoji: '🥤' },
+                              { time: '19:30', emoji: '🌙' },
                             ].map(p => (
-                              <button key={p.label} type="button" onClick={() => setMealTime(p.label)}
-                                style={{ padding: '4px 9px', borderRadius: 100, fontSize: 11, fontWeight: 500, border: `1.5px solid ${mealTime === p.label ? 'var(--green-main)' : 'var(--border)'}`, background: mealTime === p.label ? 'var(--green-pale)' : 'var(--surface-2)', color: mealTime === p.label ? 'var(--green-dark)' : 'var(--text-muted)', cursor: 'pointer' }}>
-                                {p.label}
+                              <button key={p.time} type="button" onClick={() => setMealTime(p.time)}
+                                style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '7px 4px', borderRadius: 10, border: `1.5px solid ${mealTime === p.time ? 'var(--green-main)' : 'var(--border)'}`, background: mealTime === p.time ? 'var(--green-pale)' : 'var(--surface-2)', cursor: 'pointer', transition: 'all 0.15s', boxShadow: mealTime === p.time ? '0 0 0 2px rgba(21,122,74,0.12)' : 'none' }}>
+                                <span style={{ fontSize: 17 }}>{p.emoji}</span>
+                                <span style={{ fontSize: 10, fontWeight: 600, color: mealTime === p.time ? 'var(--green-dark)' : 'var(--text-muted)' }}>{p.time}</span>
                               </button>
                             ))}
                           </div>
@@ -748,12 +819,12 @@ export default function MacroTrackerPage() {
             <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>🔬 Micronutrienti del giorno</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               {[
-                { label: 'Fibra', val: '–', unit: 'g', icon: '🌾' },
+                { label: 'Fibra', val: microTotals.fiber > 0 ? `${Math.round(microTotals.fiber * 10) / 10}` : '–', unit: 'g', icon: '🌾' },
                 { label: 'Sodio', val: '–', unit: 'mg', icon: '🧂' },
                 { label: 'Calcio', val: '–', unit: 'mg', icon: '🦴' },
                 { label: 'Ferro', val: '–', unit: 'mg', icon: '🔴' },
-                { label: 'Vitamina C', val: '–', unit: 'mg', icon: '🍋' },
-                { label: 'Vitamina D', val: '–', unit: 'µg', icon: '☀️' },
+                { label: 'Zuccheri semplici', val: microTotals.sugar > 0 ? `${Math.round(microTotals.sugar * 10) / 10}` : '–', unit: 'g', icon: '🍬' },
+                { label: 'Grassi saturi', val: microTotals.fatSat > 0 ? `${Math.round(microTotals.fatSat * 10) / 10}` : '–', unit: 'g', icon: '🫒' },
               ].map(n => (
                 <div key={n.label} style={{ background: 'var(--surface-2)', borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 18 }}>{n.icon}</span>
@@ -765,7 +836,7 @@ export default function MacroTrackerPage() {
               ))}
             </div>
             <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 10, textAlign: 'center' }}>
-              I dati nutrizionali dettagliati saranno disponibili nella prossima versione.
+              Fibra, zuccheri semplici e grassi saturi calcolati dagli alimenti aggiunti oggi.
             </p>
           </div>
         </ProGate>
