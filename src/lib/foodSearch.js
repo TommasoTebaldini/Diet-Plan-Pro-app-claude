@@ -1,20 +1,20 @@
 import { supabase } from './supabase'
 
-// ─── Dietitian curated database (primary, trusted source) ────────────────────
-let _dietitianFoods = null
-async function getDietitianFoods() {
-  if (_dietitianFoods) return _dietitianFoods
-  const mod = await import('../data/foods.js')
-  _dietitianFoods = mod.DIETITIAN_FOODS
-  return _dietitianFoods
+// ─── Shared food database (same as dietitian site: CREA + BDA + ONS + APROTEICI + FLAVIS + UPF) ──
+let _allFoods = null
+async function getAllFoods() {
+  if (_allFoods) return _allFoods
+  const mod = await import('../data/all-foods.js')
+  _allFoods = mod.ALL_FOODS
+  return _allFoods
 }
 
-async function searchDietitianFoods(query) {
+async function searchAllFoods(query) {
   const q = query.toLowerCase().trim()
   if (!q) return []
-  const DIETITIAN_FOODS = await getDietitianFoods()
+  const ALL_FOODS = await getAllFoods()
   const tokens = q.split(/\s+/)
-  const results = DIETITIAN_FOODS.filter(f => {
+  const results = ALL_FOODS.filter(f => {
     if (!f?.name) return false
     const name = f.name.toLowerCase()
     return tokens.every(t => name.includes(t))
@@ -24,34 +24,33 @@ async function searchDietitianFoods(query) {
     const bStarts = (b.name || '').toLowerCase().startsWith(q) ? 0 : 1
     return aStarts - bStarts
   })
-  return results.map(f => ({ ...f, brand: `CREA — ${f.category || 'Generico'}`, source: 'dietitian' }))
+  return results.map(f => ({ ...f, brand: `${f.src || 'CREA'} — ${f.category || 'Generico'}`, source: 'dietitian' }))
 }
 
-// ─── CREA Italian national food database (shared with dietitian site) ─────────
-let _creaFoods = null
-async function getCreaFoods() {
-  if (_creaFoods) return _creaFoods
-  const mod = await import('../data/crea-foods.js')
-  _creaFoods = mod.CREA_FOODS
-  return _creaFoods
-}
-
-async function searchCreaFoods(query) {
-  const q = query.toLowerCase().trim()
-  if (!q) return []
-  const CREA_FOODS = await getCreaFoods()
-  const tokens = q.split(/\s+/)
-  const results = CREA_FOODS.filter(f => {
-    if (!f?.name) return false
-    const name = f.name.toLowerCase()
-    return tokens.every(t => name.includes(t))
-  })
-  results.sort((a, b) => {
-    const aStarts = (a.name || '').toLowerCase().startsWith(q) ? 0 : 1
-    const bStarts = (b.name || '').toLowerCase().startsWith(q) ? 0 : 1
-    return aStarts - bStarts
-  })
-  return results.map(f => ({ ...f, brand: `CREA — ${f.category || 'Generico'}`, source: 'dietitian' }))
+// ─── Foods added by the dietitian via database.html (shared via Supabase) ────
+async function searchPublicFoods(query) {
+  try {
+    const { data } = await supabase
+      .from('public_foods')
+      .select('*')
+      .ilike('name', `%${query}%`)
+      .limit(20)
+    if (!data?.length) return []
+    return data.map(f => ({
+      id: `public_${f.id}`,
+      name: f.name,
+      brand: '🥗 Aggiunto dal dietista',
+      category: f.category || '',
+      kcal_100g: f.kcal_100g || 0,
+      proteins_100g: f.proteins_100g || 0,
+      carbs_100g: f.carbs_100g || 0,
+      fats_100g: f.fats_100g || 0,
+      fiber_100g: f.fiber_100g || 0,
+      sugar_100g: f.sugar_100g || 0,
+      fatSat_100g: f.fat_sat_100g || 0,
+      source: 'public',
+    }))
+  } catch { return [] }
 }
 
 // Recent foods from patient's own logs (fastest, most relevant)
@@ -246,8 +245,8 @@ export async function searchFoods(query) {
     searchRicette(normalizedQuery),
     searchDietMealFoods(normalizedQuery),
     searchCustomMeals(normalizedQuery),
-    searchDietitianFoods(normalizedQuery),
-    searchCreaFoods(normalizedQuery),
+    searchPublicFoods(normalizedQuery),
+    searchAllFoods(normalizedQuery),
   ])
   const seen = new Set()
   const dedup = arr => (arr.status === 'fulfilled' ? arr.value : []).filter(food => {
@@ -258,13 +257,13 @@ export async function searchFoods(query) {
   })
   const localItems = [...dedup(a), ...dedup(b), ...dedup(c), ...dedup(d), ...dedup(e), ...dedup(f)]
 
-  // Skip OFF if local sources already have enough results, query is too short,
-  // or we are on a production build (OFF blocks CORS from production origins).
-  if (normalizedQuery.length < 3 || localItems.length >= 8 || !import.meta.env.DEV) {
-    return localItems.slice(0, 30)
+  // Skip Open Food Facts only if query is too short or local results are already abundant
+  // (>= 20 means a generic search like "pasta" that doesn't need branded products)
+  if (normalizedQuery.length < 3 || localItems.length >= 20) {
+    return localItems.slice(0, 50)
   }
 
-  // Fetch Open Food Facts only in development where CORS is not restricted
+  // Query Open Food Facts for branded/commercial products not in local databases
   const offItems = await searchOpenFoodFacts(normalizedQuery)
   const dedupArr = arr => arr.filter(food => {
     if (!food || typeof food !== 'object') return false
@@ -272,7 +271,7 @@ export async function searchFoods(query) {
     if (!k || seen.has(k)) return false
     seen.add(k); return true
   })
-  return [...localItems, ...dedupArr(offItems)].slice(0, 30)
+  return [...localItems, ...dedupArr(offItems)].slice(0, 50)
 }
 
 export async function searchDatabaseFoods(query) {
