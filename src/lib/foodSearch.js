@@ -87,7 +87,7 @@ async function searchRecentFoods(query) {
 async function searchDietMealFoods(query) {
   try {
     const { data } = await supabase
-      .from('diet_meals').select('foods').not('foods', 'is', null).limit(200)
+      .from('diet_meals').select('foods').not('foods', 'is', null).limit(40)
     if (!data?.length) return []
     const seen = new Set()
     const results = []
@@ -211,7 +211,7 @@ export async function searchOpenFoodFacts(query) {
   try {
     const res = await fetch(
       `https://world.openfoodfacts.org/api/v2/search?search_terms=${q}&fields=${fields}&page_size=24&sort_by=unique_scans_n&countries_tags_en=italy`,
-      { signal: AbortSignal.timeout(3000) }
+      { signal: AbortSignal.timeout(1500) }
     )
     if (res.ok) {
       const data = await res.json()
@@ -224,7 +224,7 @@ export async function searchOpenFoodFacts(query) {
   try {
     const res = await fetch(
       `https://world.openfoodfacts.org/api/v2/search?search_terms=${q}&fields=${fields}&page_size=24&sort_by=unique_scans_n`,
-      { signal: AbortSignal.timeout(3000) }
+      { signal: AbortSignal.timeout(1500) }
     )
     if (res.ok) {
       const data = await res.json()

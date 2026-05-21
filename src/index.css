@@ -244,12 +244,8 @@ html.dark .icon-wrap{filter:brightness(1.8) saturate(0.7)}
 /* ── Chat fullscreen container ── */
 .chat-fullscreen{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;background:var(--surface-2);z-index:10}
 @media(min-width:1024px){
-  .chat-fullscreen{left:220px}
-}
-
-/* ── Chat input bar: on desktop no bottom-nav gap ── */
-@media(min-width:1024px){
-  .chat-input-bar{bottom:env(safe-area-inset-bottom)!important}
+  .chat-fullscreen{left:var(--sidebar-w,220px);transition:left .22s ease}
+  .chat-input-bar{bottom:env(safe-area-inset-bottom)!important;left:var(--sidebar-w,220px)!important;transition:left .22s ease}
 }
 
 /* ── Modal form grids: collapse to 1 column on small screens ── */

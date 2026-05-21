@@ -41,6 +41,12 @@ export default function BottomNav() {
     localStorage.setItem('sidebar_open', String(next))
     return next
   })
+
+  // Sync CSS variable so position:fixed elements (chat, etc.) track sidebar width
+  useEffect(() => {
+    const w = (isDesktop && sidebarOpen) ? '220px' : '0px'
+    document.documentElement.style.setProperty('--sidebar-w', w)
+  }, [isDesktop, sidebarOpen])
   const [unreadChat, setUnreadChat] = useState(0)
   const isDesktop = useIsDesktop()
 
