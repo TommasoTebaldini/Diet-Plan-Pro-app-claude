@@ -487,7 +487,7 @@ export default function DietPage() {
       const [{ data: activeDiet }, { data: allDiets }, linkRes] = await Promise.all([
         supabase.from('patient_diets').select('id, name, kcal_target, protein_target, carbs_target, fats_target, duration_weeks, notes').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
         supabase.from('patient_diets').select('id, name, created_at, kcal_target, duration_weeks').eq('user_id', user.id).order('created_at', { ascending: false }),
-        supabase.from('patient_dietitian').select('cartella_id').eq('patient_id', user.id).maybeSingle().catch(() => ({ data: null })),
+        supabase.from('patient_dietitian').select('cartella_id').eq('patient_id', user.id).maybeSingle().then(r => r, () => ({ data: null })),
       ])
       setDiet(activeDiet)
       setHistory((allDiets || []).filter(d => !activeDiet || d.id !== activeDiet.id))
