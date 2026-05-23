@@ -467,39 +467,67 @@ export default function ChatPage() {
   }
 
   async function loadData() {
-    const { data: link } = await supabase
-      .from('patient_dietitian')
-      .select('dietitian_id')
-      .eq('patient_id', user.id)
-      .maybeSingle()
+    const CACHE_KEY = `chat_dietitian_${user.id}`
+    const cachedDId = sessionStorage.getItem(CACHE_KEY)
 
-    if (!link) {
-      setNotLinked(true)
-      setLoading(false)
-      return null
+    let dId = cachedDId
+
+    if (!dId) {
+      // First time: fetch link (cold path)
+      const { data: link } = await supabase
+        .from('patient_dietitian')
+        .select('dietitian_id')
+        .eq('patient_id', user.id)
+        .maybeSingle()
+
+      if (!link) {
+        setNotLinked(true)
+        setLoading(false)
+        return null
+      }
+      dId = link.dietitian_id
+      sessionStorage.setItem(CACHE_KEY, dId)
     }
 
-    const dId = link.dietitian_id
     setDietitianId(dId)
     dietitianIdRef.current = dId
 
-    const { data: dProfile } = await supabase
-      .from('profiles')
-      .select('full_name, first_name, last_name, last_seen_at')
-      .eq('id', dId)
-      .maybeSingle()
-
-    setDietitian(dProfile || { full_name: 'Il tuo dietista' })
-    setDietitianLastSeen(dProfile?.last_seen_at || null)
-
-    const [{ data: msgs }, { data: docs }] = await Promise.all([
-      supabase.from('chat_messages').select('*').eq('patient_id', user.id).order('created_at', { ascending: true }),
+    // Fetch dietitian profile, messages, and unsigned docs all in parallel
+    const [profileRes, msgsRes, docsRes] = await Promise.all([
+      supabase.from('profiles').select('full_name, first_name, last_name, last_seen_at').eq('id', dId).maybeSingle(),
+      supabase.from('chat_messages')
+        .select('id,patient_id,sender_role,sender_id,content,message_type,image_url,audio_url,read_at,created_at')
+        .eq('patient_id', user.id)
+        .order('created_at', { ascending: true })
+        .limit(500),
       supabase.from('patient_documents').select('id, title, content, type').eq('patient_id', user.id).eq('requires_signature', true).is('signed_at', null).eq('visible', true),
     ])
-    setMessages(msgs || [])
-    setUnsignedDocs(docs || [])
 
-    const unread = (msgs || []).filter(m => m.sender_role === 'dietitian' && !m.read_at)
+    // If cached dietitian_id turned stale (no profile found), retry with fresh lookup
+    if (!profileRes.data && cachedDId) {
+      sessionStorage.removeItem(CACHE_KEY)
+      const { data: link } = await supabase
+        .from('patient_dietitian')
+        .select('dietitian_id')
+        .eq('patient_id', user.id)
+        .maybeSingle()
+      if (!link) {
+        setNotLinked(true)
+        setLoading(false)
+        return null
+      }
+      dId = link.dietitian_id
+      sessionStorage.setItem(CACHE_KEY, dId)
+      setDietitianId(dId)
+      dietitianIdRef.current = dId
+    }
+
+    setDietitian(profileRes.data || { full_name: 'Il tuo dietista' })
+    setDietitianLastSeen(profileRes.data?.last_seen_at || null)
+    setMessages(msgsRes.data || [])
+    setUnsignedDocs(docsRes.data || [])
+
+    const unread = (msgsRes.data || []).filter(m => m.sender_role === 'dietitian' && !m.read_at)
     if (unread.length) markAsRead(unread.map(m => m.id))
 
     setLoading(false)
@@ -789,9 +817,13 @@ export default function ChatPage() {
       {/* Messages */}
       <div ref={messagesContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '12px 14px 0', paddingBottom: 'calc(72px + env(safe-area-inset-bottom))', WebkitOverflowScrolling: 'touch' }}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 40 }}>
-            <div style={{ width: 24, height: 24, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto 10px' }} />
-            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Caricamento…</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '20px 0' }}>
+            {[['70%', false], ['50%', true], ['80%', false], ['40%', true], ['65%', false]].map(([w, isMe], i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: 6 }}>
+                {!isMe && <div className="skeleton" style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0 }} />}
+                <div className="skeleton" style={{ height: 36, width: w, borderRadius: isMe ? '16px 16px 3px 16px' : '16px 16px 16px 3px', animationDelay: `${i * 0.1}s` }} />
+              </div>
+            ))}
           </div>
         ) : messages.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '50px 20px' }}>

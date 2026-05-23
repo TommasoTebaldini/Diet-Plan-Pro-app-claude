@@ -483,42 +483,41 @@ export default function DietPage() {
 
   useEffect(() => {
     async function load() {
-      const [{ data: activeDiet }, { data: allDiets }] = await Promise.all([
-        supabase.from('patient_diets').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
+      // Batch 1: active diet, diet history, and cartella link all in parallel
+      const [{ data: activeDiet }, { data: allDiets }, linkRes] = await Promise.all([
+        supabase.from('patient_diets').select('id, name, kcal_target, protein_target, carbs_target, fats_target, duration_weeks, notes').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
         supabase.from('patient_diets').select('id, name, created_at, kcal_target, duration_weeks').eq('user_id', user.id).order('created_at', { ascending: false }),
+        supabase.from('patient_dietitian').select('cartella_id').eq('patient_id', user.id).maybeSingle().catch(() => ({ data: null })),
       ])
       setDiet(activeDiet)
       setHistory((allDiets || []).filter(d => !activeDiet || d.id !== activeDiet.id))
 
+      const cartellaId = linkRes?.data?.cartella_id ?? null
+
+      // Batch 2: meal details + clinical plans in parallel (both depend on batch 1 results)
+      const batch2 = []
       if (activeDiet) {
-        const [{ data: mealData }, { data: completionData }] = await Promise.all([
+        batch2.push(
           supabase.from('diet_meals').select('*').eq('diet_id', activeDiet.id).order('day_number').order('meal_order'),
           supabase.from('meal_completions').select('diet_meal_id').eq('user_id', user.id).eq('date', today),
-        ])
-        setMeals(mealData || [])
-        setCompletions(new Set((completionData || []).map(c => c.diet_meal_id)))
+        )
+      } else {
+        batch2.push(Promise.resolve({ data: null }), Promise.resolve({ data: null }))
+      }
+      if (cartellaId) {
+        batch2.push(
+          supabase.from('piani').select('id, nome, data_piano, meals, print_image_url, saved_at').eq('cartella_id', cartellaId).eq('visible_to_patient', true).order('saved_at', { ascending: false }).catch(() => ({ data: null }))
+        )
+      } else {
+        batch2.push(Promise.resolve({ data: null }))
       }
 
-      // Load clinical diet plans from dietitian portal (piani table via cartella_id)
-      try {
-        const { data: link } = await supabase
-          .from('patient_dietitian')
-          .select('cartella_id')
-          .eq('patient_id', user.id)
-          .maybeSingle()
-
-        if (link?.cartella_id) {
-          const { data: pianiData } = await supabase
-            .from('piani')
-            .select('*')
-            .eq('cartella_id', link.cartella_id)
-            .eq('visible_to_patient', true)
-            .order('saved_at', { ascending: false })
-          setClinicalPlans(pianiData || [])
-        }
-      } catch {
-        // Table may not exist
+      const [mealsRes, completionsRes, pianiRes] = await Promise.all(batch2)
+      if (activeDiet) {
+        setMeals(mealsRes.data || [])
+        setCompletions(new Set((completionsRes.data || []).map(c => c.diet_meal_id)))
       }
+      if (pianiRes.data) setClinicalPlans(pianiRes.data)
 
       setLoading(false)
     }
@@ -564,8 +563,21 @@ export default function DietPage() {
   }, [selectedHistoryId])
 
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh' }}>
-      <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+    <div className="page" style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="skeleton" style={{ height: 24, width: '45%', marginBottom: 4 }} />
+      {[1, 2, 3].map(i => (
+        <div key={i} className="card" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="skeleton" style={{ width: 36, height: 36, borderRadius: 12 }} />
+            <div style={{ flex: 1 }}>
+              <div className="skeleton" style={{ height: 14, width: '55%', marginBottom: 6 }} />
+              <div className="skeleton" style={{ height: 11, width: '35%' }} />
+            </div>
+          </div>
+          <div className="skeleton" style={{ height: 10, width: '90%' }} />
+          <div className="skeleton" style={{ height: 10, width: '70%' }} />
+        </div>
+      ))}
     </div>
   )
 

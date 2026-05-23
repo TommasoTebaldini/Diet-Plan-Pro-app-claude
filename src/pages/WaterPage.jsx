@@ -100,7 +100,7 @@ export default function WaterPage() {
   useEffect(() => {
     async function load() {
       const [logsRes, weightRes] = await Promise.all([
-        supabase.from('water_logs').select('*').eq('user_id', user.id).eq('date', today).order('created_at'),
+        supabase.from('water_logs').select('id, amount_ml, created_at').eq('user_id', user.id).eq('date', today).order('created_at'),
         supabase.from('weight_logs').select('weight_kg').eq('user_id', user.id).order('date', { ascending: false }).limit(1).maybeSingle(),
       ])
       if (!logsRes.error) setLogs(logsRes.data || [])

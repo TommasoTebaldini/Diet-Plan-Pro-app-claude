@@ -1110,16 +1110,15 @@ export default function DocumentsPage() {
       let dietitianId = null
 
       try {
-        // 1. Cartella del paziente
-        const { data: link } = await supabase
-          .from('patient_dietitian')
-          .select('cartella_id, dietitian_id')
-          .eq('patient_id', user.id)
-          .maybeSingle()
+        // Batch 1: fetch patient_dietitian link and patient_documents simultaneously
+        const [linkRes, pdRes] = await Promise.all([
+          supabase.from('patient_dietitian').select('cartella_id, dietitian_id').eq('patient_id', user.id).maybeSingle(),
+          supabase.from('patient_documents').select('id, title, content, tipo, type, nota, dati_raw, meals_data, visible, requires_signature, signed_at, signature_data, created_at, print_image_url').eq('patient_id', user.id).eq('visible', true).order('created_at', { ascending: false }),
+        ])
 
-        const cartellaId = link?.cartella_id
-        dietitianId = link?.dietitian_id
-        console.log('[Docs] patient_dietitian link:', link, '| cartellaId:', cartellaId)
+        const cartellaId = linkRes.data?.cartella_id
+        dietitianId = linkRes.data?.dietitian_id
+        console.log('[Docs] patient_dietitian link:', linkRes.data, '| cartellaId:', cartellaId)
 
         // Type lookup maps — defined once outside any loop
         const TYPE_KEYS = new Set([
@@ -1137,14 +1136,13 @@ export default function DocumentsPage() {
           nota:'document',
         }
 
-        // Run all per-cartella queries in parallel — from ~1800ms sequential to ~300ms
+        // Batch 2: all per-cartella queries in parallel (patient_documents already fetched above)
         const [
           { data: notes,      error: notesErr  },
           { data: piani,      error: pianiErr  },
           { data: ncpts,      error: ncptErr   },
           { data: schede,     error: schedeErr },
           { data: bias,       error: biaErr    },
-          { data: patientDocs, error: pdErr    },
         ] = await Promise.all([
           cartellaId
             ? supabase.from('note_specialistiche').select('id, tipo, nota, dati, print_image_url, created_at').eq('cartella_id', cartellaId).eq('visible_to_patient', true).order('created_at', { ascending: false })
@@ -1161,8 +1159,10 @@ export default function DocumentsPage() {
           cartellaId
             ? supabase.from('bia_records').select('id, data_misura, note, peso, altezza, eta, sesso, angolo_fase, bf_pct, fm_kg, ffm_kg, tbw, icw, ecw, bcm, muscle, bone, ffmi, raw_data, print_image_url, created_at').eq('cartella_id', cartellaId).eq('visible_to_patient', true).order('data_misura', { ascending: false })
             : Promise.resolve({ data: [], error: null }),
-          supabase.from('patient_documents').select('*').eq('patient_id', user.id).eq('visible', true).order('created_at', { ascending: false }),
         ])
+
+        const patientDocs = pdRes.data || []
+        const pdErr = pdRes.error
 
         console.log('[Docs] note_specialistiche:', notes?.length, '| error:', notesErr?.message)
         console.log('[Docs] piani:', piani?.length, '| error:', pianiErr?.message)
@@ -1534,8 +1534,17 @@ export default function DocumentsPage() {
           )}
 
           {loading ? (
-            <div style={{ textAlign: 'center', padding: 40 }}>
-              <div style={{ width: 24, height: 24, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div className="skeleton" style={{ width: 44, height: 44, borderRadius: 14, flexShrink: 0 }} />
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div className="skeleton" style={{ height: 14, width: '60%' }} />
+                    <div className="skeleton" style={{ height: 11, width: '40%' }} />
+                  </div>
+                  <div className="skeleton" style={{ width: 22, height: 22, borderRadius: '50%' }} />
+                </div>
+              ))}
             </div>
           ) : loadError ? (
             <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)' }}>

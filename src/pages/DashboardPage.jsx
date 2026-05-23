@@ -113,13 +113,16 @@ export default function DashboardPage() {
       const today = now.toISOString().split('T')[0]
       const nowDecimalHour = now.getHours() + now.getMinutes() / 60
 
-      // Base data
-      const [log, water, activeDiet, w, chat] = await Promise.allSettled([
-        supabase.from('daily_logs').select('*').eq('user_id', user.id).eq('date', today).maybeSingle(),
+      // All base data in one parallel batch — including streak rows
+      const sixtyAgo = new Date(now)
+      sixtyAgo.setDate(sixtyAgo.getDate() - 60)
+      const [log, water, activeDiet, w, chat, streakRes] = await Promise.allSettled([
+        supabase.from('daily_logs').select('kcal,proteins,carbs,fats').eq('user_id', user.id).eq('date', today).maybeSingle(),
         supabase.from('water_logs').select('amount_ml').eq('user_id', user.id).eq('date', today),
-        supabase.from('patient_diets').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
+        supabase.from('patient_diets').select('id,name,kcal_target,protein_target,carbs_target,fats_target,notes').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
         supabase.from('weight_logs').select('weight_kg').eq('user_id', user.id).order('date', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('chat_messages').select('id', { count: 'exact' }).eq('patient_id', user.id).eq('sender_role', 'dietitian').is('read_at', null),
+        supabase.from('daily_logs').select('date').eq('user_id', user.id).gte('date', sixtyAgo.toISOString().split('T')[0]).order('date', { ascending: false }),
       ])
       if (log.value?.data) setTodayLog(log.value.data)
       if (water.value?.data) setWaterLog(water.value.data.reduce((s, w) => s + w.amount_ml, 0))
@@ -129,19 +132,11 @@ export default function DashboardPage() {
       const currentDiet = activeDiet.value?.data ?? null
       setDiet(currentDiet)
 
-      // Streak: count consecutive days with food logs (last 60 days)
-      const sixtyAgo = new Date(now)
-      sixtyAgo.setDate(sixtyAgo.getDate() - 60)
-      const { data: streakRows } = await supabase
-        .from('daily_logs')
-        .select('date')
-        .eq('user_id', user.id)
-        .gte('date', sixtyAgo.toISOString().split('T')[0])
-        .order('date', { ascending: false })
+      // Streak calculation (data already fetched in parallel above)
+      const streakRows = streakRes.value?.data
       if (streakRows) {
         const datesSet = new Set(streakRows.map(r => r.date))
         let s = 0
-        // If today has no log yet, start counting from yesterday (offset=1); otherwise from today (offset=0)
         const startOffset = datesSet.has(today) ? 0 : 1
         for (let i = startOffset; i < 60 + startOffset; i++) {
           const d = new Date(now)
