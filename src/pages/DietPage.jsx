@@ -506,7 +506,7 @@ export default function DietPage() {
       }
       if (cartellaId) {
         batch2.push(
-          supabase.from('piani').select('id, nome, data_piano, meals, print_image_url, saved_at').eq('cartella_id', cartellaId).eq('visible_to_patient', true).order('saved_at', { ascending: false }).catch(() => ({ data: null }))
+          supabase.from('piani').select('id, nome, data_piano, meals, print_image_url, saved_at').eq('cartella_id', cartellaId).eq('visible_to_patient', true).order('saved_at', { ascending: false }).then(r => r, () => ({ data: null }))
         )
       } else {
         batch2.push(Promise.resolve({ data: null }))
