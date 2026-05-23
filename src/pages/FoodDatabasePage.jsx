@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { searchFoods } from '../lib/foodSearch'
+import { searchFoodsLocal, searchFoods } from '../lib/foodSearch'
 import { Search, Plus, X, BookOpen, Star, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import { useT } from '../i18n'
 
@@ -28,8 +28,15 @@ function IngredientSearch({ onAdd }) {
     e?.preventDefault()
     if (!q.trim() || q.trim().length < 2) return
     setBusy(true); setRes([])
-    const foods = await searchFoods(q.trim())
-    setRes(foods); setBusy(false)
+    // Phase 1: show local results immediately
+    const localFoods = await searchFoodsLocal(q.trim())
+    if (localFoods.length > 0) { setRes(localFoods); setBusy(false) }
+    // Phase 2: supplement with OFA if needed
+    if (q.trim().length >= 3 && localFoods.length < 8) {
+      const allFoods = await searchFoods(q.trim())
+      setRes(allFoods)
+    }
+    setBusy(false)
   }
 
   function select(food) {

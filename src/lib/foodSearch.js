@@ -60,8 +60,9 @@ async function searchRecentFoods(query) {
       .from('food_logs')
       .select('food_name, kcal, proteins, carbs, fats, grams')
       .ilike('food_name', `%${query}%`)
+      .neq('food_name', '__note__')
       .order('created_at', { ascending: false })
-      .limit(80)
+      .limit(20)
     if (error || !data?.length) return []
     const seen = new Map()
     for (const row of data) {
@@ -235,11 +236,41 @@ export async function searchOpenFoodFacts(query) {
   return []
 }
 
+function _dedup(results, seen) {
+  const out = []
+  for (const arr of results) {
+    const items = arr.status === 'fulfilled' ? arr.value : []
+    for (const food of items) {
+      if (!food || typeof food !== 'object') continue
+      const k = (food.name || '').toLowerCase().trim()
+      if (!k || seen.has(k)) continue
+      seen.add(k)
+      out.push(food)
+    }
+  }
+  return out
+}
+
+// Fast local-only search: returns in < 400ms without external API calls
+export async function searchFoodsLocal(query) {
+  const q = query.toLowerCase().trim()
+  if (!q) return []
+  const [a, b, c, d, e, f] = await Promise.allSettled([
+    searchRecentFoods(q),
+    searchRicette(q),
+    searchDietMealFoods(q),
+    searchCustomMeals(q),
+    searchPublicFoods(q),
+    searchAllFoods(q),
+  ])
+  const seen = new Set()
+  return _dedup([a, b, c, d, e, f], seen).slice(0, 50)
+}
+
 export async function searchFoods(query) {
   const normalizedQuery = query.toLowerCase().trim()
   if (!normalizedQuery) return []
 
-  // Run all fast local sources in parallel first
   const [a, b, c, d, e, f] = await Promise.allSettled([
     searchRecentFoods(normalizedQuery),
     searchRicette(normalizedQuery),
@@ -249,29 +280,21 @@ export async function searchFoods(query) {
     searchAllFoods(normalizedQuery),
   ])
   const seen = new Set()
-  const dedup = arr => (arr.status === 'fulfilled' ? arr.value : []).filter(food => {
-    if (!food || typeof food !== 'object') return false
-    const k = (food.name || '').toLowerCase().trim()
-    if (!k || seen.has(k)) return false
-    seen.add(k); return true
-  })
-  const localItems = [...dedup(a), ...dedup(b), ...dedup(c), ...dedup(d), ...dedup(e), ...dedup(f)]
+  const localItems = _dedup([a, b, c, d, e, f], seen)
 
-  // Skip Open Food Facts only if query is too short or local results are already abundant
-  // (>= 20 means a generic search like "pasta" that doesn't need branded products)
-  if (normalizedQuery.length < 3 || localItems.length >= 20) {
+  // Skip Open Food Facts if query too short or enough local results (lowered from 20 to 8)
+  if (normalizedQuery.length < 3 || localItems.length >= 8) {
     return localItems.slice(0, 50)
   }
 
-  // Query Open Food Facts for branded/commercial products not in local databases
   const offItems = await searchOpenFoodFacts(normalizedQuery)
-  const dedupArr = arr => arr.filter(food => {
+  const extra = offItems.filter(food => {
     if (!food || typeof food !== 'object') return false
     const k = (food.name || '').toLowerCase().trim()
     if (!k || seen.has(k)) return false
     seen.add(k); return true
   })
-  return [...localItems, ...dedupArr(offItems)].slice(0, 50)
+  return [...localItems, ...extra].slice(0, 50)
 }
 
 export async function searchDatabaseFoods(query) {

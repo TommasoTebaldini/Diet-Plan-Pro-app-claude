@@ -4,7 +4,7 @@ import { AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
-import { searchFoods, searchByBarcode } from '../lib/foodSearch'
+import { searchFoodsLocal, searchFoods, searchByBarcode } from '../lib/foodSearch'
 import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle, Pencil, Check, Lock, Camera } from 'lucide-react'
 import BarcodeScanner from '../components/BarcodeScanner'
 import MealPhotoAnalyzer from '../components/MealPhotoAnalyzer'
@@ -133,7 +133,7 @@ export default function MacroTrackerPage() {
 
   async function loadLog() {
     const [foodRes, dietRes, wellnessRes] = await Promise.all([
-      supabase.from('food_logs').select('*').eq('user_id', user.id).eq('date', date).order('created_at'),
+      supabase.from('food_logs').select('id,date,meal_type,meal_time,food_name,grams,kcal,proteins,carbs,fats,food_data').eq('user_id', user.id).eq('date', date).order('created_at'),
       supabase.from('patient_diets').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
       supabase.from('daily_wellness').select('mood').eq('user_id', user.id).eq('date', date).maybeSingle(),
     ])
@@ -143,7 +143,7 @@ export default function MacroTrackerPage() {
     setMood(wellnessRes.data?.mood || null)
   }
 
-  // Live search as you type (debounced)
+  // Two-phase live search: local results first (~200ms), then OFA in background
   useEffect(() => {
     if (!query.trim() || query.trim().length < 2) {
       setResults([])
@@ -161,15 +161,31 @@ export default function MacroTrackerPage() {
     const timer = setTimeout(async () => {
       const searchId = ++latestSearchIdRef.current
       try {
-        const foods = await searchFoods(normalizedQuery)
+        // Phase 1: fast local results (no external API)
+        const localFoods = await searchFoodsLocal(normalizedQuery)
         if (searchId !== latestSearchIdRef.current) return
-        searchCacheRef.current.set(normalizedQuery, foods)
-        // Prevent unbounded memory growth while keeping recent queries instant.
-        if (searchCacheRef.current.size > 40) {
-          const firstKey = searchCacheRef.current.keys().next().value
-          if (firstKey) searchCacheRef.current.delete(firstKey)
+        if (localFoods.length > 0) {
+          setResults(localFoods)
+          setSearching(false)
         }
-        setResults(foods)
+
+        // Phase 2: supplement with Open Food Facts if needed
+        if (normalizedQuery.length >= 3 && localFoods.length < 8) {
+          const allFoods = await searchFoods(normalizedQuery)
+          if (searchId !== latestSearchIdRef.current) return
+          searchCacheRef.current.set(normalizedQuery, allFoods)
+          if (searchCacheRef.current.size > 40) {
+            const firstKey = searchCacheRef.current.keys().next().value
+            if (firstKey) searchCacheRef.current.delete(firstKey)
+          }
+          setResults(allFoods)
+        } else {
+          searchCacheRef.current.set(normalizedQuery, localFoods)
+          if (searchCacheRef.current.size > 40) {
+            const firstKey = searchCacheRef.current.keys().next().value
+            if (firstKey) searchCacheRef.current.delete(firstKey)
+          }
+        }
       } catch (err) {
         console.error('Errore ricerca alimenti:', err)
         if (searchId !== latestSearchIdRef.current) return
@@ -177,7 +193,7 @@ export default function MacroTrackerPage() {
       } finally {
         if (searchId === latestSearchIdRef.current) setSearching(false)
       }
-    }, 220)
+    }, 150)
     return () => clearTimeout(timer)
   }, [query])
 
@@ -562,7 +578,7 @@ export default function MacroTrackerPage() {
         )}
 
         {/* ── Meal cards ── */}
-        {MEALS.map(m => {
+        {MEALS.map((m, mIdx) => {
           const mealFoods = log.filter(f => f.meal_type === m.key && f.food_name !== '__note__')
           const mealNotes = log.filter(f => f.meal_type === m.key && f.food_name === '__note__')
           const mealKcal = mealFoods.reduce((s, f) => s + (f.kcal || 0), 0)
@@ -571,7 +587,7 @@ export default function MacroTrackerPage() {
           const times = mealFoods.map(f => f.food_data?.meal_time).filter(Boolean).sort()
           const timeLabel = times.length > 0 ? times[0] : null
           return (
-            <div key={m.key} className="card" style={{ padding: 0, overflow: isSearching ? 'visible' : 'hidden', position: 'relative', zIndex: isSearching ? 30 : 1, borderLeft: `3px solid ${m.accent || 'var(--green-main)'}` }}>
+            <div key={m.key} className="card animate-fadeIn" style={{ padding: 0, overflow: isSearching ? 'visible' : 'hidden', position: 'relative', zIndex: isSearching ? 30 : 1, borderLeft: `3px solid ${m.accent || 'var(--green-main)'}`, animationDelay: `${mIdx * 0.05}s`, transition: 'box-shadow .18s ease' }}>
               <div style={{ display: 'flex', alignItems: 'center', padding: '13px 14px', gap: 9 }}>
                 <button onClick={() => { setExpandedMeal(isOpen ? null : m.key); if (isOpen && isSearching) closeSearch() }} style={{ display: 'flex', alignItems: 'center', gap: 9, flex: 1, background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', color: 'var(--text-primary)', padding: 0, textAlign: 'left' }}>
                   <div style={{ width: 36, height: 36, borderRadius: 10, background: m.pale || 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
@@ -644,15 +660,22 @@ export default function MacroTrackerPage() {
                     </div>
                   ))}
                   {/* Meal notes */}
-                  {mealNotes.map(n => (
-                    <div key={n.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 6, padding: '7px 10px', background: '#fffbeb', borderRadius: 8, border: '1px dashed #fde68a' }}>
-                      <span style={{ fontSize: 15, lineHeight: 1.4 }}>📝</span>
-                      <p style={{ flex: 1, fontSize: 12.5, color: '#78350f', lineHeight: 1.5, margin: 0 }}>{n.food_data?.note}</p>
-                      <button onClick={() => removeFood(n.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b45309', padding: '2px 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  ))}
+                  {mealNotes.map(n => {
+                    const fd = n.food_data
+                    const noteText = fd
+                      ? (typeof fd === 'string' ? (() => { try { return JSON.parse(fd)?.note || fd } catch { return fd } })() : (fd?.note || ''))
+                      : ''
+                    if (!noteText) return null
+                    return (
+                      <div key={n.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 6, padding: '7px 10px', background: '#fffbeb', borderRadius: 8, border: '1px dashed #fde68a' }}>
+                        <span style={{ fontSize: 15, lineHeight: 1.4 }}>📝</span>
+                        <p style={{ flex: 1, fontSize: 12.5, color: '#78350f', lineHeight: 1.5, margin: 0 }}>{noteText}</p>
+                        <button onClick={() => removeFood(n.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b45309', padding: '2px 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    )
+                  })}
 
                   {mealFoods.length === 0 && mealNotes.length === 0 && !isSearching && (
                     <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '8px 0' }}>
@@ -688,7 +711,7 @@ export default function MacroTrackerPage() {
                     <div className="animate-slideUp" style={{ marginTop: mealFoods.length > 0 ? 6 : 0, padding: '10px 0 0' }}>
                       {/* Success confirmation */}
                       {addedFood && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--green-pale)', borderRadius: 10, padding: '9px 12px', marginBottom: 10, color: 'var(--green-dark)', fontSize: 13, fontWeight: 500 }}>
+                        <div className="animate-popIn" style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--green-pale)', borderRadius: 10, padding: '9px 12px', marginBottom: 10, color: 'var(--green-dark)', fontSize: 13, fontWeight: 500 }}>
                           <span>✅</span> <span>"{addedFood}" aggiunto!</span>
                         </div>
                       )}
@@ -734,7 +757,7 @@ export default function MacroTrackerPage() {
 
                         {/* Dropdown results — rendered in a portal to avoid overflow:hidden clipping */}
                         {!selected && results.length > 0 && searchRef.current && createPortal(
-                          <div style={{
+                          <div className="animate-dropdown" style={{
                             position: 'fixed',
                             top: searchRef.current.getBoundingClientRect().bottom + 4,
                             left: searchRef.current.getBoundingClientRect().left,
@@ -748,10 +771,14 @@ export default function MacroTrackerPage() {
                             overflowY: 'auto',
                           }}>
                             {results.map((f, i) => (
-                              <button key={`${f.id}_${i}`} onClick={() => { setSelected(f); setGrams(String(getDefaultServingSize(f))); setResults([]) }} style={{
+                              <button key={`${f.id}_${i}`} className="animate-listItem stagger-item" onClick={() => { setSelected(f); setGrams(String(getDefaultServingSize(f))); setResults([]) }} style={{
                                 width: '100%', background: 'none', border: 'none', borderBottom: i < results.length - 1 ? '1px solid var(--border-light, #f3f4f6)' : 'none',
                                 padding: '10px 13px', textAlign: 'left', cursor: 'pointer', font: 'inherit',
-                              }}>
+                                transition: 'background .12s',
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                              >
                                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
                                   <p style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.3, flex: 1 }}>{f.name}</p>
                                   {(() => {
@@ -804,7 +831,7 @@ export default function MacroTrackerPage() {
                             </div>
                             <div className="input-group" style={{ flex: '1 1 80px' }}>
                               <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={11} />Orario</label>
-                              <select className="input-field" value={mealTime} onChange={e => setMealTime(e.target.value)} style={{ cursor: 'pointer' }}>
+                              <select value={mealTime} onChange={e => setMealTime(e.target.value)} style={{ cursor: 'pointer', width: '100%', padding: '6px 10px', border: '1.5px solid var(--border)', borderRadius: 10, background: 'var(--surface-2)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none', fontFamily: 'var(--font-b)' }}>
                                 {Array.from({ length: 38 }, (_, i) => {
                                   const h = Math.floor(i / 2) + 5
                                   const mn = i % 2 === 0 ? '00' : '30'
