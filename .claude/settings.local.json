@@ -15,7 +15,32 @@
       "Bash(python3 -c \" import sys, json data = sys.stdin.read\\(\\) lines = data.strip\\(\\).split\\('\\\\n'\\) for line in lines[-10:]: try: obj = json.loads\\(line\\) if obj.get\\('type'\\) == 'assistant': for block in obj.get\\('message', {}\\).get\\('content', []\\): if block.get\\('type'\\) == 'text': print\\('ASSISTANT:', block['text'][:500]\\) elif obj.get\\('type'\\) == 'user': for block in obj.get\\('message', {}\\).get\\('content', []\\): if isinstance\\(block, dict\\) and block.get\\('type'\\) == 'text': print\\('USER:', block['text'][:300]\\) except: pass \")",
       "Bash(python3 *)",
       "Bash(git *)",
-      "Bash(dir \"C:\\\\Users\\\\Manutenzione\\\\Desktop\\\\Nut\" /b)"
+      "Bash(dir \"C:\\\\Users\\\\Manutenzione\\\\Desktop\\\\Nut\" /b)",
+      "Bash(xargs grep *)",
+      "Bash(grep -E \"\\\\.js$|^d\")",
+      "Bash(xargs -I {} basename {})",
+      "WebSearch",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Manutenzione\\\\Desktop\\\\Nut\" -Recurse -Name)",
+      "Bash(Select-Object -First 50)",
+      "Bash(Get-ChildItem \"C:\\\\Users\\\\Manutenzione\\\\Desktop\\\\Nut\\\\Diet-Plan-Pro-app-claude\" -Recurse -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object FullName)",
+      "Bash(Get-ChildItem -Recurse \"C:\\\\Users\\\\Manutenzione\\\\Desktop\\\\Nut\\\\Diet-Plan-Pro-app-claude\\\\src\" -Filter \"*.jsx\")",
+      "Bash(npm install *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Manutenzione\\\\Desktop\\\\Nut\\\\NutriPlan-Pro\" -Recurse -Filter \"vercel.json\")",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "WebFetch(domain:www.ecfs.eu)",
+      "WebFetch(domain:easl.eu)",
+      "WebFetch(domain:ecco-ibd.eu)",
+      "WebFetch(domain:www.siditalia.it)",
+      "WebFetch(domain:www.bulimianoressia.it)",
+      "WebFetch(domain:associazioneaba.com)",
+      "WebFetch(domain:aemmedi.it)",
+      "Bash(findstr *)",
+      "PowerShell($content = Get-Content \"C:\\\\Users\\\\Manutenzione\\\\Desktop\\\\Nut\\\\NutriPlan-Pro\\\\valutazione.html\" -Raw; $lines = $content -split \"`n\"; for\\($i=0;$i -lt $lines.length;$i++\\){if\\($lines[$i] -match \"macro_dist|tdee_calcolato\"\\){write-host \"$\\($i+1\\): $\\($lines[$i]\\)\"}})",
+      "PowerShell($content = Get-Content \"C:\\\\Users\\\\Manutenzione\\\\Desktop\\\\Nut\\\\NutriPlan-Pro\\\\valutazione.html\" -Raw; $lines = $content -split \"`n\"; for\\($i=815;$i -lt 860;$i++\\){write-host \"$\\($i+1\\): $\\($lines[$i]\\)\"})",
+      "PowerShell($content = Get-Content \"C:\\\\Users\\\\Manutenzione\\\\Desktop\\\\Nut\\\\NutriPlan-Pro\\\\valutazione.html\" -Raw; $lines = $content -split \"`n\"; for\\($i=720;$i -lt 750;$i++\\){write-host \"$\\($i+1\\): $\\($lines[$i]\\)\"})",
+      "PowerShell($content = Get-Content \"C:\\\\Users\\\\Manutenzione\\\\Desktop\\\\Nut\\\\NutriPlan-Pro\\\\ncpt.html\" -Raw; $lines = $content -split \"`n\"; for\\($i=1540;$i -lt 1600;$i++\\){write-host \"$\\($i+1\\): $\\($lines[$i]\\)\"})",
+      "Bash(npx cap *)"
     ]
   }
 }

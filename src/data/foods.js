@@ -710,6 +710,52 @@ export const DIETITIAN_FOODS = [
   // ─── Verdure (completamento CREA) ────────────────────────────────────
   { id: 'dt_584', name: 'Scorzonera', category: 'Verdure', kcal_100g: 60, proteins_100g: 1.3, carbs_100g: 14, fats_100g: 0.1, fiber_100g: 3.1, sugar_100g: 6, fatSat_100g: 0 },
   { id: 'dt_585', name: 'Cavolrapa', category: 'Verdure', kcal_100g: 27, proteins_100g: 1.7, carbs_100g: 6.3, fats_100g: 0.1, fiber_100g: 3.6, sugar_100g: 2.6, fatSat_100g: 0 },
+
+  // ─── Latticini (CREA/BDA aggiunte) ───────────────────────────────────
+  { id: 'dt_651', name: 'Latte parzialmente scremato', category: 'Latticini', kcal_100g: 46, proteins_100g: 3.3, carbs_100g: 4.8, fats_100g: 1.6, fiber_100g: 0, sugar_100g: 4.8, fatSat_100g: 1.0, serving_size_g: 200 },
+  { id: 'dt_652', name: 'Latte di capra', category: 'Latticini', kcal_100g: 70, proteins_100g: 3.6, carbs_100g: 4.5, fats_100g: 4.1, fiber_100g: 0, sugar_100g: 4.5, fatSat_100g: 2.7, serving_size_g: 200 },
+  { id: 'dt_653', name: 'Mozzarella per pizza', category: 'Latticini', kcal_100g: 233, proteins_100g: 22, carbs_100g: 2.2, fats_100g: 15, fiber_100g: 0, sugar_100g: 1, fatSat_100g: 9.5 },
+  { id: 'dt_654', name: 'Pecorino romano', category: 'Latticini', kcal_100g: 388, proteins_100g: 26, carbs_100g: 0.5, fats_100g: 32, fiber_100g: 0, sugar_100g: 0, fatSat_100g: 21, serving_size_g: 30 },
+
+  // ─── Cereali (CREA/BDA aggiunte) ─────────────────────────────────────
+  { id: 'dt_655', name: 'Riso parboiled', category: 'Cereali', kcal_100g: 355, proteins_100g: 7.3, carbs_100g: 77, fats_100g: 0.6, fiber_100g: 1.5, sugar_100g: 0.3, fatSat_100g: 0.1, serving_size_g: 80 },
+  { id: 'dt_656', name: 'Pasta fresca (tagliatelle)', category: 'Cereali', kcal_100g: 194, proteins_100g: 7, carbs_100g: 37, fats_100g: 2, fiber_100g: 2, sugar_100g: 2, fatSat_100g: 0.5, serving_size_g: 100 },
+  { id: 'dt_657', name: 'Farina di riso', category: 'Cereali', kcal_100g: 366, proteins_100g: 6, carbs_100g: 80, fats_100g: 1.4, fiber_100g: 2.4, sugar_100g: 0, fatSat_100g: 0.4 },
+  { id: 'dt_658', name: 'Farina di ceci', category: 'Cereali', kcal_100g: 387, proteins_100g: 22, carbs_100g: 57, fats_100g: 6, fiber_100g: 11, sugar_100g: 10, fatSat_100g: 0.6 },
+
+  // ─── Legumi (CREA/BDA aggiunte) ───────────────────────────────────────
+  { id: 'dt_659', name: 'Fagioli dall\'occhio', category: 'Legumi', kcal_100g: 109, proteins_100g: 7.6, carbs_100g: 19, fats_100g: 0.5, fiber_100g: 6.2, sugar_100g: 1.5, fatSat_100g: 0.1 },
+
+  // ─── Proteine (CREA/BDA aggiunte) ────────────────────────────────────
+  { id: 'dt_660', name: 'Manzo macinato', category: 'Proteine', kcal_100g: 200, proteins_100g: 19, carbs_100g: 0, fats_100g: 13.5, fiber_100g: 0, sugar_100g: 0, fatSat_100g: 5.3 },
+  { id: 'dt_661', name: 'Trippa', category: 'Proteine', kcal_100g: 119, proteins_100g: 17, carbs_100g: 1, fats_100g: 5, fiber_100g: 0, sugar_100g: 0, fatSat_100g: 1.5 },
+  { id: 'dt_662', name: 'Fegatini di pollo', category: 'Proteine', kcal_100g: 130, proteins_100g: 19, carbs_100g: 1, fats_100g: 5.5, fiber_100g: 0, sugar_100g: 0, fatSat_100g: 1.7 },
+  { id: 'dt_663', name: 'Fegato di maiale', category: 'Proteine', kcal_100g: 165, proteins_100g: 20, carbs_100g: 3, fats_100g: 7, fiber_100g: 0, sugar_100g: 0, fatSat_100g: 2.3 },
+  { id: 'dt_664', name: 'Rognone di bovino', category: 'Proteine', kcal_100g: 99, proteins_100g: 17, carbs_100g: 0.8, fats_100g: 3, fiber_100g: 0, sugar_100g: 0, fatSat_100g: 0.9 },
+  { id: 'dt_665', name: 'Lingua di bovino', category: 'Proteine', kcal_100g: 230, proteins_100g: 16, carbs_100g: 0, fats_100g: 18, fiber_100g: 0, sugar_100g: 0, fatSat_100g: 7 },
+  { id: 'dt_666', name: 'Salsiccia fresca di maiale', category: 'Proteine', kcal_100g: 301, proteins_100g: 14, carbs_100g: 1, fats_100g: 27, fiber_100g: 0, sugar_100g: 0.5, fatSat_100g: 10 },
+  { id: 'dt_667', name: 'Costine di maiale', category: 'Proteine', kcal_100g: 292, proteins_100g: 15, carbs_100g: 0, fats_100g: 26, fiber_100g: 0, sugar_100g: 0, fatSat_100g: 9.5 },
+  { id: 'dt_668', name: 'Spalla di maiale', category: 'Proteine', kcal_100g: 200, proteins_100g: 19, carbs_100g: 0, fats_100g: 14, fiber_100g: 0, sugar_100g: 0, fatSat_100g: 5 },
+
+  // ─── Grassi (CREA/BDA aggiunte) ──────────────────────────────────────
+  { id: 'dt_669', name: 'Strutto', category: 'Grassi', kcal_100g: 892, proteins_100g: 0, carbs_100g: 0, fats_100g: 99, fiber_100g: 0, sugar_100g: 0, fatSat_100g: 40, serving_size_g: 10 },
+  { id: 'dt_670', name: 'Semi di sesamo', category: 'Grassi', kcal_100g: 573, proteins_100g: 18, carbs_100g: 23, fats_100g: 50, fiber_100g: 11.8, sugar_100g: 0.3, fatSat_100g: 7, serving_size_g: 15 },
+  { id: 'dt_671', name: 'Semi di papavero', category: 'Grassi', kcal_100g: 525, proteins_100g: 18, carbs_100g: 28, fats_100g: 42, fiber_100g: 19, sugar_100g: 3.6, fatSat_100g: 4.5, serving_size_g: 10 },
+
+  // ─── Verdure (CREA/BDA aggiunte) ─────────────────────────────────────
+  { id: 'dt_672', name: 'Fiori di zucca', category: 'Verdure', kcal_100g: 17, proteins_100g: 1.6, carbs_100g: 2.7, fats_100g: 0.4, fiber_100g: 1.4, sugar_100g: 0.9, fatSat_100g: 0.1 },
+
+  // ─── Condimenti e Salse (CREA/BDA aggiunte) ──────────────────────────
+  { id: 'dt_673', name: 'Erba cipollina', category: 'Condimenti e Salse', kcal_100g: 30, proteins_100g: 3.3, carbs_100g: 4.4, fats_100g: 0.7, fiber_100g: 2.5, sugar_100g: 1.9, fatSat_100g: 0.1 },
+  { id: 'dt_674', name: 'Maggiorana', category: 'Condimenti e Salse', kcal_100g: 271, proteins_100g: 12, carbs_100g: 61, fats_100g: 7, fiber_100g: 40, sugar_100g: 4, fatSat_100g: 1.7 },
+  { id: 'dt_675', name: 'Aneto', category: 'Condimenti e Salse', kcal_100g: 43, proteins_100g: 3.5, carbs_100g: 7, fats_100g: 1.1, fiber_100g: 2.1, sugar_100g: 0, fatSat_100g: 0.1 },
+  { id: 'dt_676', name: 'Brodo vegetale', category: 'Condimenti e Salse', kcal_100g: 5, proteins_100g: 0.1, carbs_100g: 1, fats_100g: 0, fiber_100g: 0, sugar_100g: 0.5, fatSat_100g: 0, serving_size_g: 250 },
+  { id: 'dt_677', name: 'Brodo di carne', category: 'Condimenti e Salse', kcal_100g: 12, proteins_100g: 1.5, carbs_100g: 0.5, fats_100g: 0.3, fiber_100g: 0, sugar_100g: 0.3, fatSat_100g: 0.1, serving_size_g: 250 },
+  { id: 'dt_678', name: 'Brodo di pollo', category: 'Condimenti e Salse', kcal_100g: 10, proteins_100g: 1.2, carbs_100g: 0.5, fats_100g: 0.3, fiber_100g: 0, sugar_100g: 0.2, fatSat_100g: 0.1, serving_size_g: 250 },
+
+  // ─── Dolci e Zuccheri (CREA/BDA aggiunte) ────────────────────────────
+  { id: 'dt_679', name: 'Cantucci', category: 'Dolci e Zuccheri', kcal_100g: 440, proteins_100g: 10, carbs_100g: 66, fats_100g: 15, fiber_100g: 3, sugar_100g: 26, fatSat_100g: 2, serving_size_g: 25 },
+  { id: 'dt_680', name: 'Pandispagna', category: 'Dolci e Zuccheri', kcal_100g: 280, proteins_100g: 8, carbs_100g: 50, fats_100g: 6, fiber_100g: 0.5, sugar_100g: 30, fatSat_100g: 2 },
 ]
 
 export const DIETITIAN_CATEGORIES = ['Tutti', 'Proteine', 'Cereali', 'Verdure', 'Frutta', 'Latticini', 'Grassi', 'Legumi', 'Dolci e Zuccheri', 'Condimenti e Salse', 'Bevande', 'Pane e Prodotti da Forno', 'Salumi e Insaccati', 'Piatti Pronti', 'Snack e Ultra-Processati']
