@@ -169,8 +169,8 @@ export default function MacroTrackerPage() {
           setSearching(false)
         }
 
-        // Phase 2: supplement with Open Food Facts if needed
-        if (normalizedQuery.length >= 3 && localFoods.length < 8) {
+        // Phase 2: always supplement with Open Food Facts for 3+ char queries
+        if (normalizedQuery.length >= 3) {
           const allFoods = await searchFoods(normalizedQuery)
           if (searchId !== latestSearchIdRef.current) return
           searchCacheRef.current.set(normalizedQuery, allFoods)
@@ -756,7 +756,7 @@ export default function MacroTrackerPage() {
                         )}
 
                         {/* Dropdown results — rendered in a portal to avoid overflow:hidden clipping */}
-                        {!selected && results.length > 0 && searchRef.current && createPortal(
+                        {!selected && (results.length > 0 || (searching && query.trim().length >= 2)) && searchRef.current && createPortal(
                           <div className="animate-dropdown" style={{
                             position: 'fixed',
                             top: searchRef.current.getBoundingClientRect().bottom + 4,
@@ -770,6 +770,12 @@ export default function MacroTrackerPage() {
                             maxHeight: 260,
                             overflowY: 'auto',
                           }}>
+                            {searching && results.length === 0 && (
+                              <div style={{ padding: '12px 14px', color: 'var(--text-muted)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ width: 12, height: 12, border: '2px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block', flexShrink: 0 }} />
+                                Ricerca in corso…
+                              </div>
+                            )}
                             {results.map((f, i) => (
                               <button key={`${f.id}_${i}`} className="animate-listItem stagger-item" onClick={() => { setSelected(f); setGrams(String(getDefaultServingSize(f))); setResults([]) }} style={{
                                 width: '100%', background: 'none', border: 'none', borderBottom: i < results.length - 1 ? '1px solid var(--border-light, #f3f4f6)' : 'none',

@@ -496,7 +496,7 @@ export default function ChatPage() {
     const [profileRes, msgsRes, docsRes] = await Promise.all([
       supabase.from('profiles').select('full_name, first_name, last_name, last_seen_at').eq('id', dId).maybeSingle(),
       supabase.from('chat_messages')
-        .select('id,patient_id,sender_role,sender_id,content,message_type,image_url,audio_url,read_at,created_at')
+        .select('id,patient_id,sender_role,sender_id,content,message_type,file_url,file_name,duration_seconds,read_at,created_at')
         .eq('patient_id', user.id)
         .order('created_at', { ascending: true })
         .limit(500),
