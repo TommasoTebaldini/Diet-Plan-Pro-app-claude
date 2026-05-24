@@ -309,8 +309,7 @@ export async function searchFoods(query) {
   const seen = new Set()
   const localItems = _dedup([a, b, c, d, e, f], seen)
 
-  // Skip Open Food Facts if query too short or enough local results (lowered from 20 to 8)
-  if (normalizedQuery.length < 3 || localItems.length >= 8) {
+  if (normalizedQuery.length < 3) {
     return localItems.slice(0, 50)
   }
 

@@ -28,38 +28,5 @@
       <div id="_initial-loader"><div></div></div>
     </div>
     <script type="module" src="/src/main.jsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        var _swRefreshing = false
-        // Capture whether a SW was already controlling the page BEFORE this load.
-        // Only reload when it's an UPDATE (replacing an existing controller), not on first install.
-        var _hadController = !!navigator.serviceWorker.controller
-        function _swDoReload() {
-          if (!_swRefreshing) { _swRefreshing = true; window.location.reload(true) }
-        }
-        navigator.serviceWorker.addEventListener('message', function (e) {
-          if (e.data && e.data.type === 'SW_RELOAD' && _hadController) { _swDoReload() }
-        })
-        navigator.serviceWorker.addEventListener('controllerchange', function () {
-          if (_hadController) { _swDoReload() }
-        })
-        // Force immediate SW update check; if a waiting SW exists, skip waiting immediately
-        navigator.serviceWorker.ready.then(function (reg) {
-          if (reg.waiting) {
-            reg.waiting.postMessage({ type: 'SKIP_WAITING' })
-          }
-          reg.update().catch(function () {})
-          reg.addEventListener('updatefound', function () {
-            var newSW = reg.installing
-            if (!newSW) return
-            newSW.addEventListener('statechange', function () {
-              if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
-                newSW.postMessage({ type: 'SKIP_WAITING' })
-              }
-            })
-          })
-        })
-      }
-    </script>
   </body>
 </html>
