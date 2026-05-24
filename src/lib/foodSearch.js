@@ -205,15 +205,11 @@ function hasUsefulData(p) {
 }
 
 export async function searchOpenFoodFacts(query) {
-  const fields = 'code,product_name,product_name_it,product_name_en,brands,nutriments'
   const q = encodeURIComponent(query)
 
-  // API v2 sends proper CORS headers; cgi/search.pl is blocked by production origins.
+  // Route through server-side proxy to avoid browser CORS restrictions
   try {
-    const res = await fetch(
-      `https://world.openfoodfacts.org/api/v2/search?search_terms=${q}&fields=${fields}&page_size=24&sort_by=unique_scans_n&countries_tags_en=italy`,
-      { signal: AbortSignal.timeout(1500) }
-    )
+    const res = await fetch(`/api/off-proxy?q=${q}&italy=1`, { signal: AbortSignal.timeout(6000) })
     if (res.ok) {
       const data = await res.json()
       const hits = (data.products || []).filter(hasUsefulData).map(mapOFFProduct).filter(p => p.name)
@@ -223,10 +219,7 @@ export async function searchOpenFoodFacts(query) {
 
   // Fallback: world database (no country filter)
   try {
-    const res = await fetch(
-      `https://world.openfoodfacts.org/api/v2/search?search_terms=${q}&fields=${fields}&page_size=24&sort_by=unique_scans_n`,
-      { signal: AbortSignal.timeout(1500) }
-    )
+    const res = await fetch(`/api/off-proxy?q=${q}`, { signal: AbortSignal.timeout(6000) })
     if (res.ok) {
       const data = await res.json()
       return (data.products || []).filter(hasUsefulData).map(mapOFFProduct).filter(p => p.name)
@@ -304,8 +297,8 @@ export async function searchDatabaseFoods(query) {
 export async function searchByBarcode(barcode) {
   try {
     const res = await fetch(
-      `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(barcode)}.json`,
-      { signal: AbortSignal.timeout(8000) }
+      `/api/off-proxy?barcode=${encodeURIComponent(barcode)}`,
+      { signal: AbortSignal.timeout(10000) }
     )
     const data = await res.json()
     if (data.status !== 1 || !data.product) return null
