@@ -7,11 +7,16 @@ export default async function handler(req, res) {
   const { q, barcode, italy } = req.query
   const FIELDS = 'code,product_name,product_name_it,product_name_en,brands,nutriments'
 
+  const OFF_HEADERS = {
+    'User-Agent': 'NutriPlanApp/1.0 (nutrition tracking; https://diet-plan-pro-app-claude.vercel.app)',
+    'Accept': 'application/json',
+  }
+
   const fetchWithTimeout = async (url, ms) => {
     const ac = new AbortController()
     const tid = setTimeout(() => ac.abort(), ms)
     try {
-      const r = await fetch(url, { signal: ac.signal })
+      const r = await fetch(url, { signal: ac.signal, headers: OFF_HEADERS })
       clearTimeout(tid)
       return r
     } catch (e) {

@@ -32,21 +32,9 @@ const BUILD_ID = __BUILD_ID__
   localStorage.setItem('_bid', BUILD_ID)
 })()
 
-// Registra il service worker e forza il reload della pagina quando
-// viene distribuita una nuova versione (evita cache stale del bundle JS)
-registerSW({ immediate: true })
-
-// Ascolta il messaggio SW_RELOAD inviato da sw-reload.js quando il nuovo
-// service worker prende il controllo. Ricarica solo se c'era già un controller
-// attivo (aggiornamento), non al primo install.
-if ('serviceWorker' in navigator) {
-  const hadController = !!navigator.serviceWorker.controller
-  navigator.serviceWorker.addEventListener('message', event => {
-    if (event.data && event.data.type === 'SW_RELOAD' && hadController) {
-      window.location.reload()
-    }
-  })
-}
+// Registra il service worker senza auto-reload mid-session.
+// Il BUILD_ID check sopra gestisce già il cache-busting all'avvio.
+registerSW()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
