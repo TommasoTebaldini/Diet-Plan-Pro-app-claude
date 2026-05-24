@@ -12,25 +12,16 @@ export default async function handler(req, res) {
     'Accept': 'application/json',
   }
 
-  const fetchWithTimeout = async (url, ms) => {
-    const ac = new AbortController()
-    const tid = setTimeout(() => ac.abort(), ms)
-    try {
-      const r = await fetch(url, { signal: ac.signal, headers: OFF_HEADERS })
-      clearTimeout(tid)
-      return r
-    } catch (e) {
-      clearTimeout(tid)
-      throw e
-    }
+  async function tryFetch(url) {
+    const r = await fetch(url, { headers: OFF_HEADERS })
+    if (!r.ok) throw new Error(`HTTP ${r.status}`)
+    return r.json()
   }
 
   try {
     if (barcode) {
       const url = `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(barcode)}.json`
-      const r = await fetchWithTimeout(url, 8000)
-      if (!r.ok) return res.status(200).json({ status: 0 })
-      const data = await r.json()
+      const data = await tryFetch(url)
       res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=3600')
       return res.status(200).json(data)
     }
@@ -38,15 +29,36 @@ export default async function handler(req, res) {
     if (!q) return res.status(400).json({ error: 'missing q' })
 
     const encoded = encodeURIComponent(q)
-    const base = `https://world.openfoodfacts.org/api/v2/search?search_terms=${encoded}&fields=${FIELDS}&page_size=24&sort_by=unique_scans_n`
-    const url = italy === '1' ? `${base}&countries_tags_en=italy` : base
+    const errors = []
 
-    const r = await fetchWithTimeout(url, 8000)
-    if (!r.ok) return res.status(200).json({ products: [] })
-    const data = await r.json()
+    // 1) v2 search API — Italian products first
+    const urls = [
+      italy === '1'
+        ? `https://world.openfoodfacts.org/api/v2/search?search_terms=${encoded}&fields=${FIELDS}&page_size=24&sort_by=unique_scans_n&countries_tags_en=italy`
+        : `https://world.openfoodfacts.org/api/v2/search?search_terms=${encoded}&fields=${FIELDS}&page_size=24&sort_by=unique_scans_n`,
+    ]
 
-    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300')
-    return res.status(200).json(data)
+    for (const url of urls) {
+      try {
+        const data = await tryFetch(url)
+        if (data.products?.length) {
+          res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300')
+          return res.status(200).json(data)
+        }
+      } catch (e) { errors.push(`v2: ${e.message}`) }
+    }
+
+    // 2) CGI search API fallback (older but very reliable)
+    try {
+      const cgiUrl = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encoded}&search_simple=1&action=process&json=1&page_size=24&fields=${FIELDS}`
+      const data = await tryFetch(cgiUrl)
+      if (data.products?.length) {
+        res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300')
+        return res.status(200).json(data)
+      }
+    } catch (e) { errors.push(`cgi: ${e.message}`) }
+
+    return res.status(200).json({ products: [], _errors: errors })
   } catch (e) {
     return res.status(200).json({ error: e.message || 'proxy error', products: [] })
   }

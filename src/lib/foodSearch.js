@@ -217,7 +217,8 @@ export async function searchOpenFoodFacts(query) {
   const q = encodeURIComponent(query)
   const tokens = query.toLowerCase().split(/\s+/).filter(t => t.length > 1)
   const FIELDS = 'code,product_name,product_name_it,product_name_en,brands,nutriments'
-  const BASE = `https://world.openfoodfacts.org/api/v2/search?search_terms=${q}&fields=${FIELDS}&page_size=24&sort_by=unique_scans_n`
+  const V2_BASE = `https://world.openfoodfacts.org/api/v2/search?search_terms=${q}&fields=${FIELDS}&page_size=24&sort_by=unique_scans_n`
+  const CGI_URL = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${q}&search_simple=1&action=process&json=1&page_size=24&fields=${FIELDS}`
 
   const nameMatches = (p) => {
     const name = (p.product_name_it || p.product_name || p.product_name_en || '').toLowerCase()
@@ -226,26 +227,37 @@ export async function searchOpenFoodFacts(query) {
   const processResults = (data) =>
     (data.products || []).filter(hasUsefulData).filter(nameMatches).map(mapOFFProduct).filter(p => p.name)
 
-  // 1) Direct request — OFF v2 API supports CORS natively
-  for (const url of [`${BASE}&countries_tags_en=italy`, BASE]) {
+  // 1) Direct v2 API — Italy-first, then world
+  for (const url of [`${V2_BASE}&countries_tags_en=italy`, V2_BASE]) {
     try {
       const res = await _fetchTimeout(url, 6000)
       if (res.ok) {
         const hits = processResults(await res.json())
         if (hits.length > 0) return hits
       }
-    } catch { /* fall through */ }
+    } catch (e) { console.warn('[OFF v2] failed:', e.message) }
   }
 
-  // 2) Fallback: server-side proxy (for ad-blockers or strict CORS environments)
+  // 2) Direct CGI API fallback (older endpoint, different infrastructure)
+  try {
+    const res = await _fetchTimeout(CGI_URL, 6000)
+    if (res.ok) {
+      const hits = processResults(await res.json())
+      if (hits.length > 0) return hits
+    }
+  } catch (e) { console.warn('[OFF CGI] failed:', e.message) }
+
+  // 3) Server-side proxy (for ad-blockers or strict CORS environments)
   for (const params of [`q=${q}&italy=1`, `q=${q}`]) {
     try {
       const res = await _fetchTimeout(`/api/off-proxy?${params}`, 8000)
       if (res.ok) {
-        const hits = processResults(await res.json())
+        const data = await res.json()
+        if (data._errors) console.warn('[OFF proxy] errors:', data._errors)
+        const hits = processResults(data)
         if (hits.length > 0) return hits
       }
-    } catch { /* ignore */ }
+    } catch (e) { console.warn('[OFF proxy] failed:', e.message) }
   }
 
   return []

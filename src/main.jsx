@@ -5,11 +5,11 @@ import App from './App'
 import { AuthProvider } from './context/AuthContext'
 import { AppSettingsProvider } from './context/AppSettingsContext'
 import './index.css'
-import { registerSW } from 'virtual:pwa-register'
 
-// Registra il SW in modalità silenziosa — nessun reload automatico.
-// Il SW nuovo aspetta che tutti i tab siano chiusi prima di attivarsi.
-registerSW({ immediate: false })
+// Unregister any leftover service workers (selfDestroying build handles new installs)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()))
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

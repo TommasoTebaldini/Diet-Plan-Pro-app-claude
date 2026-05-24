@@ -31,6 +31,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      selfDestroying: true,
       registerType: 'prompt',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
