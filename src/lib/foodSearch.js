@@ -206,23 +206,29 @@ function hasUsefulData(p) {
 
 export async function searchOpenFoodFacts(query) {
   const q = encodeURIComponent(query)
+  const tokens = query.toLowerCase().split(/\s+/).filter(t => t.length > 1)
 
-  // Route through server-side proxy to avoid browser CORS restrictions
+  // Only keep products whose name actually contains a search token
+  const nameMatches = (p) => {
+    const name = (p.product_name_it || p.product_name || p.product_name_en || '').toLowerCase()
+    return tokens.length === 0 || tokens.some(t => name.includes(t))
+  }
+
   try {
     const res = await fetch(`/api/off-proxy?q=${q}&italy=1`, { signal: AbortSignal.timeout(6000) })
     if (res.ok) {
       const data = await res.json()
-      const hits = (data.products || []).filter(hasUsefulData).map(mapOFFProduct).filter(p => p.name)
+      const hits = (data.products || []).filter(hasUsefulData).filter(nameMatches).map(mapOFFProduct).filter(p => p.name)
       if (hits.length >= 3) return hits
     }
   } catch { /* fall through */ }
 
-  // Fallback: world database (no country filter)
+  // Fallback: world database, still filtered by name relevance
   try {
     const res = await fetch(`/api/off-proxy?q=${q}`, { signal: AbortSignal.timeout(6000) })
     if (res.ok) {
       const data = await res.json()
-      return (data.products || []).filter(hasUsefulData).map(mapOFFProduct).filter(p => p.name)
+      return (data.products || []).filter(hasUsefulData).filter(nameMatches).map(mapOFFProduct).filter(p => p.name)
     }
   } catch { /* ignore */ }
 
