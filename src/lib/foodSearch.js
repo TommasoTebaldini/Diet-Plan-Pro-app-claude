@@ -204,33 +204,49 @@ function hasUsefulData(p) {
   )
 }
 
+// AbortController wrapper — compatible with all browsers (no AbortSignal.timeout)
+function _fetchTimeout(url, ms, opts = {}) {
+  const ac = new AbortController()
+  const tid = setTimeout(() => ac.abort(), ms)
+  return fetch(url, { ...opts, signal: ac.signal })
+    .then(r => { clearTimeout(tid); return r })
+    .catch(e => { clearTimeout(tid); throw e })
+}
+
 export async function searchOpenFoodFacts(query) {
   const q = encodeURIComponent(query)
   const tokens = query.toLowerCase().split(/\s+/).filter(t => t.length > 1)
+  const FIELDS = 'code,product_name,product_name_it,product_name_en,brands,nutriments'
+  const BASE = `https://world.openfoodfacts.org/api/v2/search?search_terms=${q}&fields=${FIELDS}&page_size=24&sort_by=unique_scans_n`
 
-  // Only keep products whose name actually contains a search token
   const nameMatches = (p) => {
     const name = (p.product_name_it || p.product_name || p.product_name_en || '').toLowerCase()
     return tokens.length === 0 || tokens.some(t => name.includes(t))
   }
+  const processResults = (data) =>
+    (data.products || []).filter(hasUsefulData).filter(nameMatches).map(mapOFFProduct).filter(p => p.name)
 
-  try {
-    const res = await fetch(`/api/off-proxy?q=${q}&italy=1`, { signal: AbortSignal.timeout(6000) })
-    if (res.ok) {
-      const data = await res.json()
-      const hits = (data.products || []).filter(hasUsefulData).filter(nameMatches).map(mapOFFProduct).filter(p => p.name)
-      if (hits.length >= 3) return hits
-    }
-  } catch { /* fall through */ }
+  // 1) Direct request — OFF v2 API supports CORS natively
+  for (const url of [`${BASE}&countries_tags_en=italy`, BASE]) {
+    try {
+      const res = await _fetchTimeout(url, 6000)
+      if (res.ok) {
+        const hits = processResults(await res.json())
+        if (hits.length > 0) return hits
+      }
+    } catch { /* fall through */ }
+  }
 
-  // Fallback: world database, still filtered by name relevance
-  try {
-    const res = await fetch(`/api/off-proxy?q=${q}`, { signal: AbortSignal.timeout(6000) })
-    if (res.ok) {
-      const data = await res.json()
-      return (data.products || []).filter(hasUsefulData).filter(nameMatches).map(mapOFFProduct).filter(p => p.name)
-    }
-  } catch { /* ignore */ }
+  // 2) Fallback: server-side proxy (for ad-blockers or strict CORS environments)
+  for (const params of [`q=${q}&italy=1`, `q=${q}`]) {
+    try {
+      const res = await _fetchTimeout(`/api/off-proxy?${params}`, 8000)
+      if (res.ok) {
+        const hits = processResults(await res.json())
+        if (hits.length > 0) return hits
+      }
+    } catch { /* ignore */ }
+  }
 
   return []
 }
@@ -301,27 +317,34 @@ export async function searchDatabaseFoods(query) {
 }
 
 export async function searchByBarcode(barcode) {
-  try {
-    const res = await fetch(
-      `/api/off-proxy?barcode=${encodeURIComponent(barcode)}`,
-      { signal: AbortSignal.timeout(10000) }
-    )
-    const data = await res.json()
-    if (data.status !== 1 || !data.product) return null
-    const p = data.product
-    const n = p.nutriments || {}
-    const name = p.product_name_it || p.product_name || ''
-    if (!name) return null
-    return {
-      id: p.code || barcode,
-      name,
-      brand: p.brands || '',
-      kcal_100g: Math.round(n['energy-kcal_100g'] || 0),
-      proteins_100g: Math.round((n['proteins_100g'] || 0) * 10) / 10,
-      carbs_100g: Math.round((n['carbohydrates_100g'] || 0) * 10) / 10,
-      fats_100g: Math.round((n['fat_100g'] || 0) * 10) / 10,
-      fiber_100g: Math.round((n['fiber_100g'] || 0) * 10) / 10,
-      source: 'openfoodfacts',
-    }
-  } catch { return null }
+  const bc = encodeURIComponent(barcode)
+  // Try direct OFF API first, then proxy fallback
+  const urls = [
+    `https://world.openfoodfacts.org/api/v0/product/${bc}.json`,
+    `/api/off-proxy?barcode=${bc}`,
+  ]
+  for (const url of urls) {
+    try {
+      const res = await _fetchTimeout(url, 10000)
+      if (!res.ok) continue
+      const data = await res.json()
+      if (data.status !== 1 || !data.product) continue
+      const p = data.product
+      const n = p.nutriments || {}
+      const name = p.product_name_it || p.product_name || ''
+      if (!name) continue
+      return {
+        id: p.code || barcode,
+        name,
+        brand: p.brands || '',
+        kcal_100g: Math.round(n['energy-kcal_100g'] || 0),
+        proteins_100g: Math.round((n['proteins_100g'] || 0) * 10) / 10,
+        carbs_100g: Math.round((n['carbohydrates_100g'] || 0) * 10) / 10,
+        fats_100g: Math.round((n['fat_100g'] || 0) * 10) / 10,
+        fiber_100g: Math.round((n['fiber_100g'] || 0) * 10) / 10,
+        source: 'openfoodfacts',
+      }
+    } catch { /* try next */ }
+  }
+  return null
 }

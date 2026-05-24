@@ -16,9 +16,6 @@ export default defineConfig({
     port: 5000,
     allowedHosts: true
   },
-  define: {
-    __BUILD_ID__: JSON.stringify(Date.now().toString())
-  },
   build: {
     rollupOptions: {
       output: {
@@ -90,9 +87,6 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{html,css,js,ico,png,svg,woff2}'],
         cleanupOutdatedCaches: true,
-        skipWaiting: true,
-        clientsClaim: true,
-        importScripts: ['/sw-reload.js'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
