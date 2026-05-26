@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext({})
@@ -7,6 +7,21 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  const fetchProfile = useCallback(async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+      if (!error) setProfile(data)
+    } catch (e) {
+      console.error('Error fetching profile:', e)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     // Safety net: if getSession() never resolves (e.g. SW interference), release loading after 8s
@@ -26,49 +41,39 @@ export function AuthProvider({ children }) {
     })
 
     return () => { clearTimeout(safetyTimer); subscription.unsubscribe() }
-  }, [])
+  }, [fetchProfile])
 
-  async function fetchProfile(userId) {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
-      if (!error) setProfile(data)
-    } catch (e) {
-      console.error('Error fetching profile:', e)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function refreshProfile() {
+  const refreshProfile = useCallback(async () => {
     if (user) await fetchProfile(user.id)
-  }
+  }, [user, fetchProfile])
 
-  async function signIn(email, password) {
+  const signIn = useCallback(async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     return { data, error }
-  }
+  }, [])
 
-  async function signUp(email, password, metadata) {
+  const signUp = useCallback(async (email, password, metadata) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { ...metadata, role: 'patient' } }
     })
     return { data, error }
-  }
+  }, [])
 
-  async function signOut() {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut()
-  }
+  }, [])
 
   const isDietitian = profile?.role === 'dietitian'
 
+  const value = useMemo(() => ({
+    user, profile, loading, isDietitian,
+    signIn, signUp, signOut, refreshProfile,
+  }), [user, profile, loading, isDietitian, signIn, signUp, signOut, refreshProfile])
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, refreshProfile, isDietitian }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )

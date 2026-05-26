@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 
 const AppSettingsContext = createContext({})
 
@@ -45,12 +45,14 @@ export function AppSettingsProvider({ children }) {
     applyToDOM(settings)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function update(patch) {
+  const update = useCallback((patch) => {
     setSettings(s => ({ ...s, ...patch }))
-  }
+  }, [])
+
+  const value = useMemo(() => ({ settings, update }), [settings, update])
 
   return (
-    <AppSettingsContext.Provider value={{ settings, update }}>
+    <AppSettingsContext.Provider value={value}>
       {children}
     </AppSettingsContext.Provider>
   )

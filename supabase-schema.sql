@@ -59,6 +59,8 @@ create table if not exists food_logs (
   food_data jsonb,
   created_at timestamptz default now()
 );
+create index if not exists idx_food_logs_user_date     on food_logs(user_id, date desc);
+create index if not exists idx_food_logs_user_foodname on food_logs(user_id, food_name text_pattern_ops);
 
 -- Totali giornalieri (calcolati dall'app)
 create table if not exists daily_logs (
@@ -70,6 +72,7 @@ create table if not exists daily_logs (
   fats numeric default 0,
   primary key (user_id, date)
 );
+-- daily_logs: PK(user_id, date) funge già da indice
 
 -- Registro acqua
 create table if not exists water_logs (
@@ -79,6 +82,7 @@ create table if not exists water_logs (
   amount_ml int not null,
   created_at timestamptz default now()
 );
+create index if not exists idx_water_logs_user_date on water_logs(user_id, date desc);
 
 -- Alimenti personalizzati
 create table if not exists custom_foods (
@@ -128,6 +132,7 @@ create table if not exists chat_messages (
   read_at timestamptz,
   created_at timestamptz default now()
 );
+create index if not exists idx_chat_messages_patient_created on chat_messages(patient_id, created_at desc);
 
 -- Documenti condivisi dal dietista
 create table if not exists patient_documents (
@@ -153,6 +158,7 @@ create table if not exists weight_logs (
   created_at timestamptz default now(),
   unique(user_id, date)
 );
+create index if not exists idx_weight_logs_user_date on weight_logs(user_id, date desc);
 
 -- Wellness giornaliero (umore, sintomi, energia, sonno, note)
 create table if not exists daily_wellness (
@@ -169,6 +175,7 @@ create table if not exists daily_wellness (
   created_at timestamptz default now(),
   unique(user_id, date)
 );
+create index if not exists idx_daily_wellness_user_date on daily_wellness(user_id, date desc);
 
 -- Pasti personalizzati (combinazioni di alimenti)
 create table if not exists custom_meals (
@@ -204,6 +211,7 @@ create table if not exists ricette (
   note text,
   created_at timestamptz default now()
 );
+create index if not exists idx_ricette_user_created on ricette(user_id, created_at desc);
 
 -- Appuntamenti / visite con il dietista
 create table if not exists appointments (
@@ -215,6 +223,7 @@ create table if not exists appointments (
   notes text,
   created_at timestamptz default now()
 );
+create index if not exists idx_appointments_patient_date on appointments(patient_id, appointment_date desc);
 
 -- Registrazioni attività fisica
 create table if not exists activity_logs (
@@ -228,6 +237,7 @@ create table if not exists activity_logs (
   notes text,
   created_at timestamptz default now()
 );
+create index if not exists idx_activity_logs_user_date on activity_logs(user_id, date desc);
 
 -- Pasti completati dal paziente
 create table if not exists meal_completions (
