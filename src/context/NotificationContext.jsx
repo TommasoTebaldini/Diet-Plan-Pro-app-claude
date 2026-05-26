@@ -15,11 +15,10 @@ export function NotificationProvider({ children, user }) {
     const p = loadPrefs()
     initScheduledNotifications(p)
 
-    // ── Supabase Realtime subscriptions ───────────────────────────────────────
-
-    // New chat message from dietitian
-    const chatChannel = supabase
-      .channel(`notif-chat-${user.id}`)
+    // ── Supabase Realtime: canale unico con 4 subscription (era 3 canali separati)
+    // Un solo WebSocket per utente invece di tre
+    const channel = supabase
+      .channel(`notif-${user.id}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `patient_id=eq.${user.id}` },
@@ -29,11 +28,6 @@ export function NotificationProvider({ children, user }) {
           }
         },
       )
-      .subscribe()
-
-    // New document shared
-    const docChannel = supabase
-      .channel(`notif-docs-${user.id}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'patient_documents', filter: `patient_id=eq.${user.id}` },
@@ -47,11 +41,6 @@ export function NotificationProvider({ children, user }) {
           }
         },
       )
-      .subscribe()
-
-    // Diet plan update (INSERT or UPDATE on diet_plans)
-    const dietChannel = supabase
-      .channel(`notif-diet-${user.id}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'diet_plans', filter: `patient_id=eq.${user.id}` },
@@ -72,7 +61,7 @@ export function NotificationProvider({ children, user }) {
       )
       .subscribe()
 
-    channelsRef.current = [chatChannel, docChannel, dietChannel]
+    channelsRef.current = [channel]
 
     return () => {
       channelsRef.current.forEach(ch => supabase.removeChannel(ch))
