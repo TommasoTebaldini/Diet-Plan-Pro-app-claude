@@ -26,6 +26,7 @@ create table if not exists patient_diets (
   is_active boolean default true,
   created_at timestamptz default now()
 );
+create index if not exists idx_patient_diets_user on patient_diets(user_id);
 
 -- Pasti della dieta
 create table if not exists diet_meals (
@@ -42,6 +43,7 @@ create table if not exists diet_meals (
   fats numeric,
   foods jsonb default '[]'::jsonb  -- [{name, quantity, unit, substitutes:[...]}]
 );
+create index if not exists idx_diet_meals_diet on diet_meals(diet_id);
 
 -- Diario alimentare
 create table if not exists food_logs (

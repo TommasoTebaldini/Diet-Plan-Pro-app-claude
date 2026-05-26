@@ -19,6 +19,9 @@ create table if not exists public_foods (
 
 alter table public_foods enable row level security;
 
+-- Indice per ricerca ILIKE per nome (searchPublicFoods)
+create index if not exists idx_public_foods_name on public_foods(name text_pattern_ops);
+
 -- Patients (any authenticated user) can read all shared foods
 create policy "All authenticated users can read public_foods"
   on public_foods for select to authenticated using (true);
