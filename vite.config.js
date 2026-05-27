@@ -1,6 +1,32 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { execFileSync } from 'child_process'
+import { existsSync } from 'fs'
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
+// ── Plugin: sincronizza all-foods.js da NutriPlan-Pro/js/db.js prima di ogni build/dev ──
+// Gira solo se il repo dietista è presente (locale). Su Vercel usa all-foods.js committato.
+function syncFoodsPlugin() {
+  return {
+    name: 'sync-foods',
+    buildStart() {
+      const dbPath = resolve(__dirname, '../NutriPlan-Pro/js/db.js')
+      const genScript = resolve(__dirname, 'generate-all-foods.cjs')
+      if (existsSync(dbPath) && existsSync(genScript)) {
+        console.log('[sync-foods] Rigenero all-foods.js da NutriPlan-Pro/js/db.js...')
+        try {
+          execFileSync('node', [genScript], { stdio: 'inherit' })
+        } catch (e) {
+          console.warn('[sync-foods] Rigenerazione fallita (non critico):', e.message)
+        }
+      }
+    }
+  }
+}
 
 export default defineConfig({
   server: {
@@ -29,6 +55,7 @@ export default defineConfig({
     }
   },
   plugins: [
+    syncFoodsPlugin(),
     react(),
     VitePWA({
       injectRegister: null,
