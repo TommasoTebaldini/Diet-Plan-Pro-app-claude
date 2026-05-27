@@ -32,24 +32,31 @@ async function searchPublicFoods(query) {
   try {
     const { data } = await supabase
       .from('public_foods')
-      .select('*')
+      .select('id, name, category, kcal_100g, proteins_100g, carbs_100g, fats_100g, fiber_100g, sugar_100g, fat_sat_100g, src, source_id')
       .ilike('name', `%${query}%`)
       .limit(20)
     if (!data?.length) return []
-    return data.map(f => ({
-      id: `public_${f.id}`,
-      name: f.name,
-      brand: '🥗 Aggiunto dal dietista',
-      category: f.category || '',
-      kcal_100g: f.kcal_100g || 0,
-      proteins_100g: f.proteins_100g || 0,
-      carbs_100g: f.carbs_100g || 0,
-      fats_100g: f.fats_100g || 0,
-      fiber_100g: f.fiber_100g || 0,
-      sugar_100g: f.sugar_100g || 0,
-      fatSat_100g: f.fat_sat_100g || 0,
-      source: 'public',
-    }))
+    return data.map(f => {
+      // Static foods (CREA, BDA, UPF, …) have no source_id; custom dietitian foods do
+      const isStatic = !f.source_id
+      const srcLabel = isStatic
+        ? `${f.src || 'CREA'} — ${f.category || 'Generico'}`
+        : '🥗 Aggiunto dal dietista'
+      return {
+        id: `public_${f.id}`,
+        name: f.name,
+        brand: srcLabel,
+        category: f.category || '',
+        kcal_100g: f.kcal_100g || 0,
+        proteins_100g: f.proteins_100g || 0,
+        carbs_100g: f.carbs_100g || 0,
+        fats_100g: f.fats_100g || 0,
+        fiber_100g: f.fiber_100g || 0,
+        sugar_100g: f.sugar_100g || 0,
+        fatSat_100g: f.fat_sat_100g || 0,
+        source: 'public',
+      }
+    })
   } catch { return [] }
 }
 

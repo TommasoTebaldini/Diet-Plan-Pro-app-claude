@@ -5695,5 +5695,1393 @@ export const CONSIGLI_BASE = [
       "Sangue nelle urine, feci nere o ematomi inspiegabili → pronto soccorso urgente",
       "Prima di qualsiasi intervento dentistico o chirurgia → comunicare al medico la terapia anticoagulante"
     ]
+  },
+  {
+    "id": "coronaropatia",
+    "emoji": "❤️‍🩹",
+    "nome": "Cardiopatia Ischemica (CAD)",
+    "colore": "#e63946",
+    "pasti": "5 pasti (3 principali + 2 spuntini)",
+    "porzioni": "Porzioni moderate, privilegiare omega-3 e fibre",
+    "idratazione": "≥2 L/die, preferire acqua e tè verde",
+    "nota": "ESC 2021 · Dieta mediterranea riduce eventi cardiovascolari del 30%. Omega-3 EPA+DHA ≥1g/die. Grassi saturi <7%. Sodio <2g/die. Nessun alimento vietato in assoluto, ma frequenze e quantità vanno ottimizzate.",
+    "ok": [
+      "Pesce azzurro e salmone (3-4x/settimana)",
+      "Olio EVO",
+      "Avena, orzo, cereali integrali",
+      "Legumi (lenticchie, fagioli, ceci)",
+      "Noci, mandorle (30g/die)",
+      "Verdure a foglia verde abbondanti",
+      "Mirtilli, frutti di bosco (antiossidanti)",
+      "Pomodori, aglio, cipolla",
+      "Yogurt greco naturale"
+    ],
+    "no": [
+      "Grassi trans (oli idrogenati, prodotti confezionati)",
+      "Carni lavorate (salsicce, wurstel, salumi in eccesso)",
+      "Zuccheri semplici e bevande zuccherate",
+      "Fritture e grassi saturi in eccesso",
+      "Sale aggiunto",
+      "Alcol in eccesso"
+    ],
+    "mod": [
+      "Carne rossa (max 2x/settimana, tagli magri)",
+      "Formaggi (30g/die, preferire freschi)",
+      "Uova (3-4/settimana)",
+      "Pane bianco e pasta raffinata",
+      "Alcol (max 1 unità/die se assenza di controindicazioni)"
+    ],
+    "pratici": [
+      "Privilegiare cottura al vapore, al forno, in padella antiaderente senza grassi",
+      "Sostituire il sale con erbe aromatiche e spezie",
+      "Leggere le etichette: evitare oli di palma e grassi idrogenati",
+      "Attività fisica aerobica 150 min/settimana (camminata, nuoto, bici)",
+      "Monitorare colesterolo LDL, trigliceridi e pressione arteriosa"
+    ],
+    "avvisi": [
+      "Dolore toracico, dispnea improvvisa o sudorazione fredda → chiamare immediatamente il 118",
+      "Assumere SEMPRE i farmaci prescritti (statine, ASA) indipendentemente dalla dieta",
+      "Non sospendere mai i farmaci senza indicazione medica"
+    ]
+  },
+  {
+    "id": "post_infarto",
+    "emoji": "💗",
+    "nome": "Riabilitazione Post-Infarto",
+    "colore": "#c1121f",
+    "pasti": "5 pasti piccoli (3 principali + 2 spuntini leggeri)",
+    "porzioni": "Porzioni ridotte, evitare pasti abbondanti",
+    "idratazione": "≥2 L/die, acqua e tè non zuccherati",
+    "nota": "ESC 2021 · DASH modificata. Omega-3 EPA+DHA ≥1g/die. Eliminare grassi trans. Sodio <1.5g/die. Controllo stretto del peso. Perdita del 5% del peso corporeo se sovrappeso riduce recidive.",
+    "ok": [
+      "Salmone, sgombro, sardine (omega-3)",
+      "Avena, orzo (beta-glucani ipocolesterolemizzanti)",
+      "Legumi ad ogni pasto (fibre solubili)",
+      "Frutta fresca (mirtilli, mele, pere)",
+      "Verdure abbondanti (spinaci, broccoli)",
+      "Noci (20g/die)",
+      "Yogurt greco senza grassi",
+      "Olio EVO (max 2-3 cucchiai/die)"
+    ],
+    "no": [
+      "Sale aggiunto (sodio <1.5g/die)",
+      "Alcol nei primi 3 mesi, poi moderazione assoluta",
+      "Grassi trans e olio di palma",
+      "Carne rossa grassa, insaccati, formaggi stagionati",
+      "Bevande zuccherate, succhi industriali",
+      "Caffeina eccessiva (max 1-2 caffè/die)"
+    ],
+    "mod": [
+      "Uova (3-4/settimana)",
+      "Formaggi freschi (20-30g/die)",
+      "Pane integrale (porzioni controllate)",
+      "Caffè (max 2 espresso/die)"
+    ],
+    "pratici": [
+      "Pesare i cibi nei primi mesi per controllare le porzioni",
+      "Non saltare mai i pasti (evitare ipoglicemia che stessa il cuore)",
+      "Monitorare il peso ogni mattina: +2kg in 3 giorni → contattare il medico",
+      "Riabilitazione cardiologica: seguire il programma fisico prescritto",
+      "Controllare lipidi e glicemia ogni 3 mesi"
+    ],
+    "avvisi": [
+      "Qualsiasi dolore toracico → 118 immediatamente",
+      "Gonfiore improvviso alle gambe o difficoltà respiratoria → pronto soccorso",
+      "Non smettere ASA, statine o beta-bloccanti senza indicazione medica"
+    ]
+  },
+  {
+    "id": "fibrillazione_atriale",
+    "emoji": "💓",
+    "nome": "Fibrillazione Atriale",
+    "colore": "#d62828",
+    "pasti": "3 pasti regolari + 1-2 spuntini, orari costanti",
+    "porzioni": "Porzioni moderate, evitare pasti abbondanti serali",
+    "idratazione": "≥2 L/die, acqua; limitare caffeina e alcol",
+    "nota": "ESC 2020 · Con warfarin: vitamina K COSTANTE (non eliminare). Con DOAC (apixaban, rivaroxaban): nessuna restrizione alimentare specifica. Limitare alcol e caffeina. Controllare peso (obesità = fattore di rischio FA).",
+    "ok": [
+      "Verdure a foglia verde costanti ogni giorno (se in warfarin)",
+      "Pesce (omega-3 anti-aritmici)",
+      "Cereali integrali, avena",
+      "Frutta fresca (mele, pere, agrumi)",
+      "Legumi",
+      "Yogurt, latticini magri",
+      "Noci, mandorle"
+    ],
+    "no": [
+      "Alcol (aumenta rischio di FA e influenza INR con warfarin)",
+      "Caffeina eccessiva (>3 caffè/die: trigger aritmico in alcuni pazienti)",
+      "Sale in eccesso (ipertensione è fattore scatenante)",
+      "Se in warfarin: variazioni brusche di vitamina K (no un giorno tanta insalata, il giorno dopo zero)"
+    ],
+    "mod": [
+      "Tè e caffè (max 2-3 tazze/die)",
+      "Cioccolato fondente (fonte caffeina)",
+      "Alcol (zero se possibile, max 1 unità occasionale)",
+      "Verdure a foglia verde (costanti, non variabili se in warfarin)"
+    ],
+    "pratici": [
+      "Se in warfarin: mangiare le verdure a foglia verde OGNI giorno nella stessa quantità",
+      "Monitorare l'INR regolarmente e comunicare qualsiasi cambio dietetico al medico",
+      "Non assumere integratori di vitamina K senza autorizzazione medica",
+      "Se in DOAC: nessuna restrizione alimentare, ma evitare succo di pompelmo",
+      "Ridurre il peso se sovrappeso: ogni 10 kg persi riducono FA del 50%"
+    ],
+    "avvisi": [
+      "Palpitazioni improvvise, capogiri o sincope → pronto soccorso",
+      "INR fuori range (se warfarin) → contattare il medico",
+      "Non sospendere mai la terapia anticoagulante senza indicazione medica"
+    ]
+  },
+  {
+    "id": "aop",
+    "emoji": "🦵",
+    "nome": "Arteriopatia Obliterante Periferica",
+    "colore": "#f4a261",
+    "pasti": "5 pasti (3 principali + 2 spuntini)",
+    "porzioni": "Porzioni moderate, dieta antiaterosclerotica",
+    "idratazione": "≥2 L/die",
+    "nota": "ACC/AHA 2016 · Dieta antiaterosclerotica identica alla cardiopatia ischemica. Omega-3. Antiossidanti (vitamina C, E). Controllo glicemia se diabete associato. Abolire il fumo (priorità assoluta). Ridurre il peso se sovrappeso.",
+    "ok": [
+      "Pesce azzurro (omega-3 migliorano la circolazione)",
+      "Frutta e verdura colorata (antiossidanti)",
+      "Cereali integrali e legumi",
+      "Olio EVO",
+      "Noci e semi",
+      "Aglio (vasodilatatore naturale)",
+      "Agrumi (vitamina C)"
+    ],
+    "no": [
+      "Fumo (causa principale della progressione della malattia)",
+      "Grassi saturi e trans in eccesso",
+      "Sale aggiunto",
+      "Zuccheri semplici",
+      "Alcol in eccesso"
+    ],
+    "mod": [
+      "Carne rossa (max 2x/settimana)",
+      "Formaggi grassi",
+      "Dolci e dessert",
+      "Caffè (max 2/die)"
+    ],
+    "pratici": [
+      "Smettere di fumare è la misura più efficace: riduce la progressione della malattia",
+      "Camminare fino alla comparsa del dolore, fermarsi, poi riprendere (claudicatio training)",
+      "Controllare la glicemia se diabetico: iperglicemia accelera l'aterosclerosi",
+      "Cura dei piedi: esaminare ogni giorno le estremità per ferite",
+      "Mantenere il peso nella norma"
+    ],
+    "avvisi": [
+      "Dolore a riposo agli arti inferiori → visita urgente dal medico",
+      "Piede freddo, pallido o con ulcere → pronto soccorso vascolare",
+      "Non usare calze elastiche strette senza indicazione medica"
+    ]
+  },
+  {
+    "id": "cardiomiopatia_dilatativa",
+    "emoji": "🫀",
+    "nome": "Cardiomiopatia Dilatativa",
+    "colore": "#e76f51",
+    "pasti": "5-6 pasti piccoli al giorno (evitare pasti abbondanti)",
+    "porzioni": "Porzioni piccole e frequenti per ridurre il carico cardiaco",
+    "idratazione": "Secondo indicazione medica (spesso 1.5 L/die se scompenso)",
+    "nota": "ESC 2021 · Monitorare il peso ogni mattina (ritenzione idrica). Sodio <2g/die. Restrizione idrica se indicata. Thiamina (B1) e selenio vanno reintegrati. Calorie adeguate per evitare cachessia cardiaca.",
+    "ok": [
+      "Pesce (omega-3 cardioprotettivi)",
+      "Cereali integrali, avena",
+      "Legumi (proteine e fibre)",
+      "Verdure al vapore (poca acqua)",
+      "Yogurt, latticini magri",
+      "Frutta fresca",
+      "Olio EVO"
+    ],
+    "no": [
+      "Sale aggiunto (max 2g sodio/die)",
+      "Cibi in scatola e conservati (alto sodio)",
+      "Alcol (tossico diretto per il miocardio)",
+      "Grassi trans",
+      "Pasti abbondanti (aumentano il carico cardiaco)"
+    ],
+    "mod": [
+      "Liquidi (quantità stabilita dal medico in base alla ritenzione)",
+      "Caffeina (max 1-2 caffè/die)",
+      "Carne rossa (max 2x/settimana)",
+      "Formaggi stagionati"
+    ],
+    "pratici": [
+      "Pesarsi ogni mattina prima di colazione: +2 kg in 3 giorni → avvisare il medico",
+      "Distribuire i liquidi durante la giornata (non bere grandi quantità tutte insieme)",
+      "Mangiare lentamente e in posizione seduta",
+      "Integrare thiamina (B1) se dieta povera o se utilizzo di diuretici",
+      "Registrare il peso e la diuresi in un diario"
+    ],
+    "avvisi": [
+      "Difficoltà respiratoria improvvisa o gonfiore rapido delle gambe → pronto soccorso",
+      "Non sospendere diuretici o ACE-inibitori senza indicazione medica",
+      "Segnalare al medico qualsiasi dieta restrittiva prima di iniziarla"
+    ]
+  },
+  {
+    "id": "cardiomiopatia_ipertrofica",
+    "emoji": "🫁",
+    "nome": "Cardiomiopatia Ipertrofica",
+    "colore": "#2a9d8f",
+    "pasti": "5 pasti regolari, evitare digiuni prolungati e pasti abbondanti",
+    "porzioni": "Porzioni moderate e regolari",
+    "idratazione": "≥2 L/die (buona idratazione riduce viscosità del sangue)",
+    "nota": "ESC 2014 · Evitare caffeina in eccesso. Alcol zero. Idratazione adeguata (evitare disidratazione che aumenta ostruzione). Nessun digiuno prolungato. Nessuna integrazione con stimolanti. Sport agonistico sconsigliato.",
+    "ok": [
+      "Cereali integrali e legumi",
+      "Pesce (3x/settimana)",
+      "Verdure e frutta (5 porzioni/die)",
+      "Yogurt e latticini magri",
+      "Olio EVO",
+      "Acqua abbondante"
+    ],
+    "no": [
+      "Alcol (aumenta ostruzione all'efflusso)",
+      "Caffeina in eccesso (aritmie)",
+      "Integratori stimolanti (caffeina, guaranà, efedrina)",
+      "Pasti abbondanti (aumentano l'ostruzione dopo il pasto)",
+      "Disidratazione (pericolosa)"
+    ],
+    "mod": [
+      "Caffè (max 1-2/die)",
+      "Cioccolato fondente",
+      "Sale (moderare per gestione della pressione)"
+    ],
+    "pratici": [
+      "Bere acqua regolarmente, specialmente durante l'esercizio fisico",
+      "Evitare lo sport agonistico (valutare con il cardiologo)",
+      "Segnalare al medico prima di iniziare qualsiasi integratore",
+      "Non digiunare prima di attività fisiche",
+      "Ridurre le porzioni serali"
+    ],
+    "avvisi": [
+      "Sincope o pre-sincope durante sforzo → pronto soccorso urgente",
+      "Palpitazioni rapide → avvisare immediatamente il medico",
+      "Portare sempre con sé una carta con la diagnosi e i farmaci"
+    ]
+  },
+  {
+    "id": "miastenia_gravis",
+    "emoji": "💪",
+    "nome": "Miastenia Gravis",
+    "colore": "#457b9d",
+    "pasti": "5-6 pasti piccoli nelle ore di maggiore efficacia dei farmaci",
+    "porzioni": "Porzioni piccole per evitare affaticamento masticatorio",
+    "idratazione": "≥1.5-2 L/die, con cautela in caso di disfagia",
+    "nota": "ENMC 2021 · Adattare la consistenza dei cibi se presente disfagia. Pasti piccoli e frequenti. Evitare cibi che richiedono masticazione prolungata. Mangiare nelle ore di maggiore efficacia dei farmaci (in genere 30-60 min dopo l'assunzione di piridostigmina).",
+    "ok": [
+      "Yogurt, frullati, mousse (facili da deglutire)",
+      "Uova strapazzate, creme, puree",
+      "Pesce al vapore, carni morbide",
+      "Cereali in crema, porridge",
+      "Verdure cotte e morbide",
+      "Frutta frullata o in mousse"
+    ],
+    "no": [
+      "Cibi duri, croccanti o fibrosi (pane croccante, carni dure, verdure crude tenaci)",
+      "Pasti nella fase di massima astenia (pre-dose farmaco)",
+      "Alcol (può peggiorare la trasmissione neuromuscolare)",
+      "Pasti abbondanti (aumentano l'astenia post-prandiale)"
+    ],
+    "mod": [
+      "Carne (ammessa ma cotta morbida o frullata)",
+      "Frutta fresca (sbucciare e tagliare a pezzetti piccoli)",
+      "Caffeina (monitorare la risposta individuale)"
+    ],
+    "pratici": [
+      "Pianificare i pasti principali 30-60 minuti dopo la dose di piridostigmina",
+      "Sedersi sempre a 90° durante i pasti e rimanere seduto per 30 min dopo",
+      "Preparare cibi in anticipo nelle fasi di forza maggiore",
+      "Usare posate ergonomiche se le mani sono deboli",
+      "Mantenere un diario alimentare per identificare cibi che stancano di più"
+    ],
+    "avvisi": [
+      "Difficoltà a deglutire con tosse o voce bitonale → contattare il medico urgentemente",
+      "Crisi miastenica (debolezza respiratoria improvvisa) → 118 immediatamente",
+      "Non assumere fluorochinoloni (antibiotici), beta-bloccanti o magnesio senza indicazione medica"
+    ]
+  },
+  {
+    "id": "spondilite_anchilosante",
+    "emoji": "🦴",
+    "nome": "Spondilite Anchilosante",
+    "colore": "#e9c46a",
+    "pasti": "3 pasti principali + 2 spuntini",
+    "porzioni": "Porzioni regolari, dieta antiinfiammatoria",
+    "idratazione": "≥2 L/die",
+    "nota": "ASAS 2018 · Dieta antiinfiammatoria mediterranea. Omega-3 EPA+DHA 2-3g/die. Vitamina D spesso deficitaria (target >30 ng/mL). Calcio 1000-1200mg/die. Se associata a IBD: gestione FODMAP.",
+    "ok": [
+      "Pesce azzurro (omega-3 antiinfiammatori)",
+      "Cereali integrali e legumi",
+      "Frutta e verdura colorata (antiossidanti)",
+      "Olio EVO",
+      "Noci e semi di lino",
+      "Latticini (per il calcio)",
+      "Curcuma, zenzero (antiinfiammatori naturali)"
+    ],
+    "no": [
+      "Zuccheri raffinati e prodotti ultra-processati (pro-infiammatori)",
+      "Grassi trans",
+      "Alcol (peggiorano infiammazione e interagiscono con FANS)",
+      "Sale in eccesso (antagonizza il calcio)"
+    ],
+    "mod": [
+      "Carne rossa (max 2x/settimana)",
+      "Latticini (quantità moderate per il calcio, evitare eccessi)",
+      "Caffeina"
+    ],
+    "pratici": [
+      "Assumere vitamina D (spesso carente nella SA): 1000-2000 UI/die o secondo indicazione",
+      "Calcio adeguato da alimenti: 3 porzioni di latticini/die o alimenti fortificati",
+      "Curcuma 1 cucchiaino/die nei cibi (biodisponibilità con pepe nero)",
+      "Attività fisica in acqua calda (molto utile nella SA)",
+      "Se in terapia biologica: seguire le raccomandazioni nutrizionali del reumatologo"
+    ],
+    "avvisi": [
+      "Uveite (occhio rosso con dolore) → oculista urgente",
+      "IBD associata: comunicare i sintomi intestinali al medico",
+      "Non assumere FANS (ibuprofene) in autonomia: interagiscono con alcuni biologici"
+    ]
+  },
+  {
+    "id": "colangite_sclerosante",
+    "emoji": "🟡",
+    "nome": "Colangite Sclerosante Primitiva",
+    "colore": "#f4a261",
+    "pasti": "3 pasti principali + 2 spuntini",
+    "porzioni": "Porzioni moderate, dieta facilmente digeribile",
+    "idratazione": "≥2 L/die",
+    "nota": "EASL 2022 · Steatopatia frequente. Malassorbimento vitamine liposolubili (ADEK) se colestasi severa. Alcol zero assoluto. Spesso associata a IBD: integrare la gestione nutrizionale. Calorie adeguate per prevenire malnutrizione.",
+    "ok": [
+      "Cereali integrali e legumi",
+      "Pesce, carni magre, uova",
+      "Verdure cotte (se IBD associata)",
+      "Frutta fresca",
+      "Latticini magri",
+      "Olio EVO (con moderazione se colestasi)"
+    ],
+    "no": [
+      "Alcol (zero assoluto: accelera progressione a cirrosi)",
+      "Alimenti ricchi di grassi se steatorrea (limitare LCT)",
+      "Cibi fritti e molto grassi",
+      "Integratori di vitamina A in eccesso (tossica nel fegato)"
+    ],
+    "mod": [
+      "Grassi (ridurre in presenza di steatorrea)",
+      "Fibre (se diarrea da IBD: ridurre temporaneamente)",
+      "Latticini (ridurre se intolleranza associata)"
+    ],
+    "pratici": [
+      "Integrare vitamina D (2000 UI/die), vitamina K (100 µg/die) e vitamina E se colestasi",
+      "Se steatorrea: MCT in sostituzione dei grassi normali",
+      "Monitorare vitamina B12, folati e zinco",
+      "Evitare erbe e integratori epatotossici (kava, valerian a dosi elevate)",
+      "Follow-up colangiografico e colonscopia (rischio colangiocarcinoma e CRC)"
+    ],
+    "avvisi": [
+      "Ittero, prurito intenso o febbre → contattare il medico",
+      "Non assumere antibiotici o antifungini senza indicazione medica (interagiscono con farmaci epatici)",
+      "Segnalare sempre la diagnosi di PSC al medico prima di interventi chirurgici"
+    ]
+  },
+  {
+    "id": "gravidanza_fisiologica",
+    "emoji": "🤰",
+    "nome": "Gravidanza Fisiologica",
+    "colore": "#f9c74f",
+    "pasti": "5 pasti (3 principali + 2 spuntini)",
+    "porzioni": "Aumento graduale: +350 kcal/die nel 2° trimestre, +450 kcal nel 3°",
+    "idratazione": "≥2 L/die (acqua e tisane sicure)",
+    "nota": "SIGO 2022 · ISS 2022 · WHO. Folati 400 µg/die dalla pre-concepimento al 1° trimestre. DHA 200 mg/die. Ferro 27 mg/die. Iodio 220 µg/die. Calcio 1000 mg/die. Vitamina D 600-1000 UI/die. Gestione della nausea nel 1° trimestre.",
+    "ok": [
+      "Verdure a foglia verde (folati)",
+      "Legumi (ferro, folati, proteine)",
+      "Pesce a basso contenuto di mercurio (sardine, salmone, merluzzo)",
+      "Latticini pastorizzati (calcio, proteine)",
+      "Uova ben cotte (proteine, B12)",
+      "Cereali integrali (fibra, vitamine del gruppo B)",
+      "Frutta fresca (vitamina C)",
+      "Frutta secca (omega-3 vegetali, ferro)"
+    ],
+    "no": [
+      "Alcol (zero assoluto: teratogeno)",
+      "Pesce spada, tonno pinna gialla in grandi quantità (mercurio)",
+      "Formaggi molli non pastorizzati (rischio listeria)",
+      "Carni crude o poco cotte (salmonella, toxoplasma)",
+      "Prosciutto crudo, bresaola se toxoplasma-negativa (rischio toxoplasmosi)",
+      "Caffeina >200 mg/die (1-2 caffè/die al massimo)",
+      "Fegato in grandi quantità (eccesso vitamina A)",
+      "Germogli crudi e verdure lavate male"
+    ],
+    "mod": [
+      "Pesce (2-3x/settimana, evitare grandi pesci predatori)",
+      "Caffeina (max 200 mg/die = 1-2 caffè)",
+      "Tè nero e verde (in quantità moderate)",
+      "Sale (con moderazione per prevenire ipertensione)"
+    ],
+    "pratici": [
+      "Assumere acido folico 400 µg/die: iniziare 3 mesi prima del concepimento",
+      "Supplementare ferro se emocromo basso (da discutere con il medico)",
+      "Acqua del rubinetto in Italia sicura; fare attenzione alla bottiglia se si beve minerale",
+      "Gestire la nausea: pasti piccoli e frequenti, cracker secchi al mattino, zenzero",
+      "Evitare contatti con feci di gatto (toxoplasma) se sieronegativa"
+    ],
+    "avvisi": [
+      "Sanguinamento vaginale, dolori addominali intensi → pronto soccorso ostetrico",
+      "Gonfiore improvviso al viso o alle mani + cefalea intensa → pre-eclampsia, PS urgente",
+      "Nausea e vomito gravi (iperemesi) → ospedalizzazione per idratazione endovenosa"
+    ]
+  },
+  {
+    "id": "intestino_corto",
+    "emoji": "🩺",
+    "nome": "Sindrome dell'Intestino Corto (SBS)",
+    "colore": "#457b9d",
+    "pasti": "6-8 pasti molto piccoli al giorno",
+    "porzioni": "Porzioni piccolissime e frequenti",
+    "idratazione": "ORS isotonica; quantità secondo indicazione medica",
+    "nota": "ESPEN 2020 · <200 cm di intestino residuo. NPT domiciliare se autonomia entrale impossibile. CHO complessi > semplici. MCT permessi. Integrare: Mg, Zn, B12, vitamine ADEK, Ca. Teduglutide (GLP-2) riduce fabbisogno NPT. Adattamento intestinale fino a 2 anni.",
+    "ok": [
+      "Riso bianco, pasta, pane bianco (carboidrati facilmente assorbibili)",
+      "MCT (olio di cocco o MCT oil) in sostituzione dei grassi normali",
+      "Pesce magro, carni magre cotte morbide",
+      "Yogurt con probiotici (LGG)",
+      "Banane, mele sbucciate (poche fibre insolubili)",
+      "Soluzioni ORS per reidratazione"
+    ],
+    "no": [
+      "Bevande ipotoniche in eccesso (aggravano i malassorbimento)",
+      "Grassi LCT in eccesso (peggiorano steatorrea)",
+      "Zuccheri semplici in eccesso (osmosi intestinale)",
+      "Fibre insolubili in eccesso (aglio, cipolla, crusca)",
+      "Alcol",
+      "Alimenti ossalato-ricchi se ileo rimosso (rischio nefrolitiasi)"
+    ],
+    "mod": [
+      "Verdure (cotte, in piccole quantità)",
+      "Frutta (matura, in piccole quantità)",
+      "Latticini (monitorare tolleranza al lattosio)"
+    ],
+    "pratici": [
+      "Bere tra i pasti, non durante, per rallentare il transito intestinale",
+      "Pesare e misurare gli alimenti per mantenere bilancio energetico",
+      "Integrare sempre vitamina B12 (iniezioni o sublinguale se ileo rimosso)",
+      "Monitorare magnesio, zinco, selenio e vitamine liposolubili",
+      "Seguire il piano nutrizionale con il team di nutrizione artificiale"
+    ],
+    "avvisi": [
+      "Diarrea abbondante con più di 2L/die → rischio disidratazione grave: contattare il team medico",
+      "Catetere venoso centrale: segnalare febbre o rossore → rischio di infezione",
+      "Non modificare la NPT o NE senza indicazione del team nutrizionale"
+    ]
+  },
+  {
+    "id": "masld_nash_avanzato",
+    "emoji": "🫁",
+    "nome": "MASLD/NASH Avanzato (Fibrosi F3-F4)",
+    "colore": "#e9c46a",
+    "pasti": "5 pasti (3 principali + 2 spuntini)",
+    "porzioni": "Deficit calorico moderato se sovrappeso: -500-750 kcal/die",
+    "idratazione": "≥2 L/die, acqua; eliminare alcol",
+    "nota": "EASL 2024 · AASLD 2023 · Perdita del 7-10% del peso riduce la fibrosi (meta-analisi 2024). Alcol zero assoluto. Eliminare fruttosio/HFCS. Omega-3 EPA+DHA 2-4g/die. Vitamina E 800 UI/die solo in NASH senza diabete. CHO a basso IG. Esercizio aerobico + resistenza 150 min/sett.",
+    "ok": [
+      "Verdure e legumi (abbondanti, base della dieta)",
+      "Pesce azzurro (omega-3)",
+      "Cereali integrali a basso IG",
+      "Olio EVO",
+      "Noci, mandorle",
+      "Caffè senza zucchero (3-4/die: epatoprotettivo in studi osservazionali)",
+      "Yogurt greco naturale"
+    ],
+    "no": [
+      "Alcol (zero assoluto: accelera fibrosi)",
+      "Fruttosio libero: bibite, succhi, miele, sciroppi (HFCS)",
+      "Zuccheri semplici, dolci, dessert",
+      "Carboidrati raffinati (pane bianco, riso bianco)",
+      "Grassi trans e olio di palma",
+      "Carni lavorate (salumi, insaccati)",
+      "Fritti"
+    ],
+    "mod": [
+      "Carne rossa (max 2x/settimana, tagli magri)",
+      "Formaggi (30g/die)",
+      "Patate e riso bianco (preferire integrali)",
+      "Sale (moderare)"
+    ],
+    "pratici": [
+      "Perdere peso lentamente: 0.5-1 kg/settimana è sicuro (perdita rapida peggiorano la steatosi)",
+      "Il caffè può essere epatoprotettivo: 3-4 espresso/die senza zucchero",
+      "Vitamina E 800 UI/die solo su indicazione medica (non automedicarsi)",
+      "Esercizio fisico: 150 min aerobico + 2 sessioni di resistenza/settimana",
+      "Controllare transaminasi ogni 3-6 mesi"
+    ],
+    "avvisi": [
+      "Ittero, ascite o confusione mentale → pronto soccorso: segni di scompenso epatico",
+      "Non assumere paracetamolo in eccesso (tossico per il fegato già compromesso)",
+      "Vaccinazione HAV e HBV raccomandata se non immune"
+    ]
+  },
+  {
+    "id": "depressione_nutrizione",
+    "emoji": "🧠",
+    "nome": "Depressione e Nutrizione",
+    "colore": "#7c3aed",
+    "pasti": "3 pasti regolari + 2 spuntini, orari costanti",
+    "porzioni": "Porzioni regolari, non saltare pasti",
+    "idratazione": "≥2 L/die",
+    "nota": "ISNS 2023 · Dieta mediterranea riduce rischio depressione del 33% (meta-analisi). Omega-3 EPA 2g/die (RCT con efficacia antidepressiva). Triptofano (precursore serotonina). Folati, B12, vitamina D, zinco, magnesio correlati all'umore.",
+    "ok": [
+      "Pesce azzurro (omega-3 EPA per serotonina)",
+      "Tacchino, avena, legumi (triptofano)",
+      "Verdure a foglia verde (folati)",
+      "Frutta fresca (antiossidanti)",
+      "Latticini, uova (B12, proteine)",
+      "Noci, semi di zucca (zinco, magnesio)",
+      "Banane (serotonina)",
+      "Cioccolato fondente >70% (in piccole quantità)"
+    ],
+    "no": [
+      "Alcol (depressore del SNC, peggiora l'umore nel lungo termine)",
+      "Zuccheri semplici (picchi glicemici seguiti da crollo dell'umore)",
+      "Ultra-processati, fast food (correlati con peggior salute mentale)",
+      "Caffeina eccessiva (ansia e insonnia)"
+    ],
+    "mod": [
+      "Caffeina (max 2-3 caffè/die)",
+      "Dolci (occasionali, non come comfort food abituale)",
+      "Sale (moderare)"
+    ],
+    "pratici": [
+      "Regolare gli orari dei pasti: l'irregolarità alimentare peggiora l'umore",
+      "Omega-3 EPA 2g/die: pesce azzurro 3-4x/settimana o integratore (previo accordo medico)",
+      "Vitamina D 1000-2000 UI/die (carenza frequente e correlata a depressione)",
+      "Probiotici e fibre per l'asse intestino-cervello (microbiota e umore)",
+      "L'attività fisica è parte fondamentale della terapia (equivale a un antidepressivo lieve)"
+    ],
+    "avvisi": [
+      "La dieta è un supporto, non un sostituto della terapia farmacologica o psicologica",
+      "Pensieri suicidari → Telefono Amico: 02 2327 2327 o PS urgente",
+      "Non sospendere mai antidepressivi senza indicazione dello psichiatra"
+    ]
+  },
+  {
+    "id": "sonno_nutrizione",
+    "emoji": "🌙",
+    "nome": "Disturbi del Sonno - Nutrizione",
+    "colore": "#4a4e69",
+    "pasti": "3 pasti regolari + 1 spuntino serale leggero",
+    "porzioni": "Cena leggera, spuntino serale con triptofano",
+    "idratazione": "≥2 L/die; eliminare caffeina dopo le 14:00",
+    "nota": "AASM 2023 · Caffeina: eliminare dopo le 14:00 (emivita 5-7 ore). Ultimo pasto 2-3 ore prima del sonno. Triptofano serale per la melatonina. Magnesio glicinato 300 mg/sera. Crono-nutrizione: orari dei pasti regolari.",
+    "ok": [
+      "Latte caldo (triptofano + calcio rilassante)",
+      "Tacchino, avena, banane (triptofano)",
+      "Ciliegie e succo di ciliegie (melatonina naturale)",
+      "Noci (melatonina)",
+      "Pomodori (melatonina)",
+      "Semi di zucca, spinaci (magnesio)",
+      "Kiwi (vitamina C, serotonina: 1 studio RCT)"
+    ],
+    "no": [
+      "Caffeina dopo le 14:00 (caffè, tè, cola, energy drink, cioccolato fondente)",
+      "Alcol (peggiora l'architettura del sonno anche se aiuta ad addormentarsi)",
+      "Pasti abbondanti nelle 2-3 ore prima di dormire",
+      "Cibi piccanti la sera (aumentano la temperatura corporea)",
+      "Zuccheri semplici la sera (picco glicemico segue da crollo)"
+    ],
+    "mod": [
+      "Tè (preferire tisane serali: camomilla, melissa, valeriana)",
+      "Cioccolato (solo mattina/pomeriggio per la caffeina)",
+      "Cena (leggera ma non troppo ridotta)"
+    ],
+    "pratici": [
+      "Fare sempre colazione alla stessa ora e cena alla stessa ora (crono-nutrizione)",
+      "Evitare di guardare schermi luminosi nelle 2 ore prima di dormire",
+      "Temperatura della camera <20°C favorisce il sonno",
+      "Magnesio 300 mg/sera (glicinato o malato: migliore assorbimento)",
+      "Melatonina 0.5-1 mg prima di dormire solo su indicazione medica (non abitudine)"
+    ],
+    "avvisi": [
+      "Russamento forte con apnee osservate dal partner → sleep study (OSAS)",
+      "Insonnia cronica da più di 3 mesi → valutazione specialistica (CBT-I prima dei farmaci)",
+      "Non assumere sonniferi senza indicazione medica (rischio dipendenza)"
+    ]
+  },
+  {
+    "id": "ipertensione_resistente",
+    "emoji": "💊",
+    "nome": "Ipertensione Resistente",
+    "colore": "#6366f1",
+    "pasti": "5 pasti (3 principali + 2 spuntini)",
+    "porzioni": "Porzioni moderate, DASH massimale",
+    "idratazione": "≥2 L/die, acqua; eliminare alcol",
+    "nota": "ESH 2023 · AHA 2021 · Sodio <1.5g/die (oltre la DASH standard). DASH maximale. Potassio 3500-5000 mg/die. Nitrati da barbabietola e spinaci. Cioccolato fondente (flavanoli). Perdita 5% del peso equivale a un farmaco. Alcol zero.",
+    "ok": [
+      "Barbabietola (nitrati vasodilatatori)",
+      "Spinaci, rucola, bietola (nitrati e potassio)",
+      "Latticini magri (calcio antiipertensivo)",
+      "Avena, cereali integrali",
+      "Legumi",
+      "Pesce azzurro",
+      "Noci, pistacchi, mandorle",
+      "Cioccolato fondente >80% (30g/die, flavanoli)",
+      "Aglio (allicina vasodilatante)"
+    ],
+    "no": [
+      "Sale: <1.5g Na/die (eliminare sale aggiunto, conserve, formaggi stagionati)",
+      "Alcol (zero assoluto: ogni unità alza la PA di 1-2 mmHg)",
+      "Liquirizia (aldosterone-simile: alza la pressione)",
+      "Caffeina eccessiva",
+      "Cibi pronti e conservati (alto sodio nascosto)"
+    ],
+    "mod": [
+      "Formaggi (30g/die di quelli a basso sodio)",
+      "Carni lavorate (max 1-2x/settimana)",
+      "Caffè (max 2/die)"
+    ],
+    "pratici": [
+      "Misurare la pressione a domicilio mattina e sera (stessa ora, stesso braccio, dopo 5 min di riposo)",
+      "Cucinare senza sale e usare erbe aromatiche",
+      "Leggere sempre le etichette: cercare 'senza sale aggiunto' o <0.3g sale/100g",
+      "Bere 100 ml di succo di barbabietola/die (studi RCT mostrano -5 mmHg)",
+      "Perdere peso se BMI >25: ogni kg perso = -1 mmHg sistolica"
+    ],
+    "avvisi": [
+      "Pressione >180/120 mmHg nonostante 3+ farmaci → crisi ipertensiva: PS urgente",
+      "Cefalea intensa + visione sfocata + epistassi → PS urgente",
+      "Non modificare le dosi dei farmaci senza indicazione del medico"
+    ]
+  },
+  {
+    "id": "iperparatiroidismo",
+    "emoji": "🦷",
+    "nome": "Iperparatiroidismo",
+    "colore": "#6b7280",
+    "pasti": "3 pasti principali + 2 spuntini",
+    "porzioni": "Porzioni moderate, buona idratazione",
+    "idratazione": "≥2-3 L/die per prevenire nefrolitiasi",
+    "nota": "AACE 2022 · Calcio alimentare: non eliminare ma moderare se calcemia >11 mg/dL. Vitamina D target 50-60 ng/mL. Idratazione 2-3 L/die (previene nefrolitiasi). Sodio <1.5g/die. Post-paratiroidectomia: supplementare calcio e vitamina D (hungry bone syndrome).",
+    "ok": [
+      "Acqua abbondante (2-3 L/die)",
+      "Frutta e verdura (pH alcalino urina riduce nefrolitiasi)",
+      "Cereali integrali",
+      "Pesce, carni magre, legumi",
+      "Latticini (quota moderata di calcio)",
+      "Agrumi (citrato riduce calcoli)"
+    ],
+    "no": [
+      "Eccesso di calcio da integratori senza indicazione medica",
+      "Vitamina A in dosi elevate (può peggiorare ipercalcemia)",
+      "Alimenti ossalato-ricchi in eccesso se calcolosi ossalato-calcio (spinaci, rabarbaro, tè)",
+      "Sale in eccesso (aumenta escrezione calcio urinario)"
+    ],
+    "mod": [
+      "Latticini (non eliminare ma non eccedere: 2 porzioni/die)",
+      "Vitamina D (solo su indicazione medica: non auto-supplementare)",
+      "Proteine animali (in eccesso aumentano calcio urinario)"
+    ],
+    "pratici": [
+      "Bere almeno 2.5 L/die per diluire le urine e prevenire i calcoli",
+      "Urine: obiettivo diuresi >2 L/die",
+      "Post-chirurgia paratiroidea: supplementare calcio 1-2g/die + vitamina D come da prescrizione",
+      "Monitorare calcemia ogni 3-6 mesi",
+      "Controllare la densità minerale ossea (DXA)"
+    ],
+    "avvisi": [
+      "Calcemia >12 mg/dL (ipercalcemia grave): nausea, confusione, debolezza → PS urgente",
+      "Colica renale → PS urgente",
+      "Non assumere integratori di calcio e vitamina D senza indicazione medica nell'iperparatiroidismo"
+    ]
+  },
+  {
+    "id": "ipoparatiroidismo",
+    "emoji": "🦴",
+    "nome": "Ipoparatiroidismo",
+    "colore": "#9ca3af",
+    "pasti": "3 pasti principali + 2 spuntini",
+    "porzioni": "Porzioni regolari",
+    "idratazione": "≥2 L/die; agrumi migliorano assorbimento calcio",
+    "nota": "ESE 2021 · Calcio 1000-1500 mg/die da alimenti. Vitamina D attiva (calcitriolo 0.25-2 µg/die). Fosforo: limitare additivi fosfatici (cola, E450-E451). Target P <4.5 mg/dL. Magnesio 300 mg/die. Vitamina K2 100 µg/die. Citrato migliora assorbimento calcio.",
+    "ok": [
+      "Latticini (calcio biodisponibile)",
+      "Verdure a foglia verde (calcio vegetale)",
+      "Tofu con solfato di calcio (ottima fonte)",
+      "Sardine con lische (calcio)",
+      "Acqua ricca di calcio (>300 mg/L)",
+      "Agrumi (citrato migliora assorbimento calcio)",
+      "Mandorle, sesamo (calcio)"
+    ],
+    "no": [
+      "Cola e bibite a base di fosforo (aumentano P nel sangue)",
+      "Formaggi lavorati con polifosfati (E450, E451)",
+      "Crusca e cereali con molto fitato (riducono assorbimento calcio)",
+      "Caffeina eccessiva (aumenta escrezione calcio)"
+    ],
+    "mod": [
+      "Spinaci e rabarbaro (ossalati riducono assorbimento calcio: non abbinarli ai latticini)",
+      "Proteine animali in eccesso",
+      "Sale (aumenta perdita calcio urinaria)"
+    ],
+    "pratici": [
+      "Calcio: distribuire in 2-3 dosi al giorno (max 500mg per dose per assorbimento ottimale)",
+      "Assumere calcitriolo (vitamina D attiva) come da prescrizione: NON sostituire con colecalciferolo da solo",
+      "Abbinare agrumi o vitamina C ai pasti ricchi di calcio",
+      "Controllare calcemia, fosforo e magnesio settimanalmente all'inizio, poi mensilmente",
+      "Non abbinare latticini a spinaci o rabarbaro (ossalati antagonizzano l'assorbimento)"
+    ],
+    "avvisi": [
+      "Parestesie (formicolii alle mani/piedi) e crampi muscolari → ipocalcemia: contattare il medico",
+      "Spasmi muscolari (tetania) o convulsioni → PS urgente: ipocalcemia grave",
+      "Non modificare le dosi di calcio e vitamina D senza indicazione medica"
+    ]
+  },
+  {
+    "id": "linfangectasia",
+    "emoji": "🩺",
+    "nome": "Linfangectasia Intestinale",
+    "colore": "#a8dadc",
+    "pasti": "6-8 pasti piccoli",
+    "porzioni": "Pasti molto piccoli e frequenti",
+    "idratazione": "≥2 L/die",
+    "nota": "ESPEN 2020 · LCT <10g/die (grassi a lunga catena usano linfatici e causano perdita proteica). MCT 40-60g/die in sostituzione (assorbimento portale diretto). Omega-3 in capsule permesso. Supplementare ADEK parenterali, albumina ev se grave.",
+    "ok": [
+      "MCT (olio di cocco o MCT oil: 40-60g/die)",
+      "Pesce magro (merluzzo, platessa, orata)",
+      "Carni bianche (pollo e tacchino senza pelle, magri)",
+      "Albumi d'uovo (proteine ad alta biodisponibilità)",
+      "Riso bianco, pasta, pane bianco",
+      "Frutta e verdura in piccole quantità",
+      "Yogurt scremato"
+    ],
+    "no": [
+      "Grassi LCT in eccesso (olio EVO in grandi quantità, burro, salumi grassi, formaggi grassi)",
+      "Fritti",
+      "Condimenti grassi",
+      "Carne grassa (costine, pancetta)"
+    ],
+    "mod": [
+      "Latticini (preferire scremati)",
+      "Frutta secca (lipidi LCT: usare con grande moderazione)",
+      "Avocado (grassi LCT)"
+    ],
+    "pratici": [
+      "MCT in cucina: usare MCT oil o olio di cocco invece dell'olio EVO",
+      "Integrare vitamina D e A (spesso carenti per malassorbimento dei liposolubili)",
+      "Monitorare albumina sierica ogni mese (perdita proteica intestinale)",
+      "Probiotici (LGG): riduce la perdita proteica (piccoli studi)",
+      "NPT in fase acuta grave se impossibile nutrizione orale"
+    ],
+    "avvisi": [
+      "Edema progressivo degli arti, ascite → contattare il medico",
+      "Diarrea con feci chiare grasse → steatorrea: avvisare il team nutrizionale",
+      "Non assumere integratori di vitamina D liposoluibili senza prescrizione"
+    ]
+  },
+  {
+    "id": "pancreatite_autoimmune",
+    "emoji": "🔴",
+    "nome": "Pancreatite Autoimmune",
+    "colore": "#dc2626",
+    "pasti": "5-6 pasti piccoli",
+    "porzioni": "Porzioni piccole, lipidi ridotti se malassorbimento",
+    "idratazione": "≥2 L/die",
+    "nota": "IAP 2023 · Fase acuta: digiuno + NPT o NE digiunale. In terapia steroidea: Na <2g/die, Ca 1000-1200 mg, Vitamina D 2000 UI. Lipidi <40g/die se malassorbimento esocrino. Alcol zero assoluto. Enzimi pancreatici se steatorrea.",
+    "ok": [
+      "Pasta, riso, pane (carboidrati come fonte principale)",
+      "Carni magre al vapore (pollo, tacchino)",
+      "Pesce magro al vapore",
+      "Yogurt scremato",
+      "Verdure cotte morbide",
+      "Frutta matura"
+    ],
+    "no": [
+      "Alcol (zero assoluto: precipita riacutizzazioni)",
+      "Cibi grassi e fritti",
+      "Salumi e carni grasse",
+      "Zuccheri semplici (diabete pancreatico frequente)",
+      "Spezie piccanti",
+      "Caffeina in eccesso"
+    ],
+    "mod": [
+      "Grassi totali (monitorare steatorrea)",
+      "Formaggi (preferire freschi e magri)",
+      "Sale (se in terapia steroidea: ridurre a <2g sodio/die)"
+    ],
+    "pratici": [
+      "Assumere gli enzimi pancreatici con OGNI pasto e spuntino (se prescritti)",
+      "Monitorare la glicemia (diabete pancreatico: 30% dei casi)",
+      "In terapia steroidea: aumentare calcio e vitamina D per prevenire l'osteoporosi",
+      "Pesarsi 2 volte a settimana per monitorare la nutrizione",
+      "Cuocere con poca acqua al vapore o al forno, mai fritto"
+    ],
+    "avvisi": [
+      "Feci chiare, untuose, maleodoranti → steatorrea: aumentare gli enzimi pancreatici (con medico)",
+      "Glicemia >200 mg/dL frequentemente → valutare insulina con il diabetologo",
+      "Dolore addominale intenso → riacutizzazione: PS urgente"
+    ]
+  },
+  {
+    "id": "mastocitosi",
+    "emoji": "🌡️",
+    "nome": "Mastocitosi / MCAS",
+    "colore": "#f97316",
+    "pasti": "3-5 pasti regolari, evitare digiuni",
+    "porzioni": "Porzioni moderate",
+    "idratazione": "≥2 L/die, acqua; evitare alcol",
+    "nota": "AAAAI 2022 · Dieta a bassa istamina. Lista trigger strettamente individuale (necessario diario alimentare). Vitamina C 500-1000 mg/die (co-fattore DAO). Quercetina 500 mg/die come stabilizzatore mastocitario. Eliminare additivi E102-E133, E211-E228, E621.",
+    "ok": [
+      "Riso, pasta fresca appena cotta",
+      "Carni fresche appena cotte (pollo, tacchino, manzo)",
+      "Pesce fresco (non in scatola, non affumicato)",
+      "Verdure fresche cotte (non pomodori, spinaci, melanzane)",
+      "Frutta fresca (non tropicale, non fragole)",
+      "Latticini freschi (non stagionati)",
+      "Olio EVO, burro fresco",
+      "Patate, zucchine, carote"
+    ],
+    "no": [
+      "Formaggi stagionati (altissima istamina: Parmigiano, Grana, Pecorino, Gorgonzola)",
+      "Vino e alcolici (liberatori di istamina)",
+      "Aceto, soia fermentata, miso, salsa di soia",
+      "Pesce in scatola, pesce affumicato, crostacei",
+      "Pomodori, ketchup, concentrato di pomodoro",
+      "Spinaci, melanzane",
+      "Fragole, kiwi, ananas, papaya",
+      "Cioccolato e cacao",
+      "Additivi: E102 (tartrazina), E211 (benzoato), E621 (glutammato)"
+    ],
+    "mod": [
+      "Agrumi (in alcuni pazienti tollerati)",
+      "Frutti di bosco (tolleranza variabile)",
+      "Formaggi freschi (mozzarella freschissima: spesso tollerata)",
+      "Spezie (monitorare tolleranza individuale)"
+    ],
+    "pratici": [
+      "Tenere un diario alimentare dettagliato per 4-6 settimane per identificare i trigger personali",
+      "Non mangiare cibi conservati da giorni: istamina aumenta con la conservazione",
+      "Cucinare fresco ogni giorno e consumare subito (istamina si forma nella conservazione)",
+      "Vitamina C 500-1000 mg/die riduce la degranulazione mastocitaria",
+      "Evitare calore, stress e alcol (trigger non alimentari della degranulazione)"
+    ],
+    "avvisi": [
+      "Reazione anafilattica (difficoltà respiratoria, calo pressione, gonfiore labbra) → 118 urgente",
+      "Portare sempre l'adrenalina autoiniettabile (EpiPen) se prescritta",
+      "Comunicare la diagnosi sempre prima di assunzione di farmaci (FANS e morfina liberano istamina)"
+    ]
+  },
+  {
+    "id": "porfiria",
+    "emoji": "🔵",
+    "nome": "Porfiria Acuta Intermittente",
+    "colore": "#6366f1",
+    "pasti": "3 pasti regolari + 2-3 spuntini; MAI digiunare",
+    "porzioni": "Porzioni adeguate, CHO ≥300g/die",
+    "idratazione": "≥2.5 L/die",
+    "nota": "EPNET 2022 · CHO ≥300g/die (≥60% energie). Digiuno: PROIBITO (precipita crisi). Dieta ipocalorica: PROIBITA. Alcol: zero assoluto. In crisi: glucosio ev 3-4 g/kg/die. Evitare ferro in eccesso.",
+    "ok": [
+      "Pasta, riso, pane (CHO alto)",
+      "Patate, mais, polenta (CHO facili)",
+      "Frutta fresca e secca (CHO rapidi sicuri)",
+      "Legumi (proteine + CHO)",
+      "Carni magre e pesce",
+      "Olio EVO",
+      "Latticini"
+    ],
+    "no": [
+      "Digiuno (anche breve: > 12 ore è pericoloso)",
+      "Diete ipocaloriche o restrittive",
+      "Alcol (zero assoluto: trigger principale delle crisi)",
+      "Carboidrati eccessivamente ridotti (low-carb, chetogenica: CONTROINDICATI)",
+      "Ferro in eccesso (integratori non prescritti)"
+    ],
+    "mod": [
+      "Caffeina (monitorare tolleranza individuale)",
+      "Proteine (non ridurre eccessivamente)",
+      "Grassi (mantenere bilancio energetico)"
+    ],
+    "pratici": [
+      "Non saltare mai un pasto: portare sempre uno snack con sé",
+      "In viaggio: preparare sempre cibo da portare (non affidarsi ai pasti in aereo/treno che possono essere ritardati)",
+      "Avvisare il medico prima di iniziare qualsiasi nuovo farmaco (molti trigger le crisi)",
+      "In caso di crisi acuta → ospedale per terapia con ematina ev + glucosio",
+      "Indossare un braccialetto di allerta medica con la diagnosi"
+    ],
+    "avvisi": [
+      "Dolore addominale severo, vomito, debolezza muscolare → crisi acuta: PS urgente",
+      "Convulsioni o debolezza agli arti → PS urgente",
+      "MOLTI farmaci comuni scatenano le crisi: consultare sempre il database dei farmaci sicuri in porfiria"
+    ]
+  },
+  {
+    "id": "prader_willi",
+    "emoji": "⚖️",
+    "nome": "Sindrome di Prader-Willi",
+    "colore": "#a855f7",
+    "pasti": "3 pasti regolari + 1-2 spuntini strutturati (mai snack liberi)",
+    "porzioni": "Calorie ridotte al 60-70% del fabbisogno teorico per peso/altezza",
+    "idratazione": "≥1.5-2 L/die, acqua; evitare bevande zuccherate",
+    "nota": "PWSA 2021 · Ambiente alimentare strutturato obbligatorio (nessun accesso libero al cibo). GH terapia: aumenta massa magra e fabbisogno proteico. Fibre 25-35g/die per sazietà. Calcio + vitamina D. Obiettivo: BMI <30.",
+    "ok": [
+      "Verdure ad libitum (bassa densità calorica, alto volume)",
+      "Frutta fresca in porzioni controllate",
+      "Carni magre, pesce",
+      "Legumi (proteine + fibre + sazietà)",
+      "Cereali integrali",
+      "Latticini magri (calcio)",
+      "Acqua come unica bevanda"
+    ],
+    "no": [
+      "Accesso libero a cibo e dispense (indispensabile chiudere a chiave il cibo)",
+      "Bevande zuccherate e succhi",
+      "Dolci, snack, merendine",
+      "Pasti fuori dal piano strutturato",
+      "Cibi ad alta densità energetica e bassa sazietà"
+    ],
+    "mod": [
+      "Frutta (le porzioni vanno pesate: alta palatabilità può portare all'eccesso)",
+      "Pane e pasta (porzioni controllate)",
+      "Formaggio (piccola quantità per il calcio)"
+    ],
+    "pratici": [
+      "Strutturare rigorosamente l'ambiente alimentare: cibo sotto chiave, dispense inaccessibili",
+      "Pesare tutto ciò che mangia (mai porzioni 'a occhio')",
+      "Il GH terapeutico aumenta il fabbisogno proteico: aumentare le proteine di conseguenza",
+      "Fibre abbondanti (verdure, psyllium) per aumentare la sazietà",
+      "Coinvolgere il supporto psicologico per gestire l'iperfagia"
+    ],
+    "avvisi": [
+      "Iperfagia non controllata → aumento di peso rapido con complicanze metaboliche gravi",
+      "Non lasciare mai il paziente solo in ambienti con cibo non controllato",
+      "Diabetes mellitus tipo 2 frequente: monitorare la glicemia regolarmente"
+    ]
+  },
+  {
+    "id": "sclerodermia",
+    "emoji": "🩺",
+    "nome": "Sclerodermia (SSc)",
+    "colore": "#64748b",
+    "pasti": "5-6 pasti piccoli e morbidi",
+    "porzioni": "Porzioni piccole e frequenti (stomaco ridotto da fibrosi)",
+    "idratazione": "≥2 L/die, sorsi piccoli frequenti",
+    "nota": "EULAR 2017 · Coinvolgimento GI nel 90%. Cibi morbidi, pasti piccoli 5-6/die, postura eretta post-pasto. SIBO frequente: antibiotici ciclici. Omega-3 3g/die. Vitamina D 2000-4000 UI/die. ONS se intake <70% fabbisogno.",
+    "ok": [
+      "Cibi morbidi e facili da deglutire",
+      "Zuppe, creme, passati di verdura",
+      "Pesce al vapore, carni macinate",
+      "Yogurt, kefir, latte (probiotici)",
+      "Uova strapazzate, frittate",
+      "Purè di patate, riso morbido",
+      "Frutta frullata o in mousse"
+    ],
+    "no": [
+      "Cibi duri, croccanti, fibrosi (crackers, verdure crude tenaci, carne tough)",
+      "Pasti abbondanti (aggravano il GERD e il gonfiore)",
+      "Coricarsi subito dopo il pasto",
+      "Alcol (aggrava GERD e disfagia)"
+    ],
+    "mod": [
+      "Fibre (se stipsi: aumentare; se diarrea da SIBO: ridurre temporaneamente)",
+      "Latticini (monitorare tolleranza al lattosio)",
+      "Spezie e cibi piccanti"
+    ],
+    "pratici": [
+      "Restare seduto o in piedi per almeno 1-2 ore dopo i pasti (GERD)",
+      "Elevare la testata del letto di 15-20 cm (GERD notturno)",
+      "Se SIBO: probiotici + antibiotici ciclici prescritti + riduzione fibre temporanea",
+      "Vitamina D: spesso molto carente nella sclerodermia; supplementare 2000-4000 UI/die",
+      "Pesarsi ogni settimana: perdita di peso rapida indica malnutrizione → ONS"
+    ],
+    "avvisi": [
+      "Difficoltà a deglutire progressiva → valutazione logopedista",
+      "Diarrea cronica o gonfiore severo → escludere SIBO con test all'idrogeno",
+      "Crisi renale sclerodermia (PA alta + insufficienza renale): PS urgente"
+    ]
+  },
+  {
+    "id": "trapianto_renale",
+    "emoji": "🫘",
+    "nome": "Post-Trapianto Renale",
+    "colore": "#06b6d4",
+    "pasti": "3 pasti principali + 2 spuntini",
+    "porzioni": "Porzioni moderate, dieta mediterranea adattata",
+    "idratazione": "≥2 L/die (favorisce la funzione del rene trapiantato)",
+    "nota": "KDIGO 2022 · EVITARE: pompelmo (inibisce CYP3A4 → tossicità ciclosporina/tacrolimus), mirtillo rosso, melograno. Steroidi: Na <2g/die, zuccheri ridotti. K e P: monitorare (spesso normalizzati ma variabili). Dislipidemia da immunosoppressori: grassi saturi <7%.",
+    "ok": [
+      "Verdure e frutta (5 porzioni/die, ma NON pompelmo)",
+      "Cereali integrali e legumi",
+      "Pesce (omega-3 cardioprotettivi)",
+      "Carni magre",
+      "Latticini magri (calcio)",
+      "Olio EVO"
+    ],
+    "no": [
+      "Pompelmo e pompelmo rosa (interazione farmacologica pericolosa con ciclosporina/tacrolimus)",
+      "Mirtillo rosso (oxalato e acidificante: può danneggiare il rene trapiantato)",
+      "Melograno (inibisce il metabolismo dei farmaci)",
+      "Alimenti crudi o non pastorizzati (immunosoppressione)",
+      "Sale in eccesso (ipertensione da steroidi)",
+      "Zuccheri semplici (diabete post-trapianto frequente)"
+    ],
+    "mod": [
+      "Potassio (monitorare; spesso normale ma variabile nei primi mesi)",
+      "Fosforo (monitorare)",
+      "Proteine (1.3-1.4 g/kg/die: superiore alla norma)",
+      "Alcol (sconsigliato specialmente nei primi 12 mesi)"
+    ],
+    "pratici": [
+      "EVITARE assolutamente il pompelmo e i suoi prodotti: interazione letale con i farmaci",
+      "Igiene alimentare rigorosa: lavare bene frutta e verdura, evitare crudi",
+      "Monitorare la glicemia: diabete post-trapianto colpisce il 20-30% dei trapiantati",
+      "Lipidi: controllare ogni 3-6 mesi (immunosoppressori aumentano il colesterolo)",
+      "Vitamina D 2000 UI/die (steroidi causano osteoporosi)"
+    ],
+    "avvisi": [
+      "Calo della diuresi o gonfiore improvviso → possibile rigetto: contattare il centro trapianti urgentemente",
+      "Febbre in immunosoppressione → rischio infezione: PS urgente",
+      "Non modificare mai la terapia immunosoppressiva senza indicazione del nefrologo"
+    ]
+  },
+  {
+    "id": "trapianto_midollo",
+    "emoji": "💉",
+    "nome": "Trapianto di Midollo Osseo / HSCT",
+    "colore": "#7c3aed",
+    "pasti": "6-8 pasti piccoli",
+    "porzioni": "Porzioni piccole e frequenti, alto contenuto proteico",
+    "idratazione": "≥2 L/die (secondo bilancio idrico)",
+    "nota": "ESPEN 2021 · EBMT. Fase aplasia (neutropenia <500): dieta a bassa carica microbica. GvHD intestinale: NE elementare/semi-elementare. NPT se GI non funzionante >3gg. Evitare pompelmo. Vitamina D, Mg, K monitorati.",
+    "ok": [
+      "Alimenti ben cotti (tutto cotto a fondo in fase aplasia)",
+      "Carni ben cotte, pesce ben cotto",
+      "Uova ben cotte (non crude o poco cotte)",
+      "Verdure cotte",
+      "Frutta sbucciata e lavata accuratamente",
+      "Latticini pastorizzati",
+      "Cereali e legumi cotti",
+      "ONS se necessario per aumentare le calorie"
+    ],
+    "no": [
+      "Alimenti crudi in fase aplasia (sushi, sashimi, insalate crude, germogli)",
+      "Formaggi non pastorizzati o muffe nobili (Brie, Gorgonzola) in fase aplasia",
+      "Pompelmo (interazione farmacologica)",
+      "Succo di mirtillo rosso",
+      "Alcolici",
+      "Frutta con buccia non pelabile in fase aplasia",
+      "Acqua non potabile/non filtrata"
+    ],
+    "mod": [
+      "Latticini (solo pastorizzati; in fase aplasia solo prodotti sicuri)",
+      "Frutta (solo sbucciata o a buccia dura lavabile accuratamente)",
+      "Spezie crude (no durante aplasia)"
+    ],
+    "pratici": [
+      "In fase aplasia: cuocere tutto, non mangiare nulla di crudo",
+      "Lavarsi le mani prima di ogni pasto e prima di preparare il cibo",
+      "Mucositi: preferire frullati, creme, cibi freddi o a temperatura ambiente",
+      "GvHD intestinale: seguire dieta elementare prescritta dal team nutrizionale",
+      "Pesarsi ogni mattina: perdita rapida di peso → avvisare il team"
+    ],
+    "avvisi": [
+      "Febbre >38°C in fase di aplasia → PS urgente (rischio sepsi)",
+      "Diarrea profusa → possibile GvHD: contattare il centro trapianti urgentemente",
+      "Non mangiare in ristoranti durante la fase aplasica"
+    ]
+  },
+  {
+    "id": "mieloma",
+    "emoji": "🎗️",
+    "nome": "Mieloma Multiplo",
+    "colore": "#7c3aed",
+    "pasti": "3 pasti principali + 2-3 spuntini",
+    "porzioni": "Porzioni moderate, alto contenuto proteico",
+    "idratazione": "≥2.5 L/die (previene nefropatia da mieloma)",
+    "nota": "ESPEN 2021 · Ipercalcemia (30% pazienti): idratazione ≥2.5L. Insufficienza renale: P <800mg, K <2g, Na <2g. Anemia: Fe biodisponibile, B12, folati. Bifosfonati: Ca 1000-1200mg + Vit D 800-1000UI. Omega-3 anti-infiammatorio.",
+    "ok": [
+      "Acqua abbondante (≥2.5 L/die per proteggere i reni)",
+      "Carni magre, pesce, uova (proteine ad alta biodisponibilità)",
+      "Latticini (calcio, ma moderare se ipercalcemia)",
+      "Cereali integrali",
+      "Verdure e frutta",
+      "Olio EVO, noci (omega-3)"
+    ],
+    "no": [
+      "Liquirizia (può interferire con terapia)",
+      "Sale in eccesso (ipertensione frequente da steroidi)",
+      "Alcol (immunosoppressione e interazione farmaci)",
+      "Cibo crudo (immunosoppressione)"
+    ],
+    "mod": [
+      "Calcio (se ipercalcemia: non aumentarlo)",
+      "Potassio (se IRC associata: limitare se K alto)",
+      "Fosforo (se IRC associata: limitare se P alto)",
+      "Vitamina D (solo su indicazione medica)"
+    ],
+    "pratici": [
+      "Bere almeno 2.5 L/die per diluire le proteine del Bence-Jones (proteggono i reni)",
+      "Se in bifosfonati: assumere 1000-1200 mg Ca/die + 800-1000 UI vitamina D come da prescrizione",
+      "Igiene alimentare rigorosa durante la terapia (immunosoppressione)",
+      "Proteine: 1.2-1.5 g/kg/die (per mantenere la massa muscolare)",
+      "Controllare regolarmente la funzione renale"
+    ],
+    "avvisi": [
+      "Dolore osseo improvviso o frattura spontanea → PS urgente",
+      "Confusione mentale + nausea + vomito → ipercalcemia grave: PS urgente",
+      "Infezioni in immunosoppressione → contattare il centro ematologico urgentemente"
+    ]
+  },
+  {
+    "id": "tirosinemia",
+    "emoji": "🧬",
+    "nome": "Tirosinemia Tipo 1",
+    "colore": "#10b981",
+    "pasti": "5-6 pasti al giorno (formula + pasti naturali)",
+    "porzioni": "Formula aminoacidica priva di Tyr+Phe + quota naturale calcolata al mg",
+    "idratazione": "≥2 L/die",
+    "nota": "SSIEM 2023 · NTBC (nitisinone): riduce necessità dietetica ma non la elimina. Target Tyr plasma: 200-400 µmol/L adulti. Formula senza Tyr+Phe come fonte proteica principale. Integrare: Fe, Zn, Ca, vitamina D. Monitoraggio AFP ed ecografia epatica.",
+    "ok": [
+      "Formula aminoacidica prescritta (priva di fenilalanina e tirosina)",
+      "Verdure a basso contenuto proteico (zucchine, carote, cetriolo)",
+      "Frutta fresca (basso contenuto proteico)",
+      "Alimenti naturalmente aproteici: marmellata, miele, oli",
+      "Pane e pasta aproteici specificemente formulati",
+      "Riso bianco in piccole quantità calcolate"
+    ],
+    "no": [
+      "Alimenti ricchi di fenilalanina e tirosina: carne, pesce, uova, latticini, legumi, cereali in quantità libere",
+      "Integratori di tirosina o fenilalanina",
+      "Aspartame (contiene fenilalanina)"
+    ],
+    "mod": [
+      "Tutti gli alimenti proteici naturali (quantità calcolate dalla dietista specializzata)",
+      "Cereali (piccole quantità consentite nel budget proteico)"
+    ],
+    "pratici": [
+      "Assumere la formula aminoacidica distribuita in 3-4 volte al giorno (non tutta in una volta)",
+      "Monitoraggio plasmatico di fenilalanina e tirosina: ogni settimana nel neonato, ogni 1-3 mesi nell'adulto stabile",
+      "AFP ed ecografia epatica ogni 6 mesi (monitoraggio epatocarcinoma)",
+      "Non interrompere mai il NTBC senza indicazione medica",
+      "Seguire SOLO le indicazioni della dietista esperta in malattie metaboliche"
+    ],
+    "avvisi": [
+      "Crisi neurologica (dolore neuropatico, paresi) → PS urgente (crisi simil-porfirinica)",
+      "AFP in aumento → rischio carcinoma epatocellulare: ecografia urgente",
+      "Non auto-somministrare integratori senza supervisione del team metabolico"
+    ]
+  },
+  {
+    "id": "msud",
+    "emoji": "🧬",
+    "nome": "MSUD - Malattia delle Urine a Sciroppo d'Acero",
+    "colore": "#d97706",
+    "pasti": "5-6 pasti al giorno (formula + pasti naturali calcolati)",
+    "porzioni": "Formula BCAA-free + quota naturale calcolata al mg di leucina",
+    "idratazione": "≥2 L/die",
+    "nota": "ACMG 2014 · SSIEM 2020 · Target leucina plasma: 75-200 µmol/L (neonati 75-100). Crisi metabolica: eliminare BCAA, glucosio ev ad alto flusso. Tiamina 10-100 mg/die (50% risponde). Monitoraggio ogni settimana nel neonato.",
+    "ok": [
+      "Formula BCAA-free prescritta (priva di leucina, isoleucina, valina)",
+      "Verdure a bassissimo contenuto proteico",
+      "Frutta fresca",
+      "Alimenti aproteici (pane aproteico, pasta aproteica, prodotti per PKU/MSUD)",
+      "Oli vegetali, burro (zero BCAA)",
+      "Miele, marmellata (naturalmente BCAA-free)"
+    ],
+    "no": [
+      "Carne, pesce, uova, latticini in quantità libere (ricchi di BCAA)",
+      "Legumi, cereali in quantità libere",
+      "Qualsiasi fonte proteica al di fuori del budget calcolato",
+      "Integratori di BCAA (leucina, isoleucina, valina non prescritti)"
+    ],
+    "mod": [
+      "Tutti gli alimenti proteici (quantità calcolate al mg di leucina dalla dietista specializzata)",
+      "Isoleucina e valina: supplementare separatamente se carenti (monitorare livelli)"
+    ],
+    "pratici": [
+      "Formula BCAA-free: distribuirla in 4-5 dosi al giorno per mantenere livelli stabili",
+      "Durante malattie febbrili: aumentare glucosio e ridurre le proteine naturali (rischio crisi)",
+      "Tiamina 10-100 mg/die: tentare il trial, alcuni pazienti sono tiamino-responsivi",
+      "Non saltare mai la formula: è la principale fonte proteica sicura",
+      "Monitorare leucina ogni settimana nel bambino piccolo, ogni 1-3 mesi nell'adulto stabile"
+    ],
+    "avvisi": [
+      "Odore caratteristico di sciroppo d'acero nelle urine + letargia → crisi metabolica: PS urgente",
+      "Vomito, rifiuto del cibo nel neonato → PS urgente",
+      "Durante crisi: non aspettare, andare al PS portando la scheda metabolica del paziente"
+    ]
+  },
+  {
+    "id": "glicogenosi_i",
+    "emoji": "🧬",
+    "nome": "Glicogenosi Tipo I (Von Gierke)",
+    "colore": "#0891b2",
+    "pasti": "Pasti frequentissimi ogni 2-4h di giorno + amido di mais crudo (UMSC) di notte",
+    "porzioni": "CHO frequenti e costanti per evitare ipoglicemia",
+    "idratazione": "≥2 L/die",
+    "nota": "ACMG 2014 · Mantenere glicemia ≥4 mmol/L. UMSC (amido di mais non cotto) 1.5-2 g/kg ogni 4-6h per il mantenimento notturno. Fruttosio e galattosio: ELIMINARE (non possono essere convertiti in glucosio). Lipidi elevati: omega-3 2-3g/die. Allopurinolo se iperuricemia.",
+    "ok": [
+      "Glucosio e amido di mais crudo (UMSC) come CHO base",
+      "Pasta, pane bianco, riso bianco (CHO facilmente assorbibili)",
+      "Mais, tapioca, amido di mais (fonti di CHO sicure)",
+      "Carni magre, pesce, uova (proteine senza fruttosio)",
+      "Olio EVO (grassi sani)",
+      "Verdure a basso fruttosio (zucchine, cetriolo, carote)"
+    ],
+    "no": [
+      "Fruttosio: frutta zuccherina, succhi, miele, sciroppo di fruttosio, HFCS",
+      "Galattosio: latte e latticini (contengo lattosio = glucosio + galattosio)",
+      "Saccarosio (zucchero da tavola = glucosio + fruttosio: metà è fruttosio)",
+      "Legumi (sorbitolo, raffinosio)"
+    ],
+    "mod": [
+      "Verdure (monitorare il contenuto di fruttosio)",
+      "Amido di mais cotto (meno efficace del UMSC per la notte)"
+    ],
+    "pratici": [
+      "Glucometro sempre con sé: misurare la glicemia prima dei pasti e di notte",
+      "UMSC (amido di mais crudo): preparare con acqua fredda, non cuocere (la cottura lo rende meno efficace)",
+      "Avere sempre glucosio in gel o succo di glucosio per emergenza ipoglicemica",
+      "Condividere la diagnosi con la scuola/lavoro/palestra per la gestione delle emergenze",
+      "Monitorare trigliceridi (spesso alti: omega-3 2-3g/die)"
+    ],
+    "avvisi": [
+      "Ipoglicemia (glicemia <60 mg/dL, tremori, sudorazione, confusione) → glucosio immediato, poi PS se non migliora",
+      "Episodio prolungato di ipoglicemia → PS urgente",
+      "Non digiunare mai: anche la notte va coperta con UMSC"
+    ]
+  },
+  {
+    "id": "allergia_nichel",
+    "emoji": "⚠️",
+    "nome": "Allergia al Nichel (SNAS)",
+    "colore": "#64748b",
+    "pasti": "3 pasti regolari + 2 spuntini",
+    "porzioni": "Porzioni moderate, dieta a rotazione",
+    "idratazione": "≥2 L/die, acqua; evitare tè nero",
+    "nota": "SIAAIC 2022 · Soglia nichel ~100-200 µg/die. Alimenti ad alto contenuto Ni: cacao, semi di girasole, legumi, cereali integrali, spinaci, pomodori. Alimenti a basso Ni: riso, pasta raffinata, carne, pesce, uova, latte. Vitamina C ai pasti riduce assorbimento Ni.",
+    "ok": [
+      "Riso bianco, pasta raffinata, pane bianco",
+      "Carni (manzo, pollo, tacchino, maiale)",
+      "Pesce (merluzzo, salmone, orata, trota)",
+      "Uova",
+      "Latticini (latte, yogurt, formaggi)",
+      "Patate (sbucciate, senza buccia)",
+      "Carote, zucchine, insalata iceberg",
+      "Mela, pera, agrumi"
+    ],
+    "no": [
+      "Cacao e cioccolato (alta concentrazione di nichel)",
+      "Semi di girasole, sesamo e loro prodotti",
+      "Cereali integrali (frumento integrale, avena, segale)",
+      "Legumi in eccesso (soprattutto lenticchie, fagioli, ceci)",
+      "Spinaci, pomodori (alto nichel)",
+      "Aringhe, vongole (molluschi: alto nichel)"
+    ],
+    "mod": [
+      "Legumi (2x/settimana in SNAS moderata, non tutti i giorni)",
+      "Cereali integrali (limitare)",
+      "Tè nero (discreta quantità di nichel: limitare a 1-2 tazze/die)",
+      "Frutta secca (mandorle, noci: alto nichel)"
+    ],
+    "pratici": [
+      "Vitamina C ai pasti principali riduce l'assorbimento di nichel del 50%",
+      "In fase acuta: dieta a basso nichel <100 µg/die per 4-6 settimane",
+      "Dopo la fase acuta: reintroduzione graduale per trovare la soglia personale",
+      "Evitare utensili da cucina in acciaio inossidabile (rilasciano nichel nei cibi acidi)",
+      "Evitare acqua dalla rete in case con tubature vecchie (prima acqua del mattino: eliminare)"
+    ],
+    "avvisi": [
+      "Reazione sistemica al nichel (orticaria, eczema diffuso) → dermatologo/allergologo",
+      "Test patch positivo al nichel NON equivale a SNAS: necessario test di provocazione orale",
+      "Non iniziare la dieta restrittiva senza conferma diagnostica (rischi di malnutrizione)"
+    ]
+  },
+  {
+    "id": "autismo_nutrizione",
+    "emoji": "🧩",
+    "nome": "Autismo e Nutrizione",
+    "colore": "#06b6d4",
+    "pasti": "3 pasti strutturati + 1-2 spuntini agli stessi orari ogni giorno",
+    "porzioni": "Secondo le preferenze individuali; lavoro graduale sulla varietà",
+    "idratazione": "≥1.5-2 L/die, acqua; monitorare l'apporto",
+    "nota": "ESPEN 2017 · Selettività alimentare frequente (80% dei bambini con ASD). Deficit nutrizionali comuni: omega-3, zinco, ferro, vitamina D, calcio, folati. Dieta GF/CF: nessuna evidenza scientifica solida se non celiachia diagnosticata. Microbiota alterato: probiotici in studio.",
+    "ok": [
+      "Alimenti già accettati (rispettare le preferenze)",
+      "Pesce (omega-3 DHA per funzione cognitiva)",
+      "Legumi, uova, carni magre (proteine, ferro, zinco)",
+      "Verdure con presentazione variata (colore, forma)",
+      "Frutta fresca (vitamine)",
+      "Latticini (calcio, vitamina D)",
+      "Cereali integrali (fibre per microbiota)"
+    ],
+    "no": [
+      "Dieta GF/CF arbitraria senza diagnosi di celiachia (rischio carenze nutrizionali)",
+      "Ultra-processati come base della dieta (alimentano la selettività)",
+      "Forzare cibi rifiutati (trauma e aumento della selettività)"
+    ],
+    "mod": [
+      "Dolci e snack (accettabili in moderazione; non usarli come unico strumento di rinforzo)",
+      "Coloranti artificiali (alcuni studi suggeriscono impatto sul comportamento)",
+      "Caffeina (evitare nei bambini)"
+    ],
+    "pratici": [
+      "Introdurre nuovi alimenti gradualmente con la tecnica del food chaining",
+      "Omega-3 DHA 500-1000 mg/die: utile per la funzione cognitiva e comportamentale",
+      "Vitamina D 1000-2000 UI/die (carenza frequente)",
+      "Zinco 5-10 mg/die (carenza comune nella selettività)",
+      "Valutare annualmente lo stato nutrizionale con un dietista specializzato"
+    ],
+    "avvisi": [
+      "Perdita di peso o crescita insufficiente → valutazione nutrizionale urgente",
+      "Selettività estrema (pochi alimenti accettati) → team multidisciplinare (dietista + logopedista + psicologo)",
+      "Non intraprendere diete alternative (GF/CF, SCD) senza supervisione medica"
+    ]
+  },
+  {
+    "id": "emicrania",
+    "emoji": "🤕",
+    "nome": "Emicrania e Cefalea",
+    "colore": "#7c3aed",
+    "pasti": "3-5 pasti regolari, MAI saltare i pasti",
+    "porzioni": "Porzioni moderate, orari fissi",
+    "idratazione": "≥2.5 L/die (la disidratazione è un trigger comune)",
+    "nota": "IHS 2022 · Trigger alimentari individuali: identificare con diario. Caffeina: effetto doppio (azione + astinenza). Tiramina: formaggi stagionati, vino rosso. Istamina: vino, alimenti fermentati. Magnesio 400 mg/die (profilattico). Omega-3 2g/die.",
+    "ok": [
+      "Acqua abbondante (≥2.5 L/die)",
+      "Cereali integrali a basso IG",
+      "Verdure fresche (esclusi i trigger personali)",
+      "Pesce (omega-3 riducono frequenza)",
+      "Legumi, uova, carni magre",
+      "Zenzero (antiemitico naturale)",
+      "Mele, pere, anguria (idratanti)"
+    ],
+    "no": [
+      "Non saltare mai i pasti (il digiuno è il trigger più comune)",
+      "Formaggi stagionati (tiramina: Parmigiano, Pecorino, Gorgonzola)",
+      "Vino rosso (tiramina + sulfiti + istamina)",
+      "Caffè in eccesso + astinenza da caffè nei giorni festivi",
+      "Cioccolato (trigger in alcuni pazienti: teobromina + feniletilamina)",
+      "Alimenti con glutammato (E621)",
+      "Nitrati (insaccati, carni conservate)"
+    ],
+    "mod": [
+      "Caffè (mantenere la dose costante ogni giorno per evitare astinenza)",
+      "Cioccolato (monitor personale: non trigger universale)",
+      "Alcol (trigger in molti pazienti: preferire vino bianco o evitare)",
+      "Agrumi (trigger in alcuni pazienti)"
+    ],
+    "pratici": [
+      "Tenere un diario dell'emicrania per 3 mesi: registrare cibo, sonno, stress, meteo",
+      "Non variare mai gli orari dei pasti nel weekend (cambi del sonno e digiuno mattutino sono trigger)",
+      "Magnesio 400 mg/die: riduce frequenza degli attacchi del 40% (RCT)",
+      "Vitamina B2 (riboflavina) 400 mg/die: profilattico evidence-based",
+      "Identificare i trigger personali con il diario (non tutti reagiscono agli stessi cibi)"
+    ],
+    "avvisi": [
+      "Cefalea 'a rombo di tuono' (la più forte della vita) + rigidità nucale → PS urgente (escludere ESA)",
+      "Cefalea con febbre alta + rigidità nucale → meningite: PS urgente",
+      "Emicrania con aura prolungata (>60 min) → rischio ictus: PS urgente"
+    ]
   }
 ];
