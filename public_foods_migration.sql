@@ -1564,6 +1564,14 @@ VALUES
   ('Uovo sodo (bollito 10 min)', 'Proteine', 147, 12.6, 0.6, 11.3, 0, 0, 3.4, 'CREA'),
   ('Uovo in camicia (poached)', 'Proteine', 140, 12.5, 0.5, 10.5, 0, 0, 3.2, 'CREA'),
   ('Frittata semplice (olio + uova)', 'Proteine', 185, 12.8, 0.5, 15, 0, 0, 4, 'CREA'),
+  ('Cicerchia secca (Lathyrus sativus)', 'Legumi', 295, 27.8, 55, 1, 18, 7, 0.2, 'CREA'),
+  ('Cicerchia cotta', 'Legumi', 109, 10.2, 20.3, 0.4, 6.6, 2.5, 0.1, 'CREA'),
+  ('Salvia fresca', 'Erbe aromatiche', 58, 3.7, 4.2, 1.8, 4, 0.7, 0.5, 'CREA'),
+  ('Timo fresco', 'Erbe aromatiche', 101, 5.6, 15.1, 1.7, 14, 0.5, 0.3, 'CREA'),
+  ('Pizzoccheri della Valtellina (cotti)', 'Piatti Pronti', 195, 7, 22, 9, 2.5, 2.5, 4.5, 'BDA'),
+  ('Vincisgrassi marchigiani (pasta al forno)', 'Piatti Pronti', 175, 9, 18.5, 7.5, 1, 2.5, 3.5, 'BDA'),
+  ('Abbacchio al forno (agnello da latte romano)', 'Proteine', 180, 24, 0.5, 9, 0, 0, 3.5, 'BDA'),
+  ('Strangolapreti trentini (spinaci e ricotta)', 'Piatti Pronti', 155, 7.5, 20, 5.5, 1.5, 2.5, 2.5, 'BDA'),
   ('Ensure Plus (porz. 200mL=300kcal)', 'ONS Ipercalorico', 150, 6.5, 20, 5.5, 0, 13, 0.8, 'ONS'),
   ('Fortimel Extra (porz. 200mL=300kcal)', 'ONS Ipercalorico', 150, 6, 20.5, 5.4, 0, 14, 0.7, 'ONS'),
   ('Resource 2.0 (porz. 200mL=400kcal)', 'ONS Ipercalorico', 200, 9, 21.8, 8.9, 0, 13, 1.2, 'ONS'),
@@ -2019,7 +2027,12 @@ VALUES
   ('Yogurt di soia (Alpro, gusto neutro)', 'Bevande vegetali', 65, 4.5, 5.5, 2.7, 0.5, 4, 0.4, 'UPF'),
   ('Formaggio vegano a base cocco (tipo Violife)', 'Sostituti latticini', 280, 0.5, 11.5, 25.5, 0.5, 1.5, 12, 'UPF'),
   ('Panna vegetale (soia/cocco, tipo Soy Whip)', 'Sostituti latticini', 195, 0.8, 8.5, 18, 0, 2.5, 6.5, 'UPF'),
-  ('Red Bull Energy Drink (per 100mL)', 'Energy drink', 45, 0, 11, 0, 0, 10.5, 0, 'UPF'),
+  ('Red Bull Energy Drink (per 100mL)', 'Energy drink', 45, 0, 11, 0, 0, 10.5, 0, 'UPF')
+ON CONFLICT (name, category) DO NOTHING;
+
+-- Chunk 5: foods 2001–2155
+INSERT INTO public_foods (name, category, kcal_100g, proteins_100g, carbs_100g, fats_100g, fiber_100g, sugar_100g, fat_sat_100g, src)
+VALUES
   ('Monster Energy (per 100mL)', 'Energy drink', 42, 0, 10.5, 0, 0, 10.5, 0, 'UPF'),
   ('Rockstar Energy Drink (per 100mL)', 'Energy drink', 42, 0.1, 10, 0, 0, 10, 0, 'UPF'),
   ('Red Bull Zero/Sugarfree (per 100mL)', 'Energy drink', 3, 0, 0.3, 0, 0, 0, 0, 'UPF'),
@@ -2027,12 +2040,7 @@ VALUES
   ('Barretta proteica Quest Bar (per 100g)', 'Barrette proteiche', 366, 41.5, 43.5, 10.5, 23, 5, 2.5, 'UPF'),
   ('Barretta proteica Snickers Protein (per 100g)', 'Barrette proteiche', 415, 30, 44, 17, 5, 20, 8, 'UPF'),
   ('Barretta proteica Clif Bar (per 100g)', 'Barrette proteiche', 372, 22.5, 60, 8.5, 7.5, 22, 2, 'UPF'),
-  ('Barretta energetica Cereal (per 100g)', 'Barrette proteiche', 390, 7.5, 68, 10.5, 4, 24, 4.5, 'UPF')
-ON CONFLICT (name, category) DO NOTHING;
-
--- Chunk 5: foods 2001–2147
-INSERT INTO public_foods (name, category, kcal_100g, proteins_100g, carbs_100g, fats_100g, fiber_100g, sugar_100g, fat_sat_100g, src)
-VALUES
+  ('Barretta energetica Cereal (per 100g)', 'Barrette proteiche', 390, 7.5, 68, 10.5, 4, 24, 4.5, 'UPF'),
   ('Barretta ai cereali Kellogg''s Special K (per 100g)', 'Barrette proteiche', 380, 12, 67, 8, 4.5, 28, 2.5, 'UPF'),
   ('Tiramisù industriale (porzione confezionata)', 'Dolci e Zuccheri', 316, 5.5, 31.5, 19, 0.5, 23, 8, 'UPF'),
   ('Panna cotta surgelata (monoporzione)', 'Dolci e Zuccheri', 195, 3, 19.5, 13.5, 0, 14, 10.5, 'UPF'),
@@ -2182,4 +2190,4 @@ VALUES
   ('Rice cakes con cioccolato fondente (per 100g)', 'Snack e Ultra-Processati', 400, 5.5, 67.5, 11.5, 4, 35, 5.5, 'UPF')
 ON CONFLICT (name, category) DO NOTHING;
 
--- Total: 2147 foods
+-- Total: 2155 foods
