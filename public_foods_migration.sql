@@ -1504,6 +1504,66 @@ VALUES
   ('Olio di ricino', 'Grassi', 884, 0, 0, 99.9, 0, 0, 2.9, 'BDA'),
   ('Panna acida (sour cream 20%)', 'Latticini', 206, 2.7, 3.5, 20, 0, 3.5, 12.6, 'BDA'),
   ('Zucchero grezzo di canna (mascobado)', 'Zuccheri', 373, 0.4, 96, 0.1, 0, 83.3, 0, 'BDA'),
+  ('Zucchina lessata', 'Verdure', 14, 1, 2, 0.1, 1.2, 1.5, 0, 'CREA'),
+  ('Melanzana grigliata', 'Verdure', 33, 1, 6.5, 0.2, 3.2, 4, 0, 'CREA'),
+  ('Melanzana al forno', 'Verdure', 35, 1.1, 6.8, 0.3, 3, 4.1, 0, 'CREA'),
+  ('Carota lessata', 'Verdure', 28, 0.8, 6, 0.2, 2.9, 4.2, 0, 'CREA'),
+  ('Finocchio cotto al vapore', 'Verdure', 25, 1.1, 4.5, 0.2, 3.1, 2.4, 0, 'CREA'),
+  ('Sedano rapa cotto', 'Verdure', 27, 1, 6, 0.2, 1.5, 3.5, 0, 'CREA'),
+  ('Cavolfiore al vapore', 'Verdure', 22, 2, 3.5, 0.2, 2.1, 1.5, 0, 'CREA'),
+  ('Cavolo verza cotto', 'Verdure', 20, 1.4, 3.5, 0.2, 2.2, 1.8, 0, 'CREA'),
+  ('Cavolo cappuccio cotto', 'Verdure', 22, 1, 5, 0.1, 2.1, 3, 0, 'CREA'),
+  ('Peperone rosso cotto', 'Verdure', 32, 1, 7.5, 0.3, 2, 5, 0, 'CREA'),
+  ('Pomodoro cotto (passato)', 'Verdure', 35, 1.5, 7, 0.5, 1.8, 5, 0, 'CREA'),
+  ('Funghi champignon cotti', 'Verdure', 16, 2.2, 2.5, 0.1, 1, 0.5, 0, 'CREA'),
+  ('Fagiolini lessati', 'Verdure', 24, 1.8, 4.2, 0.3, 3, 2, 0, 'CREA'),
+  ('Asparagi lessati', 'Verdure', 21, 2.3, 2.8, 0.2, 2.1, 1.5, 0, 'CREA'),
+  ('Lenticchie rosse cotte', 'Legumi', 111, 7.6, 20, 0.4, 3.8, 0.5, 0, 'CREA'),
+  ('Fagioli mung cotti', 'Legumi', 105, 7, 19.2, 0.4, 7.6, 0, 0, 'CREA'),
+  ('Soia secca cotta', 'Legumi', 173, 16.6, 9.9, 9, 6, 0, 2, 'CREA'),
+  ('Fave secche cotte', 'Legumi', 110, 7.6, 21, 0.5, 5.4, 0.5, 0.1, 'CREA'),
+  ('Vitello al forno', 'Proteine', 175, 27.5, 0, 6.5, 0, 0, 1.5, 'CREA')
+ON CONFLICT (name, category) DO NOTHING;
+
+-- Chunk 4: foods 1501–2000
+INSERT INTO public_foods (name, category, kcal_100g, proteins_100g, carbs_100g, fats_100g, fiber_100g, sugar_100g, fat_sat_100g, src)
+VALUES
+  ('Manzo bollito', 'Proteine', 188, 28.5, 0, 8, 0, 0, 2.5, 'CREA'),
+  ('Pollo alla griglia (senza pelle)', 'Proteine', 165, 31, 0, 3.6, 0, 0, 1, 'CREA'),
+  ('Pollo lesso (senza pelle)', 'Proteine', 157, 30, 0, 3.5, 0, 0, 0.8, 'CREA'),
+  ('Tacchino arrosto', 'Proteine', 170, 29, 0, 5, 0, 0, 1, 'CREA'),
+  ('Agnello al forno', 'Proteine', 232, 25.5, 0, 14.5, 0, 0, 7.5, 'CREA'),
+  ('Maiale arrosto (lonza)', 'Proteine', 185, 28, 0, 7.5, 0, 0, 2, 'CREA'),
+  ('Coscia di pollo al forno (senza pelle)', 'Proteine', 177, 25.5, 0, 8, 0, 0, 2, 'CREA'),
+  ('Merluzzo al vapore', 'Proteine', 79, 17.5, 0, 0.7, 0, 0, 0.2, 'CREA'),
+  ('Salmone al vapore', 'Proteine', 196, 21.5, 0, 12, 0, 0, 2.5, 'CREA'),
+  ('Orata al forno', 'Proteine', 115, 20.5, 0, 3.5, 0, 0, 0.8, 'CREA'),
+  ('Tonno fresco alla griglia', 'Proteine', 165, 28, 0, 6, 0, 0, 0.5, 'CREA'),
+  ('Trota al vapore', 'Proteine', 119, 21.5, 0, 3.5, 0, 0, 0.8, 'CREA'),
+  ('Spigola (branzino) lessata', 'Proteine', 99, 18.5, 0, 2.5, 0, 0, 0.3, 'CREA'),
+  ('Sogliola al vapore', 'Proteine', 80, 17.5, 0, 0.5, 0, 0, 0.1, 'CREA'),
+  ('Quark (formaggio fresco magro)', 'Latticini', 70, 12.5, 3.5, 0.5, 0, 2.5, 0.2, 'BDA'),
+  ('Formaggio fresco tipo Quark intero', 'Latticini', 115, 11, 4, 5.5, 0, 3, 2, 'BDA'),
+  ('Latte di capra fresco intero', 'Latticini', 69, 3.6, 4.5, 4.5, 0, 4.5, 2.7, 'CREA'),
+  ('Latticello (buttermilk)', 'Latticini', 40, 3.3, 4.8, 0.9, 0, 4.8, 0.2, 'BDA'),
+  ('Formaggio Fontina DOP', 'Latticini', 352, 25.5, 0, 26, 0, 0, 14.5, 'CREA'),
+  ('Pecorino Sardo DOP stagionato', 'Latticini', 412, 26, 0, 33.5, 0, 0, 24.5, 'CREA'),
+  ('Caciocavallo silano DOP', 'Latticini', 393, 28, 0.5, 31, 0, 0.5, 20, 'CREA'),
+  ('Panna cotta (senza caramello)', 'Dolci e Zuccheri', 200, 3.5, 20.5, 16, 0, 18, 11.5, 'CREA'),
+  ('Crostata di marmellata (artigianale)', 'Dolci e Zuccheri', 340, 5.5, 55.5, 12, 1.5, 35, 3, 'CREA'),
+  ('Torta margherita (pan di spagna base)', 'Dolci e Zuccheri', 350, 7.5, 58, 12, 0.5, 40, 4, 'CREA'),
+  ('Biscotti da tè (tipo shortbread)', 'Pane e Prodotti da Forno', 490, 6.5, 67, 22, 1.5, 28, 9, 'CREA'),
+  ('Budino di riso (con latte e zucchero)', 'Dolci e Zuccheri', 138, 3.8, 22, 4.5, 0.2, 18, 2, 'CREA'),
+  ('Miglio decorticato cotto', 'Cereali', 119, 3.5, 23.7, 1, 1.3, 0.5, 0.1, 'CREA'),
+  ('Camomilla in infuso (non zuccherata)', 'Bevande', 1, 0.1, 0.2, 0, 0, 0, 0, 'CREA'),
+  ('Tiglio in infuso (non zuccherato)', 'Bevande', 1, 0.1, 0.2, 0, 0, 0.1, 0, 'BDA'),
+  ('Verbena (tisana, non zuccherata)', 'Bevande', 1, 0.1, 0.2, 0, 0, 0, 0, 'BDA'),
+  ('Rosa canina infuso (non zuccherato)', 'Bevande', 2, 0.1, 0.5, 0, 0, 0.3, 0, 'BDA'),
+  ('Margarina vegetale (68% grassi)', 'Grassi', 600, 0.1, 0.5, 68, 0, 0, 14, 'CREA'),
+  ('Strutto di maiale', 'Grassi', 882, 0, 0, 99.7, 0, 0, 39.2, 'CREA'),
+  ('Uovo sodo (bollito 10 min)', 'Proteine', 147, 12.6, 0.6, 11.3, 0, 0, 3.4, 'CREA'),
+  ('Uovo in camicia (poached)', 'Proteine', 140, 12.5, 0.5, 10.5, 0, 0, 3.2, 'CREA'),
+  ('Frittata semplice (olio + uova)', 'Proteine', 185, 12.8, 0.5, 15, 0, 0, 4, 'CREA'),
   ('Ensure Plus (porz. 200mL=300kcal)', 'ONS Ipercalorico', 150, 6.5, 20, 5.5, 0, 13, 0.8, 'ONS'),
   ('Fortimel Extra (porz. 200mL=300kcal)', 'ONS Ipercalorico', 150, 6, 20.5, 5.4, 0, 14, 0.7, 'ONS'),
   ('Resource 2.0 (porz. 200mL=400kcal)', 'ONS Ipercalorico', 200, 9, 21.8, 8.9, 0, 13, 1.2, 'ONS'),
@@ -1522,12 +1582,7 @@ VALUES
   ('Whey Protein concentrato (porz. 30g=120kcal)', 'Proteine in Polvere', 400, 80, 7, 5, 0, 5, 1.5, 'INT'),
   ('Whey Protein isolato (porz. 30g=115kcal)', 'Proteine in Polvere', 385, 90, 2, 1, 0, 1.5, 0.2, 'INT'),
   ('Caseine micellari (porz. 30g=112kcal)', 'Proteine in Polvere', 373, 85, 2, 2, 0, 1.5, 0.5, 'INT'),
-  ('EAA Aminoacidi Essenziali (porz. 10g=40kcal)', 'Aminoacidi', 400, 100, 0, 0, 0, 0, 0, 'INT')
-ON CONFLICT (name, category) DO NOTHING;
-
--- Chunk 4: foods 1501–2000
-INSERT INTO public_foods (name, category, kcal_100g, proteins_100g, carbs_100g, fats_100g, fiber_100g, sugar_100g, fat_sat_100g, src)
-VALUES
+  ('EAA Aminoacidi Essenziali (porz. 10g=40kcal)', 'Aminoacidi', 400, 100, 0, 0, 0, 0, 0, 'INT'),
   ('BCAA 2:1:1 (porz. 5g=20kcal)', 'Aminoacidi', 400, 100, 0, 0, 0, 0, 0, 'INT'),
   ('Omega-3 EPA+DHA olio pesce (porz. 1g capsula)', 'Omega-3', 900, 0, 0, 100, 0, 0, 15, 'INT'),
   ('Vitamina D3 1000UI (per compressa)', 'Vitamine', 0, 0, 0, 0, 0, 0, 0, 'INT'),
@@ -1972,7 +2027,12 @@ VALUES
   ('Barretta proteica Quest Bar (per 100g)', 'Barrette proteiche', 366, 41.5, 43.5, 10.5, 23, 5, 2.5, 'UPF'),
   ('Barretta proteica Snickers Protein (per 100g)', 'Barrette proteiche', 415, 30, 44, 17, 5, 20, 8, 'UPF'),
   ('Barretta proteica Clif Bar (per 100g)', 'Barrette proteiche', 372, 22.5, 60, 8.5, 7.5, 22, 2, 'UPF'),
-  ('Barretta energetica Cereal (per 100g)', 'Barrette proteiche', 390, 7.5, 68, 10.5, 4, 24, 4.5, 'UPF'),
+  ('Barretta energetica Cereal (per 100g)', 'Barrette proteiche', 390, 7.5, 68, 10.5, 4, 24, 4.5, 'UPF')
+ON CONFLICT (name, category) DO NOTHING;
+
+-- Chunk 5: foods 2001–2147
+INSERT INTO public_foods (name, category, kcal_100g, proteins_100g, carbs_100g, fats_100g, fiber_100g, sugar_100g, fat_sat_100g, src)
+VALUES
   ('Barretta ai cereali Kellogg''s Special K (per 100g)', 'Barrette proteiche', 380, 12, 67, 8, 4.5, 28, 2.5, 'UPF'),
   ('Tiramisù industriale (porzione confezionata)', 'Dolci e Zuccheri', 316, 5.5, 31.5, 19, 0.5, 23, 8, 'UPF'),
   ('Panna cotta surgelata (monoporzione)', 'Dolci e Zuccheri', 195, 3, 19.5, 13.5, 0, 14, 10.5, 'UPF'),
@@ -2027,12 +2087,7 @@ VALUES
   ('Cioccolato bianco industriale (per 100g)', 'Dolci e Zuccheri', 539, 5.9, 59.5, 32.5, 0, 55.5, 20.5, 'UPF'),
   ('Brioches confezionata (per 100g)', 'Dolci e Zuccheri', 380, 8.5, 52, 16.5, 1.5, 20, 7.5, 'UPF'),
   ('Cereali da colazione tipo Frosties Kellogg''s (per 100g)', 'Cereali', 378, 5.5, 87.5, 0.8, 2, 37, 0.1, 'UPF'),
-  ('Cereali Chocapic Nestlé (per 100g)', 'Cereali', 386, 7.5, 78.5, 5, 5, 28.5, 1.5, 'UPF')
-ON CONFLICT (name, category) DO NOTHING;
-
--- Chunk 5: foods 2001–2092
-INSERT INTO public_foods (name, category, kcal_100g, proteins_100g, carbs_100g, fats_100g, fiber_100g, sugar_100g, fat_sat_100g, src)
-VALUES
+  ('Cereali Chocapic Nestlé (per 100g)', 'Cereali', 386, 7.5, 78.5, 5, 5, 28.5, 1.5, 'UPF'),
   ('Croissant industriale (per 100g)', 'Dolci e Zuccheri', 406, 7, 50.5, 21.5, 2, 12.5, 13, 'UPF'),
   ('Ringo al cioccolato (Pavesi, per 100g)', 'Pane e Prodotti da Forno', 490, 6, 67, 22, 1.5, 41, 9, 'UPF'),
   ('Abbracci Mulino Bianco (per 100g)', 'Pane e Prodotti da Forno', 480, 7.5, 68.5, 18.5, 2.5, 28, 6.5, 'UPF'),
@@ -2127,4 +2182,4 @@ VALUES
   ('Rice cakes con cioccolato fondente (per 100g)', 'Snack e Ultra-Processati', 400, 5.5, 67.5, 11.5, 4, 35, 5.5, 'UPF')
 ON CONFLICT (name, category) DO NOTHING;
 
--- Total: 2092 foods
+-- Total: 2147 foods
