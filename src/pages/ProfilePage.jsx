@@ -1013,20 +1013,13 @@ export default function ProfilePage() {
           )}
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
-          style={{ padding: '0 16px 16px', marginTop: -16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ padding: '0 16px 16px', marginTop: -16, display: 'flex', flexDirection: 'column', gap: 14 }}>
           {/* Menu */}
           <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
             {menuItems.map((item, i) => (
               <motion.button
                 key={i}
                 onClick={item.action}
-                initial={{ opacity: 0, x: -12 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.05 + i * 0.04, duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
                 whileTap={{ scale: 0.98, transition: { delay: 0, duration: 0.08 } }}
                 style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: i < menuItems.length - 1 ? '1px solid var(--border-light)' : 'none', font: 'inherit', textAlign: 'left' }}>
                 <div style={{ width: 38, height: 38, borderRadius: 12, background: item.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: item.color, flexShrink: 0 }}>
@@ -1083,7 +1076,7 @@ export default function ProfilePage() {
           <button onClick={handleSignOut} disabled={loggingOut} className="btn btn-danger" style={{ borderRadius: 'var(--r-md)', padding: '14px', fontSize: 15, fontWeight: 500, width: '100%', justifyContent: 'center', gap: 8 }}>
             <LogOut size={17} />{loggingOut ? '…' : t('profile.sign_out')}
           </button>
-        </motion.div>
+        </div>
       </div>
 
       {modal === 'personal' && <PersonalDataModal profile={localProfile} user={user} onClose={() => setModal(null)} onSaved={reloadProfile} />}

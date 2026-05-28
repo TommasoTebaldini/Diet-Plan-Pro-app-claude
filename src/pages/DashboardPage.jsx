@@ -272,9 +272,6 @@ export default function DashboardPage() {
             {ACTIONS.map(({ label, icon: Icon, to, color, bg }, idx) => (
               <motion.div
                 key={to}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 * idx, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
                 whileHover={{ y: -4, scale: 1.05 }}
                 whileTap={{ scale: 0.88 }}
               >

@@ -144,7 +144,7 @@ export default function ProgressPage() {
             <motion.div key={s.label}
               initial={{ opacity: 0, scale: 0.88 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.08 + i * 0.07, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ delay: i * 0.05, duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
               style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 14, padding: '12px', border: '1px solid rgba(255,255,255,0.15)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>
                 {s.icon}<span style={{ fontSize: 10 }}>{s.label}</span>
@@ -156,11 +156,7 @@ export default function ProgressPage() {
         </div>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.18, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-        style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
         {/* Success / Error feedback */}
         {saveOk && (
@@ -318,7 +314,7 @@ export default function ProgressPage() {
             </button>
           </div>
         )}
-      </motion.div>
+      </div>
     </div>
   )
 }

@@ -337,11 +337,7 @@ export default function WellnessPage() {
         </div>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.22, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-        style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
         {/* Saved feedback */}
         {saved && (
@@ -655,7 +651,7 @@ export default function WellnessPage() {
         )}
 
         <div style={{ height: 'var(--nav)' }} />
-      </motion.div>
+      </div>
     </div>
   )
 }
