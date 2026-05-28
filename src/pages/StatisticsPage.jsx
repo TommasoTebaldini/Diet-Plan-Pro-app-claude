@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
@@ -371,8 +372,10 @@ export default function StatisticsPage() {
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60, color: 'var(--text-muted)', fontSize: 14 }}>
-          Caricamento…
+        <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {[1,2,3,4].map(i => (
+            <div key={i} style={{ height: 72, borderRadius: 14, background: 'var(--border-light)', animation: 'skeletonPulse 1.4s ease-in-out infinite', animationDelay: `${i * 0.07}s` }} />
+          ))}
         </div>
       ) : (
         <div style={{ padding: '16px 16px 100px', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -397,10 +400,20 @@ export default function StatisticsPage() {
             <>
               {/* summary cards */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <StatCard icon={<Flame size={13} />} label="Kcal media/die" value={`${weekAvg.kcal}`} sub={dietTarget?.kcal_target ? `Obiettivo: ${dietTarget.kcal_target}` : undefined} trend={weekAvg.kcal - prevAvg.kcal} />
-                <StatCard icon={<Droplets size={13} />} label="Acqua media/die" value={weekAvg.water ? `${Math.round(weekAvg.water)} ml` : 'N/D'} trend={weekAvg.water && prevAvg.water ? weekAvg.water - prevAvg.water : undefined} />
-                <StatCard icon={<Scale size={13} />} label="Peso medio" value={weekAvg.weight ? `${weekAvg.weight} kg` : 'N/D'} trend={weekAvg.weight && prevAvg.weight ? weekAvg.weight - prevAvg.weight : undefined} />
-                <StatCard icon={<Check size={13} />} label="Aderenza media" value={`${avgAdherence}%`} sub={`${weekAdherenceData.filter(d => d.pct >= 80).length}/7 giorni ≥80%`} />
+                {[
+                  { icon: <Flame size={13} />, label: 'Kcal media/die', value: `${weekAvg.kcal}`, sub: dietTarget?.kcal_target ? `Obiettivo: ${dietTarget.kcal_target}` : undefined, trend: weekAvg.kcal - prevAvg.kcal },
+                  { icon: <Droplets size={13} />, label: 'Acqua media/die', value: weekAvg.water ? `${Math.round(weekAvg.water)} ml` : 'N/D', trend: weekAvg.water && prevAvg.water ? weekAvg.water - prevAvg.water : undefined },
+                  { icon: <Scale size={13} />, label: 'Peso medio', value: weekAvg.weight ? `${weekAvg.weight} kg` : 'N/D', trend: weekAvg.weight && prevAvg.weight ? weekAvg.weight - prevAvg.weight : undefined },
+                  { icon: <Check size={13} />, label: 'Aderenza media', value: `${avgAdherence}%`, sub: `${weekAdherenceData.filter(d => d.pct >= 80).length}/7 giorni ≥80%` },
+                ].map((card, i) => (
+                  <motion.div key={card.label}
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.06, duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
+                  >
+                    <StatCard {...card} />
+                  </motion.div>
+                ))}
               </div>
 
               {/* weekly macro chart — Pro only */}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
@@ -319,20 +320,28 @@ export default function WellnessPage() {
             { label: 'Sonno medio', val: sleepAvg ? `${sleepAvg}/5` : '–', icon: <Moon size={14} />, emoji: SLEEP_OPTIONS.find(o => o.value === Math.round(Number(sleepAvg)))?.emoji },
             { label: 'Ore sonno medie', val: sleepHoursAvg ? `${sleepHoursAvg}h` : '–', icon: <Clock size={14} /> },
             { label: 'Riposo medio', val: restednessAvg ? `${restednessAvg}/5` : '–', icon: <BedDouble size={14} />, emoji: RESTEDNESS_OPTIONS.find(o => o.value === Math.round(Number(restednessAvg)))?.emoji },
-          ].map(s => (
-            <div key={s.label} style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 14, padding: '12px', border: '1px solid rgba(255,255,255,0.15)' }}>
+          ].map((s, i) => (
+            <motion.div key={s.label}
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.06 + i * 0.06, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 14, padding: '12px', border: '1px solid rgba(255,255,255,0.15)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>
                 {s.icon}<span style={{ fontSize: 10 }}>{s.label}</span>
               </div>
               <p style={{ color: 'white', fontSize: 16, fontWeight: 700 }}>
                 {s.emoji ? `${s.emoji} ` : ''}{s.val}
               </p>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
 
-      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.22, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
         {/* Saved feedback */}
         {saved && (
@@ -646,7 +655,7 @@ export default function WellnessPage() {
         )}
 
         <div style={{ height: 'var(--nav)' }} />
-      </div>
+      </motion.div>
     </div>
   )
 }

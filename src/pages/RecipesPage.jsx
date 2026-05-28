@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { searchFoods } from '../lib/foodSearch'
@@ -150,7 +151,11 @@ function RecipeCard({ r, isOwn, expandedId, setExpandedId, onSave, onTogglePubli
   const tt = totalTime(r)
 
   return (
-    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      className="card" style={{ padding: 0, overflow: 'hidden' }}>
       <button onClick={() => setExpandedId(isOpen ? null : r.id)} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '13px 14px', display: 'flex', alignItems: 'flex-start', gap: 10, font: 'inherit', textAlign: 'left' }}>
         <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>
           🍳
@@ -241,7 +246,7 @@ function RecipeCard({ r, isOwn, expandedId, setExpandedId, onSave, onTogglePubli
           )}
         </div>
       )}
-    </div>
+    </motion.div>
   )
 }
 

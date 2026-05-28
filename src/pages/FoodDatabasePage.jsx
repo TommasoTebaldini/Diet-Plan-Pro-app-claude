@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { searchFoodsLocal, searchFoods } from '../lib/foodSearch'
@@ -304,7 +305,11 @@ export default function FoodDatabasePage() {
             {results.map((f, i) => {
               const isSaved = saved.some(s => s.name === f.name)
               return (
-                <div key={`${f.id}_${i}`} className="card" style={{ padding: '12px 14px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <motion.div key={`${f.id}_${i}`}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04, duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                  className="card" style={{ padding: '12px 14px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 4 }}>
                       <p style={{ fontSize: 14, fontWeight: 600, flex: 1, lineHeight: 1.3 }}>{f.name}</p>
@@ -322,7 +327,7 @@ export default function FoodDatabasePage() {
                   <button onClick={() => saveToFavorites(f)} style={{ background: 'none', border: 'none', cursor: isSaved ? 'default' : 'pointer', padding: 6, flexShrink: 0, color: isSaved ? '#f59e0b' : 'var(--border)' }}>
                     {isSaved ? <Star size={18} fill="#f59e0b" /> : <Star size={18} />}
                   </button>
-                </div>
+                </motion.div>
               )
             })}
           </>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
@@ -47,20 +48,12 @@ export default function ProgressPage() {
   useEffect(() => { loadData() }, [])
 
   async function loadData() {
-    const { data: wData } = await supabase
-      .from('weight_logs')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('date', { ascending: true })
-    setWeights(wData || [])
-
-    // FIX: include user_id filter
-    const { data: log } = await supabase
-      .from('daily_wellness')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('date', today)
-      .maybeSingle()
+    const [weightsRes, wellnessRes] = await Promise.all([
+      supabase.from('weight_logs').select('*').eq('user_id', user.id).order('date', { ascending: true }),
+      supabase.from('daily_wellness').select('*').eq('user_id', user.id).eq('date', today).maybeSingle(),
+    ])
+    setWeights(weightsRes.data || [])
+    const log = wellnessRes.data
     setTodayLog(log)
     if (log) {
       setMood(log.mood)
@@ -147,19 +140,27 @@ export default function ProgressPage() {
             { label: t('progress.weight'), val: latest ? `${latest} kg` : '–', sub: diff ? `${diff > 0 ? '+' : ''}${diff} kg` : '', icon: <Scale size={14} /> },
             { label: t('progress.trend'), val: totalChange ? `${totalChange > 0 ? '+' : ''}${totalChange} kg` : '–', sub: "dall'inizio", icon: <Activity size={14} /> },
             { label: t('dash.goal'), val: target ? `${target} kg` : '–', sub: latest && target ? `Mancano ${Math.abs(latest - target).toFixed(1)} kg` : '', icon: <Target size={14} /> },
-          ].map(s => (
-            <div key={s.label} style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 14, padding: '12px', border: '1px solid rgba(255,255,255,0.15)' }}>
+          ].map((s, i) => (
+            <motion.div key={s.label}
+              initial={{ opacity: 0, scale: 0.88 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.08 + i * 0.07, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 14, padding: '12px', border: '1px solid rgba(255,255,255,0.15)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>
                 {s.icon}<span style={{ fontSize: 10 }}>{s.label}</span>
               </div>
               <p style={{ color: 'white', fontSize: 16, fontWeight: 700 }}>{s.val}</p>
               {s.sub && <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, marginTop: 2 }}>{s.sub}</p>}
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
 
-      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.18, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
         {/* Success / Error feedback */}
         {saveOk && (
@@ -317,7 +318,7 @@ export default function ProgressPage() {
             </button>
           </div>
         )}
-      </div>
+      </motion.div>
     </div>
   )
 }
