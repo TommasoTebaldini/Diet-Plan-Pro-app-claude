@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
@@ -519,11 +519,17 @@ export default function MacroTrackerPage() {
             { label: 'Prot.', val: `${totals.proteins}g` },
             { label: 'Carbo', val: `${totals.carbs}g` },
             { label: 'Grassi', val: `${totals.fats}g` },
-          ].map(s => (
-            <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 10, padding: '7px 4px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.12)' }}>
+          ].map((s, i) => (
+            <motion.div
+              key={s.label}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.06, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 10, padding: '7px 4px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.12)' }}
+            >
               <p style={{ color: 'white', fontSize: 13, fontWeight: 700 }}>{s.val}</p>
               <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10 }}>{s.label}</p>
-            </div>
+            </motion.div>
           ))}
         </div>
 
@@ -590,7 +596,13 @@ export default function MacroTrackerPage() {
           const times = mealFoods.map(f => f.food_data?.meal_time).filter(Boolean).sort()
           const timeLabel = times.length > 0 ? times[0] : null
           return (
-            <div key={m.key} className="card animate-fadeIn" style={{ padding: 0, overflow: isSearching ? 'visible' : 'hidden', position: 'relative', zIndex: isSearching ? 30 : 1, borderLeft: `3px solid ${m.accent || 'var(--green-main)'}`, animationDelay: `${mIdx * 0.05}s`, transition: 'box-shadow .18s ease' }}>
+            <motion.div
+              key={m.key}
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: mIdx * 0.06, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              className="card"
+              style={{ padding: 0, overflow: isSearching ? 'visible' : 'hidden', position: 'relative', zIndex: isSearching ? 30 : 1, borderLeft: `3px solid ${m.accent || 'var(--green-main)'}`, transition: 'box-shadow .18s ease' }}>
               <div style={{ display: 'flex', alignItems: 'center', padding: '13px 14px', gap: 9 }}>
                 <button onClick={() => { if (isOpen) { setExpandedMeal(null); closeSearch() } else { setExpandedMeal(m.key); openMealSearch(m.key) } }} style={{ display: 'flex', alignItems: 'center', gap: 9, flex: 1, background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', color: 'var(--text-primary)', padding: 0, textAlign: 'left' }}>
                   <div style={{ width: 36, height: 36, borderRadius: 10, background: m.pale || 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
@@ -612,13 +624,16 @@ export default function MacroTrackerPage() {
                   )}
                   {isOpen ? <ChevronUp size={15} color="var(--text-muted)" /> : <ChevronDown size={15} color="var(--text-muted)" />}
                 </button>
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.12 }}
+                  whileTap={{ scale: 0.88, rotate: isSearching ? -90 : 90 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 18 }}
                   onClick={() => { if (isSearching) { closeSearch() } else { openMealSearch(m.key); setExpandedMeal(m.key) } }}
                   title={`Aggiungi a ${m.label}`}
                   style={{ flexShrink: 0, minWidth: 44, minHeight: 44, borderRadius: 8, background: isSearching ? (m.accent || 'var(--green-main)') : (m.pale || 'var(--green-pale)'), border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isSearching ? 'white' : (m.accent || 'var(--green-main)') }}
                 >
                   {isSearching ? <X size={14} /> : <Plus size={14} />}
-                </button>
+                </motion.button>
               </div>
               {isOpen && (
                 <div style={{ borderTop: '1px solid var(--border-light)', padding: '10px 14px 12px' }}>
@@ -859,7 +874,7 @@ export default function MacroTrackerPage() {
                   )}
                 </div>
               )}
-            </div>
+            </motion.div>
           )
         })}
 

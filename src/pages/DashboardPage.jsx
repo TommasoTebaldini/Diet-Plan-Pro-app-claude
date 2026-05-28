@@ -288,8 +288,9 @@ export default function DashboardPage() {
                 key={to}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 * idx, duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-                whileTap={{ scale: 0.9 }}
+                transition={{ delay: 0.05 * idx, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                whileHover={{ y: -4, scale: 1.05 }}
+                whileTap={{ scale: 0.88 }}
               >
                 <Link to={to} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
                   <div style={{ width: 56, height: 56, borderRadius: 18, background: dark ? color + '26' : bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: dark ? color + 'cc' : color, boxShadow: `0 2px 8px ${color}22`, border: dark ? `1px solid ${color}30` : `1.5px solid ${color}18`, transition: 'transform .15s', position: 'relative' }}>
@@ -306,7 +307,12 @@ export default function DashboardPage() {
         </div>
 
         {/* Water bar */}
-        <div className="card" style={{ padding: '14px 16px' }}>
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          className="card" style={{ padding: '14px 16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 32, height: 32, borderRadius: 10, background: dark ? '#2f7de826' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -322,7 +328,7 @@ export default function DashboardPage() {
           <div style={{ height: 8, background: 'var(--border-light)', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${waterPct}%`, background: 'linear-gradient(90deg, #60a5fa, #2f7de8)', borderRadius: 4, transition: 'width 1.2s ease' }} />
           </div>
-        </div>
+        </motion.div>
 
         {/* Next meal */}
         {nextMealInfo && (
@@ -417,6 +423,14 @@ export default function DashboardPage() {
           </Link>
         )}
         {/* ── Pro promo card ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          whileHover={{ y: -3, scale: 1.01 }}
+          whileTap={{ scale: 0.98 }}
+        >
         <Link to="/pro" style={{ textDecoration: 'none' }}>
           <div style={{
             background: isPro
@@ -446,6 +460,7 @@ export default function DashboardPage() {
             <ChevronRight size={18} color="rgba(255,255,255,0.6)" style={{ flexShrink: 0 }} />
           </div>
         </Link>
+        </motion.div>
 
         <div style={{ height: 8 }} />
       </div>
