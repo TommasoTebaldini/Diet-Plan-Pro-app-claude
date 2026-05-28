@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
@@ -196,7 +197,11 @@ export default function WaterPage() {
       <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
         {/* Progress ring + stats */}
-        <div className="card" style={{ padding: '24px 20px', textAlign: 'center' }}>
+        <motion.div className="card"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          style={{ padding: '24px 20px', textAlign: 'center' }}>
           <div style={{ position: 'relative', width: 160, height: 160, margin: '0 auto 16px' }}>
             <svg viewBox="0 0 160 160" style={{ width: 160, height: 160, transform: 'rotate(-90deg)' }}>
               <circle cx={80} cy={80} r={68} fill="none" stroke="#dbeafe" strokeWidth={12} />
@@ -235,27 +240,27 @@ export default function WaterPage() {
               Obiettivo calcolato su peso e livello attività
             </p>
           )}
-        </div>
+        </motion.div>
 
         {/* Quick add */}
-        <div className="card" style={{ padding: '18px 20px' }}>
+        <motion.div className="card"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          style={{ padding: '18px 20px' }}>
           <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>{t('water.add')}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(58px, 1fr))', gap: 8, marginBottom: 14 }}>
             {QUICK_PRESETS.map(({ label, icon, ml }) => (
-              <button key={ml} onClick={() => addWater(ml)} disabled={loading} style={{
-                padding: '12px 4px', borderRadius: 14,
-                background: 'linear-gradient(145deg, #eff6ff, #dbeafe)',
-                border: '1.5px solid #bfdbfe',
-                font: 'inherit', cursor: 'pointer',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                transition: 'transform .12s ease, box-shadow .12s ease',
-                boxShadow: '0 1px 4px rgba(59,130,246,.1)',
-              }}
-              onMouseDown={e => e.currentTarget.style.transform = 'scale(0.93)'}
-              onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
-              onTouchStart={e => e.currentTarget.style.transform = 'scale(0.93)'}
-              onTouchEnd={e => e.currentTarget.style.transform = 'scale(1)'}
-              >
+              <button key={ml} onClick={() => addWater(ml)} disabled={loading}
+                className="water-preset-btn"
+                style={{
+                  padding: '12px 4px', borderRadius: 14,
+                  background: 'linear-gradient(145deg, #eff6ff, #dbeafe)',
+                  border: '1.5px solid #bfdbfe',
+                  font: 'inherit', cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                  boxShadow: '0 1px 4px rgba(59,130,246,.1)',
+              }}>
                 <span style={{ fontSize: 22 }}>{icon}</span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#2563eb' }}>{ml} ml</span>
                 <span style={{ fontSize: 10, color: '#60a5fa', fontWeight: 500 }}>{label}</span>
@@ -279,7 +284,7 @@ export default function WaterPage() {
               <Plus size={18} />
             </button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Tabs: oggi / settimana */}
         <div style={{ display: 'flex', gap: 8 }}>

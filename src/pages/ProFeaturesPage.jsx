@@ -337,8 +337,8 @@ function FeatureCard({ feature, onOpen, index }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-30px' }}
       transition={{ delay: index * 0.06, duration: 0.5, ease: easeOut }}
-      whileHover={{ y: -5, boxShadow: '0 12px 32px rgba(0,0,0,0.12)', borderColor: feature.color + '60' }}
-      whileTap={{ scale: 0.96 }}
+      whileHover={{ y: -5, boxShadow: '0 12px 32px rgba(0,0,0,0.12)', borderColor: feature.color + '60', transition: { delay: 0, duration: 0.16, ease: [0.16, 1, 0.3, 1] } }}
+      whileTap={{ scale: 0.96, transition: { delay: 0, duration: 0.08 } }}
       onClick={onOpen}
       style={{
         background: 'var(--surface)',
@@ -362,7 +362,7 @@ function FeatureCard({ feature, onOpen, index }) {
 
       {/* Emoji icon */}
       <motion.div
-        whileHover={{ rotate: [0, -8, 8, -4, 0] }}
+        whileHover={{ rotate: [0, -8, 8, -4, 0], transition: { delay: 0, duration: 0.4 } }}
         transition={{ duration: 0.4 }}
         style={{
           width: 44, height: 44, borderRadius: 13,

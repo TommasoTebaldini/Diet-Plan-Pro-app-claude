@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { Clock, ChevronDown, ChevronUp, Flame, Leaf, FileText, CheckCircle2, Circle, History, RefreshCw, TrendingUp, Calendar, Download, ClipboardList, ImageOff } from 'lucide-react'
@@ -127,8 +128,12 @@ function MealCard({ meal, completed, onToggleComplete }) {
     <div style={{
       borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border-light)',
       background: 'var(--surface)', boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-      opacity: completed ? 0.85 : 1, transition: 'opacity 0.2s',
-    }}>
+      opacity: completed ? 0.85 : 1,
+      transition: 'opacity 0.2s, transform 0.18s cubic-bezier(.16,1,.3,1), box-shadow 0.18s',
+    }}
+    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.1)' }}
+    onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)' }}
+    >
       {/* Accent top bar */}
       <div style={{ height: 3, background: completed ? 'var(--green-main)' : meta.accent }} />
 
@@ -734,12 +739,18 @@ export default function DietPage() {
             {/* Meals */}
             {dayMeals.length > 0
               ? dayMeals.map((m, i) => (
-                <MealCard
+                <motion.div
                   key={m.id || i}
-                  meal={m}
-                  completed={completions.has(m.id)}
-                  onToggleComplete={toggleComplete}
-                />
+                  initial={{ opacity: 0, y: 18 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  <MealCard
+                    meal={m}
+                    completed={completions.has(m.id)}
+                    onToggleComplete={toggleComplete}
+                  />
+                </motion.div>
               ))
               : <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)' }}>Nessun pasto per questo giorno</div>
             }
