@@ -186,7 +186,7 @@ export default function BottomNav() {
                   const tab = tabMap[to]
                   if (!tab) return null
                   const { icon: Icon, label, badge } = tab
-                  const active = pathname === to || (to !== '/' && pathname.startsWith(to))
+                  const active = pathname === to || (to !== '/' && pathname.startsWith(to + '/'))
                   return (
                     <Link key={to} to={to} style={{
                       display: 'flex', alignItems: 'center', gap: 10,
@@ -240,7 +240,7 @@ export default function BottomNav() {
       scrollbarWidth: 'none', msOverflowStyle: 'none',
     }}>
       {TABS.map(({ to, icon: Icon, label, badge }) => {
-        const active = pathname === to || (to !== '/' && pathname.startsWith(to))
+        const active = pathname === to || (to !== '/' && pathname.startsWith(to + '/'))
         return (
           <motion.div key={to} whileTap={{ scale: 0.85 }} style={{ flex: '0 0 auto', minWidth: 58, display: 'contents' }}>
             <Link to={to} style={{

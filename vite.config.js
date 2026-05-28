@@ -50,6 +50,7 @@ export default defineConfig({
           motion: ['framer-motion'],
           charts: ['recharts'],
           supabase: ['@supabase/supabase-js'],
+          icons: ['lucide-react'],
         }
       }
     }
@@ -58,8 +59,8 @@ export default defineConfig({
     syncFoodsPlugin(),
     react(),
     VitePWA({
-      injectRegister: null,
-      registerType: 'prompt',
+      injectRegister: 'auto',
+      registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
         name: 'NutriPlan – Il tuo piano nutrizionale',
@@ -113,18 +114,28 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{html,css,js,ico,png,svg,woff2}'],
+        globPatterns: ['**/*.{html,css,js,ico,png,svg,woff2,woff}'],
         cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
             handler: 'NetworkFirst',
-            options: { cacheName: 'supabase-cache', networkTimeoutSeconds: 3 }
+            options: { cacheName: 'supabase-cache', networkTimeoutSeconds: 5 }
           },
           {
-            urlPattern: /\.(?:js|css)$/,
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'static-assets', cacheableResponse: { statuses: [0, 200] } }
+            options: { cacheName: 'google-fonts-css' }
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-webfonts',
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 }
+            }
           }
         ]
       }
