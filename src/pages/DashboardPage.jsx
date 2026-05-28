@@ -114,18 +114,23 @@ export default function DashboardPage() {
       const now = new Date()
       const today = now.toISOString().split('T')[0]
       const nowDecimalHour = now.getHours() + now.getMinutes() / 60
+      const jsDay = now.getDay()
+      const dayNumber = jsDay === 0 ? 7 : jsDay
 
-      // All base data in one parallel batch — including streak rows
       const sixtyAgo = new Date(now)
       sixtyAgo.setDate(sixtyAgo.getDate() - 60)
-      const [log, water, activeDiet, w, chat, streakRes] = await Promise.allSettled([
+
+      // Single parallel batch — everything at once, no waterfalls
+      const [log, water, activeDiet, w, chat, streakRes, apptRes] = await Promise.allSettled([
         supabase.from('daily_logs').select('kcal,proteins,carbs,fats').eq('user_id', user.id).eq('date', today).maybeSingle(),
         supabase.from('water_logs').select('amount_ml').eq('user_id', user.id).eq('date', today),
         supabase.from('patient_diets').select('id,name,kcal_target,protein_target,carbs_target,fats_target,notes').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
         supabase.from('weight_logs').select('weight_kg').eq('user_id', user.id).order('date', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('chat_messages').select('id', { count: 'exact' }).eq('patient_id', user.id).eq('sender_role', 'dietitian').is('read_at', null),
         supabase.from('daily_logs').select('date').eq('user_id', user.id).gte('date', sixtyAgo.toISOString().split('T')[0]).order('date', { ascending: false }),
+        supabase.from('appointments').select('*').eq('patient_id', user.id).gte('appointment_date', now.toISOString()).order('appointment_date').limit(1).maybeSingle(),
       ])
+
       if (log.value?.data) setTodayLog(log.value.data)
       if (water.value?.data) setWaterLog(water.value.data.reduce((s, w) => s + w.amount_ml, 0))
       if (w.value?.data) setWeight(w.value.data.weight_kg)
@@ -134,7 +139,7 @@ export default function DashboardPage() {
       const currentDiet = activeDiet.value?.data ?? null
       setDiet(currentDiet)
 
-      // Streak calculation (data already fetched in parallel above)
+      // Streak calculation
       const streakRows = streakRes.value?.data
       if (streakRows) {
         const datesSet = new Set(streakRows.map(r => r.date))
@@ -149,43 +154,24 @@ export default function DashboardPage() {
         setStreak(s)
       }
 
-      // Next meal from today's diet meals
+      // Appointment
+      if (apptRes.status === 'fulfilled' && apptRes.value?.data) {
+        setAppointment(apptRes.value.data)
+      }
+
+      // Next meal — only if diet exists (second micro-batch, non-blocking for UI)
       if (currentDiet) {
-        // getDay(): 0=Sun, 1=Mon, ..., 6=Sat → convert to 1=Mon...7=Sun
-        const jsDay = now.getDay()
-        const dayNumber = jsDay === 0 ? 7 : jsDay
-        const { data: mealRows } = await supabase
-          .from('diet_meals')
+        supabase.from('diet_meals')
           .select('*')
           .eq('diet_id', currentDiet.id)
           .or(`day_number.eq.${dayNumber},day_number.is.null`)
           .order('meal_order')
-        if (mealRows?.length) {
-          const found = getNextMeal(mealRows, nowDecimalHour)
-          // found: { meal, type } — label resolved at render via t()
-          setNextMealInfo(found)
-        }
-      }
-
-      // Next appointment (graceful fail if table doesn't exist yet)
-      try {
-        const { data: appt, error: apptError } = await supabase
-          .from('appointments')
-          .select('*')
-          .eq('patient_id', user.id)
-          .gte('appointment_date', now.toISOString())
-          .order('appointment_date')
-          .limit(1)
-          .maybeSingle()
-        if (apptError && !apptError.message?.includes('relation') && !apptError.message?.includes('does not exist')) {
-          console.error('appointments query error:', apptError)
-        }
-        if (appt) setAppointment(appt)
-      } catch (err) {
-        // appointments table may not exist yet — only log unexpected errors
-        if (!err?.message?.includes('relation') && !err?.message?.includes('does not exist')) {
-          console.error('appointments error:', err)
-        }
+          .then(({ data: mealRows }) => {
+            if (mealRows?.length) {
+              const found = getNextMeal(mealRows, nowDecimalHour)
+              setNextMealInfo(found)
+            }
+          })
       }
     }
     load()

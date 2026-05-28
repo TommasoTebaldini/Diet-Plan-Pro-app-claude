@@ -3,19 +3,54 @@ import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext({})
 
+// ─── Profile sessionStorage cache (10-min TTL) ─────────────────────────────
+const PROFILE_CACHE_KEY = 'nutriplan_profile_v1'
+const PROFILE_CACHE_TTL = 10 * 60 * 1000
+
+function readProfileCache(userId) {
+  try {
+    const raw = sessionStorage.getItem(PROFILE_CACHE_KEY)
+    if (!raw) return null
+    const { data, ts, uid } = JSON.parse(raw)
+    if (uid !== userId) return null
+    if (Date.now() - ts > PROFILE_CACHE_TTL) { sessionStorage.removeItem(PROFILE_CACHE_KEY); return null }
+    return data
+  } catch { return null }
+}
+
+function writeProfileCache(userId, data) {
+  try { sessionStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({ data, ts: Date.now(), uid: userId })) } catch {}
+}
+
+function clearProfileCache() {
+  try { sessionStorage.removeItem(PROFILE_CACHE_KEY) } catch {}
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const fetchProfile = useCallback(async (userId) => {
+    // ① Serve from cache immediately — zero wait
+    const cached = readProfileCache(userId)
+    if (cached) {
+      setProfile(cached)
+      setLoading(false)
+      // Background refresh (don't block render)
+      supabase.from('profiles').select('*').eq('id', userId).single().then(({ data, error }) => {
+        if (!error && data) { setProfile(data); writeProfileCache(userId, data) }
+      })
+      return
+    }
+    // ② No cache — fetch and then render
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single()
-      if (!error) setProfile(data)
+      if (!error && data) { setProfile(data); writeProfileCache(userId, data) }
     } catch (e) {
       console.error('Error fetching profile:', e)
     } finally {
@@ -24,8 +59,8 @@ export function AuthProvider({ children }) {
   }, [])
 
   useEffect(() => {
-    // Safety net: if getSession() never resolves (e.g. SW interference), release loading after 8s
-    const safetyTimer = setTimeout(() => setLoading(false), 8000)
+    // Safety net: release loading after 6s (down from 8s) if Supabase stalls
+    const safetyTimer = setTimeout(() => setLoading(false), 6000)
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       clearTimeout(safetyTimer)
@@ -44,7 +79,10 @@ export function AuthProvider({ children }) {
   }, [fetchProfile])
 
   const refreshProfile = useCallback(async () => {
-    if (user) await fetchProfile(user.id)
+    if (user) {
+      clearProfileCache()
+      await fetchProfile(user.id)
+    }
   }, [user, fetchProfile])
 
   const signIn = useCallback(async (email, password) => {
@@ -62,6 +100,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   const signOut = useCallback(async () => {
+    clearProfileCache()
     await supabase.auth.signOut()
   }, [])
 

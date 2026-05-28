@@ -4,6 +4,7 @@ import { AnimatePresence } from 'framer-motion'
 import { useAuth } from './context/AuthContext'
 import { AppSettingsProvider } from './context/AppSettingsContext'
 import LoadingScreen from './components/LoadingScreen'
+import PageSkeleton from './components/PageSkeleton'
 import BottomNav from './components/BottomNav'
 import InstallBanner from './components/InstallBanner'
 import { NotificationProvider } from './context/NotificationContext'
@@ -84,7 +85,7 @@ function DietitianRoute({ children }) {
 function AnimatedRoutes() {
   const location = useLocation()
   return (
-    <AnimatePresence mode="wait" initial={false}>
+    <AnimatePresence mode="sync" initial={false}>
       <Routes location={location} key={location.pathname}>
         <Route path="/login" element={<PublicRoute><PageTransition><LoginPage /></PageTransition></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><PageTransition><RegisterPage /></PageTransition></PublicRoute>} />
@@ -128,7 +129,7 @@ function AppInner() {
       {user && !isDietitian && <BottomNav />}
       <div className={user && !isDietitian ? 'app-content' : 'app-content-public'}>
         <ErrorBoundary>
-          <Suspense fallback={<LoadingScreen />}>
+          <Suspense fallback={<PageSkeleton />}>
             <AnimatedRoutes />
           </Suspense>
         </ErrorBoundary>
