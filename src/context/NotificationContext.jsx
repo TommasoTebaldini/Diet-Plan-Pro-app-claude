@@ -23,7 +23,7 @@ export function NotificationProvider({ children, user }) {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `patient_id=eq.${user.id}` },
         payload => {
-          if (payload.new?.sender_role === 'dietitian' && p.newMessage) {
+          if (payload.new?.sender_role === 'dietitian' && loadPrefs().newMessage) {
             showNotification('💬 Nuovo messaggio dal dietista', payload.new.content?.slice(0, 80) || '', 'chat-msg')
           }
         },
@@ -32,7 +32,8 @@ export function NotificationProvider({ children, user }) {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'patient_documents', filter: `patient_id=eq.${user.id}` },
         payload => {
-          if (payload.new?.visible && p.newDocument) {
+          const prefs = loadPrefs()
+          if (payload.new?.visible && prefs.newDocument) {
             if (payload.new?.requires_signature) {
               showNotification('🔏 Firma richiesta', payload.new.title || 'Il tuo dietista ha condiviso un documento da firmare', 'doc-sign')
             } else {
@@ -45,7 +46,7 @@ export function NotificationProvider({ children, user }) {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'diet_plans', filter: `patient_id=eq.${user.id}` },
         () => {
-          if (p.dietUpdate) {
+          if (loadPrefs().dietUpdate) {
             showNotification('🥗 Piano alimentare aggiornato', 'Il tuo dietista ha aggiornato la tua dieta', 'diet-update')
           }
         },
@@ -54,7 +55,7 @@ export function NotificationProvider({ children, user }) {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'diet_plans', filter: `patient_id=eq.${user.id}` },
         () => {
-          if (p.dietUpdate) {
+          if (loadPrefs().dietUpdate) {
             showNotification('🥗 Piano alimentare aggiornato', 'Il tuo dietista ha modificato la tua dieta', 'diet-update')
           }
         },
