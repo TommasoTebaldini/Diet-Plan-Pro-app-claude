@@ -356,20 +356,22 @@ export default function ActivityPage() {
             {todayCalories} <span style={{ fontSize: 16, opacity: 0.75 }}>kcal bruciate</span>
           </h1>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 10 }}>
-            <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 12, padding: '8px 14px', textAlign: 'center' }}>
-              <p style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>{todayMinutes}'</p>
-              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10 }}>min attivi</p>
-            </div>
-            <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 12, padding: '8px 14px', textAlign: 'center' }}>
-              <p style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>{logs.length}</p>
-              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10 }}>attività</p>
-            </div>
-            {todaySteps > 0 && (
-              <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 12, padding: '8px 14px', textAlign: 'center' }}>
-                <p style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>{todaySteps.toLocaleString('it-IT')}</p>
-                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10 }}>passi</p>
-              </div>
-            )}
+            {[
+              { val: `${todayMinutes}'`, label: 'min attivi' },
+              { val: String(logs.length), label: 'attività' },
+              ...(todaySteps > 0 ? [{ val: todaySteps.toLocaleString('it-IT'), label: 'passi' }] : []),
+            ].map((s, i) => (
+              <motion.div
+                key={s.label}
+                initial={{ opacity: 0, scale: 0.82 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.08 + i * 0.07, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 12, padding: '8px 14px', textAlign: 'center' }}
+              >
+                <p style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>{s.val}</p>
+                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10 }}>{s.label}</p>
+              </motion.div>
+            ))}
           </div>
         </div>
       </div>
@@ -460,7 +462,7 @@ export default function ActivityPage() {
         )}
 
         {/* ── Steps goal card ── */}
-        <div className="card" style={{ padding: '18px 20px' }}>
+        <motion.div className="card" style={{ padding: '18px 20px' }} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
@@ -509,10 +511,10 @@ export default function ActivityPage() {
                 ? `${stepPct}% completato · ${(stepGoal - todaySteps).toLocaleString('it-IT')} passi mancanti`
                 : 'Registra una camminata o corsa per aggiungere passi'}
           </p>
-        </div>
+        </motion.div>
 
         {/* ── Health app integration ── */}
-        <div className="card" style={{ padding: '16px 18px', borderLeft: '3px solid var(--blue)' }}>
+        <motion.div className="card" style={{ padding: '16px 18px', borderLeft: '3px solid var(--blue)' }} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.26, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}>
           <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, color: 'var(--blue)' }}>📱 Collega la tua app salute</p>
           <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
             Apri Apple Health o Google Fit per sincronizzare passi e attività con i tuoi dati di salute.
@@ -533,7 +535,7 @@ export default function ActivityPage() {
               <span>🏃</span> Google Fit <ExternalLink size={11} />
             </a>
           </div>
-        </div>
+        </motion.div>
 
         {/* ── Tabs ── */}
         <div style={{ display: 'flex', gap: 8 }}>

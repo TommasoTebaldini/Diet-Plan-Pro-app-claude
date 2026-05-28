@@ -318,6 +318,7 @@ export default function DashboardPage() {
 
         {/* Next meal */}
         {nextMealInfo && (
+          <motion.div initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}>
           <Link to="/dieta" style={{ textDecoration: 'none' }}>
             <div className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ width: 44, height: 44, borderRadius: 14, background: dark ? '#f9731626' : '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 22 }}>
@@ -334,31 +335,32 @@ export default function DashboardPage() {
               <ChevronRight size={16} color="var(--text-muted)" />
             </div>
           </Link>
+          </motion.div>
         )}
 
         {/* Weight + diet summary */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <div className="card" style={{ padding: '14px' }}>
+          <motion.div className="card" style={{ padding: '14px' }} initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}>
             <div style={{ width: 32, height: 32, borderRadius: 10, background: dark ? '#7c3aed26' : '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
               <Scale size={16} color="#7c3aed" />
             </div>
             <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Peso attuale</p>
             <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{weight ? `${weight} kg` : '–'}</p>
             {profile?.target_weight && <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Obiettivo: {profile.target_weight} kg</p>}
-          </div>
-          <div className="card" style={{ padding: '14px' }}>
+          </motion.div>
+          <motion.div className="card" style={{ padding: '14px' }} initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.07, duration: 0.38, ease: [0.16, 1, 0.3, 1] }}>
             <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
               <Leaf size={16} color="var(--green-main)" />
             </div>
             <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Piano attivo</p>
             <p style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.3 }}>{diet?.name || 'Nessun piano'}</p>
             {diet && <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{diet.kcal_target} kcal</p>}
-          </div>
+          </motion.div>
         </div>
 
         {/* Appointment reminder */}
         {appointment && (
-          <div className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, borderLeft: '3px solid var(--green-main)' }}>
+          <motion.div className="card" initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }} style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, borderLeft: '3px solid var(--green-main)' }}>
             <div style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Calendar size={20} color="var(--green-main)" />
             </div>
@@ -370,11 +372,12 @@ export default function DashboardPage() {
               </p>
               {appointment.notes && <p style={{ fontSize: 12, color: 'var(--green-dark)', marginTop: 4 }}>💡 {appointment.notes}</p>}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Unread messages from dietitian */}
         {unreadChat > 0 && (
+          <motion.div initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}>
           <Link to="/chat" style={{ textDecoration: 'none' }}>
             <div className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, borderLeft: '3px solid #dc4a4a' }}>
               <div style={{ width: 44, height: 44, borderRadius: 14, background: dark ? '#dc4a4a26' : '#fff0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
@@ -390,10 +393,12 @@ export default function DashboardPage() {
               </div>
             </div>
           </Link>
+          </motion.div>
         )}
 
         {/* Diet preview */}
         {diet && (
+          <motion.div initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}>
           <Link to="/dieta" style={{ textDecoration: 'none' }}>
             <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg, var(--green-pale), #c8f5e2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -407,6 +412,7 @@ export default function DashboardPage() {
               <ChevronRight size={16} color="var(--text-muted)" />
             </div>
           </Link>
+          </motion.div>
         )}
         {/* ── Pro promo card ── */}
         <motion.div

@@ -250,8 +250,12 @@ export default function WaterPage() {
           style={{ padding: '18px 20px' }}>
           <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>{t('water.add')}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(58px, 1fr))', gap: 8, marginBottom: 14 }}>
-            {QUICK_PRESETS.map(({ label, icon, ml }) => (
-              <button key={ml} onClick={() => addWater(ml)} disabled={loading}
+            {QUICK_PRESETS.map(({ label, icon, ml }, i) => (
+              <motion.button key={ml} onClick={() => addWater(ml)} disabled={loading}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.06, duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+                whileTap={{ scale: 0.92 }}
                 className="water-preset-btn"
                 style={{
                   padding: '12px 4px', borderRadius: 14,
@@ -264,7 +268,7 @@ export default function WaterPage() {
                 <span style={{ fontSize: 22 }}>{icon}</span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#2563eb' }}>{ml} ml</span>
                 <span style={{ fontSize: 10, color: '#60a5fa', fontWeight: 500 }}>{label}</span>
-              </button>
+              </motion.button>
             ))}
           </div>
 
