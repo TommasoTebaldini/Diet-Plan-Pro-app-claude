@@ -8,7 +8,9 @@ import {
   LogOut, User, Mail, ChevronRight, Bell, Shield, X, Check,
   Eye, EyeOff, Camera, Utensils, AlertCircle, Globe, Moon, Sun, Type, Contrast,
   Fingerprint, Download, Upload, Accessibility, Plus, Trash2, BellOff, BellRing,
+  Star, Crown,
 } from 'lucide-react'
+import { useSubscription } from '../hooks/useSubscription'
 import {
   isBiometricSupported,
   isBiometricAvailable,
@@ -909,6 +911,7 @@ function BackupModal({ user, onClose }) {
 export default function ProfilePage() {
   const { user, profile, signOut, refreshProfile } = useAuth()
   const { settings } = useAppSettings()
+  const { isPro } = useSubscription()
   const t = useT()
   const navigate = useNavigate()
   const fileInputRef = useRef(null)
@@ -1025,6 +1028,38 @@ export default function ProfilePage() {
               </button>
             ))}
           </div>
+
+          {/* Pro card */}
+          <button
+            onClick={() => navigate('/pro')}
+            style={{
+              width: '100%', background: isPro
+                ? 'linear-gradient(135deg, #064E3B, #0F766E)'
+                : 'linear-gradient(135deg, #1E1B4B, #4338CA)',
+              border: 'none', borderRadius: 16, padding: '16px 18px',
+              display: 'flex', alignItems: 'center', gap: 13, cursor: 'pointer',
+              position: 'relative', overflow: 'hidden',
+            }}
+          >
+            <div style={{ position: 'absolute', top: -15, right: -15, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
+            <div style={{
+              width: 42, height: 42, borderRadius: 12, flexShrink: 0,
+              background: isPro ? 'rgba(251,191,36,0.25)' : 'rgba(255,255,255,0.15)',
+              border: `1.5px solid ${isPro ? 'rgba(251,191,36,0.5)' : 'rgba(255,255,255,0.25)'}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {isPro ? <Crown size={20} color="#FCD34D" /> : <Star size={20} color="white" />}
+            </div>
+            <div style={{ flex: 1, textAlign: 'left' }}>
+              <p style={{ color: 'white', fontWeight: 700, fontSize: 14, margin: '0 0 2px' }}>
+                {isPro ? '⭐ Piano Pro attivo' : 'Scopri NutriPlan Pro'}
+              </p>
+              <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11.5, margin: 0 }}>
+                {isPro ? 'Tutte le funzioni avanzate sbloccate' : '8 funzioni esclusive · €5,99/mese'}
+              </p>
+            </div>
+            <ChevronRight size={16} color="rgba(255,255,255,0.55)" />
+          </button>
 
           {/* App info */}
           <div className="card" style={{ padding: '14px 16px', textAlign: 'center' }}>

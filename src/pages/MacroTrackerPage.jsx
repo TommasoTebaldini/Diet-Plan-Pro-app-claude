@@ -99,7 +99,7 @@ export default function MacroTrackerPage() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [expandedMeal, setExpandedMeal] = useState('colazione')
-  const [activeMealAdd, setActiveMealAdd] = useState(null)
+  const [activeMealAdd, setActiveMealAdd] = useState('colazione')
   const [mood, setMood] = useState(null)
   const [addedFood, setAddedFood] = useState(null)
   const [showScanner, setShowScanner] = useState(false)
@@ -432,8 +432,11 @@ export default function MacroTrackerPage() {
       const daysBack = Math.round((new Date(todayStr) - new Date(next)) / (1000 * 60 * 60 * 24))
       if (daysBack > FREE_HISTORY_DAYS) return
     }
+    // Limit future planning to 30 days ahead
+    const daysFuture = Math.round((new Date(next) - new Date(todayStr)) / (1000 * 60 * 60 * 24))
+    if (daysFuture > 30) return
     setDate(next)
-    setActiveMealAdd(null)
+    setActiveMealAdd('colazione')
     setSelected(null)
     setQuery('')
     setResults([])
@@ -503,7 +506,7 @@ export default function MacroTrackerPage() {
                 : <ScanLine size={18} />
               }
             </button>
-            <button onClick={() => changeDate(1)} disabled={isToday} style={{ background: isToday ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isToday ? 'default' : 'pointer', color: isToday ? 'rgba(255,255,255,0.3)' : 'white' }}>
+            <button onClick={() => changeDate(1)} title="Pianifica un giorno futuro" style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}>
               <ChevronRight size={18} />
             </button>
           </div>
@@ -589,7 +592,7 @@ export default function MacroTrackerPage() {
           return (
             <div key={m.key} className="card animate-fadeIn" style={{ padding: 0, overflow: isSearching ? 'visible' : 'hidden', position: 'relative', zIndex: isSearching ? 30 : 1, borderLeft: `3px solid ${m.accent || 'var(--green-main)'}`, animationDelay: `${mIdx * 0.05}s`, transition: 'box-shadow .18s ease' }}>
               <div style={{ display: 'flex', alignItems: 'center', padding: '13px 14px', gap: 9 }}>
-                <button onClick={() => { setExpandedMeal(isOpen ? null : m.key); if (isOpen && isSearching) closeSearch() }} style={{ display: 'flex', alignItems: 'center', gap: 9, flex: 1, background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', color: 'var(--text-primary)', padding: 0, textAlign: 'left' }}>
+                <button onClick={() => { if (isOpen) { setExpandedMeal(null); closeSearch() } else { setExpandedMeal(m.key); openMealSearch(m.key) } }} style={{ display: 'flex', alignItems: 'center', gap: 9, flex: 1, background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', color: 'var(--text-primary)', padding: 0, textAlign: 'left' }}>
                   <div style={{ width: 36, height: 36, borderRadius: 10, background: m.pale || 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
                     {m.emoji}
                   </div>

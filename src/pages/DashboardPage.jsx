@@ -5,7 +5,8 @@ import { useAuth } from '../context/AuthContext'
 import { useAppSettings } from '../context/AppSettingsContext'
 import { supabase } from '../lib/supabase'
 import { useT } from '../i18n'
-import { Utensils, Droplets, TrendingUp, Apple, Flame, Leaf, MessageCircle, FileText, BookOpen, User, ChevronRight, Activity, Scale, Calendar, Zap, Award, Heart, BarChart2 } from 'lucide-react'
+import { Utensils, Droplets, TrendingUp, Apple, Flame, Leaf, MessageCircle, FileText, BookOpen, User, ChevronRight, Activity, Scale, Calendar, Zap, Award, Heart, BarChart2, Star, Crown } from 'lucide-react'
+import { useSubscription } from '../hooks/useSubscription'
 
 // Animated progress ring: starts at 0, transitions to target pct on mount
 function Ring({ pct, color, size = 60, strokeWidth = 7 }) {
@@ -89,6 +90,7 @@ const ACTIONS = [
 export default function DashboardPage() {
   const { profile, user } = useAuth()
   const { settings } = useAppSettings()
+  const { isPro } = useSubscription()
   const t = useT()
   const dark = settings.darkMode
   const [todayLog, setTodayLog] = useState(null)
@@ -414,6 +416,38 @@ export default function DashboardPage() {
             </div>
           </Link>
         )}
+        {/* ── Pro promo card ── */}
+        <Link to="/pro" style={{ textDecoration: 'none' }}>
+          <div style={{
+            background: isPro
+              ? 'linear-gradient(135deg, #064E3B, #0F766E)'
+              : 'linear-gradient(135deg, #1E1B4B, #4338CA)',
+            borderRadius: 18, padding: '16px 18px',
+            display: 'flex', alignItems: 'center', gap: 14, position: 'relative', overflow: 'hidden',
+          }}>
+            {/* Decorative circle */}
+            <div style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
+            <div style={{
+              width: 44, height: 44, borderRadius: 13, flexShrink: 0,
+              background: isPro ? 'rgba(251,191,36,0.25)' : 'rgba(255,255,255,0.15)',
+              border: `1.5px solid ${isPro ? 'rgba(251,191,36,0.5)' : 'rgba(255,255,255,0.25)'}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {isPro ? <Crown size={22} color="#FCD34D" /> : <Star size={22} color="white" />}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ color: 'white', fontWeight: 800, fontSize: 15, margin: '0 0 2px' }}>
+                {isPro ? '⭐ Piano Pro attivo' : 'Scopri NutriPlan Pro'}
+              </p>
+              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, margin: 0 }}>
+                {isPro ? 'Tutte le funzioni avanzate sbloccate' : '8 funzioni esclusive · 7 giorni gratis →'}
+              </p>
+            </div>
+            <ChevronRight size={18} color="rgba(255,255,255,0.6)" style={{ flexShrink: 0 }} />
+          </div>
+        </Link>
+
+        <div style={{ height: 8 }} />
       </div>
     </div>
   )

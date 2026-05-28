@@ -121,7 +121,8 @@ export default function BottomNav() {
     { to: '/statistiche', icon: BarChart2, label: t('nav.report') },
     { to: '/benessere', icon: Heart, label: t('nav.wellness') },
     { to: '/profilo', icon: User, label: t('nav.profile') },
-    ...(PAYMENTS_ACTIVE ? [{ to: '/abbonamento', icon: Star, label: isPro ? '⭐ Pro' : 'Abbonamento' }] : []),
+    { to: '/pro', icon: Star, label: isPro ? '⭐ Pro' : '🔓 Pro' },
+    ...(PAYMENTS_ACTIVE ? [{ to: '/abbonamento', icon: Star, label: 'Abbonamento' }] : []),
   ]
 
   if (isDesktop) {
@@ -131,7 +132,7 @@ export default function BottomNav() {
       { label: t('nav.section_nutrition'), items: ['/dieta', '/macro', '/ricette'] },
       { label: t('nav.section_professionals'), items: ['/chat', '/documenti', '/dietisti'] },
       { label: t('nav.section_monitoring'), items: ['/progressi', '/attivita', '/benessere', '/statistiche'] },
-      { label: null, items: PAYMENTS_ACTIVE ? ['/profilo', '/abbonamento'] : ['/profilo'] },
+      { label: null, items: PAYMENTS_ACTIVE ? ['/profilo', '/pro', '/abbonamento'] : ['/profilo', '/pro'] },
     ]
 
     return (
