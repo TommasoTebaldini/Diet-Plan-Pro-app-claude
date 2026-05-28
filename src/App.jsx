@@ -1,4 +1,4 @@
-import { lazy, Suspense, Component } from 'react'
+import { lazy, Suspense, Component, useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import { useAuth } from './context/AuthContext'
@@ -82,10 +82,21 @@ function DietitianRoute({ children }) {
   return children
 }
 
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    window.scrollTo(0, 0)
+    // Also reset any scrollable .page element (mobile PWA inner scroll)
+    const page = document.querySelector('.page')
+    if (page) page.scrollTop = 0
+  }, [pathname])
+  return null
+}
+
 function AnimatedRoutes() {
   const location = useLocation()
   return (
-    <AnimatePresence mode="sync" initial={false}>
+    <AnimatePresence mode="wait" initial={false}>
       <Routes location={location} key={location.pathname}>
         <Route path="/login" element={<PublicRoute><PageTransition><LoginPage /></PageTransition></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><PageTransition><RegisterPage /></PageTransition></PublicRoute>} />
@@ -124,6 +135,7 @@ function AppInner() {
 
   return (
     <NotificationProvider user={user}>
+      <ScrollToTop />
       <OfflineBar onReconnect={handleReconnect} />
       <InstallBanner />
       {user && !isDietitian && <BottomNav />}
