@@ -60,7 +60,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     // Safety net: release loading after 6s (down from 8s) if Supabase stalls
-    const safetyTimer = setTimeout(() => setLoading(false), 6000)
+    const safetyTimer = setTimeout(() => setLoading(false), 3000)
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       clearTimeout(safetyTimer)

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
@@ -6,8 +6,8 @@ import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
 import { searchFoodsLocal, searchFoods, searchByBarcode } from '../lib/foodSearch'
 import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle, Pencil, Check, Lock, Camera } from 'lucide-react'
-import BarcodeScanner from '../components/BarcodeScanner'
-import MealPhotoAnalyzer from '../components/MealPhotoAnalyzer'
+const BarcodeScanner   = lazy(() => import('../components/BarcodeScanner'))
+const MealPhotoAnalyzer = lazy(() => import('../components/MealPhotoAnalyzer'))
 import ProGate from '../components/ProGate'
 import { useSubscription } from '../hooks/useSubscription'
 
@@ -910,18 +910,22 @@ export default function MacroTrackerPage() {
       </div>
 
       {showScanner && (
-        <BarcodeScanner
-          onFound={handleBarcodeFound}
-          onClose={() => setShowScanner(false)}
-        />
+        <Suspense fallback={null}>
+          <BarcodeScanner
+            onFound={handleBarcodeFound}
+            onClose={() => setShowScanner(false)}
+          />
+        </Suspense>
       )}
 
       <AnimatePresence>
         {showPhotoAnalyzer && (
-          <MealPhotoAnalyzer
-            onAddFoods={addFoodsFromPhoto}
-            onClose={() => setShowPhotoAnalyzer(false)}
-          />
+          <Suspense fallback={null}>
+            <MealPhotoAnalyzer
+              onAddFoods={addFoodsFromPhoto}
+              onClose={() => setShowPhotoAnalyzer(false)}
+            />
+          </Suspense>
         )}
       </AnimatePresence>
 
