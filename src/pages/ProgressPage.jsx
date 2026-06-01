@@ -49,7 +49,7 @@ export default function ProgressPage() {
 
   async function loadData() {
     const [weightsRes, wellnessRes] = await Promise.all([
-      supabase.from('weight_logs').select('*').eq('user_id', user.id).order('date', { ascending: true }),
+      supabase.from('weight_logs').select('id,date,weight_kg').eq('user_id', user.id).order('date', { ascending: true }).limit(730),
       supabase.from('daily_wellness').select('*').eq('user_id', user.id).eq('date', today).maybeSingle(),
     ])
     setWeights(weightsRes.data || [])

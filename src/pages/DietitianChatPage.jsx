@@ -621,7 +621,7 @@ function PatientDiary({ patientId }) {
     setLoading(true)
     const { data } = await supabase
       .from('food_logs')
-      .select('*')
+      .select('id,date,meal_type,food_name,grams,kcal,proteins,carbs,fats,food_data,created_at')
       .eq('user_id', patientId)
       .eq('date', date)
       .order('created_at')
@@ -963,6 +963,7 @@ export default function DietitianChatPage() {
       .select('*')
       .eq('patient_id', patientId)
       .order('created_at', { ascending: true })
+      .limit(150)
     setMessages(msgs ?? [])
     const unread = (msgs ?? []).filter(m => m.sender_role === 'patient' && !m.read_at)
     if (unread.length) markAsRead(unread.map(m => m.id))

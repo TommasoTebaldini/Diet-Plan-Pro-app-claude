@@ -348,7 +348,7 @@ export default function MacroTrackerPage() {
   }
 
   async function updateDailyLog() {
-    const { data } = await supabase.from('food_logs').select('*').eq('user_id', user.id).eq('date', date)
+    const { data } = await supabase.from('food_logs').select('kcal,proteins,carbs,fats').eq('user_id', user.id).eq('date', date)
     if (!data) return
     const t = data.reduce((a, f) => ({
       kcal: a.kcal + (f.kcal || 0), proteins: a.proteins + (f.proteins || 0),

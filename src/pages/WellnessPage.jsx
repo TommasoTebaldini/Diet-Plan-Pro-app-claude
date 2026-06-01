@@ -145,7 +145,7 @@ export default function WellnessPage() {
     const from = cutoff.toISOString().split('T')[0]
 
     const [wellnessRes, macroRes] = await Promise.all([
-      supabase.from('daily_wellness').select('*')
+      supabase.from('daily_wellness').select('id,date,mood,energy,sleep_quality,sleep_hours,sleep_restedness,symptoms,notes,stress_level,hydration_level')
         .eq('user_id', user.id)
         .gte('date', from)
         .order('date', { ascending: true }),
