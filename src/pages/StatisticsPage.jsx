@@ -17,7 +17,6 @@ import {
 } from 'lucide-react'
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, parseISO, addWeeks, subWeeks } from 'date-fns'
 import { it } from 'date-fns/locale'
-import jsPDF from 'jspdf'
 
 // ── helpers ────────────────────────────────────────────────────
 const TABS_STATIC = [
@@ -125,7 +124,7 @@ export default function StatisticsPage() {
       supabase.from('water_logs').select('date,amount_ml').eq('user_id', user.id).gte('date', pws).lte('date', pwe),
       supabase.from('weight_logs').select('date,weight_kg').eq('user_id', user.id).gte('date', pws).lte('date', pwe),
       supabase.from('patient_diets').select('kcal_target,protein_target,carbs_target,fats_target,meals_count').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
-      supabase.from('food_logs').select('date,meal_type').eq('user_id', user.id).gte('date', pws).lte('date', we),
+      supabase.from('food_logs').select('date,meal_type').eq('user_id', user.id).gte('date', pws).lte('date', we).limit(300),
     ])
 
     setDietTarget(dietRes.data || null)
@@ -222,6 +221,8 @@ export default function StatisticsPage() {
   async function generatePdf() {
     setGeneratingPdf(true)
     try {
+      const { default: jsPDF } = await import('jspdf')
+      const { default: jsPDF } = await import('jspdf')
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
       const W = 210
       const margin = 14

@@ -503,7 +503,7 @@ export default function DietPage() {
       const batch2 = []
       if (activeDiet) {
         batch2.push(
-          supabase.from('diet_meals').select('*').eq('diet_id', activeDiet.id).order('day_number').order('meal_order'),
+          supabase.from('diet_meals').select('id,diet_id,meal_type,meal_order,day_number,kcal,proteins,carbs,fats,notes,description,foods').eq('diet_id', activeDiet.id).order('day_number').order('meal_order'),
           supabase.from('meal_completions').select('diet_meal_id').eq('user_id', user.id).eq('date', today),
         )
       } else {
@@ -563,7 +563,7 @@ export default function DietPage() {
       return
     }
     setSelectedHistoryId(dietId)
-    const { data } = await supabase.from('diet_meals').select('*').eq('diet_id', dietId).order('day_number').order('meal_order')
+    const { data } = await supabase.from('diet_meals').select('id,diet_id,meal_type,meal_order,day_number,kcal,proteins,carbs,fats,notes,description,foods').eq('diet_id', dietId).order('day_number').order('meal_order')
     setHistoryMeals(data || [])
   }, [selectedHistoryId])
 

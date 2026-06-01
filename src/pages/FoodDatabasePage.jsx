@@ -121,9 +121,15 @@ export default function FoodDatabasePage() {
   const [expandedRicetta, setExpandedRicetta] = useState(null)
 
   useEffect(() => {
-    supabase.from('custom_foods').select('*').order('name').then(({ data }) => setSaved(data || []))
-    supabase.from('custom_meals').select('*').order('created_at', { ascending: false }).then(({ data }) => setMeals(data || []))
-    supabase.from('ricette').select('*').order('created_at', { ascending: false }).then(({ data }) => setRicette(data || []))
+    Promise.all([
+      supabase.from('custom_foods').select('*').order('name'),
+      supabase.from('custom_meals').select('*').order('created_at', { ascending: false }),
+      supabase.from('ricette').select('*').order('created_at', { ascending: false }),
+    ]).then(([foods, meals, rec]) => {
+      setSaved(foods.data || [])
+      setMeals(meals.data || [])
+      setRicette(rec.data || [])
+    })
     // Load recent / frequent foods
     supabase.from('food_logs').select('food_name, kcal, proteins, carbs, fats, grams, food_data').eq('user_id', user.id).order('created_at', { ascending: false }).limit(100)
       .then(({ data }) => {

@@ -51,6 +51,7 @@ export default defineConfig({
           charts: ['recharts'],
           supabase: ['@supabase/supabase-js'],
           icons: ['lucide-react'],
+          datefns: ['date-fns'],
         }
       }
     }

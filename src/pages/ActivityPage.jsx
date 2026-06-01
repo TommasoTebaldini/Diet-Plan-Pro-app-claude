@@ -189,7 +189,7 @@ export default function ActivityPage() {
     async function load() {
       setLoading(true)
       const [logsRes, weightRes] = await Promise.all([
-        supabase.from('activity_logs').select('*').eq('user_id', user.id).eq('date', today).order('created_at'),
+        supabase.from('activity_logs').select('id,activity_type,duration_minutes,calories_burned,steps,notes,date,created_at').eq('user_id', user.id).eq('date', today).order('created_at'),
         supabase.from('weight_logs').select('weight_kg').eq('user_id', user.id).order('date', { ascending: false }).limit(1).maybeSingle(),
       ])
       if (!logsRes.error) setLogs(logsRes.data || [])
@@ -240,11 +240,12 @@ export default function ActivityPage() {
       const from = subDays(new Date(), 30).toISOString().split('T')[0]
       const { data, error } = await supabase
         .from('activity_logs')
-        .select('*')
+        .select('id,activity_type,duration_minutes,calories_burned,steps,notes,date,created_at')
         .eq('user_id', user.id)
         .gte('date', from)
         .order('date', { ascending: false })
         .order('created_at', { ascending: false })
+        .limit(150)
       if (!error) setHistoryLogs(data || [])
     }
     loadHistory()
@@ -328,7 +329,7 @@ export default function ActivityPage() {
   function saveStepGoalFn() { handleSaveGoal() }
 
   function reloadToday() {
-    supabase.from('activity_logs').select('*').eq('user_id', user.id).eq('date', today).order('created_at')
+    supabase.from('activity_logs').select('id,activity_type,duration_minutes,calories_burned,steps,notes,date,created_at').eq('user_id', user.id).eq('date', today).order('created_at')
       .then(({ data }) => { if (data) setLogs(data) })
   }
 

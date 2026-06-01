@@ -123,11 +123,22 @@ async function searchDietMealFoods(query) {
   } catch { return [] }
 }
 
+// Cached userId — avoids calling getSession() on every keystroke during search
+let _cachedUserId = null
+supabase.auth.onAuthStateChange((event, sess) => {
+  _cachedUserId = sess?.user?.id ?? null
+})
+async function _getUserId() {
+  if (_cachedUserId) return _cachedUserId
+  const { data: { session } } = await supabase.auth.getSession()
+  _cachedUserId = session?.user?.id ?? null
+  return _cachedUserId
+}
+
 // Recipes table (own recipes only — public recipes saved by user become their own copy)
 async function searchRicette(query) {
   try {
-    const { data: { session } } = await supabase.auth.getSession()
-    const userId = session?.user?.id
+    const userId = await _getUserId()
     if (!userId) return []
     const { data } = await supabase.from('ricette')
       .select('*')

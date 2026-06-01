@@ -499,7 +499,7 @@ export default function ChatPage() {
         .select('id,patient_id,sender_role,sender_id,content,message_type,file_url,file_name,duration_seconds,read_at,created_at')
         .eq('patient_id', user.id)
         .order('created_at', { ascending: true })
-        .limit(500),
+        .limit(150),
       supabase.from('patient_documents').select('id, title, content, type').eq('patient_id', user.id).eq('requires_signature', true).is('signed_at', null).eq('visible', true),
     ])
 
