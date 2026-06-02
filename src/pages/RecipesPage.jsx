@@ -1,19 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { searchFoods } from '../lib/foodSearch'
 import ProGate from '../components/ProGate'
 import { useSubscription } from '../hooks/useSubscription'
-import { Search, Plus, X, Trash2, ChevronDown, ChevronUp, Globe, Lock, Bookmark, Pencil } from 'lucide-react'
+import { Search, Plus, X, Trash2, ChevronDown, ChevronUp, Globe, Lock, Bookmark, Pencil, Heart, SlidersHorizontal } from 'lucide-react'
 import { useT } from '../i18n'
 
 const FREE_RECIPES_LIMIT = 5
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-// Defensive parse: ingredienti/fasi_preparazione can be a JSON string if the DB
-// column was TEXT when the row was first inserted (admin-app table schema conflict).
 function safeArray(v) {
   if (Array.isArray(v)) return v
   if (typeof v === 'string' && v.trim()) {
@@ -62,6 +60,46 @@ function fmtTime(min) {
   if (min < 60) return `${min} min`
   const h = Math.floor(min / 60), m = min % 60
   return m > 0 ? `${h}h ${m}min` : `${h}h`
+}
+
+// ── Allergen keyword map ──────────────────────────────────────────────────────
+const ALLERGEN_KEYWORDS = {
+  'Glutine':      ['grano', 'farina', 'pasta', 'pane', 'glutine', 'orzo', 'segale', 'avena', 'semola', 'crackers', 'grissini', 'cous cous'],
+  'Lattosio':     ['latte', 'lattosio', 'panna', 'burro', 'formaggio', 'yogurt', 'mozzarella', 'ricotta', 'parmigiano', 'pecorino'],
+  'Uova':         ['uovo', 'uova', 'albume', 'tuorlo', 'maionese'],
+  'Pesce':        ['pesce', 'salmone', 'tonno', 'merluzzo', 'trota', 'branzino', 'orata', 'acciughe', 'sardine', 'gamberi', 'cozze', 'vongole', 'polpo', 'calamari', 'baccala'],
+  'Frutta secca': ['noci', 'mandorle', 'nocciole', 'pistacchi', 'anacardi', 'arachidi', 'pinoli', 'nocciolina'],
+  'Soia':         ['soia', 'tofu', 'edamame', 'miso', 'tempeh'],
+}
+
+function recipeMatchesAllergen(recipe, allergen) {
+  const keywords = ALLERGEN_KEYWORDS[allergen] || []
+  const textToSearch = [
+    recipe.nome || '',
+    recipe.note || '',
+    ...safeArray(recipe.ingredienti).map(i => i.food_name || ''),
+  ].join(' ').toLowerCase()
+  return keywords.some(kw => textToSearch.includes(kw))
+}
+
+// ── localStorage favorites ────────────────────────────────────────────────────
+function getFavIds() {
+  try { return JSON.parse(localStorage.getItem('fav_recipes') || '[]') } catch { return [] }
+}
+function toggleFavId(id) {
+  const ids = getFavIds()
+  const next = ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]
+  localStorage.setItem('fav_recipes', JSON.stringify(next))
+  return next
+}
+
+// ── EMPTY_FILTERS ─────────────────────────────────────────────────────────────
+const EMPTY_FILTERS = {
+  search: '',
+  kcalMax: '',
+  protMin: '',
+  timeMax: 'all',
+  allergens: [],
 }
 
 // ── IngredientSearch ──────────────────────────────────────────────────────────
@@ -146,9 +184,10 @@ function IngredientSearch({ onAdd }) {
 }
 
 // ── RecipeCard ────────────────────────────────────────────────────────────────
-function RecipeCard({ r, isOwn, expandedId, setExpandedId, onSave, onTogglePublic, onDelete, onEdit }) {
+function RecipeCard({ r, isOwn, isDietitian, expandedId, setExpandedId, onSave, onTogglePublic, onDelete, onEdit, favIds, onToggleFav }) {
   const isOpen = expandedId === r.id
   const tt = totalTime(r)
+  const isFav = favIds?.includes(r.id)
 
   return (
     <motion.div
@@ -157,25 +196,33 @@ function RecipeCard({ r, isOwn, expandedId, setExpandedId, onSave, onTogglePubli
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
       className="card" style={{ padding: 0, overflow: 'hidden' }}>
       <button onClick={() => setExpandedId(isOpen ? null : r.id)} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '13px 14px', display: 'flex', alignItems: 'flex-start', gap: 10, font: 'inherit', textAlign: 'left' }}>
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>
-          🍳
+        <div style={{ width: 40, height: 40, borderRadius: 10, background: isDietitian ? 'linear-gradient(135deg, #0891b2, #0e7490)' : 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>
+          {isDietitian ? '🩺' : '🍳'}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginBottom: 3 }}>
             <p style={{ fontSize: 14, fontWeight: 700 }}>{r.nome}</p>
-            {r.is_public && <span style={{ fontSize: 9, background: '#dbeafe', color: '#1d4ed8', padding: '1px 6px', borderRadius: 100, fontWeight: 700, flexShrink: 0 }}>🌐 Pubblica</span>}
+            {isDietitian && <span style={{ fontSize: 9, background: '#cffafe', color: '#0e7490', padding: '1px 6px', borderRadius: 100, fontWeight: 700, flexShrink: 0 }}>🩺 Dietista</span>}
+            {!isDietitian && r.is_public && <span style={{ fontSize: 9, background: '#dbeafe', color: '#1d4ed8', padding: '1px 6px', borderRadius: 100, fontWeight: 700, flexShrink: 0 }}>🌐 Pubblica</span>}
           </div>
           <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
             🔥 {r.calorie_porzione || 0} kcal · {r.porzioni || 1} porz.{tt > 0 ? ` · ⏱ ${fmtTime(tt)}` : ''}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 2, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+          {/* Dietitian tab: favourite toggle only */}
+          {isDietitian && (
+            <button onClick={() => onToggleFav(r.id)} title={isFav ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', color: isFav ? '#e11d48' : 'var(--text-muted)' }}>
+              <Heart size={15} fill={isFav ? '#e11d48' : 'none'} />
+            </button>
+          )}
+          {/* Own recipe controls */}
           {isOwn && (
             <button onClick={() => onTogglePublic(r)} title={r.is_public ? 'Rendi privata' : 'Pubblica'} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', color: r.is_public ? '#1d4ed8' : 'var(--text-muted)' }}>
               {r.is_public ? <Globe size={15} /> : <Lock size={15} />}
             </button>
           )}
-          {!isOwn && (
+          {!isOwn && !isDietitian && (
             <button onClick={() => onSave(r)} title="Salva nelle mie ricette" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green-main)' }}>
               <Bookmark size={15} />
             </button>
@@ -239,15 +286,199 @@ function RecipeCard({ r, isOwn, expandedId, setExpandedId, onSave, onTogglePubli
 
           {r.note && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 10, fontStyle: 'italic', lineHeight: 1.5 }}>📝 {r.note}</p>}
 
-          {!isOwn && (
+          {!isOwn && !isDietitian && (
             <button className="btn btn-primary btn-full" onClick={() => onSave(r)} style={{ marginTop: 14 }}>
               + Salva nelle mie ricette
+            </button>
+          )}
+          {isDietitian && (
+            <button className="btn btn-full" onClick={() => onToggleFav(r.id)} style={{ marginTop: 14, background: isFav ? '#fce7f3' : 'var(--surface-2)', color: isFav ? '#9d174d' : 'var(--text-secondary)', border: 'none', borderRadius: 10, padding: '10px 16px', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
+              {isFav ? '♥ Rimossa dai preferiti' : '♡ Aggiungi ai preferiti'}
             </button>
           )}
         </div>
       )}
     </motion.div>
   )
+}
+
+// ── AdvancedFilters ───────────────────────────────────────────────────────────
+function AdvancedFilters({ filters, onChange, onReset }) {
+  const [open, setOpen] = useState(false)
+  const allergenList = Object.keys(ALLERGEN_KEYWORDS)
+  const hasActive = filters.kcalMax || filters.protMin || filters.timeMax !== 'all' || filters.allergens.length > 0
+
+  function toggleAllergen(a) {
+    const next = filters.allergens.includes(a)
+      ? filters.allergens.filter(x => x !== a)
+      : [...filters.allergens, a]
+    onChange({ ...filters, allergens: next })
+  }
+
+  return (
+    <div style={{ marginBottom: 4 }}>
+      {/* Search row */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <Search size={14} style={{ position: 'absolute', left: 10, color: 'var(--text-muted)', pointerEvents: 'none' }} />
+          <input
+            className="input-field"
+            placeholder="Cerca per nome…"
+            value={filters.search}
+            onChange={e => onChange({ ...filters, search: e.target.value })}
+            style={{ paddingLeft: 32, flex: 1 }}
+          />
+          {filters.search && (
+            <button onClick={() => onChange({ ...filters, search: '' })} style={{ position: 'absolute', right: 8, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2 }}>
+              <X size={13} />
+            </button>
+          )}
+        </div>
+        <button
+          onClick={() => setOpen(o => !o)}
+          style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '0 12px', background: hasActive ? 'var(--green-main)' : 'var(--surface-2)', color: hasActive ? 'white' : 'var(--text-secondary)', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 12, fontWeight: 600, height: 42, flexShrink: 0 }}>
+          <SlidersHorizontal size={14} />
+          Filtri{hasActive ? ` (${[filters.kcalMax ? 1 : 0, filters.protMin ? 1 : 0, filters.timeMax !== 'all' ? 1 : 0, filters.allergens.length].reduce((a, b) => a + b, 0)})` : ''}
+        </button>
+      </div>
+
+      {open && (
+        <div className="card animate-slideUp" style={{ padding: '14px 14px 10px', marginBottom: 8 }}>
+          {/* Kcal + Proteine */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+            <div className="input-group">
+              <label className="input-label">Kcal max (per porzione)</label>
+              <input
+                type="number"
+                className="input-field"
+                placeholder="es. 500"
+                value={filters.kcalMax}
+                onChange={e => onChange({ ...filters, kcalMax: e.target.value })}
+                min={0}
+                inputMode="numeric"
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Proteine min (g)</label>
+              <input
+                type="number"
+                className="input-field"
+                placeholder="es. 20"
+                value={filters.protMin}
+                onChange={e => onChange({ ...filters, protMin: e.target.value })}
+                min={0}
+                inputMode="numeric"
+              />
+            </div>
+          </div>
+
+          {/* Tempo */}
+          <div className="input-group" style={{ marginBottom: 12 }}>
+            <label className="input-label">Tempo totale</label>
+            <select
+              className="input-field"
+              value={filters.timeMax}
+              onChange={e => onChange({ ...filters, timeMax: e.target.value })}
+            >
+              <option value="all">Tutti</option>
+              <option value="15">≤ 15 min</option>
+              <option value="30">≤ 30 min</option>
+              <option value="45">≤ 45 min</option>
+              <option value="60">≤ 60 min</option>
+              <option value="60+">Oltre 60 min</option>
+            </select>
+          </div>
+
+          {/* Allergie */}
+          <div style={{ marginBottom: 10 }}>
+            <p className="input-label" style={{ marginBottom: 7 }}>Escludi allergeni</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {allergenList.map(a => {
+                const active = filters.allergens.includes(a)
+                return (
+                  <button
+                    key={a}
+                    onClick={() => toggleAllergen(a)}
+                    style={{ padding: '5px 11px', borderRadius: 100, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: active ? '1.5px solid #dc2626' : '1.5px solid var(--border)', background: active ? '#fee2e2' : 'var(--surface-2)', color: active ? '#dc2626' : 'var(--text-secondary)', transition: 'all 0.15s' }}>
+                    {active ? '✕ ' : ''}{a}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Reset */}
+          {hasActive && (
+            <button onClick={onReset} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--green-main)', fontSize: 13, fontWeight: 600, padding: '4px 0', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <X size={13} /> Azzera filtri
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Sort */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <p style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>Ordina per:</p>
+        <select
+          className="input-field"
+          style={{ flex: 1, fontSize: 12, height: 36, padding: '0 10px' }}
+          value={filters.sort || 'recent'}
+          onChange={e => onChange({ ...filters, sort: e.target.value })}
+        >
+          <option value="recent">Più recenti</option>
+          <option value="fast">Più veloci</option>
+          <option value="lowcal">Meno calorie</option>
+          <option value="highprot">Più proteine</option>
+          <option value="alpha">Nome A-Z</option>
+        </select>
+      </div>
+    </div>
+  )
+}
+
+// ── applyFiltersAndSort ───────────────────────────────────────────────────────
+function applyFiltersAndSort(recipes, filters) {
+  let out = recipes
+
+  if (filters.search) {
+    const q = filters.search.toLowerCase()
+    out = out.filter(r => r.nome?.toLowerCase().includes(q))
+  }
+
+  if (filters.kcalMax) {
+    const max = parseFloat(filters.kcalMax)
+    out = out.filter(r => (r.calorie_porzione || 0) <= max)
+  }
+
+  if (filters.protMin) {
+    const min = parseFloat(filters.protMin)
+    out = out.filter(r => (r.proteine || 0) >= min)
+  }
+
+  if (filters.timeMax && filters.timeMax !== 'all') {
+    if (filters.timeMax === '60+') {
+      out = out.filter(r => totalTime(r) > 60)
+    } else {
+      const max = parseInt(filters.timeMax)
+      out = out.filter(r => {
+        const tt = totalTime(r)
+        return tt > 0 && tt <= max
+      })
+    }
+  }
+
+  if (filters.allergens && filters.allergens.length > 0) {
+    out = out.filter(r => !filters.allergens.some(a => recipeMatchesAllergen(r, a)))
+  }
+
+  const sort = filters.sort || 'recent'
+  if (sort === 'recent') out = [...out].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  else if (sort === 'fast') out = [...out].sort((a, b) => totalTime(a) - totalTime(b))
+  else if (sort === 'lowcal') out = [...out].sort((a, b) => (a.calorie_porzione || 0) - (b.calorie_porzione || 0))
+  else if (sort === 'highprot') out = [...out].sort((a, b) => (b.proteine || 0) - (a.proteine || 0))
+  else if (sort === 'alpha') out = [...out].sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'it'))
+
+  return out
 }
 
 // ── RecipesPage ───────────────────────────────────────────────────────────────
@@ -264,8 +495,10 @@ export default function RecipesPage() {
   const [tab, setTab] = useState('mine')
   const [myRecipes, setMyRecipes] = useState([])
   const [publicRecipes, setPublicRecipes] = useState([])
+  const [dietistRecipes, setDietistRecipes] = useState([])
   const [loadingMine, setLoadingMine] = useState(true)
   const [loadingPublic, setLoadingPublic] = useState(false)
+  const [loadingDietist, setLoadingDietist] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [newStep, setNewStep] = useState('')
@@ -274,6 +507,13 @@ export default function RecipesPage() {
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
   const [editingRecipe, setEditingRecipe] = useState(null)
+
+  // Filters (shared between mine + public tabs)
+  const [myFilters, setMyFilters] = useState(EMPTY_FILTERS)
+  const [pubFilters, setPubFilters] = useState(EMPTY_FILTERS)
+
+  // Favourites (dietist tab, stored in localStorage)
+  const [favIds, setFavIds] = useState(getFavIds)
 
   useEffect(() => {
     setLoadingMine(true)
@@ -289,7 +529,20 @@ export default function RecipesPage() {
       .then(({ data }) => { setPublicRecipes(data || []); setLoadingPublic(false) })
   }, [tab, user.id])
 
+  useEffect(() => {
+    if (tab !== 'dietist') return
+    setLoadingDietist(true)
+    supabase.from('ricette').select('*').eq('is_public', true).neq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => { setDietistRecipes(data || []); setLoadingDietist(false) })
+  }, [tab, user.id])
+
   function showToast(msg) { setToast(msg); setTimeout(() => setToast(null), 2500) }
+
+  function handleToggleFav(id) {
+    const next = toggleFavId(id)
+    setFavIds(next)
+  }
 
   async function saveRecipe() {
     if (!form.nome || form.ingredienti.length === 0) return
@@ -391,12 +644,24 @@ export default function RecipesPage() {
     setNewStep('')
   }
 
-  const filtered = publicRecipes.filter(r => !pubQuery || r.nome?.toLowerCase().includes(pubQuery.toLowerCase()))
+  // Public tab: keep backward-compatible search + new filters
+  const filteredPublic = useMemo(() => {
+    const withSearch = { ...pubFilters, search: pubQuery || pubFilters.search }
+    return applyFiltersAndSort(publicRecipes, withSearch)
+  }, [publicRecipes, pubFilters, pubQuery])
+
+  const filteredMine = useMemo(() => applyFiltersAndSort(myRecipes, myFilters), [myRecipes, myFilters])
 
   // live macro preview inside form
   const formTotals = sumIngredients(form.ingredienti)
   const formPeso = form.ingredienti.reduce((s, i) => s + (parseFloat(i.grams) || 0), 0)
   const formPorz = Math.max(1, parseInt(form.porzioni) || 1)
+
+  const tabs = [
+    ['mine', `👨‍🍳 ${t('recipes.mine')}`],
+    ['public', `🌐 ${t('recipes.public')}`],
+    ['dietist', '🩺 Dal Dietista'],
+  ]
 
   return (
     <div className="page">
@@ -415,9 +680,9 @@ export default function RecipesPage() {
             {showCreate ? <X size={18} /> : <Plus size={18} />}
           </button>
         </div>
-        <div style={{ display: 'flex', gap: 7 }}>
-          {[['mine', `👨‍🍳 ${t('recipes.mine')}`], ['public', `🌐 ${t('recipes.public')}`]].map(([val, label]) => (
-            <button key={val} onClick={() => setTab(val)} style={{ padding: '7px 14px', borderRadius: 100, background: tab === val ? 'white' : 'rgba(255,255,255,0.18)', color: tab === val ? '#b45309' : 'white', border: 'none', font: 'inherit', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+        <div style={{ display: 'flex', gap: 7, overflowX: 'auto', paddingBottom: 2 }}>
+          {tabs.map(([val, label]) => (
+            <button key={val} onClick={() => setTab(val)} style={{ padding: '7px 14px', borderRadius: 100, background: tab === val ? 'white' : 'rgba(255,255,255,0.18)', color: tab === val ? '#b45309' : 'white', border: 'none', font: 'inherit', fontSize: 12, fontWeight: 600, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}>
               {label}
             </button>
           ))}
@@ -542,47 +807,100 @@ export default function RecipesPage() {
         {tab === 'mine' && (
           loadingMine
             ? <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 13 }}>{t('common.loading')}</div>
-            : myRecipes.length === 0 && !showCreate
-              ? (
-                <div style={{ textAlign: 'center', padding: '50px 0 30px', color: 'var(--text-muted)' }}>
-                  <div style={{ fontSize: 52, marginBottom: 12 }}>🍳</div>
-                  <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{t('recipes.empty_mine')}</p>
-                  <p style={{ fontSize: 12, lineHeight: 1.7 }}>{t('recipes.create_first')}</p>
-                  <button className="btn btn-primary" onClick={() => setShowCreate(true)} style={{ marginTop: 16 }}>
-                    + {t('recipes.new')}
-                  </button>
-                </div>
-              )
-              : myRecipes.map(r => (
-                <RecipeCard key={r.id} r={r} isOwn expandedId={expandedId} setExpandedId={setExpandedId}
-                  onSave={savePublicRecipe} onTogglePublic={togglePublic} onDelete={deleteRecipe} onEdit={handleEditRecipe} />
-              ))
+            : <>
+                {myRecipes.length > 0 && (
+                  <AdvancedFilters
+                    filters={myFilters}
+                    onChange={setMyFilters}
+                    onReset={() => setMyFilters(EMPTY_FILTERS)}
+                  />
+                )}
+                {filteredMine.length === 0 && !showCreate
+                  ? (
+                    <div style={{ textAlign: 'center', padding: '50px 0 30px', color: 'var(--text-muted)' }}>
+                      <div style={{ fontSize: 52, marginBottom: 12 }}>🍳</div>
+                      <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>
+                        {myRecipes.length === 0 ? t('recipes.empty_mine') : 'Nessuna ricetta corrisponde ai filtri'}
+                      </p>
+                      <p style={{ fontSize: 12, lineHeight: 1.7 }}>
+                        {myRecipes.length === 0 ? t('recipes.create_first') : 'Prova a modificare o azzerare i filtri'}
+                      </p>
+                      {myRecipes.length === 0 && (
+                        <button className="btn btn-primary" onClick={() => setShowCreate(true)} style={{ marginTop: 16 }}>
+                          + {t('recipes.new')}
+                        </button>
+                      )}
+                    </div>
+                  )
+                  : filteredMine.map(r => (
+                    <RecipeCard key={r.id} r={r} isOwn expandedId={expandedId} setExpandedId={setExpandedId}
+                      onSave={savePublicRecipe} onTogglePublic={togglePublic} onDelete={deleteRecipe} onEdit={handleEditRecipe}
+                      favIds={favIds} onToggleFav={handleToggleFav} />
+                  ))
+                }
+              </>
         )}
 
         {/* ── PUBBLICHE ── */}
         {tab === 'public' && (
           <>
+            <AdvancedFilters
+              filters={pubFilters}
+              onChange={setPubFilters}
+              onReset={() => { setPubFilters(EMPTY_FILTERS); setPubQuery('') }}
+            />
+            {/* Legacy search box kept for UX continuity — synced into filters */}
             <div style={{ display: 'flex', gap: 8 }}>
               <input className="input-field" placeholder="Cerca ricette pubbliche…" value={pubQuery} onChange={e => setPubQuery(e.target.value)} style={{ flex: 1 }} />
               {pubQuery && <button onClick={() => setPubQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '0 8px' }}><X size={16} /></button>}
             </div>
             {loadingPublic
               ? <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 13 }}>{t('common.loading')}</div>
-              : filtered.length === 0
+              : filteredPublic.length === 0
                 ? (
                   <div style={{ textAlign: 'center', padding: '50px 0', color: 'var(--text-muted)' }}>
                     <div style={{ fontSize: 52, marginBottom: 12 }}>🌐</div>
                     <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>
-                      {pubQuery ? t('common.no_data') : t('recipes.empty_public')}
+                      {pubQuery || pubFilters.search ? t('common.no_data') : t('recipes.empty_public')}
                     </p>
                     <p style={{ fontSize: 12 }}>
-                      {pubQuery ? 'Prova un termine diverso' : 'Sii il primo a condividere una ricetta!'}
+                      {pubQuery || pubFilters.search ? 'Prova un termine diverso' : 'Sii il primo a condividere una ricetta!'}
                     </p>
                   </div>
                 )
-                : filtered.map(r => (
+                : filteredPublic.map(r => (
                   <RecipeCard key={r.id} r={r} isOwn={false} expandedId={expandedId} setExpandedId={setExpandedId}
-                    onSave={savePublicRecipe} onTogglePublic={togglePublic} onDelete={deleteRecipe} />
+                    onSave={savePublicRecipe} onTogglePublic={togglePublic} onDelete={deleteRecipe}
+                    favIds={favIds} onToggleFav={handleToggleFav} />
+                ))
+            }
+          </>
+        )}
+
+        {/* ── DAL DIETISTA ── */}
+        {tab === 'dietist' && (
+          <>
+            <div style={{ background: '#ecfeff', border: '1px solid #a5f3fc', borderRadius: 12, padding: '10px 14px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <span style={{ fontSize: 18, flexShrink: 0 }}>🩺</span>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#0e7490', marginBottom: 2 }}>Ricette del Dietista</p>
+                <p style={{ fontSize: 11, color: '#0891b2', lineHeight: 1.5 }}>Queste ricette sono condivise dal tuo dietista. Puoi visualizzarle e salvarle nei preferiti, ma non modificarle.</p>
+              </div>
+            </div>
+            {loadingDietist
+              ? <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 13 }}>{t('common.loading')}</div>
+              : dietistRecipes.length === 0
+                ? (
+                  <div style={{ textAlign: 'center', padding: '50px 0', color: 'var(--text-muted)' }}>
+                    <div style={{ fontSize: 52, marginBottom: 12 }}>🩺</div>
+                    <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Nessuna ricetta condivisa</p>
+                    <p style={{ fontSize: 12 }}>Il tuo dietista non ha ancora condiviso ricette pubbliche.</p>
+                  </div>
+                )
+                : dietistRecipes.map(r => (
+                  <RecipeCard key={r.id} r={r} isOwn={false} isDietitian expandedId={expandedId} setExpandedId={setExpandedId}
+                    onSave={savePublicRecipe} onTogglePublic={togglePublic} onDelete={deleteRecipe}
+                    favIds={favIds} onToggleFav={handleToggleFav} />
                 ))
             }
           </>

@@ -8,6 +8,9 @@ import { useT } from '../i18n'
 import { Utensils, Droplets, TrendingUp, Apple, Flame, Leaf, MessageCircle, FileText, BookOpen, User, ChevronRight, Activity, Scale, Calendar, Zap, Award, Heart, BarChart2, Star, Crown } from 'lucide-react'
 import StreakCalendar from '../components/StreakCalendar'
 import { useSubscription } from '../hooks/useSubscription'
+import OnboardingFlow from '../components/OnboardingFlow'
+import TutorialTooltip from '../components/TutorialTooltip'
+import { useFirstVisit } from '../hooks/useFirstVisit'
 
 // Animated progress ring: starts at 0, transitions to target pct on mount
 function Ring({ pct, color, size = 60, strokeWidth = 7 }) {
@@ -88,6 +91,24 @@ const ACTIONS = [
   { label: 'Profilo', icon: User, to: '/profilo', color: '#64748b', bg: '#f8fafc' },
 ]
 
+const DASHBOARD_TUTORIAL_STEPS = [
+  {
+    target: '.page > div:first-child',
+    title: 'Il tuo riepilogo giornaliero',
+    text: 'Qui trovi le calorie consumate oggi e i tuoi macronutrienti (proteine, carboidrati, grassi) rispetto agli obiettivi del piano.',
+  },
+  {
+    target: '[data-tutorial="quick-actions"]',
+    title: 'Accesso rapido alle sezioni',
+    text: 'Da qui puoi raggiungere velocemente tutte le funzioni: diario pasti, acqua, progressi, chat con il dietista e molto altro.',
+  },
+  {
+    target: '[data-tutorial="water-bar"]',
+    title: 'Tracker idratazione',
+    text: 'Monitora quanta acqua bevi ogni giorno. Toccа "+ Aggiungi" per registrare un\'assunzione e mantenerti idratato.',
+  },
+]
+
 export default function DashboardPage() {
   const { profile, user } = useAuth()
   const { settings } = useAppSettings()
@@ -102,6 +123,12 @@ export default function DashboardPage() {
   const [streak, setStreak] = useState(0)
   const [nextMealInfo, setNextMealInfo] = useState(null)
   const [appointment, setAppointment] = useState(null)
+  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('onboarding_done'))
+  const { isFirstVisit: isDashFirstVisit } = useFirstVisit('dashboard')
+
+  function handleOnboardingDone() {
+    setShowOnboarding(false)
+  }
 
   const MEAL_META = Object.fromEntries(
     MEAL_ORDER.map(k => [k, { ...MEAL_STATIC[k], label: t(`meal.${k}`) }])
@@ -267,7 +294,7 @@ export default function DashboardPage() {
 
       <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* Quick actions 4x2 */}
-        <div>
+        <div data-tutorial="quick-actions">
           <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12 }}>Accesso rapido</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(70px, 1fr))', gap: 10 }}>
             {ACTIONS.map(({ label, icon: Icon, to, color, bg }, idx) => (
@@ -292,6 +319,7 @@ export default function DashboardPage() {
 
         {/* Water bar */}
         <motion.div
+          data-tutorial="water-bar"
           initial={{ opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -467,6 +495,20 @@ export default function DashboardPage() {
 
         <div style={{ height: 8 }} />
       </div>
+
+      {/* Onboarding overlay — shown only on first login */}
+      {showOnboarding && (
+        <OnboardingFlow onComplete={handleOnboardingDone} />
+      )}
+
+      {/* Dashboard tutorial — shown only on first visit after onboarding */}
+      {!showOnboarding && isDashFirstVisit && (
+        <TutorialTooltip
+          steps={DASHBOARD_TUTORIAL_STEPS}
+          pageKey="dashboard"
+          onDone={() => {}}
+        />
+      )}
     </div>
   )
 }

@@ -8,6 +8,7 @@ import PageSkeleton from './components/PageSkeleton'
 import BottomNav from './components/BottomNav'
 import InstallBanner from './components/InstallBanner'
 import { NotificationProvider } from './context/NotificationContext'
+import { AchievementsProvider } from './context/AchievementsContext'
 import OfflineBar from './components/OfflineBar'
 import PageTransition from './components/PageTransition'
 import { useT } from './i18n'
@@ -34,6 +35,10 @@ const RecipesPage          = lazy(() => import('./pages/RecipesPage'))
 const SubscriptionPage     = lazy(() => import('./pages/SubscriptionPage'))
 const ProFeaturesPage      = lazy(() => import('./pages/ProFeaturesPage'))
 const MenstrualCyclePage   = lazy(() => import('./pages/MenstrualCyclePage'))
+const BadgesPage           = lazy(() => import('./pages/BadgesPage'))
+const CheckinPage          = lazy(() => import('./pages/CheckinPage'))
+const MealPlannerPage      = lazy(() => import('./pages/MealPlannerPage'))
+const ExportDataPage       = lazy(() => import('./pages/ExportDataPage'))
 
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null } }
@@ -121,6 +126,10 @@ function AnimatedRoutes() {
         <Route path="/abbonamento" element={<PatientRoute><PageTransition><SubscriptionPage /></PageTransition></PatientRoute>} />
         <Route path="/pro" element={<PatientRoute><PageTransition><ProFeaturesPage /></PageTransition></PatientRoute>} />
         <Route path="/ciclo" element={<PatientRoute><PageTransition><MenstrualCyclePage /></PageTransition></PatientRoute>} />
+        <Route path="/badge" element={<PatientRoute><PageTransition><BadgesPage /></PageTransition></PatientRoute>} />
+        <Route path="/checkin" element={<PatientRoute><PageTransition><CheckinPage /></PageTransition></PatientRoute>} />
+        <Route path="/meal-planner" element={<PatientRoute><PageTransition><MealPlannerPage /></PageTransition></PatientRoute>} />
+        <Route path="/esporta-dati" element={<PatientRoute><PageTransition><ExportDataPage /></PageTransition></PatientRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>
@@ -137,6 +146,7 @@ function AppInner() {
 
   return (
     <NotificationProvider user={user}>
+    <AchievementsProvider>
       <ScrollToTop />
       <OfflineBar onReconnect={handleReconnect} />
       <InstallBanner />
@@ -151,6 +161,7 @@ function AppInner() {
           {t('app.copyright', { year: new Date().getFullYear() })}
         </footer>
       </div>
+    </AchievementsProvider>
     </NotificationProvider>
   )
 }

@@ -184,3 +184,78 @@ export function initScheduledNotifications(prefs) {
     }
   }
 }
+
+// ─── Web Push (real background push via VAPID) ─────────────────────────────
+// Requires VITE_VAPID_PUBLIC_KEY in .env.local
+// Generate keys: node -e "const wp=require('web-push');const k=wp.generateVAPIDKeys();console.log(JSON.stringify(k))"
+
+export const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || ''
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const rawData = atob(base64)
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)))
+}
+
+/**
+ * Subscribe to Web Push and persist the subscription in Supabase.
+ * Call after the user grants notification permission.
+ */
+export async function subscribeToPush(userId) {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null
+  if (!VAPID_PUBLIC_KEY) {
+    console.warn('[push] VITE_VAPID_PUBLIC_KEY not set — skipping push subscription')
+    return null
+  }
+  try {
+    const reg = await navigator.serviceWorker.ready
+    let sub = await reg.pushManager.getSubscription()
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      })
+    }
+    const subData = sub.toJSON()
+    const { supabase } = await import('./supabase')
+    await supabase.from('push_subscriptions').upsert(
+      {
+        user_id: userId,
+        endpoint: subData.endpoint,
+        p256dh: subData.keys?.p256dh,
+        auth: subData.keys?.auth,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' },
+    )
+    return sub
+  } catch (e) {
+    console.warn('[push] Subscription failed:', e)
+    return null
+  }
+}
+
+/** Unsubscribe from Web Push and remove from Supabase. */
+export async function unsubscribeFromPush(userId) {
+  try {
+    const reg = await navigator.serviceWorker.ready
+    const sub = await reg.pushManager.getSubscription()
+    if (sub) await sub.unsubscribe()
+    const { supabase } = await import('./supabase')
+    await supabase.from('push_subscriptions').delete().eq('user_id', userId)
+  } catch (e) {
+    console.warn('[push] Unsubscribe failed:', e)
+  }
+}
+
+/** Returns true if the browser currently has an active push subscription. */
+export async function hasPushSubscription() {
+  try {
+    const reg = await navigator.serviceWorker.ready
+    const sub = await reg.pushManager.getSubscription()
+    return !!sub
+  } catch {
+    return false
+  }
+}
