@@ -154,11 +154,18 @@ export default function WellnessPage() {
     cutoff.setDate(cutoff.getDate() - range)
     const from = cutoff.toISOString().split('T')[0]
 
-    const [wellnessRes, macroRes] = await Promise.all([
-      supabase.from('daily_wellness').select('id,date,mood,energy,sleep_quality,sleep_hours,sleep_restedness,symptoms,notes,stress_level,hydration_level')
-        .eq('user_id', user.id)
-        .gte('date', from)
-        .order('date', { ascending: true }),
+    // Try with extended columns (stress_level, hydration_level may not exist yet)
+    let wellnessQ = await supabase.from('daily_wellness')
+      .select('id,date,mood,energy,sleep_quality,sleep_hours,sleep_restedness,symptoms,notes,stress_level,hydration_level')
+      .eq('user_id', user.id).gte('date', from).order('date', { ascending: true })
+    if (wellnessQ.error) {
+      // Fallback without new columns
+      wellnessQ = await supabase.from('daily_wellness')
+        .select('id,date,mood,energy,sleep_quality,sleep_hours,sleep_restedness,symptoms,notes')
+        .eq('user_id', user.id).gte('date', from).order('date', { ascending: true })
+    }
+    const wellnessRes = wellnessQ
+    const [macroRes] = await Promise.all([
       supabase.from('daily_logs').select('date, kcal, proteins, carbs, fats')
         .eq('user_id', user.id)
         .gte('date', from)
