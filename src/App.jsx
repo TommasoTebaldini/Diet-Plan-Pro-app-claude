@@ -33,6 +33,7 @@ const DietitianDetailPage  = lazy(() => import('./pages/DietitianDetailPage'))
 const RecipesPage          = lazy(() => import('./pages/RecipesPage'))
 const SubscriptionPage     = lazy(() => import('./pages/SubscriptionPage'))
 const ProFeaturesPage      = lazy(() => import('./pages/ProFeaturesPage'))
+const MenstrualCyclePage   = lazy(() => import('./pages/MenstrualCyclePage'))
 
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null } }
@@ -119,6 +120,7 @@ function AnimatedRoutes() {
         <Route path="/profilo" element={<PatientRoute><PageTransition><ProfilePage /></PageTransition></PatientRoute>} />
         <Route path="/abbonamento" element={<PatientRoute><PageTransition><SubscriptionPage /></PageTransition></PatientRoute>} />
         <Route path="/pro" element={<PatientRoute><PageTransition><ProFeaturesPage /></PageTransition></PatientRoute>} />
+        <Route path="/ciclo" element={<PatientRoute><PageTransition><MenstrualCyclePage /></PageTransition></PatientRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>

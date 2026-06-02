@@ -6,6 +6,7 @@ import { useAppSettings } from '../context/AppSettingsContext'
 import { supabase } from '../lib/supabase'
 import { useT } from '../i18n'
 import { Utensils, Droplets, TrendingUp, Apple, Flame, Leaf, MessageCircle, FileText, BookOpen, User, ChevronRight, Activity, Scale, Calendar, Zap, Award, Heart, BarChart2, Star, Crown } from 'lucide-react'
+import StreakCalendar from '../components/StreakCalendar'
 import { useSubscription } from '../hooks/useSubscription'
 
 // Animated progress ring: starts at 0, transitions to target pct on mount
@@ -449,6 +450,19 @@ export default function DashboardPage() {
             <ChevronRight size={18} color="rgba(255,255,255,0.6)" style={{ flexShrink: 0 }} />
           </div>
         </Link>
+        </motion.div>
+
+        {/* ── Feature 4: Streak Calendar ── */}
+        <motion.div
+          className="card"
+          style={{ padding: '14px 16px' }}
+          initial={{ opacity: 0, y: 14 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Il mio progresso alimentare</p>
+          <StreakCalendar />
         </motion.div>
 
         <div style={{ height: 8 }} />

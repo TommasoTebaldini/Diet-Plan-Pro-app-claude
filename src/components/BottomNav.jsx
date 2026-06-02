@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users, ChefHat, Star } from 'lucide-react'
+import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users, ChefHat, Star, Flower2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
@@ -120,6 +120,7 @@ export default function BottomNav() {
     { to: '/attivita', icon: Activity, label: t('nav.activities') },
     { to: '/statistiche', icon: BarChart2, label: t('nav.report') },
     { to: '/benessere', icon: Heart, label: t('nav.wellness') },
+    { to: '/ciclo', icon: Flower2, label: 'Ciclo' },
     { to: '/profilo', icon: User, label: t('nav.profile') },
     { to: '/pro', icon: Star, label: isPro ? '⭐ Pro' : '🔓 Pro' },
     ...(PAYMENTS_ACTIVE ? [{ to: '/abbonamento', icon: Star, label: 'Abbonamento' }] : []),
@@ -131,7 +132,7 @@ export default function BottomNav() {
       { label: null, items: ['/'] },
       { label: t('nav.section_nutrition'), items: ['/dieta', '/macro', '/ricette'] },
       { label: t('nav.section_professionals'), items: ['/chat', '/documenti', '/dietisti'] },
-      { label: t('nav.section_monitoring'), items: ['/progressi', '/attivita', '/benessere', '/statistiche'] },
+      { label: t('nav.section_monitoring'), items: ['/progressi', '/attivita', '/benessere', '/ciclo', '/statistiche'] },
       { label: null, items: PAYMENTS_ACTIVE ? ['/profilo', '/pro', '/abbonamento'] : ['/profilo', '/pro'] },
     ]
 

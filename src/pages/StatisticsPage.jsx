@@ -222,7 +222,6 @@ export default function StatisticsPage() {
     setGeneratingPdf(true)
     try {
       const { default: jsPDF } = await import('jspdf')
-      const { default: jsPDF } = await import('jspdf')
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
       const W = 210
       const margin = 14

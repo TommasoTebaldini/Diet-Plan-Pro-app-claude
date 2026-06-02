@@ -5,11 +5,90 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
 import { searchFoodsLocal, searchFoods, searchByBarcode } from '../lib/foodSearch'
-import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle, Pencil, Check, Lock, Camera } from 'lucide-react'
+import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle, Pencil, Check, Lock, Camera, Star, BookmarkPlus, ClipboardCopy } from 'lucide-react'
 const BarcodeScanner   = lazy(() => import('../components/BarcodeScanner'))
 const MealPhotoAnalyzer = lazy(() => import('../components/MealPhotoAnalyzer'))
 import ProGate from '../components/ProGate'
 import { useSubscription } from '../hooks/useSubscription'
+
+// ── Feature 6: Unit alternatives ──────────────────────────────────────────────
+const UNIT_OPTIONS = [
+  { key: 'g', label: 'Grammi', factor: 1 },
+  { key: 'tbsp', label: 'Cucchiaio (15g)', factor: 15 },
+  { key: 'tsp', label: 'Cucchiaino (5g)', factor: 5 },
+  { key: 'cup', label: 'Tazza (240g)', factor: 240 },
+  { key: 'slice', label: 'Fetta (30g)', factor: 30 },
+  { key: 'piece', label: 'Pezzo (100g)', factor: 100 },
+]
+
+function gramsFromUnit(qty, unitKey) {
+  const unit = UNIT_OPTIONS.find(u => u.key === unitKey) || UNIT_OPTIONS[0]
+  return Math.round(parseFloat(qty || 1) * unit.factor)
+}
+
+// ── Feature 5: Pie chart SVG (no extra deps) ─────────────────────────────────
+const MEAL_COLORS = {
+  colazione: '#f59e0b',
+  spuntino_mattina: '#10b981',
+  pranzo: '#3b82f6',
+  spuntino_pomeriggio: '#8b5cf6',
+  cena: '#6366f1',
+  extra: '#64748b',
+}
+
+function MealPieChart({ log, meals }) {
+  const SIZE = 120
+  const R = 48
+  const cx = SIZE / 2
+  const cy = SIZE / 2
+
+  const mealKcals = meals.map(m => ({
+    key: m.key,
+    label: m.label,
+    kcal: log.filter(f => f.meal_type === m.key && f.food_name !== '__note__').reduce((s, f) => s + (f.kcal || 0), 0),
+    color: MEAL_COLORS[m.key] || '#94a3b8',
+  })).filter(m => m.kcal > 0)
+
+  const total = mealKcals.reduce((s, m) => s + m.kcal, 0)
+  if (total === 0) return null
+
+  let startAngle = -Math.PI / 2
+  const segments = mealKcals.map(m => {
+    const angle = (m.kcal / total) * 2 * Math.PI
+    const endAngle = startAngle + angle
+    const x1 = cx + R * Math.cos(startAngle)
+    const y1 = cy + R * Math.sin(startAngle)
+    const x2 = cx + R * Math.cos(endAngle)
+    const y2 = cy + R * Math.sin(endAngle)
+    const largeArc = angle > Math.PI ? 1 : 0
+    const d = `M ${cx} ${cy} L ${x1} ${y1} A ${R} ${R} 0 ${largeArc} 1 ${x2} ${y2} Z`
+    const seg = { ...m, d, pct: Math.round(m.kcal / total * 100) }
+    startAngle = endAngle
+    return seg
+  })
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+      <svg width={SIZE} height={SIZE} style={{ flexShrink: 0 }}>
+        {segments.map((seg, i) => (
+          <path key={seg.key} d={seg.d} fill={seg.color} stroke="white" strokeWidth={1.5} />
+        ))}
+        <circle cx={cx} cy={cy} r={R * 0.42} fill="var(--surface)" />
+        <text x={cx} y={cy - 5} textAnchor="middle" style={{ fontSize: 11, fontWeight: 700, fill: 'var(--text-primary)' }}>{total}</text>
+        <text x={cx} y={cy + 8} textAnchor="middle" style={{ fontSize: 9, fill: 'var(--text-muted)' }}>kcal</text>
+      </svg>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        {segments.map(seg => (
+          <div key={seg.key} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <div style={{ width: 10, height: 10, borderRadius: 3, background: seg.color, flexShrink: 0 }} />
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{seg.label}</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{seg.kcal} kcal ({seg.pct}%)</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 const FREE_HISTORY_DAYS = 7
 
@@ -117,6 +196,30 @@ export default function MacroTrackerPage() {
   const [mealNoteInputs, setMealNoteInputs] = useState({})
   const [savingNote, setSavingNote] = useState(null)
 
+  // ── Feature 1: Recent foods ──────────────────────────────────────────────────
+  const [recentFoods, setRecentFoods] = useState([])
+
+  // ── Feature 2: Saved meals (custom_meals) ────────────────────────────────────
+  const [savedMeals, setSavedMeals] = useState([])
+  const [showSaveMealModal, setShowSaveMealModal] = useState(false)
+  const [saveMealName, setSaveMealName] = useState('')
+  const [savingMeal, setSavingMeal] = useState(false)
+  const [loadingMeal, setLoadingMeal] = useState(null) // id being loaded
+
+  // ── Feature 3: Favorites ─────────────────────────────────────────────────────
+  const [favoriteFoods, setFavoriteFoods] = useState([])
+  const [togglingFav, setTogglingFav] = useState(null)
+
+  // ── Feature 6: Unit selector ─────────────────────────────────────────────────
+  const [selectedUnit, setSelectedUnit] = useState('g')
+  const [unitQty, setUnitQty] = useState('100')
+
+  // ── Feature 7: Copy day ──────────────────────────────────────────────────────
+  const [showCopyModal, setShowCopyModal] = useState(false)
+  const [copyTargetDate, setCopyTargetDate] = useState('')
+  const [copying, setCopying] = useState(false)
+  const [copyDone, setCopyDone] = useState(null)
+
   // Reposition portal dropdown on scroll/resize
   useEffect(() => {
     if (!results.length) return
@@ -131,16 +234,100 @@ export default function MacroTrackerPage() {
 
   useEffect(() => { loadLog() }, [date])
 
+  // Load recent/favorites once on mount
+  useEffect(() => { loadRecentAndFavorites() }, [])
+
   async function loadLog() {
-    const [foodRes, dietRes, wellnessRes] = await Promise.all([
-      supabase.from('food_logs').select('id,date,meal_type,meal_time,food_name,grams,kcal,proteins,carbs,fats,food_data').eq('user_id', user.id).eq('date', date).order('created_at'),
+    const [dietRes, wellnessRes] = await Promise.all([
       supabase.from('patient_diets').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
       supabase.from('daily_wellness').select('mood').eq('user_id', user.id).eq('date', date).maybeSingle(),
     ])
+
+    // Try to load with is_favorite and unit columns (may not exist yet)
+    let foodRes = await supabase.from('food_logs')
+      .select('id,date,meal_type,meal_time,food_name,grams,kcal,proteins,carbs,fats,food_data,is_favorite,unit')
+      .eq('user_id', user.id).eq('date', date).order('created_at')
+
+    // If columns don't exist (42703 = undefined_column), fallback to basic select
+    if (foodRes.error && (foodRes.error.code === '42703' || foodRes.error.message?.includes('column'))) {
+      console.warn('[food_logs] is_favorite/unit columns not found, using basic select')
+      foodRes = await supabase.from('food_logs')
+        .select('id,date,meal_type,meal_time,food_name,grams,kcal,proteins,carbs,fats,food_data')
+        .eq('user_id', user.id).eq('date', date).order('created_at')
+    }
+
     if (foodRes.error) console.error('[food_logs] load error:', foodRes.error)
     setLog(foodRes.data || [])
     setDiet(dietRes.data)
     setMood(wellnessRes.data?.mood || null)
+  }
+
+  async function loadRecentAndFavorites() {
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - 14)
+    const from = cutoff.toISOString().split('T')[0]
+
+    // Feature 1: Recent foods (last 14 days, distinct by name, last occurrence)
+    const { data: recentData } = await supabase
+      .from('food_logs')
+      .select('food_name,grams,unit,food_data,created_at')
+      .eq('user_id', user.id)
+      .gte('date', from)
+      .neq('food_name', '__note__')
+      .order('created_at', { ascending: false })
+      .limit(200)
+
+    if (recentData) {
+      const seen = new Map()
+      for (const row of recentData) {
+        if (!seen.has(row.food_name)) {
+          seen.set(row.food_name, { food_name: row.food_name, grams: row.grams, unit: row.unit, food_data: row.food_data })
+        }
+        if (seen.size >= 8) break
+      }
+      const local = JSON.stringify([...seen.values()])
+      localStorage.setItem('recent_foods_cache', local)
+      setRecentFoods([...seen.values()])
+    } else {
+      // Fallback from localStorage
+      try {
+        const cached = localStorage.getItem('recent_foods_cache')
+        if (cached) setRecentFoods(JSON.parse(cached))
+      } catch (_) {}
+    }
+
+    // Feature 3: Favorite foods (last 90 days with is_favorite=true, distinct by name)
+    // Silently skip if the column doesn't exist yet
+    try {
+      const cutoff90 = new Date()
+      cutoff90.setDate(cutoff90.getDate() - 90)
+      const { data: favData, error: favErr } = await supabase
+        .from('food_logs')
+        .select('food_name,grams,unit,food_data')
+        .eq('user_id', user.id)
+        .eq('is_favorite', true)
+        .gte('date', cutoff90.toISOString().split('T')[0])
+        .neq('food_name', '__note__')
+        .order('created_at', { ascending: false })
+        .limit(100)
+
+      if (!favErr && favData) {
+        const favSeen = new Map()
+        for (const row of favData) {
+          if (!favSeen.has(row.food_name)) {
+            favSeen.set(row.food_name, { food_name: row.food_name, grams: row.grams, unit: row.unit, food_data: row.food_data })
+          }
+        }
+        setFavoriteFoods([...favSeen.values()])
+      }
+    } catch (_) {}
+
+    // Feature 2: Saved custom meals
+    const { data: mealsData } = await supabase
+      .from('custom_meals')
+      .select('*')
+      .order('created_at', { ascending: false })
+    setSavedMeals(mealsData || [])
   }
 
   // Two-phase live search: local results first (~200ms), then OFA in background
@@ -289,7 +476,9 @@ export default function MacroTrackerPage() {
     if (!selected) return
     setSaving(true)
     setSaveError('')
-    const m = calcMacros(selected, grams)
+    // Feature 6: compute grams from unit
+    const effectiveGrams = selectedUnit === 'g' ? grams : String(gramsFromUnit(unitQty, selectedUnit))
+    const m = calcMacros(selected, effectiveGrams)
     let savedName = null
     try {
       // Build food_data with only defined values
@@ -301,12 +490,14 @@ export default function MacroTrackerPage() {
         sugar_100g: selected.sugar_100g || 0, fatSat_100g: selected.fatSat_100g || 0,
         meal_time: mealTime || null,
       }
-      const { data, error } = await supabase.from('food_logs').insert({
+      const insertPayload = {
         user_id: user.id,
         date, meal_type: meal, meal_time: mealTime || null, food_name: selected.name,
-        grams: parseFloat(grams) || 100, ...m,
+        grams: parseFloat(effectiveGrams) || 100, ...m,
         food_data: foodData,
-      }).select().single()
+        unit: selectedUnit !== 'g' ? selectedUnit : null,
+      }
+      const { data, error } = await supabase.from('food_logs').insert(insertPayload).select().single()
       if (error) {
         console.error('Errore salvataggio alimento:', error)
         setSaveError(`Errore nel salvare l'alimento: ${error.message || 'errore sconosciuto'}. Riprova.`)
@@ -321,6 +512,7 @@ export default function MacroTrackerPage() {
       savedName = selected.name
       setSelected(null); setQuery(''); setResults([])
       setExpandedMeal(meal)
+      setSelectedUnit('g'); setUnitQty('100')
     } catch (e) {
       console.error('Errore imprevisto salvataggio:', e)
       setSaveError("Errore imprevisto nel salvare l'alimento. Riprova.")
@@ -331,6 +523,134 @@ export default function MacroTrackerPage() {
       setAddedFood(savedName)
       setTimeout(() => setAddedFood(null), 2500)
     }
+  }
+
+  // ── Feature 1: Quick-add from recent ─────────────────────────────────────────
+  async function addRecentFood(recent, targetMeal) {
+    const fd = recent.food_data || {}
+    if (!fd.kcal_100g) return
+    setSaving(true)
+    const m = calcMacros(fd, recent.grams || 100)
+    const { data, error } = await supabase.from('food_logs').insert({
+      user_id: user.id,
+      date, meal_type: targetMeal || meal,
+      food_name: recent.food_name,
+      grams: recent.grams || 100, ...m,
+      food_data: fd,
+      unit: recent.unit || null,
+    }).select().single()
+    if (!error && data) {
+      setLog(l => [...l, data])
+      await updateDailyLog()
+      setAddedFood(recent.food_name)
+      setTimeout(() => setAddedFood(null), 2500)
+    }
+    setSaving(false)
+  }
+
+  // ── Feature 2: Save current meal as custom_meal ───────────────────────────────
+  async function saveCurrentMealAsCustom() {
+    if (!saveMealName.trim()) return
+    const mealFoods = log.filter(f => f.meal_type === activeMealAdd && f.food_name !== '__note__')
+    if (mealFoods.length === 0) return
+    setSavingMeal(true)
+    const ingredients = mealFoods.map(f => ({
+      food_name: f.food_name, grams: f.grams, kcal: f.kcal,
+      proteins: f.proteins, carbs: f.carbs, fats: f.fats,
+      food_data: f.food_data,
+    }))
+    const totals = mealFoods.reduce((a, f) => ({
+      kcal: a.kcal + (f.kcal || 0), proteins: a.proteins + (f.proteins || 0),
+      carbs: a.carbs + (f.carbs || 0), fats: a.fats + (f.fats || 0),
+    }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
+    const { data } = await supabase.from('custom_meals').insert({
+      name: saveMealName.trim(),
+      ingredients,
+      peso_totale_g: mealFoods.reduce((s, f) => s + (f.grams || 0), 0),
+      kcal_total: totals.kcal,
+      proteins_total: totals.proteins,
+      carbs_total: totals.carbs,
+      fats_total: totals.fats,
+    }).select().single()
+    if (data) {
+      setSavedMeals(m => [data, ...m])
+      setShowSaveMealModal(false)
+      setSaveMealName('')
+    }
+    setSavingMeal(false)
+  }
+
+  // ── Feature 2: Load a custom_meal into today's log ───────────────────────────
+  async function loadCustomMeal(customMeal, targetMeal) {
+    setLoadingMeal(customMeal.id)
+    const ingredients = customMeal.ingredients || []
+    const inserts = ingredients.map(ing => {
+      const fd = ing.food_data || {}
+      const g = ing.grams || 100
+      return {
+        user_id: user.id, date, meal_type: targetMeal || meal,
+        food_name: ing.food_name, grams: g,
+        kcal: ing.kcal || 0, proteins: ing.proteins || 0,
+        carbs: ing.carbs || 0, fats: ing.fats || 0,
+        food_data: fd,
+      }
+    })
+    if (inserts.length === 0) { setLoadingMeal(null); return }
+    const { data, error } = await supabase.from('food_logs').insert(inserts).select()
+    if (!error && data) {
+      setLog(l => [...l, ...data])
+      await updateDailyLog()
+      setAddedFood(`Pasto "${customMeal.name}" caricato`)
+      setTimeout(() => setAddedFood(null), 2500)
+    }
+    setLoadingMeal(null)
+  }
+
+  // ── Feature 3: Toggle favorite (silent if column doesn't exist) ──────────────
+  async function toggleFavorite(foodLog) {
+    setTogglingFav(foodLog.id)
+    const newFav = !foodLog.is_favorite
+    try {
+      const { error } = await supabase.from('food_logs').update({ is_favorite: newFav }).eq('id', foodLog.id)
+      if (!error) {
+        setLog(l => l.map(f => f.id === foodLog.id ? { ...f, is_favorite: newFav } : f))
+        // Refresh favorites list
+        setTimeout(() => loadRecentAndFavorites(), 300)
+      } else if (error.code === '42703' || error.message?.includes('column')) {
+        // Column doesn't exist yet — silently ignore
+        console.warn('[food_logs] is_favorite column not found. Add it with: ALTER TABLE food_logs ADD COLUMN is_favorite BOOLEAN DEFAULT FALSE;')
+      }
+    } catch (e) {
+      console.warn('toggleFavorite error (silenced):', e)
+    }
+    setTogglingFav(null)
+  }
+
+  // ── Feature 7: Copy day ────────────────────────────────────────────────────────
+  async function copyCurrentDay() {
+    if (!copyTargetDate || copyTargetDate === date) return
+    setCopying(true)
+    const foodsToCopy = log.filter(f => f.food_name !== '__note__')
+    if (foodsToCopy.length === 0) { setCopying(false); return }
+    const inserts = foodsToCopy.map(f => ({
+      user_id: user.id,
+      date: copyTargetDate,
+      meal_type: f.meal_type,
+      meal_time: f.meal_time || null,
+      food_name: f.food_name,
+      grams: f.grams,
+      kcal: f.kcal, proteins: f.proteins, carbs: f.carbs, fats: f.fats,
+      food_data: f.food_data,
+    }))
+    const { data, error } = await supabase.from('food_logs').insert(inserts).select()
+    if (!error && data) {
+      // Update daily_logs for target date
+      const t = data.reduce((a, f) => ({ kcal: a.kcal + (f.kcal || 0), proteins: a.proteins + (f.proteins || 0), carbs: a.carbs + (f.carbs || 0), fats: a.fats + (f.fats || 0) }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
+      await supabase.from('daily_logs').upsert({ user_id: user.id, date: copyTargetDate, ...t }, { onConflict: 'user_id,date' })
+      setCopyDone(data.length)
+      setTimeout(() => { setCopyDone(null); setShowCopyModal(false); setCopyTargetDate('') }, 3000)
+    }
+    setCopying(false)
   }
 
   async function addFoodsFromPhoto(foods) {
@@ -463,7 +783,8 @@ export default function MacroTrackerPage() {
       }
     }, { fiber: 0, sugar: 0, fatSat: 0 })
 
-  const preview = selected ? calcMacros(selected, grams) : null
+  const effectivePreviewGrams = selected && selectedUnit !== 'g' ? gramsFromUnit(unitQty, selectedUnit) : parseFloat(grams) || 100
+  const preview = selected ? calcMacros(selected, String(effectivePreviewGrams)) : null
   const isToday = date === todayStr
   const displayDate = new Date(date + 'T12:00:00')
 
@@ -574,6 +895,123 @@ export default function MacroTrackerPage() {
           </div>
         )}
 
+        {/* ── Feature 5: Meal pie chart ── */}
+        {log.filter(f => f.food_name !== '__note__').length > 0 && (
+          <div className="card" style={{ padding: 14 }}>
+            <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Distribuzione calorica per pasto</p>
+            <MealPieChart log={log} meals={MEALS} />
+          </div>
+        )}
+
+        {/* ── Feature 7: Copy day button ── */}
+        {log.filter(f => f.food_name !== '__note__').length > 0 && (
+          <button
+            onClick={() => { setShowCopyModal(true); setCopyTargetDate('') }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 12, padding: '10px 14px', cursor: 'pointer', font: 'inherit', fontSize: 13, color: 'var(--text-secondary)', width: '100%' }}
+          >
+            <ClipboardCopy size={15} />
+            Copia questa giornata in un altro giorno
+          </button>
+        )}
+
+        {/* ── Feature 1: Recent foods ── */}
+        {recentFoods.length > 0 && (
+          <div className="card" style={{ padding: 14 }}>
+            <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>⏱ Recenti</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {recentFoods.map((r, i) => {
+                const fd = r.food_data || {}
+                if (!fd.kcal_100g) return null
+                const m = calcMacros(fd, r.grams || 100)
+                return (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 10 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.food_name}</p>
+                      <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.grams}g · {m.kcal} kcal</p>
+                    </div>
+                    <button
+                      onClick={() => addRecentFood(r, activeMealAdd || meal)}
+                      disabled={saving}
+                      style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 8, background: 'var(--green-pale)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green-main)' }}
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── Feature 3: Favorites section ── */}
+        {favoriteFoods.length > 0 && (
+          <div className="card" style={{ padding: 14 }}>
+            <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>⭐ Preferiti</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {favoriteFoods.map((r, i) => {
+                const fd = r.food_data || {}
+                if (!fd.kcal_100g) return null
+                const m = calcMacros(fd, r.grams || 100)
+                return (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: '#fffbeb', borderRadius: 10, border: '1px solid #fde68a' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.food_name}</p>
+                      <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.grams}g · {m.kcal} kcal</p>
+                    </div>
+                    <button
+                      onClick={() => addRecentFood(r, activeMealAdd || meal)}
+                      disabled={saving}
+                      style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 8, background: 'var(--green-pale)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green-main)' }}
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── Feature 2: Saved meals section ── */}
+        {savedMeals.length > 0 && (
+          <div className="card" style={{ padding: 14 }}>
+            <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>📋 Pasti salvati</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {savedMeals.map(cm => {
+                const ings = cm.ingredients || []
+                return (
+                  <div key={cm.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', background: 'var(--surface-2)', borderRadius: 10 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cm.name}</p>
+                      <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                        {ings.length} alimenti · {cm.kcal_total || 0} kcal
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => loadCustomMeal(cm, activeMealAdd || meal)}
+                      disabled={loadingMeal === cm.id}
+                      style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 8, background: 'var(--green-pale)', border: '1px solid var(--green-main)', cursor: 'pointer', fontSize: 12, color: 'var(--green-main)', fontFamily: 'var(--font-b)', fontWeight: 600 }}
+                    >
+                      {loadingMeal === cm.id ? '…' : 'Carica'}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── Feature 2: Save current meal button (shown when a meal has foods) ── */}
+        {activeMealAdd && log.filter(f => f.meal_type === activeMealAdd && f.food_name !== '__note__').length > 0 && (
+          <button
+            onClick={() => setShowSaveMealModal(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 12, padding: '10px 14px', cursor: 'pointer', font: 'inherit', fontSize: 13, color: 'var(--text-secondary)', width: '100%' }}
+          >
+            <BookmarkPlus size={15} />
+            Salva pasto corrente come modello
+          </button>
+        )}
+
         {/* ── Macro targets ── */}
         {diet && (
           <div className="card" style={{ padding: 14 }}>
@@ -650,6 +1088,14 @@ export default function MacroTrackerPage() {
                             {f.food_data?.meal_time && <> · <Clock size={9} style={{ display: 'inline', verticalAlign: 'middle' }} /> {f.food_data.meal_time}</>}
                           </p>
                         </div>
+                        {/* Feature 3: Favorite star */}
+                        <button
+                          onClick={() => toggleFavorite(f)}
+                          disabled={togglingFav === f.id}
+                          title={f.is_favorite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: f.is_favorite ? '#f59e0b' : 'var(--text-muted)', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Star size={13} fill={f.is_favorite ? '#f59e0b' : 'none'} />
+                        </button>
                         <button onClick={() => { setEditingFood(f.id); setEditGrams(String(f.grams || 100)) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Pencil size={13} />
                         </button>
@@ -837,22 +1283,54 @@ export default function MacroTrackerPage() {
                             </div>
                             <button onClick={() => { setSelected(null); setQuery('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-muted)' }}><X size={15} /></button>
                           </div>
+                          {/* Feature 6: Unit selector */}
+                          <div className="input-group" style={{ marginBottom: 6 }}>
+                            <label className="input-label">Unità di misura</label>
+                            <select
+                              value={selectedUnit}
+                              onChange={e => {
+                                setSelectedUnit(e.target.value)
+                                setUnitQty('1')
+                                if (e.target.value === 'g') {
+                                  setGrams(String(getDefaultServingSize(selected)))
+                                } else {
+                                  const unit = UNIT_OPTIONS.find(u => u.key === e.target.value)
+                                  if (unit) setGrams(String(unit.factor))
+                                }
+                              }}
+                              style={{ cursor: 'pointer', width: '100%', padding: '6px 10px', border: '1.5px solid var(--border)', borderRadius: 10, background: 'var(--surface-2)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', fontFamily: 'var(--font-b)' }}
+                            >
+                              {UNIT_OPTIONS.map(u => <option key={u.key} value={u.key}>{u.label}</option>)}
+                            </select>
+                          </div>
                           <div style={{ display: 'flex', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
-                            <div className="input-group" style={{ flex: '1 1 80px' }}>
-                              <label className="input-label">Porzioni</label>
-                              <input type="number" className="input-field"
-                                value={parseFloat(grams) > 0 ? Math.round(parseFloat(grams) / getDefaultServingSize(selected) * 100) / 100 : ''}
-                                onChange={e => {
-                                  const p = parseFloat(e.target.value)
-                                  if (!isNaN(p) && p > 0) setGrams(String(Math.round(p * getDefaultServingSize(selected))))
-                                  else setGrams('')
-                                }}
-                                min={0} step="any" inputMode="decimal" />
-                            </div>
-                            <div className="input-group" style={{ flex: '1 1 80px' }}>
-                              <label className="input-label">Quantità (g)</label>
-                              <input type="number" className="input-field" value={grams} onChange={e => setGrams(e.target.value)} min={1} inputMode="decimal" />
-                            </div>
+                            {selectedUnit === 'g' ? (
+                              <>
+                                <div className="input-group" style={{ flex: '1 1 80px' }}>
+                                  <label className="input-label">Porzioni</label>
+                                  <input type="number" className="input-field"
+                                    value={parseFloat(grams) > 0 ? Math.round(parseFloat(grams) / getDefaultServingSize(selected) * 100) / 100 : ''}
+                                    onChange={e => {
+                                      const p = parseFloat(e.target.value)
+                                      if (!isNaN(p) && p > 0) setGrams(String(Math.round(p * getDefaultServingSize(selected))))
+                                      else setGrams('')
+                                    }}
+                                    min={0} step="any" inputMode="decimal" />
+                                </div>
+                                <div className="input-group" style={{ flex: '1 1 80px' }}>
+                                  <label className="input-label">Quantità (g)</label>
+                                  <input type="number" className="input-field" value={grams} onChange={e => setGrams(e.target.value)} min={1} inputMode="decimal" />
+                                </div>
+                              </>
+                            ) : (
+                              <div className="input-group" style={{ flex: '1 1 80px' }}>
+                                <label className="input-label">Quantità ({UNIT_OPTIONS.find(u => u.key === selectedUnit)?.label.split(' ')[0]})</label>
+                                <input type="number" className="input-field"
+                                  value={unitQty}
+                                  onChange={e => { setUnitQty(e.target.value); setGrams(String(gramsFromUnit(e.target.value, selectedUnit))) }}
+                                  min={0} step="0.5" inputMode="decimal" />
+                              </div>
+                            )}
                             <div className="input-group" style={{ flex: '1 1 80px' }}>
                               <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={11} />Orario</label>
                               <select value={mealTime} onChange={e => setMealTime(e.target.value)} style={{ cursor: 'pointer', width: '100%', padding: '6px 10px', border: '1.5px solid var(--border)', borderRadius: 10, background: 'var(--surface-2)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none', fontFamily: 'var(--font-b)' }}>
@@ -865,6 +1343,11 @@ export default function MacroTrackerPage() {
                               </select>
                             </div>
                           </div>
+                          {selectedUnit !== 'g' && (
+                            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
+                              ≈ {gramsFromUnit(unitQty, selectedUnit)}g · {preview ? `${preview.kcal} kcal` : ''}
+                            </p>
+                          )}
                           <button className="btn btn-primary btn-full" onClick={addFood} disabled={saving}>
                             {saving ? '…' : 'Aggiungi al diario'}
                           </button>
@@ -930,6 +1413,82 @@ export default function MacroTrackerPage() {
       </AnimatePresence>
 
       {/* Barcode food modal — opened when scanning from header (no meal open) */}
+      {/* Feature 2: Save meal modal */}
+      {showSaveMealModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 20, width: '100%', maxWidth: 400 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700 }}>Salva pasto come modello</h3>
+              <button onClick={() => { setShowSaveMealModal(false); setSaveMealName('') }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+            </div>
+            <div className="input-group" style={{ marginBottom: 14 }}>
+              <label className="input-label">Nome del pasto</label>
+              <input
+                type="text"
+                className="input-field"
+                placeholder="Es. Pranzo proteico, Colazione sana…"
+                value={saveMealName}
+                onChange={e => setSaveMealName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && saveMealName.trim()) saveCurrentMealAsCustom() }}
+                autoFocus
+              />
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14 }}>
+              Verranno salvati {log.filter(f => f.meal_type === activeMealAdd && f.food_name !== '__note__').length} alimenti del pasto corrente.
+            </p>
+            <button className="btn btn-primary btn-full" onClick={saveCurrentMealAsCustom} disabled={savingMeal || !saveMealName.trim()}>
+              {savingMeal ? '…' : '💾 Salva pasto'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Feature 7: Copy day modal */}
+      {showCopyModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 20, width: '100%', maxWidth: 400 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700 }}>Copia giornata alimentare</h3>
+              <button onClick={() => { setShowCopyModal(false); setCopyTargetDate('') }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+            </div>
+            {copyDone !== null ? (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <p style={{ fontSize: 20, marginBottom: 8 }}>✅</p>
+                <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--green-dark)' }}>
+                  {copyDone} {copyDone === 1 ? 'alimento copiato' : 'alimenti copiati'}!
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                  Giornata copiata al {new Date(copyTargetDate + 'T12:00:00').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
+                </p>
+              </div>
+            ) : (
+              <>
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14 }}>
+                  Scegli il giorno di destinazione. Verranno copiati {log.filter(f => f.food_name !== '__note__').length} alimenti.
+                </p>
+                <div className="input-group" style={{ marginBottom: 14 }}>
+                  <label className="input-label">Giorno di destinazione</label>
+                  <input
+                    type="date"
+                    className="input-field"
+                    value={copyTargetDate}
+                    onChange={e => setCopyTargetDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+                <button
+                  className="btn btn-primary btn-full"
+                  onClick={copyCurrentDay}
+                  disabled={copying || !copyTargetDate || copyTargetDate === date}
+                >
+                  {copying ? '…' : '📋 Copia'}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {barcodeFoodModal && (() => {
         const { food, grams: bGrams, meal: bMeal } = barcodeFoodModal
         const bPreview = calcMacros(food, bGrams)
