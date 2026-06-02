@@ -3,3 +3,7 @@ dist/
 .env
 .env.local
 .env.*.local
+
+# Claude Code local files
+.claude/
+check_app.mjs
