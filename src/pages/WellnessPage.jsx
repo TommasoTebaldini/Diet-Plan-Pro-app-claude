@@ -118,6 +118,9 @@ function CustomCorrelationTooltip({ active, payload, label }) {
   )
 }
 
+// Tracks whether the DB has the extended columns (stress_level, hydration_level)
+let _wellnessHasExtended = true
+
 export default function WellnessPage() {
   const { user } = useAuth()
   const t = useT()
@@ -154,17 +157,18 @@ export default function WellnessPage() {
     cutoff.setDate(cutoff.getDate() - range)
     const from = cutoff.toISOString().split('T')[0]
 
-    // Try with extended columns (stress_level, hydration_level may not exist yet)
-    let wellnessQ = await supabase.from('daily_wellness')
+    // Try with extended columns; fall back to basic if columns don't exist yet
+    let wellnessRes = await supabase.from('daily_wellness')
       .select('id,date,mood,energy,sleep_quality,sleep_hours,sleep_restedness,symptoms,notes,stress_level,hydration_level')
       .eq('user_id', user.id).gte('date', from).order('date', { ascending: true })
-    if (wellnessQ.error) {
-      // Fallback without new columns
-      wellnessQ = await supabase.from('daily_wellness')
+    if (wellnessRes.error) {
+      _wellnessHasExtended = false
+      wellnessRes = await supabase.from('daily_wellness')
         .select('id,date,mood,energy,sleep_quality,sleep_hours,sleep_restedness,symptoms,notes')
         .eq('user_id', user.id).gte('date', from).order('date', { ascending: true })
+    } else {
+      _wellnessHasExtended = true
     }
-    const wellnessRes = wellnessQ
     const [macroRes] = await Promise.all([
       supabase.from('daily_logs').select('date, kcal, proteins, carbs, fats')
         .eq('user_id', user.id)
@@ -197,25 +201,38 @@ export default function WellnessPage() {
     setError('')
 
     try {
-      // Build the full field set so updates properly clear deselected values
-      const fields = {
+      // Base fields always supported
+      const baseFields = {
         mood: mood ?? null,
         energy: energy ?? null,
         sleep_quality: sleepQuality ?? null,
         sleep_hours: sleepHours ?? null,
         sleep_restedness: sleepRestedness ?? null,
-        stress_level: stressLevel ?? null, // Feature 8
         symptoms: symptoms.length > 0 ? symptoms : [],
         notes: notes || null,
       }
+      // Extended fields only if columns exist in DB
+      const fields = _wellnessHasExtended
+        ? { ...baseFields, stress_level: stressLevel ?? null, hydration_level: null }
+        : baseFields
 
-      // Try update first: this handles both the normal case and duplicate legacy rows.
-      const { data: updatedRows, error: updateError } = await supabase
+      // Try update first; if extended columns missing (PGRST204), retry with base only
+      let { data: updatedRows, error: updateError } = await supabase
         .from('daily_wellness')
         .update(fields)
         .eq('user_id', user.id)
         .eq('date', today)
         .select('id')
+
+      if (updateError && (updateError.code === 'PGRST204' || updateError.message?.includes('stress_level') || updateError.message?.includes('hydration_level'))) {
+        _wellnessHasExtended = false
+        ;({ data: updatedRows, error: updateError } = await supabase
+          .from('daily_wellness')
+          .update(baseFields)
+          .eq('user_id', user.id)
+          .eq('date', today)
+          .select('id'))
+      }
 
       if (updateError) {
         console.error('Wellness update error:', updateError.message, updateError.details, updateError.hint, updateError.code)
@@ -227,10 +244,16 @@ export default function WellnessPage() {
       let opError = null
       if (!updatedRows || updatedRows.length === 0) {
         // No row for today: create one.
-        const { error } = await supabase
+        let insertRes = await supabase
           .from('daily_wellness')
           .insert({ user_id: user.id, date: today, ...fields })
-        opError = error
+        if (insertRes.error && (insertRes.error.code === 'PGRST204' || insertRes.error.message?.includes('stress_level') || insertRes.error.message?.includes('hydration_level'))) {
+          _wellnessHasExtended = false
+          insertRes = await supabase
+            .from('daily_wellness')
+            .insert({ user_id: user.id, date: today, ...baseFields })
+        }
+        opError = insertRes.error
       }
 
       setSaving(false)
