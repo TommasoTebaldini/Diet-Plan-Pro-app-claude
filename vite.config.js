@@ -116,9 +116,12 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{html,css,js,ico,png,svg,woff2,woff}'],
-        cleanupOutdatedCaches: true,
+        cleanupOutdatedCaches: false,
         skipWaiting: true,
         clientsClaim: true,
+        // navigateFallback only for HTML navigations, NOT for /assets/*.js requests
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/assets\//, /^\/api\//, /^\/sw\.js$/, /^\/workbox-/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
