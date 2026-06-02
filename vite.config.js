@@ -119,9 +119,6 @@ export default defineConfig({
         cleanupOutdatedCaches: false,
         skipWaiting: true,
         clientsClaim: true,
-        // navigateFallback only for HTML navigations, NOT for /assets/*.js requests
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/assets\//, /^\/api\//, /^\/sw\.js$/, /^\/workbox-/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,

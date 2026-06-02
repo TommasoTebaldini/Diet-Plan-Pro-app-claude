@@ -5,13 +5,9 @@ import App from './App'
 import { AuthProvider } from './context/AuthContext'
 import './index.css'
 
-// Quando il service worker si aggiorna e prende il controllo, ricarica la pagina
-// per evitare che vecchi chunk JS (con hash diversi) vengano richiesti al nuovo SW.
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    window.location.reload()
-  })
-}
+// NOTE: vite-plugin-pwa con registerType:'autoUpdate' gestisce già il reload
+// quando il service worker si aggiorna. NON aggiungere un secondo listener
+// controllerchange qui — causerebbe un loop di refresh infinito.
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

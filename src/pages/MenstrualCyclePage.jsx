@@ -28,56 +28,89 @@ const CYCLE_SYMPTOMS = [
   'Spotting', 'Acne', 'Insonnia', 'Voglie alimentari',
 ]
 
+import { useState as useState2 } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+
 function getDaysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate()
 }
 
-function MiniCalendar({ cycles }) {
-  const today = new Date()
-  const year = today.getFullYear()
-  const month = today.getMonth()
-  const daysInMonth = getDaysInMonth(year, month)
-  const firstDow = (new Date(year, month, 1).getDay() + 6) % 7 // Mon=0
-
-  // Build set of cycle dates for this month
+// Calcola i set di date ciclo e previsioni per un dato mese
+function buildCycleMap(cycles, year, month, predictedRanges) {
   const cycleDays = new Set()
+  const predictedDays = new Set()
+
   for (const cycle of cycles) {
     const start = new Date(cycle.start_date + 'T12:00:00')
-    const end = cycle.end_date ? new Date(cycle.end_date + 'T12:00:00') : start
+    const end = cycle.end_date ? new Date(cycle.end_date + 'T12:00:00') : new Date(start.getTime() + 4 * 86400000)
     let cur = new Date(start)
     while (cur <= end) {
-      if (cur.getFullYear() === year && cur.getMonth() === month) {
-        cycleDays.add(cur.getDate())
+      if (cur.getFullYear() === year && cur.getMonth() === month) cycleDays.add(cur.getDate())
+      cur.setDate(cur.getDate() + 1)
+    }
+  }
+  for (const { start: ps, end: pe } of (predictedRanges || [])) {
+    let cur = new Date(ps)
+    while (cur <= pe) {
+      if (cur.getFullYear() === year && cur.getMonth() === month && !cycleDays.has(cur.getDate())) {
+        predictedDays.add(cur.getDate())
       }
       cur.setDate(cur.getDate() + 1)
     }
   }
+  return { cycleDays, predictedDays }
+}
 
+function MiniCalendar({ cycles, predictedRanges }) {
+  const todayObj = new Date()
+  const [viewYear, setViewYear] = useState2(todayObj.getFullYear())
+  const [viewMonth, setViewMonth] = useState2(todayObj.getMonth())
+
+  const daysInMonth = getDaysInMonth(viewYear, viewMonth)
+  const firstDow = (new Date(viewYear, viewMonth, 1).getDay() + 6) % 7
+  const { cycleDays, predictedDays } = buildCycleMap(cycles, viewYear, viewMonth, predictedRanges)
+
+  const isCurrentMonth = viewYear === todayObj.getFullYear() && viewMonth === todayObj.getMonth()
   const DAYS_IT = ['L', 'M', 'M', 'G', 'V', 'S', 'D']
   const cells = Array(firstDow).fill(null).concat(Array.from({ length: daysInMonth }, (_, i) => i + 1))
 
+  const prevMonth = () => { if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1) } else setViewMonth(m => m - 1) }
+  const nextMonth = () => { if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1) } else setViewMonth(m => m + 1) }
+
   return (
     <div>
-      <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: 'var(--text-secondary)' }}>
-        {today.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })}
-      </p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <button onClick={prevMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
+          <ChevronLeft size={18} />
+        </button>
+        <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'capitalize' }}>
+          {new Date(viewYear, viewMonth, 1).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })}
+        </p>
+        <button onClick={nextMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
+          <ChevronRight size={18} />
+        </button>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
         {DAYS_IT.map((d, i) => (
-          <div key={i} style={{ textAlign: 'center', fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, paddingBottom: 4 }}>{d}</div>
+          <div key={i} style={{ textAlign: 'center', fontSize: 10, color: 'var(--text-muted)', fontWeight: 700, paddingBottom: 4 }}>{d}</div>
         ))}
         {cells.map((day, i) => {
           if (!day) return <div key={i} />
-          const isToday = day === today.getDate()
+          const isToday = isCurrentMonth && day === todayObj.getDate()
           const isCycle = cycleDays.has(day)
+          const isPredicted = predictedDays.has(day)
           return (
             <div key={i} style={{
-              width: '100%', aspectRatio: '1',
-              borderRadius: 8,
-              background: isCycle ? '#fce7f3' : isToday ? 'var(--green-pale)' : 'transparent',
-              border: isToday ? '1.5px solid var(--green-main)' : isCycle ? '1.5px solid #f9a8d4' : '1.5px solid transparent',
+              width: '100%', aspectRatio: '1', borderRadius: 8,
+              background: isCycle ? '#fce7f3' : isPredicted ? '#fff0f7' : isToday ? 'var(--green-pale)' : 'transparent',
+              border: isToday ? '1.5px solid var(--green-main)'
+                    : isCycle ? '1.5px solid #f9a8d4'
+                    : isPredicted ? '1.5px dashed #f9a8d4'
+                    : '1.5px solid transparent',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 12, fontWeight: isToday ? 700 : 400,
-              color: isCycle ? '#be185d' : isToday ? 'var(--green-dark)' : 'var(--text-primary)',
+              color: isCycle ? '#be185d' : isPredicted ? '#ec4899' : isToday ? 'var(--green-dark)' : 'var(--text-primary)',
+              opacity: isPredicted ? 0.75 : 1,
             }}>
               {day}
             </div>
@@ -193,27 +226,48 @@ export default function MenstrualCyclePage() {
     setSelectedSymptoms([])
   }
 
-  // Estimate next cycle based on average cycle length
+  // ── Previsione ciclo (stile Flo) ──────────────────────────────────────────
   const completedCycles = cycles.filter(c => c.end_date && c.cycle_length)
-  let nextCycleEstimate = null
-  if (completedCycles.length >= 1 && cycles[0]?.start_date) {
-    const avgLength = Math.round(
-      completedCycles.reduce((s, c) => s + c.cycle_length, 0) / completedCycles.length
-    )
-    // Average interval between starts (if multiple cycles)
-    let avgInterval = 28
-    if (completedCycles.length >= 2) {
-      const starts = [...cycles].reverse().map(c => new Date(c.start_date + 'T12:00:00'))
-      const intervals = []
-      for (let i = 1; i < starts.length; i++) {
-        intervals.push(Math.round((starts[i] - starts[i - 1]) / (1000 * 60 * 60 * 24)))
-      }
-      avgInterval = Math.round(intervals.reduce((s, x) => s + x, 0) / intervals.length)
+
+  // Durata media del ciclo (in giorni)
+  const avgDuration = completedCycles.length > 0
+    ? Math.round(completedCycles.reduce((s, c) => s + c.cycle_length, 0) / completedCycles.length)
+    : 5
+
+  // Intervallo medio tra inizi (default 28 giorni)
+  let avgInterval = 28
+  if (cycles.length >= 2) {
+    const sortedStarts = [...cycles].sort((a, b) => a.start_date.localeCompare(b.start_date))
+    const intervals = []
+    for (let i = 1; i < sortedStarts.length; i++) {
+      const d = Math.round((new Date(sortedStarts[i].start_date + 'T12:00:00') - new Date(sortedStarts[i-1].start_date + 'T12:00:00')) / 86400000)
+      if (d > 0 && d < 60) intervals.push(d) // ignora valori anomali
     }
-    const lastStart = new Date(cycles[0].start_date + 'T12:00:00')
-    const nextStart = new Date(lastStart)
-    nextStart.setDate(nextStart.getDate() + avgInterval)
-    nextCycleEstimate = { date: nextStart.toISOString().split('T')[0], interval: avgInterval, avgLength }
+    if (intervals.length) avgInterval = Math.round(intervals.reduce((s, x) => s + x, 0) / intervals.length)
+  }
+
+  // Genera previsioni per i prossimi 3 cicli
+  let nextCycleEstimate = null
+  const predictedRanges = []
+  if (cycles.length > 0 && !cycles[0]?.end_date === false || cycles[0]?.start_date) {
+    // Trova l'ultimo inizio registrato
+    const sorted = [...cycles].sort((a, b) => b.start_date.localeCompare(a.start_date))
+    const lastStart = new Date(sorted[0].start_date + 'T12:00:00')
+    for (let i = 1; i <= 3; i++) {
+      const predStart = new Date(lastStart)
+      predStart.setDate(predStart.getDate() + avgInterval * i)
+      const predEnd = new Date(predStart)
+      predEnd.setDate(predEnd.getDate() + avgDuration - 1)
+      if (i === 1) {
+        nextCycleEstimate = {
+          date: predStart.toISOString().split('T')[0],
+          interval: avgInterval,
+          avgDuration,
+          daysUntil: Math.round((predStart - new Date()) / 86400000),
+        }
+      }
+      predictedRanges.push({ start: predStart, end: predEnd })
+    }
   }
 
   const activeCycle = cycles.find(c => c.start_date && !c.end_date)
@@ -322,34 +376,52 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
           )}
         </div>
 
-        {/* Next cycle estimate */}
+        {/* Previsione prossimo ciclo (stile Flo) */}
         {nextCycleEstimate && !activeCycle && (
-          <div className="card" style={{ padding: 14, background: '#fdf2f8', border: '1.5px solid #f9a8d4' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 24 }}>📅</span>
+          <div style={{ background: 'linear-gradient(135deg, #9d174d11, #ec489911)', border: '1.5px solid #f9a8d4', borderRadius: 16, padding: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg, #9d174d, #ec4899)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🌸</div>
               <div>
-                <p style={{ fontSize: 13, fontWeight: 600, color: '#9d174d' }}>Prossimo ciclo stimato</p>
-                <p style={{ fontSize: 15, fontWeight: 700, color: '#be185d' }}>
+                <p style={{ fontSize: 12, color: '#9d174d', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Prossimo ciclo stimato</p>
+                <p style={{ fontSize: 16, fontWeight: 800, color: '#be185d' }}>
                   {new Date(nextCycleEstimate.date + 'T12:00:00').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
-                </p>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                  Basato su intervallo medio di {nextCycleEstimate.interval} giorni
                 </p>
               </div>
             </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ flex: 1, background: 'rgba(255,255,255,0.7)', borderRadius: 10, padding: '8px 12px', textAlign: 'center' }}>
+                <p style={{ fontSize: 18, fontWeight: 800, color: '#be185d' }}>{nextCycleEstimate.daysUntil > 0 ? nextCycleEstimate.daysUntil : 0}</p>
+                <p style={{ fontSize: 10, color: '#9d174d', fontWeight: 600 }}>giorni mancanti</p>
+              </div>
+              <div style={{ flex: 1, background: 'rgba(255,255,255,0.7)', borderRadius: 10, padding: '8px 12px', textAlign: 'center' }}>
+                <p style={{ fontSize: 18, fontWeight: 800, color: '#be185d' }}>{nextCycleEstimate.avgDuration}</p>
+                <p style={{ fontSize: 10, color: '#9d174d', fontWeight: 600 }}>durata stimata</p>
+              </div>
+              <div style={{ flex: 1, background: 'rgba(255,255,255,0.7)', borderRadius: 10, padding: '8px 12px', textAlign: 'center' }}>
+                <p style={{ fontSize: 18, fontWeight: 800, color: '#be185d' }}>{nextCycleEstimate.interval}</p>
+                <p style={{ fontSize: 10, color: '#9d174d', fontWeight: 600 }}>giorni ciclo</p>
+              </div>
+            </div>
+            <p style={{ fontSize: 10, color: '#9d174d', opacity: 0.7, marginTop: 8, textAlign: 'center' }}>
+              Stima basata sui tuoi cicli precedenti · Le date tratteggiate sul calendario indicano i cicli previsti
+            </p>
           </div>
         )}
 
         {/* Mini calendar */}
         <div className="card" style={{ padding: 16 }}>
           <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Calendario del mese</h3>
-          <MiniCalendar cycles={cycles} />
-          <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <MiniCalendar cycles={cycles} predictedRanges={predictedRanges} />
+          <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <div style={{ width: 14, height: 14, borderRadius: 4, background: '#fce7f3', border: '1.5px solid #f9a8d4' }} />
-              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Giorno ciclo</span>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Ciclo registrato</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#fff0f7', border: '1.5px dashed #f9a8d4' }} />
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Ciclo previsto</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <div style={{ width: 14, height: 14, borderRadius: 4, background: 'var(--green-pale)', border: '1.5px solid var(--green-main)' }} />
               <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Oggi</span>
             </div>
