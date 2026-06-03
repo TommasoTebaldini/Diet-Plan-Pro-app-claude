@@ -266,30 +266,76 @@ export default function ProgressPage() {
 
         {/* History */}
         {weights.length > 0 && (
-          <div className="card" style={{ padding: '18px 20px' }}>
-            <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>Storico misurazioni</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[...weights].reverse().slice(0, isPro ? 10 : 3).map((w, i) => {
-                const prev = [...weights].reverse()[i + 1]
+          <div className="card" style={{ padding: '18px 16px' }}>
+            <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>Storico misurazioni</h3>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {[...weights].reverse().slice(0, isPro ? 10 : 3).map((w, i, arr) => {
+                const prev = arr[i + 1]
                 const d = prev ? (w.weight_kg - prev.weight_kg).toFixed(1) : null
                 const dVal = d !== null ? parseFloat(d) : null
-                const trendColor = dVal === null ? null : dVal < 0 ? 'var(--green-main)' : dVal > 0 ? 'var(--red)' : 'var(--text-muted)'
-                const trendBg = dVal === null ? null : dVal < 0 ? 'var(--green-pale)' : dVal > 0 ? '#fff0f0' : 'var(--surface-2)'
+                const isToday = w.date === today
+                const isLast = i === arr.length - 1
+                // Distance to target as percentage (0–100%)
+                const distPct = target && initial && latest
+                  ? Math.max(0, Math.min(100, 100 - Math.abs(w.weight_kg - target) / Math.max(0.1, Math.abs(initial - target)) * 100))
+                  : null
                 return (
-                  <div key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 12, background: dVal !== null && dVal < 0 ? 'var(--green-pale)' : dVal !== null && dVal > 0 ? '#fff0f0' : 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Scale size={18} color={dVal !== null && dVal < 0 ? 'var(--green-main)' : dVal !== null && dVal > 0 ? 'var(--red)' : 'var(--text-muted)'} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: 15, fontWeight: 700 }}>{w.weight_kg} kg</p>
-                      <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(w.date + 'T12:00:00').toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}</p>
-                    </div>
-                    {d !== null && (
-                      <span style={{ fontSize: 12, fontWeight: 700, color: trendColor, background: trendBg, padding: '4px 9px', borderRadius: 100, display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
-                        {dVal < 0 ? <TrendingDown size={12} /> : dVal > 0 ? <TrendingUp size={12} /> : <Minus size={12} />}
-                        {dVal > 0 ? '+' : ''}{d} kg
-                      </span>
+                  <div key={w.id} style={{ display: 'flex', gap: 12, position: 'relative' }}>
+                    {/* Timeline connector line */}
+                    {!isLast && (
+                      <div style={{ position: 'absolute', left: 19, top: 42, bottom: 0, width: 2, background: 'var(--border-light)', zIndex: 0 }} />
                     )}
+                    {/* Icon bubble */}
+                    <div style={{
+                      width: 40, height: 40, borderRadius: '50%', flexShrink: 0, zIndex: 1,
+                      background: dVal !== null && dVal < 0 ? 'var(--green-pale)' : dVal !== null && dVal > 0 ? '#fff0f0' : isToday ? 'var(--green-pale)' : 'var(--surface-2)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      border: `2px solid ${dVal !== null && dVal < 0 ? 'var(--green-light)' : dVal !== null && dVal > 0 ? '#fca5a5' : isToday ? 'var(--green-main)' : 'var(--border)'}`,
+                    }}>
+                      <Scale size={16} color={dVal !== null && dVal < 0 ? 'var(--green-main)' : dVal !== null && dVal > 0 ? 'var(--red)' : 'var(--text-muted)'} />
+                    </div>
+                    {/* Content card */}
+                    <div style={{
+                      flex: 1, marginBottom: isLast ? 0 : 10,
+                      background: isToday ? 'var(--green-pale)' : 'var(--surface-2)',
+                      borderRadius: 14, padding: '10px 14px',
+                      border: `1.5px solid ${isToday ? 'var(--green-light)' : 'var(--border-light)'}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                          <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)' }}>{w.weight_kg}</p>
+                          <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>kg</p>
+                          {isToday && <span style={{ fontSize: 10, background: 'var(--green-main)', color: 'white', borderRadius: 100, padding: '1px 7px', fontWeight: 700, marginLeft: 2 }}>Oggi</span>}
+                        </div>
+                        <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1, textTransform: 'capitalize' }}>
+                          {new Date(w.date + 'T12:00:00').toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}
+                        </p>
+                        {distPct !== null && (
+                          <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{ flex: 1, height: 4, background: 'var(--border-light)', borderRadius: 2, overflow: 'hidden', maxWidth: 80 }}>
+                              <div style={{ height: '100%', width: `${distPct}%`, background: 'var(--green-main)', borderRadius: 2, transition: 'width .6s' }} />
+                            </div>
+                            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                              {distPct >= 100 ? '✓ obiettivo' : `${Math.abs(w.weight_kg - target).toFixed(1)} kg al goal`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      {d !== null && (
+                        <span style={{
+                          fontSize: 12, fontWeight: 700, flexShrink: 0,
+                          display: 'flex', alignItems: 'center', gap: 3,
+                          color: dVal < 0 ? 'var(--green-main)' : dVal > 0 ? 'var(--red)' : 'var(--text-muted)',
+                          background: dVal < 0 ? 'var(--green-pale)' : dVal > 0 ? '#fff0f0' : 'var(--surface-3)',
+                          padding: '5px 10px', borderRadius: 100,
+                          border: `1px solid ${dVal < 0 ? 'var(--border)' : dVal > 0 ? '#fca5a5' : 'var(--border-light)'}`,
+                        }}>
+                          {dVal < 0 ? <TrendingDown size={12} /> : dVal > 0 ? <TrendingUp size={12} /> : <Minus size={12} />}
+                          {dVal > 0 ? '+' : ''}{d} kg
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )
               })}

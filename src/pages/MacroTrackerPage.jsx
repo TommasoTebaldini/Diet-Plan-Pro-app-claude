@@ -11,6 +11,14 @@ const MealPhotoAnalyzer = lazy(() => import('../components/MealPhotoAnalyzer'))
 import ProGate from '../components/ProGate'
 import { useSubscription } from '../hooks/useSubscription'
 
+// Module-level flag: whether food_logs has is_favorite and unit columns
+let _foodLogsExtended = true
+function _isColErr(e) {
+  if (!e) return false
+  return e.code === '42703' || e.code === 'PGRST200' ||
+    String(e.message).includes('column') || String(e.message).includes('does not exist')
+}
+
 // ── Feature 6: Unit alternatives ──────────────────────────────────────────────
 const UNIT_OPTIONS = [
   { key: 'g', label: 'Grammi', factor: 1 },
@@ -248,17 +256,29 @@ export default function MacroTrackerPage() {
       .select('id,date,meal_type,meal_time,food_name,grams,kcal,proteins,carbs,fats,food_data,is_favorite,unit')
       .eq('user_id', user.id).eq('date', date).order('created_at')
 
-    // If columns don't exist (42703 = undefined_column), fallback to basic select
-    if (foodRes.error && (foodRes.error.code === '42703' || foodRes.error.message?.includes('column'))) {
+    // If columns don't exist fallback to basic select and mark flag
+    if (foodRes.error && _isColErr(foodRes.error)) {
       console.warn('[food_logs] is_favorite/unit columns not found, using basic select')
+      _foodLogsExtended = false
       foodRes = await supabase.from('food_logs')
         .select('id,date,meal_type,meal_time,food_name,grams,kcal,proteins,carbs,fats,food_data')
         .eq('user_id', user.id).eq('date', date).order('created_at')
+    } else if (!foodRes.error) {
+      _foodLogsExtended = true
     }
 
     if (foodRes.error) console.error('[food_logs] load error:', foodRes.error)
     setLog(foodRes.data || [])
-    setDiet(dietRes.data)
+
+    // diet: try active first, then fallback to any diet for this patient
+    let dietData = dietRes.data ?? null
+    if (!dietData && !dietRes.error) {
+      const { data: fb } = await supabase.from('patient_diets')
+        .select('*').eq('user_id', user.id)
+        .order('created_at', { ascending: false }).limit(1).maybeSingle()
+      dietData = fb ?? null
+    }
+    setDiet(dietData)
     setMood(wellnessRes.data?.mood || null)
   }
 
@@ -267,10 +287,10 @@ export default function MacroTrackerPage() {
     cutoff.setDate(cutoff.getDate() - 14)
     const from = cutoff.toISOString().split('T')[0]
 
-    // Feature 1: Recent foods (last 14 days, distinct by name, last occurrence)
+    // Feature 1: Recent foods — base columns only (unit may not exist)
     const { data: recentData } = await supabase
       .from('food_logs')
-      .select('food_name,grams,unit,food_data,created_at')
+      .select('food_name,grams,food_data,created_at')
       .eq('user_id', user.id)
       .gte('date', from)
       .neq('food_name', '__note__')
@@ -281,7 +301,7 @@ export default function MacroTrackerPage() {
       const seen = new Map()
       for (const row of recentData) {
         if (!seen.has(row.food_name)) {
-          seen.set(row.food_name, { food_name: row.food_name, grams: row.grams, unit: row.unit, food_data: row.food_data })
+          seen.set(row.food_name, { food_name: row.food_name, grams: row.grams, food_data: row.food_data })
         }
         if (seen.size >= 8) break
       }
@@ -289,38 +309,40 @@ export default function MacroTrackerPage() {
       localStorage.setItem('recent_foods_cache', local)
       setRecentFoods([...seen.values()])
     } else {
-      // Fallback from localStorage
       try {
         const cached = localStorage.getItem('recent_foods_cache')
         if (cached) setRecentFoods(JSON.parse(cached))
       } catch (_) {}
     }
 
-    // Feature 3: Favorite foods (last 90 days with is_favorite=true, distinct by name)
-    // Silently skip if the column doesn't exist yet
-    try {
-      const cutoff90 = new Date()
-      cutoff90.setDate(cutoff90.getDate() - 90)
-      const { data: favData, error: favErr } = await supabase
-        .from('food_logs')
-        .select('food_name,grams,unit,food_data')
-        .eq('user_id', user.id)
-        .eq('is_favorite', true)
-        .gte('date', cutoff90.toISOString().split('T')[0])
-        .neq('food_name', '__note__')
-        .order('created_at', { ascending: false })
-        .limit(100)
+    // Feature 3: Favorites — only if extended columns confirmed to exist
+    if (_foodLogsExtended !== false) {
+      try {
+        const cutoff90 = new Date()
+        cutoff90.setDate(cutoff90.getDate() - 90)
+        const { data: favData, error: favErr } = await supabase
+          .from('food_logs')
+          .select('food_name,grams,food_data')
+          .eq('user_id', user.id)
+          .eq('is_favorite', true)
+          .gte('date', cutoff90.toISOString().split('T')[0])
+          .neq('food_name', '__note__')
+          .order('created_at', { ascending: false })
+          .limit(100)
 
-      if (!favErr && favData) {
-        const favSeen = new Map()
-        for (const row of favData) {
-          if (!favSeen.has(row.food_name)) {
-            favSeen.set(row.food_name, { food_name: row.food_name, grams: row.grams, unit: row.unit, food_data: row.food_data })
+        if (favErr && _isColErr(favErr)) {
+          _foodLogsExtended = false
+        } else if (!favErr && favData) {
+          const favSeen = new Map()
+          for (const row of favData) {
+            if (!favSeen.has(row.food_name)) {
+              favSeen.set(row.food_name, { food_name: row.food_name, grams: row.grams, food_data: row.food_data })
+            }
           }
+          setFavoriteFoods([...favSeen.values()])
         }
-        setFavoriteFoods([...favSeen.values()])
-      }
-    } catch (_) {}
+      } catch (_) {}
+    }
 
     // Feature 2: Saved custom meals
     const { data: mealsData } = await supabase
@@ -476,12 +498,10 @@ export default function MacroTrackerPage() {
     if (!selected) return
     setSaving(true)
     setSaveError('')
-    // Feature 6: compute grams from unit
     const effectiveGrams = selectedUnit === 'g' ? grams : String(gramsFromUnit(unitQty, selectedUnit))
     const m = calcMacros(selected, effectiveGrams)
     let savedName = null
     try {
-      // Build food_data with only defined values
       const foodData = {
         id: selected.id, name: selected.name, brand: selected.brand || '',
         kcal_100g: selected.kcal_100g || 0, proteins_100g: selected.proteins_100g || 0,
@@ -490,14 +510,25 @@ export default function MacroTrackerPage() {
         sugar_100g: selected.sugar_100g || 0, fatSat_100g: selected.fatSat_100g || 0,
         meal_time: mealTime || null,
       }
-      const insertPayload = {
+      const basePayload = {
         user_id: user.id,
         date, meal_type: meal, meal_time: mealTime || null, food_name: selected.name,
         grams: parseFloat(effectiveGrams) || 100, ...m,
         food_data: foodData,
-        unit: selectedUnit !== 'g' ? selectedUnit : null,
       }
-      const { data, error } = await supabase.from('food_logs').insert(insertPayload).select().single()
+      // Include unit only if column is known to exist
+      const insertPayload = _foodLogsExtended !== false
+        ? { ...basePayload, unit: selectedUnit !== 'g' ? selectedUnit : null }
+        : basePayload
+
+      let { data, error } = await supabase.from('food_logs').insert(insertPayload).select().single()
+
+      // Retry without extended columns if column error
+      if (error && _isColErr(error)) {
+        _foodLogsExtended = false
+        ;({ data, error } = await supabase.from('food_logs').insert(basePayload).select().single())
+      }
+
       if (error) {
         console.error('Errore salvataggio alimento:', error)
         setSaveError(`Errore nel salvare l'alimento: ${error.message || 'errore sconosciuto'}. Riprova.`)
@@ -537,7 +568,6 @@ export default function MacroTrackerPage() {
       food_name: recent.food_name,
       grams: recent.grams || 100, ...m,
       food_data: fd,
-      unit: recent.unit || null,
     }).select().single()
     if (!error && data) {
       setLog(l => [...l, data])

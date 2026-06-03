@@ -226,7 +226,7 @@ export default function MenstrualCyclePage() {
     setSelectedSymptoms([])
   }
 
-  // ── Previsione ciclo (stile Flo) ──────────────────────────────────────────
+  // ── Previsione ciclo (stile Flo) + Fasi del ciclo ─────────────────────────
   const completedCycles = cycles.filter(c => c.end_date && c.cycle_length)
 
   // Durata media del ciclo (in giorni)
@@ -269,6 +269,47 @@ export default function MenstrualCyclePage() {
       predictedRanges.push({ start: predStart, end: predEnd })
     }
   }
+
+  // ── Calcolo fasi del ciclo ─────────────────────────────────────────────────
+  const ovDay = Math.max(10, Math.round(avgInterval / 2))
+  const cyclePhases = [
+    {
+      name: 'Mestruale', emoji: '🩸',
+      startDay: 1, endDay: Math.max(3, avgDuration),
+      color: '#ec4899', bg: '#fce7f3',
+      desc: 'Perdita di sangue. Riposo, cura di sé e alimentazione ricca di ferro.',
+    },
+    {
+      name: 'Pre-ovulatoria', emoji: '🌱',
+      startDay: Math.max(3, avgDuration) + 1, endDay: Math.max(ovDay - 3, Math.max(3, avgDuration) + 2),
+      color: '#f59e0b', bg: '#fffbeb',
+      desc: 'Energia in crescita, umore positivo. Estrogeni in aumento.',
+    },
+    {
+      name: 'Ovulatoria', emoji: '🌸',
+      startDay: Math.max(ovDay - 2, Math.max(3, avgDuration) + 2), endDay: ovDay + 1,
+      color: '#10b981', bg: '#ecfdf5',
+      desc: 'Periodo fertile. Picco di energia, libido e creatività.',
+    },
+    {
+      name: 'Luteale', emoji: '🌙',
+      startDay: ovDay + 2, endDay: avgInterval,
+      color: '#7c3aed', bg: '#f5f3ff',
+      desc: 'Progesterone in salita. Possibili sbalzi d\'umore (PMS), gonfiore.',
+    },
+  ].filter(p => p.startDay <= p.endDay)
+
+  // Giorno attuale nel ciclo (basato sull'ultimo inizio noto)
+  const lastCycleStart = cycles.length > 0
+    ? [...cycles].sort((a, b) => b.start_date.localeCompare(a.start_date))[0].start_date
+    : null
+  const rawDayInCycle = lastCycleStart
+    ? Math.round((new Date() - new Date(lastCycleStart + 'T12:00:00')) / 86400000) + 1
+    : null
+  const dayInCycle = rawDayInCycle !== null ? Math.min(rawDayInCycle, avgInterval) : null
+  const currentPhase = dayInCycle !== null && dayInCycle > 0
+    ? (cyclePhases.find(p => dayInCycle >= p.startDay && dayInCycle <= p.endDay) || cyclePhases[cyclePhases.length - 1])
+    : null
 
   const activeCycle = cycles.find(c => c.start_date && !c.end_date)
 
@@ -428,6 +469,70 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
           </div>
         </div>
 
+        {/* ── Fasi del ciclo ── */}
+        {cycles.length > 0 && cyclePhases.length > 0 && (
+          <div className="card" style={{ padding: 16 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Fasi del ciclo</h3>
+
+            {/* Fase attuale */}
+            {currentPhase && dayInCycle !== null && (
+              <div style={{
+                background: currentPhase.bg,
+                borderRadius: 14, padding: '12px 14px', marginBottom: 14,
+                border: `1.5px solid ${currentPhase.color}55`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 30 }}>{currentPhase.emoji}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 10, color: currentPhase.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 2 }}>
+                      Fase attuale · Giorno {dayInCycle} di {avgInterval}
+                    </p>
+                    <p style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)' }}>{currentPhase.name}</p>
+                    <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2, lineHeight: 1.4 }}>{currentPhase.desc}</p>
+                  </div>
+                </div>
+                {/* Progress bar in cycle */}
+                <div style={{ marginTop: 10, height: 4, background: 'rgba(0,0,0,0.08)', borderRadius: 2, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${Math.min(100, Math.round(dayInCycle / avgInterval * 100))}%`, background: currentPhase.color, borderRadius: 2, transition: 'width .6s' }} />
+                </div>
+                <p style={{ fontSize: 10, color: currentPhase.color, marginTop: 4, opacity: 0.8 }}>
+                  {avgInterval - dayInCycle} giorni al prossimo ciclo stimato
+                </p>
+              </div>
+            )}
+
+            {/* Timeline di tutte le fasi */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {cyclePhases.map(p => {
+                const isActive = currentPhase?.name === p.name
+                return (
+                  <div key={p.name} style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '10px 12px', borderRadius: 12,
+                    background: isActive ? p.bg : 'var(--surface-2)',
+                    border: `1.5px solid ${isActive ? p.color + '55' : 'transparent'}`,
+                    transition: 'all .15s',
+                  }}>
+                    <span style={{ fontSize: 22, flexShrink: 0 }}>{p.emoji}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: isActive ? p.color : 'var(--text-primary)' }}>{p.name}</p>
+                      <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Giorni {p.startDay}–{p.endDay} · {p.endDay - p.startDay + 1} giorni</p>
+                    </div>
+                    {isActive ? (
+                      <span style={{ fontSize: 10, background: p.color, color: 'white', borderRadius: 100, padding: '2px 9px', fontWeight: 700, flexShrink: 0 }}>Ora</span>
+                    ) : (
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>g.{p.startDay}–{p.endDay}</span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+            <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 10, textAlign: 'center', opacity: 0.7 }}>
+              Stime basate su ciclo medio di {avgInterval} giorni · Per uso informativo
+            </p>
+          </div>
+        )}
+
         {/* History list */}
         {loading ? (
           <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 13 }}>Caricamento…</div>
@@ -483,13 +588,13 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
                           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                             <button
                               onClick={() => { setShowSymptomModal(cycle.id); setSelectedSymptoms(cycle.symptoms || []) }}
-                              style={{ fontSize: 11, color: '#ec4899', background: 'none', border: '1px solid #f9a8d4', borderRadius: 8, padding: '4px 10px', cursor: 'pointer' }}
+                              style={{ fontSize: 11, fontFamily: 'var(--font-b)', color: '#ec4899', background: 'none', border: '1px solid #f9a8d4', borderRadius: 8, padding: '4px 10px', cursor: 'pointer' }}
                             >
                               + Sintomi
                             </button>
                             <button
                               onClick={() => { setShowNotes(cycle.id); setNoteText(cycle.notes || '') }}
-                              style={{ fontSize: 11, color: 'var(--text-muted)', background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 10px', cursor: 'pointer' }}
+                              style={{ fontSize: 11, fontFamily: 'var(--font-b)', color: 'var(--text-muted)', background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 10px', cursor: 'pointer' }}
                             >
                               📝 Note
                             </button>

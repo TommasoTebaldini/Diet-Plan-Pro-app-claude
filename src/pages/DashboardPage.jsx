@@ -164,7 +164,18 @@ export default function DashboardPage() {
       if (w.value?.data) setWeight(w.value.data.weight_kg)
       if (chat.value?.count) setUnreadChat(chat.value.count)
 
-      const currentDiet = activeDiet.value?.data ?? null
+      let currentDiet = activeDiet.value?.data ?? null
+      // Fallback: se nessun piano attivo trovato, prova senza filtro is_active
+      if (!currentDiet && activeDiet.status === 'fulfilled' && !activeDiet.value?.error) {
+        const { data: fb } = await supabase
+          .from('patient_diets')
+          .select('id,name,kcal_target,protein_target,carbs_target,fats_target,notes')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        currentDiet = fb ?? null
+      }
       setDiet(currentDiet)
 
       // Streak calculation
