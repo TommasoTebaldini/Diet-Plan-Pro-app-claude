@@ -205,8 +205,7 @@ export default function MacroTrackerPage() {
   const [mealNoteInputs, setMealNoteInputs] = useState({})
   const [savingNote, setSavingNote] = useState(null)
 
-  // ── Feature 1: Recent foods (flat list) + per-meal recents ──────────────────
-  const [recentFoods, setRecentFoods] = useState([])
+  // ── Per-meal recent foods ────────────────────────────────────────────────────
   const [recentByMeal, setRecentByMeal] = useState({})
 
   // ── Feature 2: Saved meals (custom_meals) ────────────────────────────────────
@@ -293,34 +292,6 @@ export default function MacroTrackerPage() {
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - 14)
     const from = cutoff.toISOString().split('T')[0]
-
-    // Feature 1: Recent foods — base columns only (unit may not exist)
-    const { data: recentData } = await supabase
-      .from('food_logs')
-      .select('food_name,grams,food_data,created_at')
-      .eq('user_id', user.id)
-      .gte('date', from)
-      .neq('food_name', '__note__')
-      .order('created_at', { ascending: false })
-      .limit(200)
-
-    if (recentData) {
-      const seen = new Map()
-      for (const row of recentData) {
-        if (!seen.has(row.food_name)) {
-          seen.set(row.food_name, { food_name: row.food_name, grams: row.grams, food_data: row.food_data })
-        }
-        if (seen.size >= 8) break
-      }
-      const local = JSON.stringify([...seen.values()])
-      localStorage.setItem('recent_foods_cache', local)
-      setRecentFoods([...seen.values()])
-    } else {
-      try {
-        const cached = localStorage.getItem('recent_foods_cache')
-        if (cached) setRecentFoods(JSON.parse(cached))
-      } catch (_) {}
-    }
 
     // Feature 3: Favorites — only if extended columns confirmed to exist
     if (_foodLogsExtended !== false) {
@@ -983,34 +954,6 @@ export default function MacroTrackerPage() {
           </button>
         )}
 
-        {/* ── Feature 1: Recent foods ── */}
-        {recentFoods.length > 0 && (
-          <div className="card" style={{ padding: 14 }}>
-            <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>⏱ Recenti</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {recentFoods.map((r, i) => {
-                const fd = r.food_data || {}
-                if (!fd.kcal_100g) return null
-                const m = calcMacros(fd, r.grams || 100)
-                return (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 10 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.food_name}</p>
-                      <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.grams}g · {m.kcal} kcal</p>
-                    </div>
-                    <button
-                      onClick={() => addRecentFood(r, activeMealAdd || meal)}
-                      disabled={saving}
-                      style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 8, background: 'var(--green-pale)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green-main)' }}
-                    >
-                      <Plus size={14} />
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
 
         {/* ── Feature 3: Favorites section ── */}
         {favoriteFoods.length > 0 && (
