@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
+import { fetchDietFromPiani } from '../lib/dietBridge'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
 import { searchFoodsLocal, searchFoods, searchByBarcode } from '../lib/foodSearch'
@@ -279,23 +280,10 @@ export default function MacroTrackerPage() {
         .order('created_at', { ascending: false }).limit(1).maybeSingle()
       dietData = fb ?? null
     }
-    // Fallback finale: leggi da piani (NutriPlan-Pro) via patient_dietitian
+    // Fallback finale: piano + macro target da NutriPlan-Pro
     if (!dietData) {
-      const { data: link } = await supabase.from('patient_dietitian').select('cartella_id').eq('patient_id', user.id).maybeSingle()
-      if (link?.cartella_id) {
-        const { data: piano } = await supabase.from('piani')
-          .select('id,nome,saved_at')
-          .eq('cartella_id', link.cartella_id)
-          .eq('visible_to_patient', true)
-          .order('saved_at', { ascending: false }).limit(1).maybeSingle()
-        if (piano) {
-          dietData = {
-            id: piano.id,
-            name: piano.nome || 'Piano alimentare',
-            kcal_target: null, protein_target: null, carbs_target: null, fats_target: null,
-          }
-        }
-      }
+      const synth = await fetchDietFromPiani(user.id)
+      if (synth) dietData = synth
     }
     setDiet(dietData)
     setMood(wellnessRes.data?.mood || null)
@@ -1093,8 +1081,8 @@ export default function MacroTrackerPage() {
           </button>
         )}
 
-        {/* ── Macro targets (solo se il piano ha obiettivi numerici) ── */}
-        {diet && (diet.protein_target || diet.carbs_target || diet.fats_target) && (
+        {/* ── Macro targets (visibili quando il piano ha almeno un obiettivo numerico) ── */}
+        {diet && (diet.kcal_target || diet.protein_target || diet.carbs_target || diet.fats_target) && (
           <div className="card" style={{ padding: 14 }}>
             <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>Obiettivi giornalieri</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>

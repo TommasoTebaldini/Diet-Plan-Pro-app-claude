@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { useAppSettings } from '../context/AppSettingsContext'
 import { supabase } from '../lib/supabase'
+import { fetchDietFromPiani } from '../lib/dietBridge'
 import { useT } from '../i18n'
 import { Utensils, Droplets, TrendingUp, Apple, Flame, Leaf, MessageCircle, FileText, BookOpen, User, ChevronRight, Activity, Scale, Calendar, Zap, Award, Heart, BarChart2, Star, Crown } from 'lucide-react'
 import StreakCalendar from '../components/StreakCalendar'
@@ -176,33 +177,10 @@ export default function DashboardPage() {
           .maybeSingle()
         currentDiet = fb ?? null
       }
-      // Fallback 2: leggi il piano da NutriPlan-Pro (tabella piani via patient_dietitian)
+      // Fallback 2: piano + macro target da NutriPlan-Pro (piani + ncpt/schede_valutazione)
       if (!currentDiet) {
-        const { data: link } = await supabase
-          .from('patient_dietitian')
-          .select('cartella_id')
-          .eq('patient_id', user.id)
-          .maybeSingle()
-        if (link?.cartella_id) {
-          const { data: piano } = await supabase
-            .from('piani')
-            .select('id,nome,saved_at')
-            .eq('cartella_id', link.cartella_id)
-            .eq('visible_to_patient', true)
-            .order('saved_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-          if (piano) {
-            currentDiet = {
-              id: piano.id,
-              name: piano.nome || 'Piano alimentare',
-              kcal_target: null,
-              protein_target: null,
-              carbs_target: null,
-              fats_target: null,
-            }
-          }
-        }
+        const synth = await fetchDietFromPiani(user.id)
+        if (synth) currentDiet = synth
       }
       setDiet(currentDiet)
 
