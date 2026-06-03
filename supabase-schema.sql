@@ -1254,4 +1254,108 @@ drop policy if exists "paziente annulla appuntamento" on appointments;
 create policy "paziente annulla appuntamento" on appointments
   for update to authenticated
   using (auth.uid() = patient_id)
+
+-- ============================================================
+-- RPC: get_my_macro_targets()
+-- Funzione SECURITY DEFINER che bypassa RLS e restituisce
+-- i macro target del paziente loggato leggendo:
+--   1. ncpt.intervento  (kcal/prot/cho/grassi prescritti)
+--   2. schede_valutazione (tdee_calcolato + macro_dist %)
+-- Il paziente riceve SOLO numeri aggregati, nessun dato clinico.
+-- Eseguire nel Supabase SQL Editor.
+-- ============================================================
+
+drop function if exists get_my_macro_targets();
+
+create or replace function get_my_macro_targets()
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_cartella_id     uuid;
+  v_ncpt_intervento text;
+  v_intervento      jsonb;
+  v_tdee            numeric;
+  v_macro_dist      text;
+  v_md              jsonb;
+  v_prot_pct        numeric := 20;
+  v_cho_pct         numeric := 50;
+  v_fat_pct         numeric := 30;
+begin
+  -- Trova la cartella collegata al paziente autenticato
+  select cartella_id into v_cartella_id
+  from patient_dietitian
+  where patient_id = auth.uid()
+  limit 1;
+
+  if v_cartella_id is null then
+    return null;
+  end if;
+
+  -- 1. NCPT: intervento (valori prescritti in grammi/kcal)
+  begin
+    select intervento into v_ncpt_intervento
+    from ncpt
+    where cartella_id = v_cartella_id
+    order by created_at desc limit 1;
+
+    if v_ncpt_intervento is not null then
+      v_intervento := v_ncpt_intervento::jsonb;
+      if (v_intervento->>'kcal') is not null or (v_intervento->>'prot') is not null then
+        return jsonb_build_object(
+          'kcal_target',    (v_intervento->>'kcal')::numeric,
+          'protein_target', (v_intervento->>'prot')::numeric,
+          'carbs_target',   (v_intervento->>'cho')::numeric,
+          'fats_target',    coalesce((v_intervento->>'grassi')::numeric,
+                                    (v_intervento->>'fat')::numeric)
+        );
+      end if;
+    end if;
+  exception when others then
+    null;
+  end;
+
+  -- 2. Scheda valutazione: TDEE × distribuzione percentuale
+  begin
+    select tdee_calcolato, macro_dist into v_tdee, v_macro_dist
+    from schede_valutazione
+    where cartella_id = v_cartella_id
+    order by saved_at desc limit 1;
+
+    if v_tdee is not null and v_tdee > 500 then
+      begin
+        if v_macro_dist is not null then
+          v_md := v_macro_dist::jsonb;
+          if (v_md->>'prot_mode') is distinct from 'gkg' then
+            v_prot_pct := coalesce((v_md->>'prot')::numeric, 20);
+          end if;
+          if (v_md->>'cho_mode') is distinct from 'gkg' then
+            v_cho_pct := coalesce((v_md->>'cho')::numeric, 50);
+          end if;
+          if (v_md->>'fat_mode') is distinct from 'gkg' then
+            v_fat_pct := coalesce((v_md->>'fat')::numeric, 30);
+          end if;
+        end if;
+      exception when others then
+        null;
+      end;
+
+      return jsonb_build_object(
+        'kcal_target',    round(v_tdee),
+        'protein_target', round(v_tdee * v_prot_pct / 100.0 / 4),
+        'carbs_target',   round(v_tdee * v_cho_pct  / 100.0 / 4),
+        'fats_target',    round(v_tdee * v_fat_pct  / 100.0 / 9)
+      );
+    end if;
+  exception when others then
+    null;
+  end;
+
+  return null;
+end;
+$$;
+
+grant execute on function get_my_macro_targets() to authenticated;
   with check (auth.uid() = patient_id);
