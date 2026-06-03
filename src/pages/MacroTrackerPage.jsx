@@ -150,20 +150,6 @@ const MOOD_OPTIONS = [
   { value: 5, emoji: '😄', label: 'Ottimo' },
 ]
 
-function MacroBar({ label, value, target, color }) {
-  const pct = Math.min(100, target > 0 ? Math.round((value / target) * 100) : 0)
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-        <span style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>{label}</span>
-        <span style={{ color: 'var(--text-muted)' }}>{value}g{target ? ` / ${target}g` : ''}</span>
-      </div>
-      <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 3, transition: 'width 0.6s ease' }} />
-      </div>
-    </div>
-  )
-}
 
 export default function MacroTrackerPage() {
   const { user } = useAuth()
@@ -873,25 +859,33 @@ export default function MacroTrackerPage() {
           </div>
         </div>
 
-        {/* Macro totals */}
+        {/* Macro totals con barre di avanzamento */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
           {[
-            { label: 'Kcal', val: `${totals.kcal}${diet?.kcal_target ? `/${diet.kcal_target}` : ''}` },
-            { label: 'Prot.', val: `${totals.proteins}g` },
-            { label: 'Carbo', val: `${totals.carbs}g` },
-            { label: 'Grassi', val: `${totals.fats}g` },
-          ].map((s, i) => (
-            <motion.div
-              key={s.label}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 10, padding: '7px 4px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.12)' }}
-            >
-              <p style={{ color: 'white', fontSize: 13, fontWeight: 700 }}>{s.val}</p>
-              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10 }}>{s.label}</p>
-            </motion.div>
-          ))}
+            { label: 'Kcal',   value: totals.kcal,                target: diet?.kcal_target,    color: '#fcd34d', unit: ''  },
+            { label: 'Prot.',  value: Math.round(totals.proteins), target: diet?.protein_target, color: '#93c5fd', unit: 'g' },
+            { label: 'Carbo',  value: Math.round(totals.carbs),    target: diet?.carbs_target,   color: '#fde68a', unit: 'g' },
+            { label: 'Grassi', value: Math.round(totals.fats),     target: diet?.fats_target,    color: '#fca5a5', unit: 'g' },
+          ].map((s, i) => {
+            const pct = s.target ? Math.min(100, Math.round(s.value / s.target * 100)) : 0
+            return (
+              <motion.div
+                key={s.label}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.06, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 12, padding: '9px 6px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.15)' }}
+              >
+                <div style={{ height: 3, background: 'rgba(255,255,255,.18)', borderRadius: 2, marginBottom: 7, overflow: 'hidden' }}>
+                  {s.target > 0 && <div style={{ height: '100%', width: `${pct}%`, background: s.color, borderRadius: 2, transition: 'width 1s ease' }} />}
+                </div>
+                <p style={{ color: 'white', fontSize: 12, fontWeight: 700, lineHeight: 1 }}>
+                  {s.value}{s.unit}{s.target ? <span style={{ color: 'rgba(255,255,255,.55)', fontWeight: 400, fontSize: 10 }}>/{s.target}</span> : ''}
+                </p>
+                <p style={{ color: 'rgba(255,255,255,.6)', fontSize: 10, marginTop: 3 }}>{s.label}</p>
+              </motion.div>
+            )
+          })}
         </div>
 
         {/* Mood row */}
@@ -1022,18 +1016,6 @@ export default function MacroTrackerPage() {
             <BookmarkPlus size={15} />
             Salva pasto corrente come modello
           </button>
-        )}
-
-        {/* ── Macro targets (visibili quando il piano ha almeno un obiettivo numerico) ── */}
-        {diet && (diet.kcal_target || diet.protein_target || diet.carbs_target || diet.fats_target) && (
-          <div className="card" style={{ padding: 14 }}>
-            <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>Obiettivi giornalieri</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-              <MacroBar label="Proteine" value={totals.proteins} target={diet.protein_target} color="#3b82f6" />
-              <MacroBar label="Carboidrati" value={totals.carbs} target={diet.carbs_target} color="#f0922b" />
-              <MacroBar label="Grassi" value={totals.fats} target={diet.fats_target} color="#e05a5a" />
-            </div>
-          </div>
         )}
 
         {/* ── Meal cards ── */}
