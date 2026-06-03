@@ -88,11 +88,11 @@ export default function StreakCalendar() {
   })()
 
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div style={{ overflowX: 'auto', textAlign: 'center' }}>
       {/* Streak info */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <span style={{ fontSize: 20 }}>🔥</span>
-        <div>
+        <div style={{ textAlign: 'left' }}>
           <p style={{ fontSize: 14, fontWeight: 700, color: streakCount >= 7 ? '#216E39' : 'var(--text-primary)' }}>
             {streakCount} {streakCount === 1 ? 'giorno' : 'giorni'} consecutivi
           </p>
@@ -100,7 +100,7 @@ export default function StreakCalendar() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 2, minWidth: 'fit-content', position: 'relative' }}>
+      <div style={{ display: 'inline-flex', gap: 2, position: 'relative' }}>
         {/* Day labels on the left */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginRight: 4, paddingTop: 18 }}>
           {DAYS_IT.map((d, i) => (
@@ -163,7 +163,7 @@ export default function StreakCalendar() {
       </div>
 
       {/* Legend */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, justifyContent: 'flex-end' }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8, justifyContent: 'center' }}>
         <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Meno</span>
         {['#EBEDF0', '#9BE9A8', '#40C463', '#216E39'].map(c => (
           <div key={c} style={{ width: 12, height: 12, borderRadius: 3, background: c }} />

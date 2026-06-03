@@ -204,8 +204,9 @@ export default function MacroTrackerPage() {
   const [mealNoteInputs, setMealNoteInputs] = useState({})
   const [savingNote, setSavingNote] = useState(null)
 
-  // ── Feature 1: Recent foods ──────────────────────────────────────────────────
+  // ── Feature 1: Recent foods (flat list) + per-meal recents ──────────────────
   const [recentFoods, setRecentFoods] = useState([])
+  const [recentByMeal, setRecentByMeal] = useState({})
 
   // ── Feature 2: Saved meals (custom_meals) ────────────────────────────────────
   const [savedMeals, setSavedMeals] = useState([])
@@ -342,6 +343,38 @@ export default function MacroTrackerPage() {
           setFavoriteFoods([...favSeen.values()])
         }
       } catch (_) {}
+    }
+
+    // Per-meal recent foods (last 30 days, up to 5 per meal)
+    const cutoff30 = new Date()
+    cutoff30.setDate(cutoff30.getDate() - 30)
+    const from30 = cutoff30.toISOString().split('T')[0]
+    const { data: mealRecentData } = await supabase
+      .from('food_logs')
+      .select('food_name,grams,food_data,meal_type,created_at')
+      .eq('user_id', user.id)
+      .gte('date', from30)
+      .neq('food_name', '__note__')
+      .order('created_at', { ascending: false })
+      .limit(500)
+    if (mealRecentData) {
+      const byMeal = {}
+      for (const row of mealRecentData) {
+        if (!row.meal_type || !row.food_data?.kcal_100g) continue
+        if (!byMeal[row.meal_type]) byMeal[row.meal_type] = new Map()
+        if (byMeal[row.meal_type].size < 5 && !byMeal[row.meal_type].has(row.food_name)) {
+          byMeal[row.meal_type].set(row.food_name, {
+            food_name: row.food_name,
+            grams: row.grams,
+            food_data: row.food_data,
+          })
+        }
+      }
+      const result = {}
+      for (const [mealType, map] of Object.entries(byMeal)) {
+        result[mealType] = [...map.values()]
+      }
+      setRecentByMeal(result)
     }
 
     // Feature 2: Saved custom meals
@@ -1302,6 +1335,47 @@ export default function MacroTrackerPage() {
                           </p>
                         )}
                       </div>
+
+                      {/* ── Recenti per questo pasto (prima che l'utente scriva) ── */}
+                      {!selected && !query.trim() && (recentByMeal[m.key] || []).length > 0 && (
+                        <div style={{ marginBottom: 8 }}>
+                          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                            Recenti in {m.label}
+                          </p>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {(recentByMeal[m.key] || []).map((r, idx) => {
+                              const fd = r.food_data || {}
+                              if (!fd.kcal_100g) return null
+                              const mac = calcMacros(fd, r.grams || 100)
+                              return (
+                                <button
+                                  key={idx}
+                                  onClick={() => addRecentFood(r, m.key)}
+                                  disabled={saving}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: 8,
+                                    padding: '7px 10px', background: 'var(--surface-2)',
+                                    borderRadius: 9, border: `1px solid var(--border-light)`,
+                                    cursor: 'pointer', textAlign: 'left', width: '100%',
+                                  }}
+                                >
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <p style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>
+                                      {r.food_name}
+                                    </p>
+                                    <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                                      {r.grams}g · {mac.kcal} kcal · P:{mac.proteins}g
+                                    </p>
+                                  </div>
+                                  <div style={{ width: 28, height: 28, borderRadius: 7, background: m.pale || 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: m.accent || 'var(--green-main)', flexShrink: 0 }}>
+                                    <Plus size={13} />
+                                  </div>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Selected food + grams + time */}
                       {selected && (

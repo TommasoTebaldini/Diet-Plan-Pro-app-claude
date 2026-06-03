@@ -1113,7 +1113,7 @@ export default function DocumentsPage() {
         // Batch 1: fetch patient_dietitian link and patient_documents simultaneously
         const [linkRes, pdRes] = await Promise.all([
           supabase.from('patient_dietitian').select('cartella_id, dietitian_id').eq('patient_id', user.id).maybeSingle(),
-          supabase.from('patient_documents').select('id, title, content, tipo, type, nota, dati_raw, meals_data, visible, requires_signature, signed_at, signature_data, created_at, print_image_url').eq('patient_id', user.id).eq('visible', true).order('created_at', { ascending: false }),
+          supabase.from('patient_documents').select('*').eq('patient_id', user.id).eq('visible', true).order('created_at', { ascending: false }),
         ])
 
         const cartellaId = linkRes.data?.cartella_id
