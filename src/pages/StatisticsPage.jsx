@@ -98,7 +98,7 @@ export default function StatisticsPage() {
   const [mealsCount, setMealsCount] = useState(3)
   const [generatingPdf, setGeneratingPdf] = useState(false)
   const [pdfMode, setPdfMode] = useState('weekly')
-  const [monthStr, setMonthStr] = useState(format(today, 'yyyy-MM'))
+  const [monthStr, setMonthStr] = useState(format(new Date(), 'yyyy-MM'))
   const [generatingMonthlyPdf, setGeneratingMonthlyPdf] = useState(false)
 
   const today = new Date()
