@@ -1,13 +1,15 @@
 // Custom Service Worker for NutriPlan PWA
 // Uses Workbox (via VitePWA injectManifest) + real Web Push support
-import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
+import { precacheAndRoute } from 'workbox-precaching'
 import { registerRoute } from 'workbox-routing'
 import { NetworkFirst, StaleWhileRevalidate, CacheFirst } from 'workbox-strategies'
 import { ExpirationPlugin } from 'workbox-expiration'
 
 // ── Precaching ────────────────────────────────────────────────────────────────
+// cleanupOutdatedCaches() is intentionally omitted: removing old cache entries
+// during SW transition causes 404s on lazy-loaded chunks still referenced by
+// open tabs. Old entries expire naturally via ExpirationPlugin.
 precacheAndRoute(self.__WB_MANIFEST)
-cleanupOutdatedCaches()
 
 // ── SW lifecycle ──────────────────────────────────────────────────────────────
 self.skipWaiting()
