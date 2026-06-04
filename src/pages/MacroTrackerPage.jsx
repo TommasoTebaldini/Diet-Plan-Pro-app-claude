@@ -1174,8 +1174,8 @@ export default function MacroTrackerPage() {
                     </p>
                   )}
 
-                  {/* Save meal as template — shown when meal has foods and not in search mode */}
-                  {!isSearching && mealFoods.length > 0 && (
+                  {/* Save meal as template — shown whenever the meal has foods */}
+                  {mealFoods.length > 0 && (
                     <button
                       onClick={() => { setActiveMealAdd(m.key); setShowSaveMealModal(true) }}
                       style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'none', border: '1px dashed var(--border)', borderRadius: 9, padding: '7px 11px', cursor: 'pointer', font: 'inherit', fontSize: 12, color: 'var(--text-muted)', width: '100%', marginBottom: 6 }}
