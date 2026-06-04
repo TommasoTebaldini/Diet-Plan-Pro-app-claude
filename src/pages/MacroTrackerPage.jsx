@@ -6,7 +6,8 @@ import { fetchDietFromPiani } from '../lib/dietBridge'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
 import { searchFoodsLocal, searchFoods, searchByBarcode } from '../lib/foodSearch'
-import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle, Pencil, Check, Lock, Camera, Star, BookmarkPlus, ClipboardCopy } from 'lucide-react'
+import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle, Pencil, Check, Lock, Camera, Star, BookmarkPlus, ClipboardCopy, WifiOff } from 'lucide-react'
+import { safeWrite } from '../lib/offlineDB'
 const BarcodeScanner   = lazy(() => import('../components/BarcodeScanner'))
 const MealPhotoAnalyzer = lazy(() => import('../components/MealPhotoAnalyzer'))
 import ProGate from '../components/ProGate'
@@ -208,6 +209,13 @@ export default function MacroTrackerPage() {
   // ── Feature 6: Unit selector ─────────────────────────────────────────────────
   const [selectedUnit, setSelectedUnit] = useState('g')
   const [unitQty, setUnitQty] = useState('100')
+
+  // ── Offline save toast ────────────────────────────────────────────────────────
+  const [offlineSaved, setOfflineSaved] = useState(false)
+
+  // ── Recent food quantity picker ──────────────────────────────────────────────
+  const [recentFoodPicker, setRecentFoodPicker] = useState(null)
+  const [pickerGrams, setPickerGrams] = useState('100')
 
   // ── Feature 7: Copy day ──────────────────────────────────────────────────────
   const [showCopyModal, setShowCopyModal] = useState(false)
@@ -467,21 +475,30 @@ export default function MacroTrackerPage() {
         kcal_100g: food.kcal_100g || 0, proteins_100g: food.proteins_100g || 0,
         carbs_100g: food.carbs_100g || 0, fats_100g: food.fats_100g || 0,
         fiber_100g: food.fiber_100g || 0, source: food.source || '',
-      sugar_100g: food.sugar_100g || 0, fatSat_100g: food.fatSat_100g || 0,
+        sugar_100g: food.sugar_100g || 0, fatSat_100g: food.fatSat_100g || 0,
       }
-      const { data, error } = await supabase.from('food_logs').insert({
+      const payload = {
         user_id: user.id,
         date, meal_type: mealKey, food_name: food.name,
         grams: parseFloat(gramsVal) || 100, ...m,
         food_data: foodData,
-      }).select().single()
+      }
+      if (!navigator.onLine) {
+        const { data: offData } = await safeWrite('food_logs', payload)
+        setLog(l => [...l, { ...offData, _pending: true }])
+        setBarcodeFoodModal(null)
+        setExpandedMeal(mealKey)
+        setOfflineSaved(true)
+        setTimeout(() => setOfflineSaved(false), 3500)
+        return
+      }
+      const { data, error } = await supabase.from('food_logs').insert(payload).select().single()
       if (error || !data) { setSaving(false); return }
       setLog(l => [...l, data])
       await updateDailyLog()
-      const savedName = food.name
       setBarcodeFoodModal(null)
       setExpandedMeal(mealKey)
-      setAddedFood(savedName)
+      setAddedFood(food.name)
       setTimeout(() => setAddedFood(null), 2500)
     } catch (e) {
       console.error('Errore salvataggio barcode food:', e)
@@ -512,6 +529,20 @@ export default function MacroTrackerPage() {
         grams: parseFloat(effectiveGrams) || 100, ...m,
         food_data: foodData,
       }
+
+      // Offline fallback: queue to IndexedDB when no connection
+      if (!navigator.onLine) {
+        const { data: offData } = await safeWrite('food_logs', basePayload)
+        setLog(l => [...l, { ...offData, _pending: true }])
+        savedName = selected.name
+        setSelected(null); setQuery(''); setResults([])
+        setExpandedMeal(meal)
+        setSelectedUnit('g'); setUnitQty('100')
+        setOfflineSaved(true)
+        setTimeout(() => setOfflineSaved(false), 3500)
+        return
+      }
+
       // Include unit only if column is known to exist
       const insertPayload = _foodLogsExtended !== false
         ? { ...basePayload, unit: selectedUnit !== 'g' ? selectedUnit : null }
@@ -552,19 +583,42 @@ export default function MacroTrackerPage() {
     }
   }
 
+  // ── Recent food picker helpers ────────────────────────────────────────────────
+  function openRecentPicker(recent, mealKey) {
+    setRecentFoodPicker({ ...recent, mealKey })
+    setPickerGrams(String(recent.grams || 100))
+  }
+
+  async function confirmRecentPicker() {
+    if (!recentFoodPicker) return
+    const grams = parseFloat(pickerGrams) || 100
+    await addRecentFood(recentFoodPicker, recentFoodPicker.mealKey, grams)
+    setRecentFoodPicker(null)
+  }
+
   // ── Feature 1: Quick-add from recent ─────────────────────────────────────────
-  async function addRecentFood(recent, targetMeal) {
+  async function addRecentFood(recent, targetMeal, overrideGrams) {
     const fd = recent.food_data || {}
     if (!fd.kcal_100g) return
     setSaving(true)
-    const m = calcMacros(fd, recent.grams || 100)
-    const { data, error } = await supabase.from('food_logs').insert({
+    const gramsToUse = overrideGrams !== undefined ? overrideGrams : (recent.grams || 100)
+    const m = calcMacros(fd, gramsToUse)
+    const payload = {
       user_id: user.id,
       date, meal_type: targetMeal || meal,
       food_name: recent.food_name,
-      grams: recent.grams || 100, ...m,
+      grams: gramsToUse, ...m,
       food_data: fd,
-    }).select().single()
+    }
+    if (!navigator.onLine) {
+      const { data: offData } = await safeWrite('food_logs', payload)
+      setLog(l => [...l, { ...offData, _pending: true }])
+      setOfflineSaved(true)
+      setTimeout(() => setOfflineSaved(false), 3500)
+      setSaving(false)
+      return
+    }
+    const { data, error } = await supabase.from('food_logs').insert(payload).select().single()
     if (!error && data) {
       setLog(l => [...l, data])
       await updateDailyLog()
@@ -704,8 +758,9 @@ export default function MacroTrackerPage() {
   }
 
   async function removeFood(id) {
-    await supabase.from('food_logs').delete().eq('id', id)
     setLog(l => l.filter(x => x.id !== id))
+    if (typeof id === 'string' && id.startsWith('pending_')) return
+    await supabase.from('food_logs').delete().eq('id', id)
     await updateDailyLog()
   }
 
@@ -965,7 +1020,7 @@ export default function MacroTrackerPage() {
                       <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.grams}g · {m.kcal} kcal</p>
                     </div>
                     <button
-                      onClick={() => addRecentFood(r, activeMealAdd || meal)}
+                      onClick={() => openRecentPicker(r, activeMealAdd || meal)}
                       disabled={saving}
                       style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 8, background: 'var(--green-pale)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green-main)' }}
                     >
@@ -1080,6 +1135,7 @@ export default function MacroTrackerPage() {
                           <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                             {f.grams}g · {f.kcal} kcal · P:{f.proteins}g
                             {f.food_data?.meal_time && <> · <Clock size={9} style={{ display: 'inline', verticalAlign: 'middle' }} /> {f.food_data.meal_time}</>}
+                            {f._pending && <> · <WifiOff size={9} style={{ display: 'inline', verticalAlign: 'middle', color: '#d97706' }} /> in coda</>}
                           </p>
                         </div>
                         {/* Feature 3: Favorite star */}
@@ -1171,6 +1227,11 @@ export default function MacroTrackerPage() {
                       {addedFood && (
                         <div className="animate-popIn" style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--green-pale)', borderRadius: 10, padding: '9px 12px', marginBottom: 10, color: 'var(--green-dark)', fontSize: 13, fontWeight: 500 }}>
                           <span>✅</span> <span>"{addedFood}" aggiunto!</span>
+                        </div>
+                      )}
+                      {offlineSaved && (
+                        <div className="animate-popIn" style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fef3c7', borderRadius: 10, padding: '9px 12px', marginBottom: 10, color: '#92400e', fontSize: 13, fontWeight: 500, border: '1px solid #fde68a' }}>
+                          <WifiOff size={14} /> <span>Salvato offline — verrà sincronizzato alla prossima connessione</span>
                         </div>
                       )}
                       {/* Error feedback */}
@@ -1281,7 +1342,7 @@ export default function MacroTrackerPage() {
                               return (
                                 <button
                                   key={idx}
-                                  onClick={() => addRecentFood(r, m.key)}
+                                  onClick={() => openRecentPicker(r, m.key)}
                                   disabled={saving}
                                   style={{
                                     display: 'flex', alignItems: 'center', gap: 8,
@@ -1523,6 +1584,74 @@ export default function MacroTrackerPage() {
           </div>
         </div>
       )}
+
+      {/* ── Recent/Favorite food quantity picker ── */}
+      {recentFoodPicker && (() => {
+        const fd = recentFoodPicker.food_data || {}
+        const pickerPreview = calcMacros(fd, pickerGrams)
+        const defaultG = getDefaultServingSize(fd)
+        const quickGrams = [defaultG, defaultG * 1.5, defaultG * 2].map(g => Math.round(g)).filter((g, i, a) => a.indexOf(g) === i && g > 0)
+        return (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+            <div className="animate-slideUp" style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', padding: 20, paddingBottom: 'calc(20px + env(safe-area-inset-bottom))' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700 }}>Aggiungi alimento</h3>
+                <button onClick={() => setRecentFoodPicker(null)} style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div style={{ background: 'var(--green-pale)', borderRadius: 12, padding: '12px 14px', marginBottom: 14 }}>
+                <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>{recentFoodPicker.food_name}</p>
+                <div style={{ display: 'flex', gap: 14 }}>
+                  {[
+                    { label: 'Kcal', val: pickerPreview.kcal },
+                    { label: 'Prot.', val: `${pickerPreview.proteins}g` },
+                    { label: 'Carbo', val: `${pickerPreview.carbs}g` },
+                    { label: 'Grassi', val: `${pickerPreview.fats}g` },
+                  ].map(s => (
+                    <div key={s.label} style={{ textAlign: 'center' }}>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--green-dark)' }}>{s.val}</p>
+                      <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <div className="input-group" style={{ marginBottom: 8 }}>
+                  <label className="input-label">Quantità (g)</label>
+                  <input
+                    type="number"
+                    className="input-field"
+                    value={pickerGrams}
+                    onChange={e => setPickerGrams(e.target.value)}
+                    min={1}
+                    inputMode="decimal"
+                    autoFocus
+                    onKeyDown={e => { if (e.key === 'Enter') confirmRecentPicker() }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {quickGrams.map(g => (
+                    <button
+                      key={g}
+                      onClick={() => setPickerGrams(String(g))}
+                      style={{ flex: 1, padding: '7px 4px', borderRadius: 9, background: pickerGrams === String(g) ? 'var(--green-pale)' : 'var(--surface-2)', border: `1.5px solid ${pickerGrams === String(g) ? 'var(--green-main)' : 'var(--border)'}`, cursor: 'pointer', fontSize: 12.5, fontWeight: pickerGrams === String(g) ? 700 : 400, color: pickerGrams === String(g) ? 'var(--green-main)' : 'var(--text-secondary)', transition: 'all 0.12s' }}
+                    >
+                      {g}g
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button className="btn btn-primary btn-full" onClick={confirmRecentPicker} disabled={saving || !pickerGrams || parseFloat(pickerGrams) <= 0}>
+                {saving ? '…' : 'Aggiungi al diario'}
+              </button>
+            </div>
+          </div>
+        )
+      })()}
 
       {barcodeFoodModal && (() => {
         const { food, grams: bGrams, meal: bMeal } = barcodeFoodModal

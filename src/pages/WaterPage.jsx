@@ -7,6 +7,7 @@ import { Droplets, Plus, Trash2, Bell, BellOff, BarChart2, List } from 'lucide-r
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { subDays, format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { checkWaterAndNotify } from '../lib/smartNotifications'
 
 // Quick-add presets: label, icon, ml
 const QUICK_PRESETS = [
@@ -155,7 +156,14 @@ export default function WaterPage() {
     setLoading(true)
     const { data, error } = await supabase.from('water_logs').insert({ user_id: user.id, date: today, amount_ml: ml }).select().single()
     if (error) console.error('Errore salvataggio acqua:', error)
-    if (data) setLogs(l => [...l, data])
+    if (data) {
+      setLogs(l => {
+        const updated = [...l, data]
+        const newTotal = updated.reduce((s, w) => s + w.amount_ml, 0)
+        checkWaterAndNotify(newTotal, target)
+        return updated
+      })
+    }
     setCustom('')
     setLoading(false)
   }

@@ -97,6 +97,9 @@ export default function StatisticsPage() {
   const [dietTarget, setDietTarget] = useState(null)
   const [mealsCount, setMealsCount] = useState(3)
   const [generatingPdf, setGeneratingPdf] = useState(false)
+  const [pdfMode, setPdfMode] = useState('weekly')
+  const [monthStr, setMonthStr] = useState(format(today, 'yyyy-MM'))
+  const [generatingMonthlyPdf, setGeneratingMonthlyPdf] = useState(false)
 
   const today = new Date()
   const weekStart = startOfWeek(subWeeks(today, weekOffset), { weekStartsOn: 1 })
@@ -338,6 +341,191 @@ export default function StatisticsPage() {
       doc.save(fileName)
     } finally {
       setGeneratingPdf(false)
+    }
+  }
+
+  // ── Monthly PDF generation ─────────────────────────────────────
+  async function generateMonthlyPdf() {
+    setGeneratingMonthlyPdf(true)
+    try {
+      const [yearStr, monStr] = monthStr.split('-')
+      const year = parseInt(yearStr)
+      const mon = parseInt(monStr) - 1
+      const monthStart = new Date(year, mon, 1)
+      const monthEnd = new Date(year, mon + 1, 0)
+      const msStr = isoDate(monthStart)
+      const meStr = isoDate(monthEnd)
+
+      const [macroRes, waterRes, weightRes, adherenceRes, dietRes] = await Promise.all([
+        supabase.from('daily_logs').select('date,kcal,proteins,carbs,fats').eq('user_id', user.id).gte('date', msStr).lte('date', meStr).order('date'),
+        supabase.from('water_logs').select('date,amount_ml').eq('user_id', user.id).gte('date', msStr).lte('date', meStr),
+        supabase.from('weight_logs').select('date,weight_kg').eq('user_id', user.id).gte('date', msStr).lte('date', meStr),
+        supabase.from('food_logs').select('date,meal_type').eq('user_id', user.id).gte('date', msStr).lte('date', meStr).limit(1000),
+        supabase.from('patient_diets').select('kcal_target,protein_target,carbs_target,fats_target,meals_count').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
+      ])
+
+      const macros = macroRes.data || []
+      const waterByDate = {}
+      for (const w of waterRes.data || []) waterByDate[w.date] = (waterByDate[w.date] || 0) + w.amount_ml
+      const weightArr = weightRes.data || []
+      const allFoodLogs = adherenceRes.data || []
+      const diet = dietRes.data || null
+      const allDays = eachDayOfInterval({ start: monthStart, end: monthEnd })
+      const daysInMonth = allDays.length
+
+      const monthMacroAvg = {
+        kcal: round1(avg(macros.map(m => m.kcal || 0))),
+        proteins: round1(avg(macros.map(m => m.proteins || 0))),
+        carbs: round1(avg(macros.map(m => m.carbs || 0))),
+        fats: round1(avg(macros.map(m => m.fats || 0))),
+      }
+      const monthWaterAvg = Object.values(waterByDate).length ? round1(avg(Object.values(waterByDate))) : 0
+      const monthWeightAvg = weightArr.length ? round1(avg(weightArr.map(w => w.weight_kg))) : null
+      const daysLogged = macros.filter(m => (m.kcal || 0) > 0).length
+
+      const loggedMealsByDate = {}
+      for (const fl of allFoodLogs) {
+        if (!loggedMealsByDate[fl.date]) loggedMealsByDate[fl.date] = new Set()
+        loggedMealsByDate[fl.date].add(fl.meal_type)
+      }
+      const expectedMeals = diet?.meals_count || 3
+      const avgMonthAdh = round1(avg(allDays.map(d => {
+        const ds = isoDate(d)
+        return Math.min(100, Math.round(((loggedMealsByDate[ds]?.size || 0) / expectedMeals) * 100))
+      })))
+
+      const { default: jsPDF } = await import('jspdf')
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const W = 210
+      const margin = 14
+      let y = 20
+
+      const addText = (text, x, yy, opts = {}) => {
+        doc.setFontSize(opts.size || 10)
+        doc.setFont('helvetica', opts.style || 'normal')
+        doc.setTextColor(...(opts.color || [30, 30, 30]))
+        doc.text(text, x, yy)
+      }
+      const addLine = (yy) => {
+        doc.setDrawColor(200, 224, 212)
+        doc.setLineWidth(0.3)
+        doc.line(margin, yy, W - margin, yy)
+      }
+
+      const monthName = format(monthStart, 'MMMM yyyy', { locale: it })
+
+      doc.setFillColor(21, 122, 74)
+      doc.rect(0, 0, W, 30, 'F')
+      addText('Diet Plan Pro - Report Mensile', margin, 13, { size: 14, style: 'bold', color: [255, 255, 255] })
+      addText(monthName, margin, 21, { size: 9, color: [200, 240, 220] })
+      if (profile?.full_name) addText(`Paziente: ${profile.full_name}`, W - margin - 50, 13, { size: 9, color: [200, 240, 220] })
+      addText(`Generato il ${format(today, 'd MMMM yyyy', { locale: it })}`, W - margin - 50, 21, { size: 8, color: [180, 230, 200] })
+      y = 40
+
+      addText('Medie mensili', margin, y, { size: 12, style: 'bold' }); y += 7
+      addLine(y); y += 5
+      const statsRows = [
+        ['Calorie medie', `${monthMacroAvg.kcal} kcal/die`, diet?.kcal_target ? `Obiettivo: ${diet.kcal_target} kcal` : ''],
+        ['Proteine medie', `${monthMacroAvg.proteins} g/die`, diet?.protein_target ? `Obiettivo: ${diet.protein_target} g` : ''],
+        ['Carboidrati medi', `${monthMacroAvg.carbs} g/die`, diet?.carbs_target ? `Obiettivo: ${diet.carbs_target} g` : ''],
+        ['Grassi medi', `${monthMacroAvg.fats} g/die`, diet?.fats_target ? `Obiettivo: ${diet.fats_target} g` : ''],
+        ['Acqua media', monthWaterAvg ? `${Math.round(monthWaterAvg)} ml/die` : 'N/D', ''],
+        ['Peso medio', monthWeightAvg ? `${monthWeightAvg} kg` : 'N/D', ''],
+        ['Giorni registrati', `${daysLogged} / ${daysInMonth}`, ''],
+        ['Aderenza media', `${avgMonthAdh}%`, ''],
+      ]
+      for (const [label, val, note] of statsRows) {
+        doc.setFillColor(247, 250, 248)
+        doc.rect(margin, y - 4, W - margin * 2, 7, 'F')
+        addText(label, margin + 2, y, { size: 9, style: 'bold', color: [45, 74, 56] })
+        addText(val, 80, y, { size: 9 })
+        addText(note, 130, y, { size: 8, color: [107, 143, 122] })
+        y += 8
+      }
+
+      y += 4
+      addText('Riepilogo settimanale', margin, y, { size: 12, style: 'bold' }); y += 7
+      addLine(y); y += 5
+      const cols = [margin + 2, 46, 76, 104, 132, 160]
+      const hdrs = ['Settimana', 'Kcal', 'Prot.', 'Carbo', 'Grassi', 'Acqua']
+      doc.setFillColor(21, 122, 74)
+      doc.rect(margin, y - 4.5, W - margin * 2, 7, 'F')
+      hdrs.forEach((h, i) => addText(h, cols[i], y, { size: 8, style: 'bold', color: [255, 255, 255] }))
+      y += 8
+
+      let cur = new Date(monthStart)
+      let wn = 1
+      while (cur <= monthEnd) {
+        const wEnd = new Date(Math.min(new Date(year, mon, cur.getDate() + 6).getTime(), monthEnd.getTime()))
+        const wsStr = isoDate(cur)
+        const weStr = isoDate(wEnd)
+        const wMacros = macros.filter(m => m.date >= wsStr && m.date <= weStr)
+        const wWater = Object.entries(waterByDate).filter(([d]) => d >= wsStr && d <= weStr).map(([, ml]) => ml)
+        if (y > 265) { doc.addPage(); y = 20 }
+        if (wn % 2 === 0) { doc.setFillColor(240, 250, 245); doc.rect(margin, y - 4.5, W - margin * 2, 7, 'F') }
+        const wLabel = `Sett.${wn} (${format(cur, 'd/M', { locale: it })}-${format(wEnd, 'd/M', { locale: it })})`
+        const wVals = [
+          wLabel,
+          wMacros.length ? String(round1(avg(wMacros.map(m => m.kcal || 0)))) : '-',
+          wMacros.length ? String(round1(avg(wMacros.map(m => m.proteins || 0)))) : '-',
+          wMacros.length ? String(round1(avg(wMacros.map(m => m.carbs || 0)))) : '-',
+          wMacros.length ? String(round1(avg(wMacros.map(m => m.fats || 0)))) : '-',
+          wWater.length ? `${Math.round(avg(wWater))}ml` : '-',
+        ]
+        wVals.forEach((v, i) => addText(v, cols[i], y, { size: 8 }))
+        y += 8
+        cur = new Date(year, mon, cur.getDate() + 7)
+        wn++
+      }
+
+      y += 4
+      if (y > 230) { doc.addPage(); y = 20 }
+      addText('Dettaglio giornaliero', margin, y, { size: 12, style: 'bold' }); y += 7
+      addLine(y); y += 5
+      doc.setFillColor(21, 122, 74)
+      doc.rect(margin, y - 4.5, W - margin * 2, 7, 'F')
+      hdrs.forEach((h, i) => addText(h, cols[i], y, { size: 8, style: 'bold', color: [255, 255, 255] }))
+      y += 8
+
+      for (const [i, d] of allDays.entries()) {
+        if (y > 265) { doc.addPage(); y = 20 }
+        const ds = isoDate(d)
+        const row = macros.find(m => m.date === ds) || {}
+        const waterMl = waterByDate[ds] || 0
+        if (i % 2 === 0) { doc.setFillColor(240, 250, 245); doc.rect(margin, y - 4.5, W - margin * 2, 7, 'F') }
+        const rowVals = [
+          format(d, 'dd/MM EEE', { locale: it }),
+          row.kcal ? String(row.kcal) : '-',
+          row.proteins ? String(round1(row.proteins)) : '-',
+          row.carbs ? String(round1(row.carbs)) : '-',
+          row.fats ? String(round1(row.fats)) : '-',
+          waterMl ? `${Math.round(waterMl)}ml` : '-',
+        ]
+        rowVals.forEach((v, idx) => addText(v, cols[idx], y, { size: 7.5 }))
+        y += 7
+      }
+
+      y += 6
+      if (y > 250) { doc.addPage(); y = 20 }
+      addText('Note per il dietista', margin, y, { size: 12, style: 'bold' }); y += 7
+      addLine(y); y += 5
+      doc.setFillColor(247, 250, 248)
+      doc.rect(margin, y - 4, W - margin * 2, 30, 'F')
+      addText('_____________________________________', margin + 2, y + 5, { size: 9, color: [180, 200, 190] })
+      addText('_____________________________________', margin + 2, y + 13, { size: 9, color: [180, 200, 190] })
+      addText('_____________________________________', margin + 2, y + 21, { size: 9, color: [180, 200, 190] })
+
+      const pageCount = doc.getNumberOfPages()
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i)
+        addText(`Diet Plan Pro - Pagina ${i} di ${pageCount}`, margin, 290, { size: 8, color: [150, 170, 160] })
+        addText('Documento riservato - da condividere con il proprio dietista', W - margin - 80, 290, { size: 7, color: [180, 200, 190] })
+      }
+
+      const fileName = `report_mensile_${monthStr}_${profile?.full_name?.replace(/\s+/g, '_') || 'paziente'}.pdf`
+      doc.save(fileName)
+    } finally {
+      setGeneratingMonthlyPdf(false)
     }
   }
 
@@ -644,47 +832,115 @@ export default function StatisticsPage() {
           {tab === 'report' && (
             <ProGate feature="Report PDF" teaser="Genera report professionali da condividere con il tuo dietista">
             <>
-              <div className="card" style={{ padding: 20, textAlign: 'center' }}>
-                <div style={{ width: 64, height: 64, borderRadius: 20, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                  <FileText size={28} color="var(--green-main)" />
-                </div>
-                <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Report Settimanale PDF</h2>
-                <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.5 }}>
-                  Genera un report completo della settimana selezionata da condividere con il tuo dietista. Include medie macro, idratazione, peso e aderenza alla dieta.
-                </p>
-                <button className="btn btn-primary btn-full" onClick={generatePdf} disabled={generatingPdf} style={{ fontSize: 15, padding: '14px 20px' }}>
-                  {generatingPdf ? (
-                    <span>Generazione in corso…</span>
-                  ) : (
-                    <><Download size={18} />Scarica Report PDF</>
-                  )}
-                </button>
+              {/* Toggle settimanale / mensile */}
+              <div style={{ display: 'flex', background: 'var(--surface-2)', borderRadius: 12, padding: 4, gap: 4 }}>
+                {[
+                  { key: 'weekly', label: '📅 Settimanale' },
+                  { key: 'monthly', label: '🗓️ Mensile' },
+                ].map(m => (
+                  <button
+                    key={m.key}
+                    onClick={() => setPdfMode(m.key)}
+                    style={{ flex: 1, padding: '9px 4px', borderRadius: 9, background: pdfMode === m.key ? 'var(--surface)' : 'transparent', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: pdfMode === m.key ? 700 : 400, color: pdfMode === m.key ? 'var(--green-main)' : 'var(--text-muted)', boxShadow: pdfMode === m.key ? 'var(--shadow-sm)' : 'none', transition: 'all 0.15s', font: 'inherit' }}
+                  >
+                    {m.label}
+                  </button>
+                ))}
               </div>
 
-              {/* report preview */}
-              <div className="card" style={{ padding: 16 }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>📋 Anteprima contenuto</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {[
-                    { icon: '📅', title: 'Periodo', desc: weekLabel },
-                    { icon: '🔥', title: 'Media calorie', desc: `${weekAvg.kcal} kcal/die${dietTarget?.kcal_target ? ` (obiettivo: ${dietTarget.kcal_target})` : ''}` },
-                    { icon: '💪', title: 'Proteine medie', desc: `${weekAvg.proteins} g/die` },
-                    { icon: '🌾', title: 'Carboidrati medi', desc: `${weekAvg.carbs} g/die` },
-                    { icon: '🥑', title: 'Grassi medi', desc: `${weekAvg.fats} g/die` },
-                    { icon: '💧', title: 'Acqua media', desc: weekAvg.water ? `${Math.round(weekAvg.water)} ml/die` : 'Nessun dato' },
-                    { icon: '⚖️', title: 'Peso medio', desc: weekAvg.weight ? `${weekAvg.weight} kg` : 'Nessun dato' },
-                    { icon: '✅', title: 'Aderenza dieta', desc: `${avgAdherence}% media settimanale` },
-                  ].map(item => (
-                    <div key={item.title} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', background: 'var(--surface-2)', borderRadius: 10 }}>
-                      <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{item.icon}</span>
+              {pdfMode === 'weekly' && (
+                <>
+                  <div className="card" style={{ padding: 20, textAlign: 'center' }}>
+                    <div style={{ width: 64, height: 64, borderRadius: 20, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                      <FileText size={28} color="var(--green-main)" />
+                    </div>
+                    <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Report Settimanale PDF</h2>
+                    <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8, lineHeight: 1.5 }}>
+                      {weekLabel}
+                    </p>
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.5 }}>
+                      Include medie macro, idratazione, peso e aderenza alla dieta.
+                    </p>
+                    <button className="btn btn-primary btn-full" onClick={generatePdf} disabled={generatingPdf} style={{ fontSize: 15, padding: '14px 20px' }}>
+                      {generatingPdf ? <span>Generazione in corso…</span> : <><Download size={18} />Scarica Report PDF</>}
+                    </button>
+                  </div>
+                  <div className="card" style={{ padding: 16 }}>
+                    <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>📋 Anteprima contenuto</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {[
+                        { icon: '📅', title: 'Periodo', desc: weekLabel },
+                        { icon: '🔥', title: 'Media calorie', desc: `${weekAvg.kcal} kcal/die${dietTarget?.kcal_target ? ` (obiettivo: ${dietTarget.kcal_target})` : ''}` },
+                        { icon: '💪', title: 'Proteine medie', desc: `${weekAvg.proteins} g/die` },
+                        { icon: '🌾', title: 'Carboidrati medi', desc: `${weekAvg.carbs} g/die` },
+                        { icon: '🥑', title: 'Grassi medi', desc: `${weekAvg.fats} g/die` },
+                        { icon: '💧', title: 'Acqua media', desc: weekAvg.water ? `${Math.round(weekAvg.water)} ml/die` : 'Nessun dato' },
+                        { icon: '⚖️', title: 'Peso medio', desc: weekAvg.weight ? `${weekAvg.weight} kg` : 'Nessun dato' },
+                        { icon: '✅', title: 'Aderenza dieta', desc: `${avgAdherence}% media settimanale` },
+                      ].map(item => (
+                        <div key={item.title} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', background: 'var(--surface-2)', borderRadius: 10 }}>
+                          <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{item.icon}</span>
+                          <div>
+                            <p style={{ fontSize: 12, fontWeight: 600 }}>{item.title}</p>
+                            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{item.desc}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {pdfMode === 'monthly' && (
+                <>
+                  <div className="card" style={{ padding: 20 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+                      <div style={{ width: 52, height: 52, borderRadius: 16, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <FileText size={24} color="var(--green-main)" />
+                      </div>
                       <div>
-                        <p style={{ fontSize: 12, fontWeight: 600 }}>{item.title}</p>
-                        <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{item.desc}</p>
+                        <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Report Mensile PDF</h2>
+                        <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Visita di controllo mensile</p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
+                    <div className="input-group" style={{ marginBottom: 16 }}>
+                      <label className="input-label">Mese di riferimento</label>
+                      <input
+                        type="month"
+                        className="input-field"
+                        value={monthStr}
+                        onChange={e => setMonthStr(e.target.value)}
+                        max={format(today, 'yyyy-MM')}
+                      />
+                    </div>
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.5 }}>
+                      Il PDF include medie mensili, riepilogo per settimana, dettaglio giornaliero e aderenza alla dieta per {monthStr ? format(new Date(monthStr + '-01'), 'MMMM yyyy', { locale: it }) : 'il mese selezionato'}.
+                    </p>
+                    <button className="btn btn-primary btn-full" onClick={generateMonthlyPdf} disabled={generatingMonthlyPdf || !monthStr} style={{ fontSize: 15, padding: '14px 20px' }}>
+                      {generatingMonthlyPdf ? <span>Generazione in corso…</span> : <><Download size={18} />Scarica Report Mensile</>}
+                    </button>
+                  </div>
+                  <div className="card" style={{ padding: 16 }}>
+                    <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>📋 Contenuto del report mensile</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                      {[
+                        { icon: '📊', text: 'Medie mensili di calorie, proteine, carboidrati e grassi' },
+                        { icon: '📅', text: 'Riepilogo per settimana (4-5 settimane del mese)' },
+                        { icon: '📋', text: 'Dettaglio giornaliero con tutti i macronutrienti' },
+                        { icon: '💧', text: 'Media idratazione giornaliera' },
+                        { icon: '⚖️', text: 'Andamento peso nel mese' },
+                        { icon: '✅', text: 'Aderenza media alla dieta prescritta' },
+                        { icon: '📝', text: 'Spazio note per il dietista' },
+                      ].map(item => (
+                        <div key={item.text} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '7px 10px', background: 'var(--surface-2)', borderRadius: 9 }}>
+                          <span style={{ fontSize: 16, flexShrink: 0 }}>{item.icon}</span>
+                          <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{item.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
 
               <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>
                 Il PDF viene salvato sul tuo dispositivo e può essere inviato via email o WhatsApp al tuo dietista.

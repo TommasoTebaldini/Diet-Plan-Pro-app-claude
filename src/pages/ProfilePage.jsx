@@ -21,7 +21,7 @@ import {
 } from '../lib/biometric'
 import {
   loadPrefs, savePrefs, getPermissionStatus, requestPermission, initScheduledNotifications,
-  DEFAULT_PREFS,
+  subscribeToPush, DEFAULT_PREFS,
 } from '../lib/notifications'
 
 // ─── Modal wrapper ────────────────────────────────────────────────────────────
@@ -382,7 +382,10 @@ function NotificationsModal({ onClose }) {
     const result = await requestPermission()
     setPermStatus(result)
     setRequesting(false)
-    if (result === 'granted') initScheduledNotifications(prefs)
+    if (result === 'granted') {
+      initScheduledNotifications(prefs)
+      subscribeToPush(user.id)
+    }
   }
 
   // Meal time helpers

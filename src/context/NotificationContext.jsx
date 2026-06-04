@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { loadPrefs, initScheduledNotifications, showNotification } from '../lib/notifications'
+import { checkMealAndNotify } from '../lib/smartNotifications'
 
 const NotificationContext = createContext({})
 
@@ -64,9 +65,18 @@ export function NotificationProvider({ children, user }) {
 
     channelsRef.current = [channel]
 
+    // Smart contextual meal notification on app focus
+    function handleVisibility() {
+      if (!document.hidden && loadPrefs().mealReminder !== false) {
+        checkMealAndNotify(user.id)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+
     return () => {
       channelsRef.current.forEach(ch => supabase.removeChannel(ch))
       channelsRef.current = []
+      document.removeEventListener('visibilitychange', handleVisibility)
     }
   }, [user?.id])
 
