@@ -992,18 +992,6 @@ export default function MacroTrackerPage() {
           </div>
         )}
 
-        {/* ── Feature 7: Copy day button ── */}
-        {log.filter(f => f.food_name !== '__note__').length > 0 && (
-          <button
-            onClick={() => { setShowCopyModal(true); setCopyTargetDate('') }}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 12, padding: '10px 14px', cursor: 'pointer', font: 'inherit', fontSize: 13, color: 'var(--text-secondary)', width: '100%' }}
-          >
-            <ClipboardCopy size={15} />
-            Copia questa giornata in un altro giorno
-          </button>
-        )}
-
-
         {/* ── Feature 3: Favorites section ── */}
         {favoriteFoods.length > 0 && (
           <div className="card" style={{ padding: 14 }}>
@@ -1060,17 +1048,6 @@ export default function MacroTrackerPage() {
               })}
             </div>
           </div>
-        )}
-
-        {/* ── Feature 2: Save current meal button (shown when a meal has foods) ── */}
-        {activeMealAdd && log.filter(f => f.meal_type === activeMealAdd && f.food_name !== '__note__').length > 0 && (
-          <button
-            onClick={() => setShowSaveMealModal(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 12, padding: '10px 14px', cursor: 'pointer', font: 'inherit', fontSize: 13, color: 'var(--text-secondary)', width: '100%' }}
-          >
-            <BookmarkPlus size={15} />
-            Salva pasto corrente come modello
-          </button>
         )}
 
         {/* ── Meal cards ── */}
@@ -1195,6 +1172,17 @@ export default function MacroTrackerPage() {
                     <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '8px 0' }}>
                       Nessun alimento — tocca + per aggiungere
                     </p>
+                  )}
+
+                  {/* Save meal as template — shown when meal has foods and not in search mode */}
+                  {!isSearching && mealFoods.length > 0 && (
+                    <button
+                      onClick={() => { setActiveMealAdd(m.key); setShowSaveMealModal(true) }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'none', border: '1px dashed var(--border)', borderRadius: 9, padding: '7px 11px', cursor: 'pointer', font: 'inherit', fontSize: 12, color: 'var(--text-muted)', width: '100%', marginBottom: 6 }}
+                    >
+                      <BookmarkPlus size={13} />
+                      Salva come modello
+                    </button>
                   )}
 
                   {/* Note input */}
@@ -1456,6 +1444,17 @@ export default function MacroTrackerPage() {
             </motion.div>
           )
         })}
+
+        {/* ── Copy day button — after last meal, before micronutrients ── */}
+        {log.filter(f => f.food_name !== '__note__').length > 0 && (
+          <button
+            onClick={() => { setShowCopyModal(true); setCopyTargetDate('') }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 12, padding: '10px 14px', cursor: 'pointer', font: 'inherit', fontSize: 13, color: 'var(--text-secondary)', width: '100%' }}
+          >
+            <ClipboardCopy size={15} />
+            Copia questa giornata in un altro giorno
+          </button>
+        )}
 
         {/* Micronutrient section — Pro only */}
         <ProGate feature="Micronutrienti" teaser="Monitora vitamine, minerali e fibre con il piano Pro">
