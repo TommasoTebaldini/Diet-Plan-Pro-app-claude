@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -564,17 +565,16 @@ export default function DashboardPage() {
         <OnboardingFlow onComplete={handleOnboardingDone} />
       )}
 
-      {/* Quiz modal overlay */}
-      <AnimatePresence>
-        {showQuiz && (
+      {/* Quiz modal — rendered via portal above BottomNav (zIndex 999) */}
+      {showQuiz && createPortal(
+        <AnimatePresence>
           <motion.div
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-            style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'var(--bg)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}
+            style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'var(--bg)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}
           >
-            {/* Header with close */}
             <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg)', borderBottom: '1px solid var(--border-light)', padding: 'calc(env(safe-area-inset-top) + 10px) 16px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>🧠 Quiz del giorno</span>
               <button
@@ -588,8 +588,9 @@ export default function DashboardPage() {
               <QuizPage />
             </Suspense>
           </motion.div>
-        )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* Dashboard tutorial — shown only on first visit after onboarding */}
       {!showOnboarding && isDashFirstVisit && (

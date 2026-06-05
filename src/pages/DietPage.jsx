@@ -298,6 +298,15 @@ const MEAL_PRINT_LABELS = {
 
 const MEAL_TYPE_MAP = { colazione: 'colazione', spuntino_mattina: 'spuntino_mattina', pranzo: 'pranzo', spuntino_pomeriggio: 'spuntino_pomeriggio', cena: 'cena' }
 
+function MacroChip({ val, label, color, bg }) {
+  if (val == null) return null
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: '2px 7px', borderRadius: 20, background: bg, color, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
+      {label} {val}
+    </span>
+  )
+}
+
 function PianoAlimentareContent({ piano }) {
   const { user } = useAuth()
   const today = new Date().toISOString().split('T')[0]
@@ -348,131 +357,171 @@ function PianoAlimentareContent({ piano }) {
     setTimeout(() => setCopyState(s => ({ ...s, doneIdx: null })), 3000)
   }
 
-  return (
-    <div style={{ padding: '16px 16px 20px' }}>
-      {days.length > 0 ? days.map((day, di) => (
-        <div key={day.id || di} style={{ marginBottom: 20 }}>
-          {/* Day header with copy button */}
-          <div style={{ background: 'linear-gradient(90deg, var(--green-main), var(--green-dark))', color: 'white', padding: '8px 14px', borderRadius: 10, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>📅</span>
-            <span style={{ fontWeight: 700, fontSize: 14, letterSpacing: '0.01em', flex: 1 }}>{day.nome || `Giorno ${di + 1}`}</span>
-            {copyState.doneIdx === di ? (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, background: 'rgba(255,255,255,.25)', borderRadius: 20, padding: '3px 10px' }}>
-                <Check size={12} /> Aggiunto al diario
-              </span>
-            ) : copyState.dayIdx === di ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={e => e.stopPropagation()}>
-                <input
-                  type="date" value={copyState.date}
-                  onChange={e => setCopyState(s => ({ ...s, date: e.target.value }))}
-                  style={{ padding: '3px 6px', borderRadius: 6, border: 'none', fontSize: 12, background: 'rgba(255,255,255,.9)', color: '#1a1a1a', outline: 'none' }}
-                />
-                <button
-                  onClick={() => copyDayToDiary(day, di)}
-                  disabled={copyState.busy}
-                  style={{ padding: '3px 10px', borderRadius: 20, border: 'none', background: 'rgba(255,255,255,.9)', color: 'var(--green-dark)', fontSize: 12, fontWeight: 700, cursor: 'pointer', opacity: copyState.busy ? 0.6 : 1 }}
-                >
-                  {copyState.busy ? '⏳' : 'Copia'}
-                </button>
-                <button
-                  onClick={() => setCopyState(s => ({ ...s, dayIdx: null }))}
-                  style={{ padding: '3px 7px', borderRadius: 20, border: 'none', background: 'rgba(0,0,0,.2)', color: 'white', fontSize: 12, cursor: 'pointer' }}
-                >✕</button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setCopyState(s => ({ ...s, dayIdx: di, date: today }))}
-                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 20, border: 'none', background: 'rgba(255,255,255,.2)', color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                title="Copia questo giorno nel tuo diario alimentare"
-              >
-                <ClipboardCopy size={11} /> Copia nel diario
-              </button>
-            )}
-          </div>
+  if (!days.length) return (
+    <div style={{ textAlign: 'center', padding: '28px 24px', color: 'var(--text-muted)' }}>
+      <ImageOff size={32} style={{ opacity: 0.3, marginBottom: 10 }} />
+      <p style={{ fontSize: 14 }}>Il dietista non ha ancora aggiunto il dettaglio dei pasti.</p>
+    </div>
+  )
 
-          {(day.meals || []).map((meal, mi) => {
-            const mealKey = meal.id || meal.tipo || ''
-            const meta = MEAL_PRINT_LABELS[mealKey] || { label: meal.nome || meal.id || 'Pasto', emoji: '🍴' }
-            const foods = meal.items || meal.foods || meal.alimenti || []
-            const kcal = meal.kcal || meal.calorie || null
-            const note = meal.note || meal.notes || ''
-            const mealEmoji = meal.emoji || meta.emoji
-            const mealLabel = meal.nome || meta.label
-            const hasMacros = foods.some(f => f.kcal_100g)
-            return (
-              <div key={meal.id || mi} style={{ border: '1px solid var(--border-light)', borderRadius: 12, overflow: 'hidden', marginBottom: 8, background: 'var(--surface)' }}>
-                <div style={{ padding: '9px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-light)', background: 'var(--surface-2)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 17 }}>{mealEmoji}</span>
-                    <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--green-dark)' }}>{mealLabel}</span>
+  return (
+    <div style={{ padding: '12px 14px 20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {days.map((day, di) => {
+        // Compute day totals from meal data
+        const allFoods = (day.meals || []).flatMap(m => m.items || m.foods || m.alimenti || [])
+        const hasDayMacros = allFoods.some(f => f.kcal_100g)
+        const dayTot = hasDayMacros ? allFoods.reduce((acc, food) => {
+          const qt = parseFloat(food.qt || food.quantity || food.grams || 0) || 0
+          return {
+            kcal: acc.kcal + (food.kcal_100g ? Math.round(food.kcal_100g * qt / 100) : 0),
+            prot: acc.prot + (food.proteins_100g ? Math.round(food.proteins_100g * qt / 100 * 10) / 10 : 0),
+            carb: acc.carb + (food.carbs_100g ? Math.round(food.carbs_100g * qt / 100 * 10) / 10 : 0),
+            fat:  acc.fat  + (food.fats_100g  ? Math.round(food.fats_100g  * qt / 100 * 10) / 10 : 0),
+          }
+        }, { kcal: 0, prot: 0, carb: 0, fat: 0 }) : null
+
+        return (
+          <div key={day.id || di}>
+            {/* ── Day header ── */}
+            <div style={{ background: 'linear-gradient(135deg, var(--green-dark), var(--green-main))', borderRadius: 14, padding: '12px 16px', marginBottom: 10, boxShadow: '0 2px 8px rgba(26,127,90,.2)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: hasDayMacros ? 8 : 0 }}>
+                <span style={{ fontSize: 16 }}>📅</span>
+                <span style={{ fontWeight: 800, fontSize: 15, color: 'white', flex: 1, letterSpacing: '0.01em' }}>{day.nome || `Giorno ${di + 1}`}</span>
+                {/* Copy button */}
+                {copyState.doneIdx === di ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, background: 'rgba(255,255,255,.25)', borderRadius: 20, padding: '4px 10px', color: 'white', fontWeight: 700 }}>
+                    <Check size={11} /> Copiato!
+                  </span>
+                ) : copyState.dayIdx === di ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }} onClick={e => e.stopPropagation()}>
+                    <input type="date" value={copyState.date}
+                      onChange={e => setCopyState(s => ({ ...s, date: e.target.value }))}
+                      style={{ padding: '3px 6px', borderRadius: 7, border: 'none', fontSize: 11.5, background: 'rgba(255,255,255,.92)', color: '#1a1a1a', outline: 'none', maxWidth: 120 }}
+                    />
+                    <button onClick={() => copyDayToDiary(day, di)} disabled={copyState.busy}
+                      style={{ padding: '4px 12px', borderRadius: 20, border: 'none', background: 'white', color: 'var(--green-dark)', fontSize: 12, fontWeight: 800, cursor: 'pointer', opacity: copyState.busy ? 0.6 : 1 }}>
+                      {copyState.busy ? '⏳' : '✓ Copia'}
+                    </button>
+                    <button onClick={() => setCopyState(s => ({ ...s, dayIdx: null }))}
+                      style={{ padding: '4px 8px', borderRadius: 20, border: 'none', background: 'rgba(0,0,0,.25)', color: 'white', fontSize: 12, cursor: 'pointer' }}>✕</button>
                   </div>
-                  {kcal && <span style={{ fontSize: 12, color: 'var(--green-main)', background: 'var(--green-pale)', padding: '2px 9px', borderRadius: 100, fontWeight: 600 }}>🔥 {kcal} kcal</span>}
+                ) : (
+                  <button onClick={() => setCopyState(s => ({ ...s, dayIdx: di, date: today }))}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 12px', borderRadius: 20, border: '1.5px solid rgba(255,255,255,.5)', background: 'rgba(255,255,255,.15)', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', backdropFilter: 'blur(4px)' }}>
+                    <ClipboardCopy size={11} /> Copia nel diario
+                  </button>
+                )}
+              </div>
+              {/* Day macro summary */}
+              {dayTot && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 11, background: 'rgba(255,255,255,.18)', color: 'white', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>🔥 {dayTot.kcal} kcal</span>
+                  <span style={{ fontSize: 11, background: 'rgba(96,165,250,.3)', color: '#dbeafe', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>💪 {dayTot.prot}g prot</span>
+                  <span style={{ fontSize: 11, background: 'rgba(251,191,36,.3)', color: '#fef3c7', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>🍞 {dayTot.carb}g carbo</span>
+                  <span style={{ fontSize: 11, background: 'rgba(248,113,113,.3)', color: '#fee2e2', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>🧈 {dayTot.fat}g grassi</span>
                 </div>
-                <div style={{ padding: '10px 14px' }}>
-                  {foods.length > 0 ? (
-                    <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
-                          <th style={{ padding: '4px 0', textAlign: 'left', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Alimento</th>
-                          <th style={{ padding: '4px 0', textAlign: 'right', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Qtà</th>
-                          {hasMacros && <>
-                            <th style={{ padding: '4px 6px', textAlign: 'right', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Kcal</th>
-                            <th style={{ padding: '4px 0', textAlign: 'right', fontSize: 11, color: '#3b82f6', fontWeight: 600 }}>P</th>
-                            <th style={{ padding: '4px 0 4px 6px', textAlign: 'right', fontSize: 11, color: '#f0922b', fontWeight: 600 }}>C</th>
-                            <th style={{ padding: '4px 0 4px 6px', textAlign: 'right', fontSize: 11, color: '#e05a5a', fontWeight: 600 }}>G</th>
-                          </>}
-                        </tr>
-                      </thead>
-                      <tbody>
+              )}
+            </div>
+
+            {/* ── Meals ── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {(day.meals || []).map((meal, mi) => {
+                const mealKey = meal.id || meal.tipo || ''
+                const meta = MEAL_PRINT_LABELS[mealKey] || { label: meal.nome || meal.id || 'Pasto', emoji: '🍴' }
+                const foods = meal.items || meal.foods || meal.alimenti || []
+                const mealEmoji = meal.emoji || meta.emoji
+                const mealLabel = meal.nome || meta.label
+                const note = meal.note || meal.notes || ''
+                const hasMacros = foods.some(f => f.kcal_100g)
+
+                // Meal total kcal (computed or stored)
+                const mealKcalComputed = hasMacros ? foods.reduce((s, food) => {
+                  const qt = parseFloat(food.qt || food.quantity || food.grams || 0) || 0
+                  return s + (food.kcal_100g ? Math.round(food.kcal_100g * qt / 100) : 0)
+                }, 0) : null
+                const mealKcal = mealKcalComputed ?? meal.kcal ?? meal.calorie ?? null
+
+                if (!foods.length && !meal.descrizione && !meal.description) return null
+
+                return (
+                  <div key={meal.id || mi} style={{ background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 14, overflow: 'hidden' }}>
+                    {/* Meal header */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--surface-2)', borderBottom: foods.length ? '1px solid var(--border-light)' : 'none' }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+                        {mealEmoji}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--green-dark)', lineHeight: 1 }}>{mealLabel}</p>
+                        {MEAL_META_STATIC[mealKey]?.time && (
+                          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>🕐 {MEAL_META_STATIC[mealKey].time}</p>
+                        )}
+                      </div>
+                      {mealKcal ? (
+                        <div style={{ textAlign: 'center', background: 'var(--green-pale)', borderRadius: 10, padding: '4px 10px' }}>
+                          <p style={{ fontSize: 15, fontWeight: 800, color: 'var(--green-main)', lineHeight: 1 }}>{mealKcal}</p>
+                          <p style={{ fontSize: 10, color: 'var(--green-dark)', fontWeight: 600 }}>kcal</p>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {/* Food rows */}
+                    {foods.length > 0 && (
+                      <div style={{ padding: '6px 0' }}>
                         {foods.map((food, fi) => {
+                          const nome = food.nome || food.name || food.alimento || ''
+                          if (!nome) return null
                           const qt = parseFloat(food.qt || food.quantita || food.quantity || food.grammi || food.grams || 0) || 0
-                          const kcalItem = food.kcal_100g ? Math.round(food.kcal_100g * qt / 100) : null
-                          const protItem = food.proteins_100g ? Math.round(food.proteins_100g * qt / 100 * 10) / 10 : null
-                          const carbItem = food.carbs_100g ? Math.round(food.carbs_100g * qt / 100 * 10) / 10 : null
-                          const fatItem  = food.fats_100g  ? Math.round(food.fats_100g  * qt / 100 * 10) / 10 : null
+                          const unit = food.misura || food.unita || food.unit || 'g'
+                          const kcalItem = food.kcal_100g && qt ? Math.round(food.kcal_100g * qt / 100) : null
+                          const protItem = food.proteins_100g && qt ? Math.round(food.proteins_100g * qt / 100 * 10) / 10 : null
+                          const carbItem = food.carbs_100g && qt ? Math.round(food.carbs_100g * qt / 100 * 10) / 10 : null
+                          const fatItem  = food.fats_100g  && qt ? Math.round(food.fats_100g  * qt / 100 * 10) / 10 : null
+                          const alts = food.altPrint || []
                           return (
-                            <tr key={fi} style={{ borderBottom: fi < foods.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
-                              <td style={{ padding: '5px 0', color: 'var(--text-primary)', fontWeight: 500 }}>{food.nome || food.name || food.alimento || ''}</td>
-                              <td style={{ padding: '5px 0', textAlign: 'right', color: 'var(--green-main)', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                                {food.qt || food.quantita || food.quantity || food.grammi || food.grams || ''}{food.misura || food.unita || food.unit || 'g'}
-                              </td>
-                              {hasMacros && <>
-                                <td style={{ padding: '5px 6px', textAlign: 'right', color: 'var(--text-muted)', fontSize: 12 }}>{kcalItem ?? '—'}</td>
-                                <td style={{ padding: '5px 0', textAlign: 'right', color: '#3b82f6', fontSize: 12 }}>{protItem != null ? protItem+'g' : '—'}</td>
-                                <td style={{ padding: '5px 0 5px 6px', textAlign: 'right', color: '#f0922b', fontSize: 12 }}>{carbItem != null ? carbItem+'g' : '—'}</td>
-                                <td style={{ padding: '5px 0 5px 6px', textAlign: 'right', color: '#e05a5a', fontSize: 12 }}>{fatItem != null ? fatItem+'g' : '—'}</td>
-                              </>}
-                            </tr>
+                            <div key={fi} style={{ padding: '8px 14px', borderBottom: fi < foods.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                                <p style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--text-primary)', flex: 1, lineHeight: 1.3 }}>{nome}</p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                                  <span style={{ fontSize: 13, fontWeight: 800, color: 'white', background: 'var(--green-main)', padding: '2px 10px', borderRadius: 20 }}>
+                                    {qt || ''}{unit}
+                                  </span>
+                                </div>
+                              </div>
+                              {hasMacros && (kcalItem != null || protItem != null) && (
+                                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 5 }}>
+                                  <MacroChip val={kcalItem} label="🔥" color="#92400e" bg="#fef3c7" />
+                                  <MacroChip val={protItem != null ? `${protItem}g` : null} label="💪" color="#1e40af" bg="#dbeafe" />
+                                  <MacroChip val={carbItem != null ? `${carbItem}g` : null} label="🍞" color="#92400e" bg="#fef9c3" />
+                                  <MacroChip val={fatItem != null ? `${fatItem}g` : null} label="🧈" color="#991b1b" bg="#fee2e2" />
+                                </div>
+                              )}
+                              {alts.length > 0 && (
+                                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, fontStyle: 'italic' }}>
+                                  ⇄ Alt: {alts.map(a => `${a.nome} ${a.qt}g`).join(' · ')}
+                                </p>
+                              )}
+                            </div>
                           )
                         })}
-                        {foods.some(f => f.altPrint?.length > 0) && (
-                          <tr><td colSpan={hasMacros ? 7 : 2} style={{ padding: '4px 0 0', fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                            Alt: {foods.flatMap(f => f.altPrint || []).map(a => `${a.nome} ${a.qt}g`).join(' / ')}
-                          </td></tr>
-                        )}
-                      </tbody>
-                    </table>
-                    </div>
-                  ) : (meal.descrizione || meal.description) ? (
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{meal.descrizione || meal.description}</p>
-                  ) : null}
-                  {note && (
-                    <div style={{ marginTop: 8, padding: '7px 11px', background: '#fffbeb', borderRadius: 8, borderLeft: '3px solid #f59e0b', fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>
-                      💡 {note}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )) : (
-        <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)' }}>
-          <ImageOff size={32} style={{ opacity: 0.3, marginBottom: 10 }} />
-          <p style={{ fontSize: 14 }}>Il dietista non ha ancora aggiunto il dettaglio dei pasti.</p>
-        </div>
-      )}
+                      </div>
+                    )}
+
+                    {!foods.length && (meal.descrizione || meal.description) && (
+                      <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, padding: '10px 14px' }}>{meal.descrizione || meal.description}</p>
+                    )}
+
+                    {note && (
+                      <div style={{ margin: '0 14px 10px', padding: '8px 12px', background: '#fffbeb', borderRadius: 10, borderLeft: '3px solid #f59e0b', fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>
+                        💡 {note}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
