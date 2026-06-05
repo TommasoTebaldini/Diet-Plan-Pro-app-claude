@@ -73,8 +73,12 @@ function ScoreStars({ score, total }) {
   )
 }
 
-export default function QuizPage() {
+export default function QuizPage({ inModal = false }) {
   const { user } = useAuth()
+  // When inside a modal the page already has a header — no safe-area top padding needed
+  const tp = (x) => inModal ? `${x}px` : `calc(env(safe-area-inset-top) + ${x}px)`
+  const pageClass = inModal ? undefined : 'page'
+  const pageStyle = inModal ? { flex: 1, display: 'flex', flexDirection: 'column', paddingBottom: 24 } : { padding: 0 }
   const [phase, setPhase] = useState('loading') // loading | idle | playing | feedback | done
   const [questions] = useState(() => getQuestionsForToday())
   const [idx, setIdx] = useState(0)
@@ -134,7 +138,7 @@ export default function QuizPage() {
 
   // ── LOADING
   if (phase === 'loading') return (
-    <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+    <div className={pageClass} style={{ ...pageStyle, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
       <div style={{ width: 40, height: 40, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
     </div>
   )
@@ -157,9 +161,9 @@ export default function QuizPage() {
     const fs = finalStreak || getStreak()
 
     return (
-      <div className="page" style={{ padding: 0 }}>
+      <div className={pageClass} style={pageStyle}>
         {/* Hero */}
-        <div style={{ background: 'linear-gradient(160deg, #1a7f5a 0%, #14b8a6 100%)', padding: 'calc(env(safe-area-inset-top) + 32px) 24px 32px', textAlign: 'center' }}>
+        <div style={{ background: 'linear-gradient(160deg, #1a7f5a 0%, #14b8a6 100%)', padding: `${tp(32)} 24px 32px`, textAlign: 'center' }}>
           <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 200 }}>
             <div style={{ fontSize: 72, lineHeight: 1, marginBottom: 16 }}>{emoji}</div>
           </motion.div>
@@ -243,9 +247,9 @@ export default function QuizPage() {
     const todayCategories = [...new Set(questions.map(q => q.cat))].slice(0, 4)
     const currentStreak = getStreak()
     return (
-      <div className="page" style={{ padding: 0 }}>
+      <div className={pageClass} style={pageStyle}>
         {/* Hero gradient */}
-        <div style={{ background: 'linear-gradient(160deg, #4c1d95 0%, #7c3aed 50%, #a855f7 100%)', padding: 'calc(env(safe-area-inset-top) + 28px) 24px 36px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ background: 'linear-gradient(160deg, #4c1d95 0%, #7c3aed 50%, #a855f7 100%)', padding: `${tp(28)} 24px 36px`, textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', top: -30, right: -30, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,.06)' }} />
           <div style={{ position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,.05)' }} />
           <div style={{ position: 'relative' }}>
@@ -315,9 +319,9 @@ export default function QuizPage() {
   const isFeedback = phase === 'feedback'
 
   return (
-    <div className="page" style={{ padding: 0 }}>
+    <div className={pageClass} style={pageStyle}>
       {/* Top bar with progress */}
-      <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border-light)', padding: 'calc(env(safe-area-inset-top) + 12px) 20px 12px' }}>
+      <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border-light)', padding: `${tp(12)} 20px 12px` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
           <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, minWidth: 36 }}>{idx + 1}/{questions.length}</span>
           <div style={{ flex: 1, height: 8, background: 'var(--surface-3)', borderRadius: 4, overflow: 'hidden' }}>
