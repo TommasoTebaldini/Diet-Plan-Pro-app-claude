@@ -565,28 +565,40 @@ export default function DashboardPage() {
         <OnboardingFlow onComplete={handleOnboardingDone} />
       )}
 
-      {/* Quiz modal — rendered via portal above BottomNav (zIndex 999) */}
+      {/* Quiz modal — backdrop + centered card, rendered via portal above BottomNav */}
       {showQuiz && createPortal(
         <AnimatePresence>
+          {/* Backdrop */}
           <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-            style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'var(--bg)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setShowQuiz(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 16px' }}
           >
-            <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg)', borderBottom: '1px solid var(--border-light)', padding: 'calc(env(safe-area-inset-top) + 10px) 16px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>🧠 Quiz del giorno</span>
-              <button
-                onClick={() => setShowQuiz(false)}
-                style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 20, padding: '5px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: 'var(--text-secondary)', fontFamily: 'inherit' }}
-              >
-                ✕ Chiudi
-              </button>
-            </div>
-            <Suspense fallback={<div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /></div>}>
-              <QuizPage inModal />
-            </Suspense>
+            {/* Card — stop propagation so clicking inside doesn't close */}
+            <motion.div
+              initial={{ scale: 0.92, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.92, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+              onClick={e => e.stopPropagation()}
+              style={{ background: 'var(--bg)', borderRadius: 24, width: '100%', maxWidth: 460, maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 24px 60px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column' }}
+            >
+              {/* Card header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px 12px', borderBottom: '1px solid var(--border-light)', flexShrink: 0 }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>🧠 Quiz del giorno</span>
+                <button
+                  onClick={() => setShowQuiz(false)}
+                  style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--surface-2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1 }}
+                >✕</button>
+              </div>
+              {/* Quiz content */}
+              <Suspense fallback={<div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}><div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /></div>}>
+                <QuizPage inModal />
+              </Suspense>
+            </motion.div>
           </motion.div>
         </AnimatePresence>,
         document.body
