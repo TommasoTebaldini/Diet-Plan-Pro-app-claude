@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext'
 import { Sparkles, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
 
 const CACHE_KEY = 'nutriplan_daily_tips'
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
 function loadCache() {
   try {
@@ -48,20 +47,11 @@ export default function DailyTipsCard() {
     setError('')
     setNoData(false)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('Sessione non trovata')
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/daily-tips`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Errore AI')
-      if (data.noData) { setNoData(true); setTips([]); return }
-      setTips(data.tips || [])
-      if (data.tips?.length) saveCache(data.tips)
+      const { data, error } = await supabase.functions.invoke('daily-tips', { method: 'POST' })
+      if (error) throw new Error(error.message || 'Errore AI')
+      if (data?.noData) { setNoData(true); setTips([]); return }
+      setTips(data?.tips || [])
+      if (data?.tips?.length) saveCache(data.tips)
     } catch (e) {
       setError(e.message || 'Errore nel caricare i suggerimenti')
     } finally {
