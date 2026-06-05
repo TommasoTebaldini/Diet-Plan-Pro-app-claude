@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { Clock, ChevronDown, ChevronUp, Flame, Leaf, FileText, CheckCircle2, Circle, History, RefreshCw, TrendingUp, Calendar, Download, ClipboardList, ImageOff } from 'lucide-react'
+import { Clock, ChevronDown, ChevronUp, Flame, Leaf, FileText, CheckCircle2, Circle, History, RefreshCw, TrendingUp, Calendar, Download, ClipboardList, ImageOff, ClipboardCopy, Check } from 'lucide-react'
 import { useT } from '../i18n'
 
 const DAYS = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
@@ -296,24 +296,100 @@ const MEAL_PRINT_LABELS = {
   cena: { label: 'Cena', emoji: '🌙' },
 }
 
+const MEAL_TYPE_MAP = { colazione: 'colazione', spuntino_mattina: 'spuntino_mattina', pranzo: 'pranzo', spuntino_pomeriggio: 'spuntino_pomeriggio', cena: 'cena' }
+
 function PianoAlimentareContent({ piano }) {
+  const { user } = useAuth()
+  const today = new Date().toISOString().split('T')[0]
+  const [copyState, setCopyState] = useState({ dayIdx: null, date: today, busy: false, doneIdx: null })
+
   let days = []
   try {
     const raw = typeof piano.meals === 'string' ? JSON.parse(piano.meals) : piano.meals
     days = Array.isArray(raw) ? raw : []
   } catch { days = [] }
 
-  const title = piano.nome || 'Piano alimentare'
-  const dataStr = piano.data_piano ? new Date(piano.data_piano).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) : ''
+  async function copyDayToDiary(day, di) {
+    setCopyState(s => ({ ...s, busy: true }))
+    const targetDate = copyState.date
+    const inserts = []
+    for (const meal of day.meals || []) {
+      const mealKey = meal.id || meal.tipo || ''
+      const mealType = MEAL_TYPE_MAP[mealKey] || 'pranzo'
+      const foods = meal.items || meal.foods || meal.alimenti || []
+      for (const food of foods) {
+        const nome = food.nome || food.name || food.alimento || ''
+        if (!nome) continue
+        const qt = parseFloat(food.qt || food.quantita || food.quantity || food.grammi || food.grams || 100) || 0
+        const k = food.kcal_100g || 0
+        const p = food.proteins_100g || 0
+        const c = food.carbs_100g || 0
+        const f = food.fats_100g || 0
+        inserts.push({
+          user_id: user.id, date: targetDate, meal_type: mealType,
+          food_name: nome, grams: qt,
+          kcal: k ? Math.round(k * qt / 100) : null,
+          proteins: p ? Math.round(p * qt / 100 * 10) / 10 : null,
+          carbs: c ? Math.round(c * qt / 100 * 10) / 10 : null,
+          fats: f ? Math.round(f * qt / 100 * 10) / 10 : null,
+          food_data: { source: 'diet_plan', plan_nome: piano.nome || '' },
+        })
+      }
+    }
+    if (inserts.length) {
+      await supabase.from('food_logs').insert(inserts)
+      const { data: allFoods } = await supabase.from('food_logs').select('kcal,proteins,carbs,fats').eq('user_id', user.id).eq('date', targetDate)
+      if (allFoods) {
+        const t = allFoods.reduce((a, r) => ({ kcal: a.kcal + (r.kcal || 0), proteins: a.proteins + (r.proteins || 0), carbs: a.carbs + (r.carbs || 0), fats: a.fats + (r.fats || 0) }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
+        await supabase.from('daily_logs').upsert({ user_id: user.id, date: targetDate, ...t }, { onConflict: 'user_id,date' })
+      }
+    }
+    setCopyState({ dayIdx: null, date: today, busy: false, doneIdx: di })
+    setTimeout(() => setCopyState(s => ({ ...s, doneIdx: null })), 3000)
+  }
 
   return (
     <div style={{ padding: '16px 16px 20px' }}>
       {days.length > 0 ? days.map((day, di) => (
         <div key={day.id || di} style={{ marginBottom: 20 }}>
+          {/* Day header with copy button */}
           <div style={{ background: 'linear-gradient(90deg, var(--green-main), var(--green-dark))', color: 'white', padding: '8px 14px', borderRadius: 10, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
             <span>📅</span>
-            <span style={{ fontWeight: 700, fontSize: 14, letterSpacing: '0.01em' }}>{day.nome || `Giorno ${di + 1}`}</span>
+            <span style={{ fontWeight: 700, fontSize: 14, letterSpacing: '0.01em', flex: 1 }}>{day.nome || `Giorno ${di + 1}`}</span>
+            {copyState.doneIdx === di ? (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, background: 'rgba(255,255,255,.25)', borderRadius: 20, padding: '3px 10px' }}>
+                <Check size={12} /> Aggiunto al diario
+              </span>
+            ) : copyState.dayIdx === di ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={e => e.stopPropagation()}>
+                <input
+                  type="date" value={copyState.date}
+                  onChange={e => setCopyState(s => ({ ...s, date: e.target.value }))}
+                  style={{ padding: '3px 6px', borderRadius: 6, border: 'none', fontSize: 12, background: 'rgba(255,255,255,.9)', color: '#1a1a1a', outline: 'none' }}
+                />
+                <button
+                  onClick={() => copyDayToDiary(day, di)}
+                  disabled={copyState.busy}
+                  style={{ padding: '3px 10px', borderRadius: 20, border: 'none', background: 'rgba(255,255,255,.9)', color: 'var(--green-dark)', fontSize: 12, fontWeight: 700, cursor: 'pointer', opacity: copyState.busy ? 0.6 : 1 }}
+                >
+                  {copyState.busy ? '⏳' : 'Copia'}
+                </button>
+                <button
+                  onClick={() => setCopyState(s => ({ ...s, dayIdx: null }))}
+                  style={{ padding: '3px 7px', borderRadius: 20, border: 'none', background: 'rgba(0,0,0,.2)', color: 'white', fontSize: 12, cursor: 'pointer' }}
+                >✕</button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setCopyState(s => ({ ...s, dayIdx: di, date: today }))}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 20, border: 'none', background: 'rgba(255,255,255,.2)', color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                title="Copia questo giorno nel tuo diario alimentare"
+              >
+                <ClipboardCopy size={11} /> Copia nel diario
+              </button>
+            )}
           </div>
+
           {(day.meals || []).map((meal, mi) => {
             const mealKey = meal.id || meal.tipo || ''
             const meta = MEAL_PRINT_LABELS[mealKey] || { label: meal.nome || meal.id || 'Pasto', emoji: '🍴' }
@@ -322,6 +398,7 @@ function PianoAlimentareContent({ piano }) {
             const note = meal.note || meal.notes || ''
             const mealEmoji = meal.emoji || meta.emoji
             const mealLabel = meal.nome || meta.label
+            const hasMacros = foods.some(f => f.kcal_100g)
             return (
               <div key={meal.id || mi} style={{ border: '1px solid var(--border-light)', borderRadius: 12, overflow: 'hidden', marginBottom: 8, background: 'var(--surface)' }}>
                 <div style={{ padding: '9px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-light)', background: 'var(--surface-2)' }}>
@@ -335,17 +412,42 @@ function PianoAlimentareContent({ piano }) {
                   {foods.length > 0 ? (
                     <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
+                          <th style={{ padding: '4px 0', textAlign: 'left', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Alimento</th>
+                          <th style={{ padding: '4px 0', textAlign: 'right', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Qtà</th>
+                          {hasMacros && <>
+                            <th style={{ padding: '4px 6px', textAlign: 'right', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Kcal</th>
+                            <th style={{ padding: '4px 0', textAlign: 'right', fontSize: 11, color: '#3b82f6', fontWeight: 600 }}>P</th>
+                            <th style={{ padding: '4px 0 4px 6px', textAlign: 'right', fontSize: 11, color: '#f0922b', fontWeight: 600 }}>C</th>
+                            <th style={{ padding: '4px 0 4px 6px', textAlign: 'right', fontSize: 11, color: '#e05a5a', fontWeight: 600 }}>G</th>
+                          </>}
+                        </tr>
+                      </thead>
                       <tbody>
-                        {foods.map((food, fi) => (
-                          <tr key={fi} style={{ borderBottom: fi < foods.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
-                            <td style={{ padding: '5px 0', color: 'var(--text-primary)', fontWeight: 500 }}>{food.nome || food.name || food.alimento || ''}</td>
-                            <td style={{ padding: '5px 0', textAlign: 'right', color: 'var(--green-main)', fontWeight: 700 }}>
-                              {food.qt || food.quantita || food.quantity || food.grammi || food.grams || ''}{food.misura || food.unita || food.unit || 'g'}
-                            </td>
-                          </tr>
-                        ))}
+                        {foods.map((food, fi) => {
+                          const qt = parseFloat(food.qt || food.quantita || food.quantity || food.grammi || food.grams || 0) || 0
+                          const kcalItem = food.kcal_100g ? Math.round(food.kcal_100g * qt / 100) : null
+                          const protItem = food.proteins_100g ? Math.round(food.proteins_100g * qt / 100 * 10) / 10 : null
+                          const carbItem = food.carbs_100g ? Math.round(food.carbs_100g * qt / 100 * 10) / 10 : null
+                          const fatItem  = food.fats_100g  ? Math.round(food.fats_100g  * qt / 100 * 10) / 10 : null
+                          return (
+                            <tr key={fi} style={{ borderBottom: fi < foods.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                              <td style={{ padding: '5px 0', color: 'var(--text-primary)', fontWeight: 500 }}>{food.nome || food.name || food.alimento || ''}</td>
+                              <td style={{ padding: '5px 0', textAlign: 'right', color: 'var(--green-main)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                                {food.qt || food.quantita || food.quantity || food.grammi || food.grams || ''}{food.misura || food.unita || food.unit || 'g'}
+                              </td>
+                              {hasMacros && <>
+                                <td style={{ padding: '5px 6px', textAlign: 'right', color: 'var(--text-muted)', fontSize: 12 }}>{kcalItem ?? '—'}</td>
+                                <td style={{ padding: '5px 0', textAlign: 'right', color: '#3b82f6', fontSize: 12 }}>{protItem != null ? protItem+'g' : '—'}</td>
+                                <td style={{ padding: '5px 0 5px 6px', textAlign: 'right', color: '#f0922b', fontSize: 12 }}>{carbItem != null ? carbItem+'g' : '—'}</td>
+                                <td style={{ padding: '5px 0 5px 6px', textAlign: 'right', color: '#e05a5a', fontSize: 12 }}>{fatItem != null ? fatItem+'g' : '—'}</td>
+                              </>}
+                            </tr>
+                          )
+                        })}
                         {foods.some(f => f.altPrint?.length > 0) && (
-                          <tr><td colSpan={2} style={{ padding: '4px 0 0', fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                          <tr><td colSpan={hasMacros ? 7 : 2} style={{ padding: '4px 0 0', fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>
                             Alt: {foods.flatMap(f => f.altPrint || []).map(a => `${a.nome} ${a.qt}g`).join(' / ')}
                           </td></tr>
                         )}
@@ -483,6 +585,7 @@ export default function DietPage() {
   const [historyMeals, setHistoryMeals] = useState([])
   const [clinicalPlans, setClinicalPlans] = useState([])
   const [showOlderPlans, setShowOlderPlans] = useState(false)
+  const [copyDiet, setCopyDiet] = useState({ open: false, date: '', busy: false, done: false })
 
   const today = useMemo(() => new Date().toISOString().split('T')[0], [])
 
@@ -566,6 +669,56 @@ export default function DietPage() {
     const { data } = await supabase.from('diet_meals').select('id,diet_id,meal_type,meal_order,day_number,kcal,proteins,carbs,fats,notes,description,foods').eq('diet_id', dietId).order('day_number').order('meal_order')
     setHistoryMeals(data || [])
   }, [selectedHistoryId])
+
+  const copyDayMealsToLog = useCallback(async (targetDate) => {
+    setCopyDiet(s => ({ ...s, busy: true }))
+    const dayNumber = tab + 1
+    const mealsForDay = meals.filter(m => m.day_number === dayNumber || !m.day_number)
+    const inserts = []
+    for (const meal of mealsForDay) {
+      const foods = meal.foods || []
+      if (foods.length > 0) {
+        for (const food of foods) {
+          const name = food.name || food.nome || ''
+          if (!name) continue
+          const qty = parseFloat(food.quantity || food.qt || 100) || 0
+          const k100 = food.kcal_100g || 0
+          const p100 = food.proteins_100g || 0
+          const c100 = food.carbs_100g || 0
+          const f100 = food.fats_100g || 0
+          inserts.push({
+            user_id: user.id, date: targetDate, meal_type: meal.meal_type,
+            food_name: name, grams: qty,
+            kcal: k100 ? Math.round(k100 * qty / 100) : null,
+            proteins: p100 ? Math.round(p100 * qty / 100 * 10) / 10 : null,
+            carbs: c100 ? Math.round(c100 * qty / 100 * 10) / 10 : null,
+            fats: f100 ? Math.round(f100 * qty / 100 * 10) / 10 : null,
+            food_data: { source: 'diet_plan', plan_nome: diet?.name || '' },
+          })
+        }
+      } else if (meal.kcal) {
+        // No individual foods saved — insert one entry per meal with aggregate macros
+        inserts.push({
+          user_id: user.id, date: targetDate, meal_type: meal.meal_type,
+          food_name: meal.description || t(`meal.${meal.meal_type}`) || meal.meal_type,
+          grams: 0,
+          kcal: meal.kcal || null, proteins: meal.proteins || null,
+          carbs: meal.carbs || null, fats: meal.fats || null,
+          food_data: { source: 'diet_plan', plan_nome: diet?.name || '' },
+        })
+      }
+    }
+    if (inserts.length) {
+      await supabase.from('food_logs').insert(inserts)
+      const { data: allFoods } = await supabase.from('food_logs').select('kcal,proteins,carbs,fats').eq('user_id', user.id).eq('date', targetDate)
+      if (allFoods) {
+        const tot = allFoods.reduce((a, r) => ({ kcal: a.kcal + (r.kcal || 0), proteins: a.proteins + (r.proteins || 0), carbs: a.carbs + (r.carbs || 0), fats: a.fats + (r.fats || 0) }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
+        await supabase.from('daily_logs').upsert({ user_id: user.id, date: targetDate, ...tot }, { onConflict: 'user_id,date' })
+      }
+    }
+    setCopyDiet({ open: false, date: '', busy: false, done: true })
+    setTimeout(() => setCopyDiet(s => ({ ...s, done: false })), 3000)
+  }, [meals, tab, user.id, diet, t])
 
   if (loading) return (
     <div className="page" style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -733,6 +886,42 @@ export default function DietPage() {
                     <div style={{ height: '100%', width: `${(completedCount / dayMeals.length) * 100}%`, background: 'var(--green-main)', borderRadius: 4, transition: 'width 0.4s ease' }} />
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Copy day to diary */}
+            {dayMeals.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {copyDiet.done ? (
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--green-pale)', borderRadius: 12, border: '1px solid var(--green-light)' }}>
+                    <Check size={16} color="var(--green-main)" />
+                    <span style={{ fontSize: 13, color: 'var(--green-dark)', fontWeight: 600 }}>Aggiunto al diario!</span>
+                  </div>
+                ) : copyDiet.open ? (
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 12, border: '1px solid var(--border)' }}>
+                    <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600, flexShrink: 0 }}>📋 Copia in data:</span>
+                    <input
+                      type="date"
+                      value={copyDiet.date || today}
+                      onChange={e => setCopyDiet(s => ({ ...s, date: e.target.value }))}
+                      style={{ flex: 1, padding: '5px 8px', borderRadius: 8, border: '1.5px solid var(--border)', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
+                    />
+                    <button
+                      onClick={() => copyDayMealsToLog(copyDiet.date || today)}
+                      disabled={copyDiet.busy}
+                      style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'var(--green-main)', color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: copyDiet.busy ? 0.6 : 1, flexShrink: 0 }}
+                    >{copyDiet.busy ? '⏳' : 'Copia'}</button>
+                    <button onClick={() => setCopyDiet(s => ({ ...s, open: false }))} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-muted)' }}>✕</button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setCopyDiet({ open: true, date: today, busy: false, done: false })}
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 12, border: '1.5px dashed var(--border)', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}
+                  >
+                    <ClipboardCopy size={15} />
+                    Copia questo giorno nel diario alimentare
+                  </button>
+                )}
               </div>
             )}
 

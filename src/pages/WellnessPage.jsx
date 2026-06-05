@@ -157,24 +157,27 @@ export default function WellnessPage() {
     cutoff.setDate(cutoff.getDate() - range)
     const from = cutoff.toISOString().split('T')[0]
 
-    // Try with extended columns; fall back to basic if columns don't exist yet
-    let wellnessRes = await supabase.from('daily_wellness')
-      .select('id,date,mood,energy,sleep_quality,sleep_hours,sleep_restedness,symptoms,notes,stress_level,hydration_level')
-      .eq('user_id', user.id).gte('date', from).order('date', { ascending: true })
-    if (wellnessRes.error) {
+    // Run wellness + macro in parallel; fall back to base columns only if extended fails
+    const wellSelect = _wellnessHasExtended !== false
+      ? 'id,date,mood,energy,sleep_quality,sleep_hours,sleep_restedness,symptoms,notes,stress_level,hydration_level'
+      : 'id,date,mood,energy,sleep_quality,sleep_hours,sleep_restedness,symptoms,notes'
+
+    const [wellRes0, macroRes] = await Promise.all([
+      supabase.from('daily_wellness').select(wellSelect)
+        .eq('user_id', user.id).gte('date', from).order('date', { ascending: true }),
+      supabase.from('daily_logs').select('date, kcal, proteins, carbs, fats')
+        .eq('user_id', user.id).gte('date', from).order('date', { ascending: true }),
+    ])
+
+    let wellnessRes = wellRes0
+    if (wellRes0.error && _wellnessHasExtended !== false) {
       _wellnessHasExtended = false
       wellnessRes = await supabase.from('daily_wellness')
         .select('id,date,mood,energy,sleep_quality,sleep_hours,sleep_restedness,symptoms,notes')
         .eq('user_id', user.id).gte('date', from).order('date', { ascending: true })
-    } else {
+    } else if (!wellRes0.error) {
       _wellnessHasExtended = true
     }
-    const [macroRes] = await Promise.all([
-      supabase.from('daily_logs').select('date, kcal, proteins, carbs, fats')
-        .eq('user_id', user.id)
-        .gte('date', from)
-        .order('date', { ascending: true }),
-    ])
 
     const wellnessData = wellnessRes.data || []
     setHistory(wellnessData)

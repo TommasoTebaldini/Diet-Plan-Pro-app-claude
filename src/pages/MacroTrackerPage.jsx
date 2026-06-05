@@ -241,19 +241,19 @@ export default function MacroTrackerPage() {
   useEffect(() => { loadRecentAndFavorites() }, [])
 
   async function loadLog() {
-    const [dietRes, wellnessRes] = await Promise.all([
+    // Use known column set if already determined, else try extended
+    const foodSelect = _foodLogsExtended !== false
+      ? 'id,date,meal_type,meal_time,food_name,grams,kcal,proteins,carbs,fats,food_data,is_favorite,unit'
+      : 'id,date,meal_type,meal_time,food_name,grams,kcal,proteins,carbs,fats,food_data'
+
+    const [dietRes, wellnessRes, foodRes0] = await Promise.all([
       supabase.from('patient_diets').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
       supabase.from('daily_wellness').select('mood').eq('user_id', user.id).eq('date', date).maybeSingle(),
+      supabase.from('food_logs').select(foodSelect).eq('user_id', user.id).eq('date', date).order('created_at'),
     ])
 
-    // Try to load with is_favorite and unit columns (may not exist yet)
-    let foodRes = await supabase.from('food_logs')
-      .select('id,date,meal_type,meal_time,food_name,grams,kcal,proteins,carbs,fats,food_data,is_favorite,unit')
-      .eq('user_id', user.id).eq('date', date).order('created_at')
-
-    // If columns don't exist fallback to basic select and mark flag
+    let foodRes = foodRes0
     if (foodRes.error && _isColErr(foodRes.error)) {
-      console.warn('[food_logs] is_favorite/unit columns not found, using basic select')
       _foodLogsExtended = false
       foodRes = await supabase.from('food_logs')
         .select('id,date,meal_type,meal_time,food_name,grams,kcal,proteins,carbs,fats,food_data')
