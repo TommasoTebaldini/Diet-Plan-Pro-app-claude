@@ -513,18 +513,8 @@ function LatestClinicalPlanCard({ piano }) {
         )}
       </div>
 
-      {/* Content: image or JSON renderer */}
-      {piano.print_image_url ? (
-        <div style={{ background: '#f1f5f9', padding: '18px 16px 20px' }}>
-          <img
-            src={piano.print_image_url}
-            alt={title}
-            style={{ display: 'block', width: '100%', height: 'auto', borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.13)', background: 'white' }}
-          />
-        </div>
-      ) : (
-        <PianoAlimentareContent piano={piano} />
-      )}
+      {/* Always show table — image is accessible from Documents section */}
+      <PianoAlimentareContent piano={piano} />
     </div>
   )
 }
@@ -554,17 +544,7 @@ function OlderClinicalPlanCard({ piano }) {
 
       {expanded && (
         <div style={{ borderTop: '1px solid var(--border-light)' }}>
-          {piano.print_image_url ? (
-            <div style={{ background: '#f1f5f9', padding: '14px 14px 16px' }}>
-              <img
-                src={piano.print_image_url}
-                alt={title}
-                style={{ display: 'block', width: '100%', height: 'auto', borderRadius: 10, boxShadow: '0 2px 12px rgba(0,0,0,0.1)', background: 'white' }}
-              />
-            </div>
-          ) : (
-            <PianoAlimentareContent piano={piano} />
-          )}
+          <PianoAlimentareContent piano={piano} />
         </div>
       )}
     </div>
