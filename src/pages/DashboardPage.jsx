@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
+
+const QuizPage = lazy(() => import('./QuizPage'))
 import { useAuth } from '../context/AuthContext'
 import { useAppSettings } from '../context/AppSettingsContext'
 import { supabase } from '../lib/supabase'
@@ -112,12 +114,12 @@ const DASHBOARD_TUTORIAL_STEPS = [
   },
 ]
 
-function QuizBannerCard() {
+function QuizBannerCard({ onOpen }) {
   const today = new Date().toISOString().split('T')[0]
   const done = (() => { try { return !!JSON.parse(localStorage.getItem(`quiz_${today}`) || 'null')?.done } catch { return false } })()
   const streak = (() => { try { return parseInt(localStorage.getItem('quiz_streak') || '0') } catch { return 0 } })()
   return (
-    <Link to="/quiz" style={{ textDecoration: 'none' }}>
+    <motion.div whileHover={{ y: -3, scale: 1.01 }} whileTap={{ scale: 0.98 }} onClick={onOpen} style={{ cursor: 'pointer' }}>
       <div style={{ background: done ? 'linear-gradient(135deg, #064E3B, #0F766E)' : 'linear-gradient(135deg, #4c1d95, #7c3aed)', borderRadius: 18, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: -18, right: -18, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,.07)' }} />
         <div style={{ width: 46, height: 46, borderRadius: 14, background: 'rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 24 }}>
@@ -134,7 +136,7 @@ function QuizBannerCard() {
         </div>
         <ChevronRight size={18} color="rgba(255,255,255,.6)" style={{ flexShrink: 0 }} />
       </div>
-    </Link>
+    </motion.div>
   )
 }
 
@@ -153,6 +155,7 @@ export default function DashboardPage() {
   const [nextMealInfo, setNextMealInfo] = useState(null)
   const [appointment, setAppointment] = useState(null)
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('onboarding_done'))
+  const [showQuiz, setShowQuiz] = useState(false)
   const { isFirstVisit: isDashFirstVisit } = useFirstVisit('dashboard')
 
   function handleOnboardingDone() {
@@ -527,7 +530,7 @@ export default function DashboardPage() {
 
         {/* ── Quiz del giorno ── */}
         <motion.div initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}>
-          <QuizBannerCard />
+          <QuizBannerCard onOpen={() => setShowQuiz(true)} />
         </motion.div>
 
         {/* ── AI Daily Tips ── */}
@@ -560,6 +563,33 @@ export default function DashboardPage() {
       {showOnboarding && (
         <OnboardingFlow onComplete={handleOnboardingDone} />
       )}
+
+      {/* Quiz modal overlay */}
+      <AnimatePresence>
+        {showQuiz && (
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+            style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'var(--bg)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}
+          >
+            {/* Header with close */}
+            <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg)', borderBottom: '1px solid var(--border-light)', padding: 'calc(env(safe-area-inset-top) + 10px) 16px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>🧠 Quiz del giorno</span>
+              <button
+                onClick={() => setShowQuiz(false)}
+                style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 20, padding: '5px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: 'var(--text-secondary)', fontFamily: 'inherit' }}
+              >
+                ✕ Chiudi
+              </button>
+            </div>
+            <Suspense fallback={<div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /></div>}>
+              <QuizPage />
+            </Suspense>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Dashboard tutorial — shown only on first visit after onboarding */}
       {!showOnboarding && isDashFirstVisit && (

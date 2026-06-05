@@ -9,6 +9,10 @@ import './index.css'
 // quando il service worker si aggiorna. NON aggiungere un secondo listener
 // controllerchange qui — causerebbe un loop di refresh infinito.
 
+// Ricarica automaticamente la pagina quando un chunk lazy non si trova
+// (accade dopo un nuovo deploy mentre la pagina vecchia è ancora aperta)
+window.addEventListener('vite:preloadError', () => window.location.reload())
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
