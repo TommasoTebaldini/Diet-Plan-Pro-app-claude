@@ -6,7 +6,7 @@ import { useAppSettings } from '../context/AppSettingsContext'
 import { supabase } from '../lib/supabase'
 import { fetchDietFromPiani } from '../lib/dietBridge'
 import { useT } from '../i18n'
-import { Utensils, Droplets, TrendingUp, Apple, Flame, Leaf, MessageCircle, FileText, BookOpen, User, ChevronRight, Activity, Scale, Calendar, Zap, Award, Heart, BarChart2, Star, Crown } from 'lucide-react'
+import { Utensils, Droplets, TrendingUp, Apple, Flame, Leaf, MessageCircle, FileText, BookOpen, User, ChevronRight, Activity, Scale, Calendar, Zap, Award, Heart, BarChart2, Star, Crown, Brain } from 'lucide-react'
 import StreakCalendar from '../components/StreakCalendar'
 import DailyTipsCard from '../components/DailyTipsCard'
 import { useSubscription } from '../hooks/useSubscription'
@@ -90,6 +90,7 @@ const ACTIONS = [
   { label: 'Chat', icon: MessageCircle, to: '/chat', color: '#dc4a4a', bg: '#fff0f0' },
   { label: 'Documenti', icon: FileText, to: '/documenti', color: '#0891b2', bg: '#ecfeff' },
   { label: 'Alimenti', icon: BookOpen, to: '/alimenti', color: '#157a4a', bg: '#f0fdf4' },
+  { label: 'Quiz', icon: Brain, to: '/quiz', color: '#7c3aed', bg: '#f5f3ff' },
   { label: 'Profilo', icon: User, to: '/profilo', color: '#64748b', bg: '#f8fafc' },
 ]
 
@@ -110,6 +111,32 @@ const DASHBOARD_TUTORIAL_STEPS = [
     text: 'Monitora quanta acqua bevi ogni giorno. Toccа "+ Aggiungi" per registrare un\'assunzione e mantenerti idratato.',
   },
 ]
+
+function QuizBannerCard() {
+  const today = new Date().toISOString().split('T')[0]
+  const done = (() => { try { return !!JSON.parse(localStorage.getItem(`quiz_${today}`) || 'null')?.done } catch { return false } })()
+  const streak = (() => { try { return parseInt(localStorage.getItem('quiz_streak') || '0') } catch { return 0 } })()
+  return (
+    <Link to="/quiz" style={{ textDecoration: 'none' }}>
+      <div style={{ background: done ? 'linear-gradient(135deg, #064E3B, #0F766E)' : 'linear-gradient(135deg, #4c1d95, #7c3aed)', borderRadius: 18, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: -18, right: -18, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,.07)' }} />
+        <div style={{ width: 46, height: 46, borderRadius: 14, background: 'rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 24 }}>
+          {done ? '✅' : '🧠'}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ color: 'rgba(255,255,255,.7)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>
+            {done ? 'Completato oggi' : 'Quiz del giorno'}
+          </p>
+          <p style={{ color: 'white', fontSize: 15, fontWeight: 700, margin: 0 }}>
+            {done ? 'Ottimo lavoro! Torna domani' : 'Impara qualcosa di nuovo oggi'}
+          </p>
+          {streak > 0 && <p style={{ color: 'rgba(255,255,255,.65)', fontSize: 12, marginTop: 2 }}>🔥 Striscia: {streak} {streak === 1 ? 'giorno' : 'giorni'}</p>}
+        </div>
+        <ChevronRight size={18} color="rgba(255,255,255,.6)" style={{ flexShrink: 0 }} />
+      </div>
+    </Link>
+  )
+}
 
 export default function DashboardPage() {
   const { profile, user } = useAuth()
@@ -496,6 +523,11 @@ export default function DashboardPage() {
             <ChevronRight size={18} color="rgba(255,255,255,0.6)" style={{ flexShrink: 0 }} />
           </div>
         </Link>
+        </motion.div>
+
+        {/* ── Quiz del giorno ── */}
+        <motion.div initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}>
+          <QuizBannerCard />
         </motion.div>
 
         {/* ── AI Daily Tips ── */}
