@@ -584,7 +584,7 @@ export default function DashboardPage() {
               exit={{ scale: 0.92, opacity: 0, y: 20 }}
               transition={{ type: 'spring', stiffness: 340, damping: 28 }}
               onClick={e => e.stopPropagation()}
-              style={{ background: 'var(--bg)', borderRadius: 24, width: '100%', maxWidth: 460, maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 24px 60px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column' }}
+              style={{ background: '#ffffff', borderRadius: 24, width: '100%', maxWidth: 460, maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 24px 60px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column' }}
             >
               {/* Card header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px 12px', borderBottom: '1px solid var(--border-light)', flexShrink: 0 }}>
