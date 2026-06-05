@@ -80,6 +80,36 @@ async function callGemini(imageBase64: string, mediaType: string) {
   return text
 }
 
+async function callGroq(imageBase64: string, mediaType: string): Promise<string> {
+  const key = Deno.env.get('GROQ_API_KEY')
+  if (!key) throw new Error('GROQ_API_KEY non configurata')
+
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      model: 'llama-3.2-11b-vision-preview',
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: PROMPT },
+          { type: 'image_url', image_url: { url: `data:${mediaType};base64,${imageBase64}` } },
+        ],
+      }],
+      max_tokens: 1024,
+      temperature: 0.2,
+    }),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error((err as { error?: { message?: string } })?.error?.message || `Groq error ${res.status}`)
+  }
+
+  const data = await res.json() as { choices?: { message?: { content?: string } }[] }
+  return data.choices?.[0]?.message?.content || ''
+}
+
 async function callClaude(imageBase64: string, mediaType: string) {
   const key = Deno.env.get('ANTHROPIC_API_KEY')
   if (!key) throw new Error('ANTHROPIC_API_KEY non configurata nel server Supabase')
@@ -164,27 +194,26 @@ Deno.serve(async (req: Request) => {
   const { image, mediaType = 'image/jpeg' } = body
   if (!image) return json({ error: 'Immagine mancante' }, 400)
 
-  // Try Gemini first (free), fall back to Claude
+  // Try available AI provider: Gemini → Groq → Claude
   let text: string
   const hasGemini = !!Deno.env.get('GEMINI_API_KEY')
+  const hasGroq   = !!Deno.env.get('GROQ_API_KEY')
   const hasClaude = !!Deno.env.get('ANTHROPIC_API_KEY')
 
-  if (!hasGemini && !hasClaude) {
-    return json({ error: 'Nessuna chiave AI configurata. Vai su Supabase → Settings → Edge Functions Secrets e aggiungi GEMINI_API_KEY.' }, 500)
+  if (!hasGemini && !hasGroq && !hasClaude) {
+    return json({ error: 'Nessuna chiave AI configurata. Aggiungi GEMINI_API_KEY o GROQ_API_KEY nei segreti Supabase.' }, 500)
   }
 
-  try {
-    text = hasGemini ? await callGemini(image, mediaType) : await callClaude(image, mediaType)
-  } catch (e) {
-    if (hasClaude && hasGemini) {
-      // Gemini failed, try Claude
-      try { text = await callClaude(image, mediaType) } catch (e2) {
-        return json({ error: (e2 as Error).message }, 500)
-      }
-    } else {
-      return json({ error: (e as Error).message }, 500)
-    }
+  const providers: Array<() => Promise<string>> = []
+  if (hasGemini) providers.push(() => callGemini(image, mediaType))
+  if (hasGroq)   providers.push(() => callGroq(image, mediaType))
+  if (hasClaude) providers.push(() => callClaude(image, mediaType))
+
+  let lastError = ''
+  for (const call of providers) {
+    try { text = await call(); break } catch (e) { lastError = (e as Error).message }
   }
+  if (!text!) return json({ error: lastError || 'Errore AI' }, 500)
 
   try {
     return json(parseResponse(text))
