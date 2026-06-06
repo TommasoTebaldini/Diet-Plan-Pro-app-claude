@@ -104,6 +104,7 @@ const FREE_HISTORY_DAYS = 7
 
 function r1(v) { return Math.round(v * 10) / 10 }
 
+// Campi che vanno nella tabella food_logs
 function calcMacros(food, grams) {
   const f = (parseFloat(grams) || 100) / 100
   return {
@@ -111,6 +112,13 @@ function calcMacros(food, grams) {
     proteins: r1((food.proteins_100g || 0) * f),
     carbs: r1((food.carbs_100g || 0) * f),
     fats: r1((food.fats_100g || 0) * f),
+  }
+}
+
+// Campi extra solo per la visualizzazione (NON nel DB food_logs)
+function calcDisplay(food, grams) {
+  const f = (parseFloat(grams) || 100) / 100
+  return {
     fatSat: food.fatSat_100g ? r1(food.fatSat_100g * f) : null,
     sugar:  food.sugar_100g  ? r1(food.sugar_100g  * f) : null,
     salt:   food.salt_100g   ? Math.round(food.salt_100g * f * 100) / 100 : null,
@@ -872,7 +880,7 @@ export default function MacroTrackerPage() {
     }, { fiber: 0, sugar: 0, fatSat: 0 })
 
   const effectivePreviewGrams = selected && selectedUnit !== 'g' ? gramsFromUnit(unitQty, selectedUnit) : parseFloat(grams) || 100
-  const preview = selected ? calcMacros(selected, String(effectivePreviewGrams)) : null
+  const preview = selected ? { ...calcMacros(selected, String(effectivePreviewGrams)), ...calcDisplay(selected, String(effectivePreviewGrams)) } : null
   const isToday = date === todayStr
   const displayDate = new Date(date + 'T12:00:00')
 
