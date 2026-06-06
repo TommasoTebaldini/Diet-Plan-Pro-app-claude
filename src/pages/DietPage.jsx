@@ -153,7 +153,6 @@ function MealCard({ meal, completed, onToggleComplete }) {
               )}
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 3, flexWrap: 'wrap' }}>
-              {meta.time && <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 3 }}><Clock size={10} />{meta.time}</span>}
               {meal.kcal && <span style={{ fontSize: 12, color: meta.accent, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}><Flame size={10} color={meta.accent} />{meal.kcal} kcal</span>}
             </div>
           </div>
@@ -452,9 +451,6 @@ function PianoAlimentareContent({ piano }) {
                       </div>
                       <div style={{ flex: 1 }}>
                         <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--green-dark)', lineHeight: 1 }}>{mealLabel}</p>
-                        {MEAL_META_STATIC[mealKey]?.time && (
-                          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>🕐 {MEAL_META_STATIC[mealKey].time}</p>
-                        )}
                       </div>
                       {mealKcal ? (
                         <div style={{ textAlign: 'center', background: 'var(--green-pale)', borderRadius: 10, padding: '4px 10px' }}>
@@ -489,10 +485,10 @@ function PianoAlimentareContent({ piano }) {
                               </div>
                               {hasMacros && (kcalItem != null || protItem != null) && (
                                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 5 }}>
-                                  <MacroChip val={kcalItem} label="🔥" color="#92400e" bg="#fef3c7" />
-                                  <MacroChip val={protItem != null ? `${protItem}g` : null} label="💪" color="#1e40af" bg="#dbeafe" />
-                                  <MacroChip val={carbItem != null ? `${carbItem}g` : null} label="🍞" color="#92400e" bg="#fef9c3" />
-                                  <MacroChip val={fatItem != null ? `${fatItem}g` : null} label="🧈" color="#991b1b" bg="#fee2e2" />
+                                  <MacroChip val={kcalItem} label="🔥 Kcal" color="#92400e" bg="#fef3c7" />
+                                  <MacroChip val={protItem != null ? `${protItem}g` : null} label="💪 Prot" color="#1e40af" bg="#dbeafe" />
+                                  <MacroChip val={carbItem != null ? `${carbItem}g` : null} label="🍞 Carbo" color="#92400e" bg="#fef9c3" />
+                                  <MacroChip val={fatItem != null ? `${fatItem}g` : null} label="🧈 Grassi" color="#991b1b" bg="#fee2e2" />
                                 </div>
                               )}
                               {alts.length > 0 && (
