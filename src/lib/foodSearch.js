@@ -207,6 +207,9 @@ function mapOFFProduct(p) {
     proteins_100g: Math.round((n['proteins_100g'] || 0) * 10) / 10,
     carbs_100g: Math.round((n['carbohydrates_100g'] || 0) * 10) / 10,
     fats_100g: Math.round((n['fat_100g'] || 0) * 10) / 10,
+    fatSat_100g: Math.round((n['saturated-fat_100g'] || 0) * 10) / 10 || null,
+    sugar_100g: Math.round((n['sugars_100g'] || 0) * 10) / 10 || null,
+    salt_100g: Math.round((n['salt_100g'] || 0) * 100) / 100 || null,
     fiber_100g: Math.round((n['fiber_100g'] || 0) * 10) / 10,
     source: 'openfoodfacts',
   }
@@ -340,6 +343,9 @@ export async function searchByBarcode(barcode) {
       proteins_100g: Math.round((n['proteins_100g'] || 0) * 10) / 10,
       carbs_100g: Math.round((n['carbohydrates_100g'] || 0) * 10) / 10,
       fats_100g: Math.round((n['fat_100g'] || 0) * 10) / 10,
+      fatSat_100g: Math.round((n['saturated-fat_100g'] || 0) * 10) / 10 || null,
+      sugar_100g: Math.round((n['sugars_100g'] || 0) * 10) / 10 || null,
+      salt_100g: Math.round((n['salt_100g'] || 0) * 100) / 100 || null,
       fiber_100g: Math.round((n['fiber_100g'] || 0) * 10) / 10,
       source: 'openfoodfacts',
     }

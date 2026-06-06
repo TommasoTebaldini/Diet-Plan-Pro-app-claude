@@ -113,6 +113,7 @@ function calcMacros(food, grams) {
     fats: r1((food.fats_100g || 0) * f),
     fatSat: food.fatSat_100g ? r1(food.fatSat_100g * f) : null,
     sugar:  food.sugar_100g  ? r1(food.sugar_100g  * f) : null,
+    salt:   food.salt_100g   ? Math.round(food.salt_100g * f * 100) / 100 : null,
   }
 }
 
@@ -480,6 +481,7 @@ export default function MacroTrackerPage() {
         carbs_100g: food.carbs_100g || 0, fats_100g: food.fats_100g || 0,
         fiber_100g: food.fiber_100g || 0, source: food.source || '',
         sugar_100g: food.sugar_100g || 0, fatSat_100g: food.fatSat_100g || 0,
+        salt_100g: food.salt_100g || 0,
       }
       const payload = {
         user_id: user.id,
@@ -525,6 +527,7 @@ export default function MacroTrackerPage() {
         carbs_100g: selected.carbs_100g || 0, fats_100g: selected.fats_100g || 0,
         fiber_100g: selected.fiber_100g || 0, source: selected.source || '',
         sugar_100g: selected.sugar_100g || 0, fatSat_100g: selected.fatSat_100g || 0,
+        salt_100g: selected.salt_100g || 0,
         meal_time: mealTime || null,
       }
       const basePayload = {
@@ -1121,6 +1124,7 @@ export default function MacroTrackerPage() {
                             <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626' }}>🧈 {f.fats}g</span>
                             {f.food_data?.fatSat_100g > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#b91c1c' }}>⚠️ {r1(f.food_data.fatSat_100g * (f.grams || 0) / 100)}g sat</span>}
                             {f.food_data?.sugar_100g > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed' }}>🍬 {r1(f.food_data.sugar_100g * (f.grams || 0) / 100)}g zucc</span>}
+                            {f.food_data?.salt_100g > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#0369a1' }}>🧂 {Math.round(f.food_data.salt_100g * (f.grams || 0) / 100 * 100) / 100}g sale</span>}
                             {f._pending && <span style={{ fontSize: 10, color: '#d97706' }}><WifiOff size={9} style={{ display: 'inline', verticalAlign: 'middle' }} /> in coda</span>}
                           </div>
                         </div>
@@ -1399,7 +1403,7 @@ export default function MacroTrackerPage() {
                                     </div>
                                   ))}
                                 </div>
-                                {(preview.fatSat != null || preview.sugar != null) && (
+                                {(preview.fatSat != null || preview.sugar != null || preview.salt != null) && (
                                   <div style={{ display: 'flex', gap: 6 }}>
                                     {preview.fatSat != null && (
                                       <div style={{ flex: 1, background: '#fef2f2', borderRadius: 10, padding: '6px 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1416,6 +1420,15 @@ export default function MacroTrackerPage() {
                                         <div>
                                           <div style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed' }}>{preview.sugar}g</div>
                                           <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Zuccheri</div>
+                                        </div>
+                                      </div>
+                                    )}
+                                    {preview.salt != null && (
+                                      <div style={{ flex: 1, background: '#e0f2fe', borderRadius: 10, padding: '6px 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <span style={{ fontSize: 14 }}>🧂</span>
+                                        <div>
+                                          <div style={{ fontSize: 12, fontWeight: 700, color: '#0369a1' }}>{preview.salt}g</div>
+                                          <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Sale</div>
                                         </div>
                                       </div>
                                     )}
