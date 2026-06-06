@@ -414,10 +414,10 @@ function PianoAlimentareContent({ piano }) {
               {/* Day macro summary */}
               {dayTot && (
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 11, background: 'rgba(255,255,255,.18)', color: 'white', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>🔥 {dayTot.kcal} kcal</span>
-                  <span style={{ fontSize: 11, background: 'rgba(96,165,250,.3)', color: '#dbeafe', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>💪 {dayTot.prot}g prot</span>
-                  <span style={{ fontSize: 11, background: 'rgba(251,191,36,.3)', color: '#fef3c7', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>🍞 {dayTot.carb}g carbo</span>
-                  <span style={{ fontSize: 11, background: 'rgba(248,113,113,.3)', color: '#fee2e2', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>🧈 {dayTot.fat}g grassi</span>
+                  <span style={{ fontSize: 11, background: 'rgba(255,255,255,.18)', color: 'white', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>🔥 {Math.round(dayTot.kcal)} kcal</span>
+                  <span style={{ fontSize: 11, background: 'rgba(96,165,250,.3)', color: '#dbeafe', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>💪 {Math.round(dayTot.prot * 10) / 10}g prot</span>
+                  <span style={{ fontSize: 11, background: 'rgba(251,191,36,.3)', color: '#fef3c7', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>🍞 {Math.round(dayTot.carb * 10) / 10}g carbo</span>
+                  <span style={{ fontSize: 11, background: 'rgba(248,113,113,.3)', color: '#fee2e2', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>🧈 {Math.round(dayTot.fat * 10) / 10}g grassi</span>
                 </div>
               )}
             </div>

@@ -102,13 +102,17 @@ function MealPieChart({ log, meals }) {
 
 const FREE_HISTORY_DAYS = 7
 
+function r1(v) { return Math.round(v * 10) / 10 }
+
 function calcMacros(food, grams) {
   const f = (parseFloat(grams) || 100) / 100
   return {
     kcal: Math.round((food.kcal_100g || 0) * f),
-    proteins: Math.round((food.proteins_100g || 0) * f * 10) / 10,
-    carbs: Math.round((food.carbs_100g || 0) * f * 10) / 10,
-    fats: Math.round((food.fats_100g || 0) * f * 10) / 10,
+    proteins: r1((food.proteins_100g || 0) * f),
+    carbs: r1((food.carbs_100g || 0) * f),
+    fats: r1((food.fats_100g || 0) * f),
+    fatSat: food.fatSat_100g ? r1(food.fatSat_100g * f) : null,
+    sugar:  food.sugar_100g  ? r1(food.sugar_100g  * f) : null,
   }
 }
 
@@ -1108,12 +1112,17 @@ export default function MacroTrackerPage() {
                           <Apple size={14} color={m.accent || 'var(--green-main)'} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.food_name}</p>
-                          <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                            {f.grams}g · {f.kcal} kcal · P:{f.proteins}g
-                            {f.food_data?.meal_time && <> · <Clock size={9} style={{ display: 'inline', verticalAlign: 'middle' }} /> {f.food_data.meal_time}</>}
-                            {f._pending && <> · <WifiOff size={9} style={{ display: 'inline', verticalAlign: 'middle', color: '#d97706' }} /> in coda</>}
-                          </p>
+                          <p style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.food_name}</p>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 6px', marginTop: 4 }}>
+                            <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7280' }}>📦 {f.grams}g</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#ea580c' }}>🔥 {f.kcal}</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8' }}>💪 {f.proteins}g</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#d97706' }}>🍞 {f.carbs}g</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626' }}>🧈 {f.fats}g</span>
+                            {f.food_data?.fatSat_100g > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#b91c1c' }}>⚠️ {r1(f.food_data.fatSat_100g * (f.grams || 0) / 100)}g sat</span>}
+                            {f.food_data?.sugar_100g > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed' }}>🍬 {r1(f.food_data.sugar_100g * (f.grams || 0) / 100)}g zucc</span>}
+                            {f._pending && <span style={{ fontSize: 10, color: '#d97706' }}><WifiOff size={9} style={{ display: 'inline', verticalAlign: 'middle' }} /> in coda</span>}
+                          </div>
                         </div>
                         {/* Feature 3: Favorite star */}
                         <button
@@ -1360,12 +1369,60 @@ export default function MacroTrackerPage() {
                       {/* Selected food + grams + time */}
                       {selected && (
                         <div>
-                          <div style={{ background: 'var(--green-pale)', borderRadius: 12, padding: '11px 13px', marginBottom: 11, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-                            <div style={{ flex: 1 }}>
-                              <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>{selected.name}</p>
-                              {preview && <p style={{ fontSize: 12, color: 'var(--green-dark)' }}>{preview.kcal} kcal · P:{preview.proteins}g · C:{preview.carbs}g · G:{preview.fats}g</p>}
+                          {/* ── Food card ── */}
+                          <div style={{ borderRadius: 14, border: '1.5px solid var(--green-light)', overflow: 'hidden', marginBottom: 11 }}>
+                            {/* Header */}
+                            <div style={{ background: 'linear-gradient(135deg, var(--green-pale), #c8f5e2)', padding: '10px 13px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                              <div style={{ flex: 1 }}>
+                                <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--green-dark)', lineHeight: 1.25 }}>{selected.name}</p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                                  {selected.category && <span style={{ fontSize: 10, background: 'rgba(26,127,90,.12)', color: 'var(--green-dark)', padding: '1px 7px', borderRadius: 20, fontWeight: 700 }}>{selected.category}</span>}
+                                  <span style={{ fontSize: 10, color: 'var(--green-dark)', opacity: 0.7 }}>per {grams || 100}g</span>
+                                </div>
+                              </div>
+                              <button onClick={() => { setSelected(null); setQuery('') }} style={{ background: 'rgba(0,0,0,.08)', border: 'none', cursor: 'pointer', width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--green-dark)' }}><X size={13} /></button>
                             </div>
-                            <button onClick={() => { setSelected(null); setQuery('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-muted)' }}><X size={15} /></button>
+                            {/* Macro grid */}
+                            {preview && (
+                              <div style={{ padding: '10px 12px', background: 'var(--surface)' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: (preview.fatSat != null || preview.sugar != null) ? 6 : 0 }}>
+                                  {[
+                                    { e: '🔥', l: 'Kcal',      v: preview.kcal,     c: '#ea580c', bg: '#fff7ed' },
+                                    { e: '💪', l: 'Proteine',  v: `${preview.proteins}g`, c: '#1d4ed8', bg: '#dbeafe' },
+                                    { e: '🍞', l: 'Carboidrati', v: `${preview.carbs}g`, c: '#d97706', bg: '#fef9c3' },
+                                    { e: '🧈', l: 'Grassi',    v: `${preview.fats}g`,  c: '#dc2626', bg: '#fee2e2' },
+                                  ].map(n => (
+                                    <div key={n.l} style={{ background: n.bg, borderRadius: 10, padding: '7px 4px', textAlign: 'center' }}>
+                                      <div style={{ fontSize: 15, lineHeight: 1 }}>{n.e}</div>
+                                      <div style={{ fontSize: 13, fontWeight: 800, color: n.c, marginTop: 3, lineHeight: 1 }}>{n.v}</div>
+                                      <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>{n.l}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                                {(preview.fatSat != null || preview.sugar != null) && (
+                                  <div style={{ display: 'flex', gap: 6 }}>
+                                    {preview.fatSat != null && (
+                                      <div style={{ flex: 1, background: '#fef2f2', borderRadius: 10, padding: '6px 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <span style={{ fontSize: 14 }}>⚠️</span>
+                                        <div>
+                                          <div style={{ fontSize: 12, fontWeight: 700, color: '#b91c1c' }}>{preview.fatSat}g</div>
+                                          <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Gr. saturi</div>
+                                        </div>
+                                      </div>
+                                    )}
+                                    {preview.sugar != null && (
+                                      <div style={{ flex: 1, background: '#f5f3ff', borderRadius: 10, padding: '6px 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <span style={{ fontSize: 14 }}>🍬</span>
+                                        <div>
+                                          <div style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed' }}>{preview.sugar}g</div>
+                                          <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Zuccheri</div>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                           {/* Feature 6: Unit selector */}
                           <div className="input-group" style={{ marginBottom: 6 }}>
