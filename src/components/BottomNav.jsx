@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users, ChefHat, Star, Flower2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users, ChefHat, Star, Flower2, MoreHorizontal, X, Droplets, Scale, Brain, Award } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
@@ -33,6 +33,7 @@ export default function BottomNav() {
   const { isPro } = useSubscription()
   const t = useT()
   const [newDocs, setNewDocs] = useState(0)
+  const [moreOpen, setMoreOpen] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(
     () => localStorage.getItem('sidebar_open') !== 'false'
   )
@@ -107,6 +108,9 @@ export default function BottomNav() {
   useEffect(() => {
     if (pathname === '/chat') setUnreadChat(0)
   }, [pathname])
+
+  // Close "more" drawer on navigation
+  useEffect(() => { setMoreOpen(false) }, [pathname])
 
   const TABS = [
     { to: '/', icon: Home, label: t('nav.dashboard') },
@@ -226,56 +230,171 @@ export default function BottomNav() {
     )
   }
 
-  // Bottom nav for mobile
+  // Mobile: 5 primary tabs + "Più" drawer
+  const MOBILE_PRIMARY = [
+    { to: '/', icon: Home, label: t('nav.dashboard') },
+    { to: '/dieta', icon: Utensils, label: t('nav.diet') },
+    { to: '/macro', icon: BookOpen, label: t('nav.diary') },
+    { to: '/chat', icon: MessageCircle, label: t('nav.chat'), badge: unreadChat },
+    { to: '/profilo', icon: User, label: t('nav.profile') },
+  ]
+
+  const MORE_SECTIONS = [
+    {
+      label: 'Nutrizione',
+      items: [
+        { to: '/acqua', icon: Droplets, label: 'Acqua' },
+        { to: '/ricette', icon: ChefHat, label: t('nav.recipes') },
+        { to: '/alimenti', icon: BookOpen, label: 'Alimenti' },
+      ],
+    },
+    {
+      label: 'Salute & Benessere',
+      items: [
+        { to: '/progressi', icon: TrendingUp, label: t('nav.progress') },
+        { to: '/attivita', icon: Activity, label: t('nav.activities') },
+        { to: '/benessere', icon: Heart, label: t('nav.wellness') },
+        { to: '/ciclo', icon: Flower2, label: 'Ciclo' },
+        { to: '/statistiche', icon: BarChart2, label: t('nav.report') },
+      ],
+    },
+    {
+      label: 'Professionale',
+      items: [
+        { to: '/documenti', icon: FileText, label: t('nav.documents'), badge: newDocs },
+        { to: '/dietisti', icon: Users, label: t('nav.dietitians') },
+      ],
+    },
+    {
+      label: 'Altro',
+      items: [
+        { to: '/quiz', icon: Brain, label: 'Quiz' },
+        { to: '/badge', icon: Award, label: 'Badge' },
+        { to: '/pro', icon: Star, label: isPro ? '⭐ Pro' : '🔓 Pro' },
+        ...(PAYMENTS_ACTIVE ? [{ to: '/abbonamento', icon: Star, label: 'Abbonamento' }] : []),
+      ],
+    },
+  ]
+
+  const anyMoreActive = MORE_SECTIONS.flatMap(s => s.items).some(({ to }) =>
+    pathname === to || (to !== '/' && pathname.startsWith(to + '/'))
+  )
+
   return (
-    <nav className="bottom-nav-scroll" style={{
-      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 999,
-      height: 'calc(64px + env(safe-area-inset-bottom))',
-      background: 'rgba(255,255,255,0.97)',
-      backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-      borderTop: '1px solid var(--border-light)',
-      display: 'flex', alignItems: 'stretch',
-      boxShadow: '0 -2px 16px rgba(13,92,58,0.07)',
-      paddingBottom: 'env(safe-area-inset-bottom)',
-      overflowX: 'auto', overflowY: 'hidden',
-      scrollbarWidth: 'none', msOverflowStyle: 'none',
-    }}>
-      {TABS.map(({ to, icon: Icon, label, badge }) => {
-        const active = pathname === to || (to !== '/' && pathname.startsWith(to + '/'))
-        return (
-          <motion.div key={to} whileTap={{ scale: 0.85 }} style={{ flex: '0 0 auto', minWidth: 58, display: 'contents' }}>
-            <Link to={to} style={{
-              flex: '0 0 auto', minWidth: 58,
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              justifyContent: 'center', gap: 3, textDecoration: 'none',
-              color: active ? 'var(--green-main)' : '#94a3b8',
-              WebkitTapHighlightColor: 'transparent',
-              transition: 'color 0.15s',
-              paddingTop: 6,
-            }}>
-              <div style={{
-                width: 38, height: 26,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                borderRadius: 8,
-                background: active ? 'var(--green-pale)' : 'transparent',
-                transition: 'background 0.2s',
-                position: 'relative',
+    <>
+      {/* Bottom nav bar — 5 tabs + Più */}
+      <nav style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 999,
+        height: 'calc(64px + env(safe-area-inset-bottom))',
+        background: 'rgba(255,255,255,0.97)',
+        backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+        borderTop: '1px solid var(--border-light)',
+        display: 'flex', alignItems: 'stretch',
+        boxShadow: '0 -2px 16px rgba(13,92,58,0.07)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+      }}>
+        {MOBILE_PRIMARY.map(({ to, icon: Icon, label, badge }) => {
+          const active = pathname === to || (to !== '/' && pathname.startsWith(to + '/'))
+          return (
+            <motion.div key={to} whileTap={{ scale: 0.85 }} style={{ flex: 1, display: 'contents' }}>
+              <Link to={to} style={{
+                flex: 1,
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                justifyContent: 'center', gap: 3, textDecoration: 'none',
+                color: active ? 'var(--green-main)' : '#94a3b8',
+                WebkitTapHighlightColor: 'transparent',
+                transition: 'color 0.15s',
+                paddingTop: 6,
               }}>
-                <motion.div
-                  animate={active ? { y: [-3, 0] } : { y: 0 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                >
-                  <Icon size={20} strokeWidth={active ? 2.2 : 1.8} />
-                </motion.div>
-                {badge > 0 && <span style={badgeStyle}>{badge}</span>}
-              </div>
-              <span style={{ fontSize: 9.5, fontWeight: active ? 600 : 400, letterSpacing: '0.01em' }}>
-                {label}
-              </span>
-            </Link>
-          </motion.div>
-        )
-      })}
-    </nav>
+                <div style={{ width: 38, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, background: active ? 'var(--green-pale)' : 'transparent', transition: 'background 0.2s', position: 'relative' }}>
+                  <motion.div animate={active ? { y: [-3, 0] } : { y: 0 }} transition={{ type: 'spring', stiffness: 400, damping: 20 }}>
+                    <Icon size={20} strokeWidth={active ? 2.2 : 1.8} />
+                  </motion.div>
+                  {badge > 0 && <span style={badgeStyle}>{badge}</span>}
+                </div>
+                <span style={{ fontSize: 9.5, fontWeight: active ? 600 : 400, letterSpacing: '0.01em' }}>{label}</span>
+              </Link>
+            </motion.div>
+          )
+        })}
+
+        {/* "Più" button */}
+        <motion.button
+          whileTap={{ scale: 0.85 }}
+          onClick={() => setMoreOpen(v => !v)}
+          style={{
+            flex: 1, border: 'none', background: 'transparent', cursor: 'pointer',
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'center', gap: 3, paddingTop: 6,
+            color: (moreOpen || anyMoreActive) ? 'var(--green-main)' : '#94a3b8',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+        >
+          <div style={{ width: 38, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, background: (moreOpen || anyMoreActive) ? 'var(--green-pale)' : 'transparent', transition: 'background 0.2s', position: 'relative' }}>
+            <motion.div animate={{ rotate: moreOpen ? 90 : 0 }} transition={{ duration: 0.2 }}>
+              {moreOpen ? <X size={20} strokeWidth={2.2} /> : <MoreHorizontal size={20} strokeWidth={1.8} />}
+            </motion.div>
+            {(newDocs > 0) && !moreOpen && <span style={badgeStyle}>{newDocs}</span>}
+          </div>
+          <span style={{ fontSize: 9.5, fontWeight: (moreOpen || anyMoreActive) ? 600 : 400, letterSpacing: '0.01em' }}>Altro</span>
+        </motion.button>
+      </nav>
+
+      {/* "Più" bottom sheet */}
+      <AnimatePresence>
+        {moreOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              onClick={() => setMoreOpen(false)}
+              style={{ position: 'fixed', inset: 0, zIndex: 997, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)' }}
+            />
+            <motion.div
+              initial={{ y: '100%', opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: '100%', opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 340, damping: 32 }}
+              style={{
+                position: 'fixed', bottom: 'calc(64px + env(safe-area-inset-bottom))',
+                left: 0, right: 0, zIndex: 998,
+                background: 'var(--surface)',
+                borderRadius: '22px 22px 0 0',
+                boxShadow: '0 -8px 40px rgba(0,0,0,0.18)',
+                maxHeight: '72vh',
+                overflowY: 'auto',
+                padding: '10px 16px 20px',
+              }}
+            >
+              {/* Handle */}
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 16px' }} />
+
+              {MORE_SECTIONS.map((section, si) => (
+                <div key={si} style={{ marginBottom: 20 }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>{section.label}</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                    {section.items.map(({ to, icon: Icon, label, badge }) => {
+                      const active = pathname === to || (to !== '/' && pathname.startsWith(to + '/'))
+                      return (
+                        <Link
+                          key={to} to={to}
+                          style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '10px 4px', borderRadius: 14, background: active ? 'var(--green-pale)' : 'var(--surface-2)', border: `1.5px solid ${active ? 'var(--border)' : 'var(--border-light)'}`, position: 'relative' }}
+                        >
+                          <div style={{ position: 'relative' }}>
+                            <Icon size={20} color={active ? 'var(--green-main)' : 'var(--text-secondary)'} strokeWidth={active ? 2.2 : 1.8} />
+                            {badge > 0 && <span style={{ ...badgeStyle, top: -5, right: -5 }}>{badge}</span>}
+                          </div>
+                          <span style={{ fontSize: 10, fontWeight: active ? 600 : 400, color: active ? 'var(--green-main)' : 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.2 }}>{label}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   )
 }

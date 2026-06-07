@@ -302,8 +302,13 @@ export default function DashboardPage() {
                   <span style={{ position: 'absolute', top: -2, right: -2, width: 18, height: 18, borderRadius: '50%', background: 'white', color: '#dc4a4a', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{unreadChat}</span>
                 </Link>
               )}
-              <Link to="/profilo" style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(255,255,255,.18)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', color: 'white', fontWeight: 700, fontSize: 16, border: '1.5px solid rgba(255,255,255,.25)' }}>
+                <Link to="/profilo" style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(255,255,255,.18)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', color: 'white', fontWeight: 700, fontSize: 16, border: '1.5px solid rgba(255,255,255,.25)', position: 'relative' }}>
                 {firstName[0]?.toUpperCase()}
+                {isPro && (
+                  <span style={{ position: 'absolute', bottom: -4, right: -4, width: 18, height: 18, borderRadius: '50%', background: 'linear-gradient(135deg, #FCD34D, #F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, border: '2px solid rgba(255,255,255,0.3)' }}>
+                    <Crown size={9} color="#7c2d12" />
+                  </span>
+                )}
               </Link>
             </div>
           </div>
@@ -376,15 +381,15 @@ export default function DashboardPage() {
           className="card" style={{ padding: '14px 16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 10, background: dark ? '#2f7de826' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: dark ? '#2f7de826' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Droplets size={16} color="#2f7de8" />
               </div>
-              <div>
-                <p style={{ fontSize: 14, fontWeight: 600 }}>Idratazione</p>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{waterLog} ml / {waterTarget} ml</p>
+              <div style={{ textAlign: 'center', flex: 1 }}>
+                <p style={{ fontSize: 14, fontWeight: 600, textAlign: 'center' }}>Idratazione</p>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>{waterLog} ml / {waterTarget} ml</p>
               </div>
             </div>
-            <Link to="/acqua" style={{ fontSize: 13, color: 'var(--green-main)', fontWeight: 600, textDecoration: 'none' }}>+ Aggiungi</Link>
+            <Link to="/acqua" style={{ fontSize: 13, color: 'var(--green-main)', fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>+ Aggiungi</Link>
           </div>
           <div style={{ height: 8, background: 'var(--border-light)', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${waterPct}%`, background: 'linear-gradient(90deg, #60a5fa, #2f7de8)', borderRadius: 4, transition: 'width 1.2s ease' }} />
@@ -415,21 +420,21 @@ export default function DashboardPage() {
 
         {/* Weight + diet summary */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <motion.div className="card" style={{ padding: '14px' }} initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: dark ? '#7c3aed26' : '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-              <Scale size={16} color="#7c3aed" />
+          <motion.div className="card" style={{ padding: '14px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }} initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}>
+            <div style={{ width: 36, height: 36, borderRadius: 12, background: dark ? '#7c3aed26' : '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+              <Scale size={18} color="#7c3aed" />
             </div>
-            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Peso attuale</p>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Peso attuale</p>
             <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{weight ? `${weight} kg` : '–'}</p>
-            {profile?.target_weight && <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Obiettivo: {profile.target_weight} kg</p>}
+            {profile?.target_weight && <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Obiettivo: {profile.target_weight} kg</p>}
           </motion.div>
-          <motion.div className="card" style={{ padding: '14px' }} initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.07, duration: 0.38, ease: [0.16, 1, 0.3, 1] }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-              <Leaf size={16} color="var(--green-main)" />
+          <motion.div className="card" style={{ padding: '14px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }} initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.07, duration: 0.38, ease: [0.16, 1, 0.3, 1] }}>
+            <div style={{ width: 36, height: 36, borderRadius: 12, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+              <Leaf size={18} color="var(--green-main)" />
             </div>
-            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Piano attivo</p>
-            <p style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.3 }}>{diet?.name || 'Nessun piano'}</p>
-            {diet && <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{diet.kcal_target} kcal</p>}
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Piano attivo</p>
+            <p style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.3 }}>{diet?.name || 'Nessun piano'}</p>
+            {diet && <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{diet.kcal_target} kcal</p>}
           </motion.div>
         </div>
 
@@ -475,59 +480,47 @@ export default function DashboardPage() {
         {diet && (
           <motion.div initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}>
           <Link to="/dieta" style={{ textDecoration: 'none' }}>
-            <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg, var(--green-pale), #c8f5e2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '16px', gap: 8 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg, var(--green-pale), #c8f5e2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Utensils size={20} color="var(--green-main)" strokeWidth={1.8} />
               </div>
-              <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Piano personalizzato</p>
-                <p style={{ fontSize: 15, fontWeight: 600 }}>{diet.name || 'Vedi la tua dieta'}</p>
-                {diet.notes && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '90%' }}>{diet.notes}</p>}
-              </div>
-              <ChevronRight size={16} color="var(--text-muted)" />
+              <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Piano personalizzato</p>
+              <p style={{ fontSize: 15, fontWeight: 600 }}>{diet.name || 'Vedi la tua dieta'}</p>
+              {diet.notes && <p style={{ fontSize: 12, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '90%' }}>{diet.notes}</p>}
+              <span style={{ fontSize: 12, color: 'var(--green-main)', fontWeight: 600, marginTop: 2 }}>Vedi dieta →</span>
             </div>
           </Link>
           </motion.div>
         )}
-        {/* ── Pro promo card ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          whileHover={{ y: -3, scale: 1.01 }}
-          whileTap={{ scale: 0.98 }}
-        >
-        <Link to="/pro" style={{ textDecoration: 'none' }}>
-          <div style={{
-            background: isPro
-              ? 'linear-gradient(135deg, #064E3B, #0F766E)'
-              : 'linear-gradient(135deg, #1E1B4B, #4338CA)',
-            borderRadius: 18, padding: '16px 18px',
-            display: 'flex', alignItems: 'center', gap: 14, position: 'relative', overflow: 'hidden',
-          }}>
-            {/* Decorative circle */}
-            <div style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
+        {/* ── Pro promo card — solo se non Pro ── */}
+        {!isPro && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            whileHover={{ y: -3, scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+          >
+          <Link to="/pro" style={{ textDecoration: 'none' }}>
             <div style={{
-              width: 44, height: 44, borderRadius: 13, flexShrink: 0,
-              background: isPro ? 'rgba(251,191,36,0.25)' : 'rgba(255,255,255,0.15)',
-              border: `1.5px solid ${isPro ? 'rgba(251,191,36,0.5)' : 'rgba(255,255,255,0.25)'}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'linear-gradient(135deg, #1E1B4B, #4338CA)',
+              borderRadius: 18, padding: '16px 18px',
+              display: 'flex', alignItems: 'center', gap: 14, position: 'relative', overflow: 'hidden',
             }}>
-              {isPro ? <Crown size={22} color="#FCD34D" /> : <Star size={22} color="white" />}
+              <div style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
+              <div style={{ width: 44, height: 44, borderRadius: 13, flexShrink: 0, background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Star size={22} color="white" />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ color: 'white', fontWeight: 800, fontSize: 15, margin: '0 0 2px' }}>Scopri NutriPlan Pro</p>
+                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, margin: 0 }}>8 funzioni esclusive · 7 giorni gratis →</p>
+              </div>
+              <ChevronRight size={18} color="rgba(255,255,255,0.6)" style={{ flexShrink: 0 }} />
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ color: 'white', fontWeight: 800, fontSize: 15, margin: '0 0 2px' }}>
-                {isPro ? '⭐ Piano Pro attivo' : 'Scopri NutriPlan Pro'}
-              </p>
-              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, margin: 0 }}>
-                {isPro ? 'Tutte le funzioni avanzate sbloccate' : '8 funzioni esclusive · 7 giorni gratis →'}
-              </p>
-            </div>
-            <ChevronRight size={18} color="rgba(255,255,255,0.6)" style={{ flexShrink: 0 }} />
-          </div>
-        </Link>
-        </motion.div>
+          </Link>
+          </motion.div>
+        )}
 
         {/* ── Quiz del giorno ── */}
         <motion.div initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}>
