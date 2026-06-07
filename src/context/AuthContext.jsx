@@ -3,33 +3,54 @@ import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext({})
 
-// ─── Profile sessionStorage cache (10-min TTL) ─────────────────────────────
-const PROFILE_CACHE_KEY = 'nutriplan_profile_v1'
-const PROFILE_CACHE_TTL = 10 * 60 * 1000
+// ─── Profile localStorage cache (30-min TTL) ───────────────────────────────
+// localStorage persists across PWA restarts → instant render on re-open
+const PROFILE_CACHE_KEY = 'nutriplan_profile_v2'
+const PROFILE_CACHE_TTL = 30 * 60 * 1000
 
 function readProfileCache(userId) {
   try {
-    const raw = sessionStorage.getItem(PROFILE_CACHE_KEY)
+    const raw = localStorage.getItem(PROFILE_CACHE_KEY)
     if (!raw) return null
     const { data, ts, uid } = JSON.parse(raw)
     if (uid !== userId) return null
-    if (Date.now() - ts > PROFILE_CACHE_TTL) { sessionStorage.removeItem(PROFILE_CACHE_KEY); return null }
+    if (Date.now() - ts > PROFILE_CACHE_TTL) { localStorage.removeItem(PROFILE_CACHE_KEY); return null }
     return data
   } catch { return null }
 }
 
 function writeProfileCache(userId, data) {
-  try { sessionStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({ data, ts: Date.now(), uid: userId })) } catch {}
+  try { localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({ data, ts: Date.now(), uid: userId })) } catch {}
 }
 
 function clearProfileCache() {
-  try { sessionStorage.removeItem(PROFILE_CACHE_KEY) } catch {}
+  try { localStorage.removeItem(PROFILE_CACHE_KEY) } catch {}
+}
+
+// ─── Fast session peek: reads Supabase's own localStorage key synchronously ──
+// Avoids showing LoadingScreen when the user was already logged in
+function peekSession() {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+        const val = JSON.parse(localStorage.getItem(key) || 'null')
+        const exp = val?.expires_at
+        if (exp && exp * 1000 > Date.now() + 30_000) return val?.user ?? null
+      }
+    }
+  } catch { /* ignore */ }
+  return null
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [profile, setProfile] = useState(null)
-  const [loading, setLoading] = useState(true)
+  // Optimistic init: if Supabase token in localStorage and profile cached → show app immediately
+  const _peek = peekSession()
+  const _cachedProfile = _peek ? readProfileCache(_peek.id) : null
+
+  const [user, setUser] = useState(_peek)
+  const [profile, setProfile] = useState(_cachedProfile)
+  const [loading, setLoading] = useState(!_cachedProfile)  // false if cache hit → instant render
 
   const fetchProfile = useCallback(async (userId) => {
     // ① Serve from cache immediately — zero wait
@@ -43,7 +64,7 @@ export function AuthProvider({ children }) {
       })
       return
     }
-    // ② No cache — fetch and then render
+    // ② No cache — fetch then render
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -59,20 +80,22 @@ export function AuthProvider({ children }) {
   }, [])
 
   useEffect(() => {
-    // Safety net: release loading after 6s (down from 8s) if Supabase stalls
-    const safetyTimer = setTimeout(() => setLoading(false), 3000)
+    // Safety net: never show LoadingScreen for more than 4s
+    const safetyTimer = setTimeout(() => setLoading(false), 4000)
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       clearTimeout(safetyTimer)
-      setUser(session?.user ?? null)
-      if (session?.user) fetchProfile(session.user.id)
-      else setLoading(false)
+      const u = session?.user ?? null
+      setUser(u)
+      if (u) fetchProfile(u.id)
+      else { setProfile(null); setLoading(false) }
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      if (session?.user) fetchProfile(session.user.id)
-      else { setProfile(null); setLoading(false) }
+      const u = session?.user ?? null
+      setUser(u)
+      if (u) fetchProfile(u.id)
+      else { clearProfileCache(); setProfile(null); setLoading(false) }
     })
 
     return () => { clearTimeout(safetyTimer); subscription.unsubscribe() }

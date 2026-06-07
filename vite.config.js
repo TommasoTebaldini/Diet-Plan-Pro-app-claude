@@ -43,6 +43,7 @@ export default defineConfig({
     allowedHosts: true
   },
   build: {
+    target: 'esnext',
     rollupOptions: {
       output: {
         manualChunks: {
@@ -119,6 +120,8 @@ export default defineConfig({
       },
       injectManifest: {
         globPatterns: ['**/*.{html,css,js,ico,png,svg,woff2,woff}'],
+        // all-foods.js è 628KB e non serve offline sul primo load — si carica on-demand
+        globIgnores: ['**/all-foods*.js'],
       }
     })
   ]

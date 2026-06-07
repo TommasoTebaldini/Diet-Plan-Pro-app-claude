@@ -378,21 +378,19 @@ export default function DashboardPage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-          className="card" style={{ padding: '14px 16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 10, background: dark ? '#2f7de826' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Droplets size={16} color="#2f7de8" />
-              </div>
-              <div style={{ textAlign: 'center', flex: 1 }}>
-                <p style={{ fontSize: 14, fontWeight: 600, textAlign: 'center' }}>Idratazione</p>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>{waterLog} ml / {waterTarget} ml</p>
-              </div>
+          className="card" style={{ padding: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 12, background: dark ? '#2f7de826' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Droplets size={18} color="#2f7de8" />
             </div>
-            <Link to="/acqua" style={{ fontSize: 13, color: 'var(--green-main)', fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>+ Aggiungi</Link>
+            <p style={{ fontSize: 14, fontWeight: 600, textAlign: 'center' }}>Idratazione</p>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>{waterLog} ml / {waterTarget} ml</p>
           </div>
           <div style={{ height: 8, background: 'var(--border-light)', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${waterPct}%`, background: 'linear-gradient(90deg, #60a5fa, #2f7de8)', borderRadius: 4, transition: 'width 1.2s ease' }} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 10 }}>
+            <Link to="/acqua" style={{ fontSize: 13, color: 'var(--green-main)', fontWeight: 600, textDecoration: 'none' }}>+ Aggiungi</Link>
           </div>
         </motion.div>
 
