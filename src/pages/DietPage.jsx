@@ -5,6 +5,9 @@ import { useAuth } from '../context/AuthContext'
 import { Clock, ChevronDown, ChevronUp, Flame, Leaf, FileText, CheckCircle2, Circle, History, RefreshCw, TrendingUp, Calendar, Download, ClipboardList, ImageOff, ClipboardCopy, Check } from 'lucide-react'
 import { useT } from '../i18n'
 
+const r1 = v => Math.round((+v || 0) * 10) / 10
+const r0 = v => Math.round(+v || 0)
+
 const DAYS = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
 
 const MEAL_META_STATIC = {
@@ -55,10 +58,10 @@ function DailyNutritionSummary({ meals, diet }) {
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         {[
-          { label: 'Kcal', val: total.kcal, color: '#f0922b' },
-          { label: t('diet.proteins'), val: Math.round(total.proteins) + 'g', color: '#3b82f6' },
-          { label: t('diet.carbs'), val: Math.round(total.carbs) + 'g', color: '#f0922b' },
-          { label: t('diet.fats'), val: Math.round(total.fats) + 'g', color: '#e05a5a' },
+          { label: 'Kcal', val: r0(total.kcal), color: '#f0922b' },
+          { label: t('diet.proteins'), val: r1(total.proteins) + 'g', color: '#3b82f6' },
+          { label: t('diet.carbs'), val: r1(total.carbs) + 'g', color: '#f0922b' },
+          { label: t('diet.fats'), val: r1(total.fats) + 'g', color: '#e05a5a' },
         ].map(m => (
           <div key={m.label} style={{ flex: 1, textAlign: 'center', padding: '10px 4px', background: 'var(--surface-2)', borderRadius: 10 }}>
             <p style={{ fontSize: 15, fontWeight: 700, color: m.color }}>{m.val}</p>
@@ -153,7 +156,7 @@ function MealCard({ meal, completed, onToggleComplete }) {
               )}
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 3, flexWrap: 'wrap' }}>
-              {meal.kcal && <span style={{ fontSize: 12, color: meta.accent, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}><Flame size={10} color={meta.accent} />{meal.kcal} kcal</span>}
+              {meal.kcal && <span style={{ fontSize: 12, color: meta.accent, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}><Flame size={10} color={meta.accent} />{r0(meal.kcal)} kcal</span>}
             </div>
           </div>
           {open ? <ChevronUp size={16} color="var(--text-muted)" /> : <ChevronDown size={16} color="var(--text-muted)" />}
@@ -186,9 +189,9 @@ function MealCard({ meal, completed, onToggleComplete }) {
           {meal.kcal && (
             <div style={{ display: 'flex', gap: 8, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-light)' }}>
               {[
-                { label: 'Proteine', val: meal.proteins, color: '#3b82f6' },
-                { label: 'Carboidrati', val: meal.carbs, color: '#f0922b' },
-                { label: 'Grassi', val: meal.fats, color: '#e05a5a' },
+                { label: 'Proteine', val: r1(meal.proteins), color: '#3b82f6' },
+                { label: 'Carboidrati', val: r1(meal.carbs), color: '#f0922b' },
+                { label: 'Grassi', val: r1(meal.fats), color: '#e05a5a' },
               ].filter(m => m.val).map(m => (
                 <div key={m.label} style={{ flex: 1, textAlign: 'center', padding: '8px 4px', background: 'var(--surface-2)', borderRadius: 10, border: '1px solid var(--border-light)' }}>
                   <p style={{ fontSize: 14, fontWeight: 700, color: m.color, fontFamily: 'var(--font-b)' }}>{m.val}g</p>

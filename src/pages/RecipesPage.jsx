@@ -20,6 +20,9 @@ function safeArray(v) {
   return []
 }
 
+const r1 = v => Math.round((+v || 0) * 10) / 10
+const r0 = v => Math.round(+v || 0)
+
 function calcMacros(food, grams) {
   const f = (parseFloat(grams) || 100) / 100
   return {
@@ -174,7 +177,7 @@ function IngredientSearch({ onAdd }) {
           {res.slice(0, 8).map((f, i) => (
             <button key={`${f.id}_${i}`} onClick={() => select(f)} style={{ width: '100%', background: 'none', border: 'none', borderBottom: i < Math.min(res.length, 8) - 1 ? '1px solid var(--border-light)' : 'none', padding: '9px 12px', textAlign: 'left', cursor: 'pointer', font: 'inherit' }}>
               <p style={{ fontSize: 13, fontWeight: 500 }}>{f.name}</p>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{f.kcal_100g} kcal · P:{f.proteins_100g} C:{f.carbs_100g} G:{f.fats_100g}</p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{r0(f.kcal_100g)} kcal · P:{r1(f.proteins_100g)} C:{r1(f.carbs_100g)} G:{r1(f.fats_100g)}</p>
             </button>
           ))}
         </div>

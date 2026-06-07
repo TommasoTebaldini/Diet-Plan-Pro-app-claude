@@ -6,6 +6,9 @@ import { searchFoodsLocal, searchFoods } from '../lib/foodSearch'
 import { Search, Plus, X, BookOpen, Star, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import { useT } from '../i18n'
 
+const r1 = v => Math.round((+v || 0) * 10) / 10
+const r0 = v => Math.round(+v || 0)
+
 function calcMacros(food, grams) {
   const f = (parseFloat(grams) || 100) / 100
   return {
@@ -87,7 +90,7 @@ function IngredientSearch({ onAdd }) {
           {res.slice(0, 8).map((f, i) => (
             <button key={`${f.id}_${i}`} onClick={() => select(f)} style={{ width: '100%', background: 'none', border: 'none', borderBottom: i < Math.min(res.length, 8) - 1 ? '1px solid var(--border-light)' : 'none', padding: '9px 12px', textAlign: 'left', cursor: 'pointer', font: 'inherit' }}>
               <p style={{ fontSize: 13, fontWeight: 500 }}>{f.name}</p>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{f.kcal_100g} kcal · P:{f.proteins_100g} C:{f.carbs_100g} G:{f.fats_100g}</p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{r0(f.kcal_100g)} kcal · P:{r1(f.proteins_100g)} C:{r1(f.carbs_100g)} G:{r1(f.fats_100g)}</p>
             </button>
           ))}
         </div>
@@ -325,7 +328,7 @@ export default function FoodDatabasePage() {
                     </div>
                     {f.brand && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>{f.brand}</p>}
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {[`🔥 ${f.kcal_100g}kcal`, `P:${f.proteins_100g}g`, `C:${f.carbs_100g}g`, `G:${f.fats_100g}g`].map(v => (
+                      {[`🔥 ${r0(f.kcal_100g)}kcal`, `P:${r1(f.proteins_100g)}g`, `C:${r1(f.carbs_100g)}g`, `G:${r1(f.fats_100g)}g`].map(v => (
                         <span key={v} style={{ fontSize: 11, background: 'var(--surface-2)', padding: '2px 7px', borderRadius: 100, color: 'var(--text-secondary)' }}>{v}</span>
                       ))}
                     </div>
@@ -394,7 +397,7 @@ export default function FoodDatabasePage() {
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: 13, fontWeight: 500 }}>{f.name}</p>
-                        <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{f.kcal_100g} kcal · P:{f.proteins_100g}g · C:{f.carbs_100g}g · G:{f.fats_100g}g</p>
+                        <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r0(f.kcal_100g)} kcal · P:{r1(f.proteins_100g)}g · C:{r1(f.carbs_100g)}g · G:{r1(f.fats_100g)}g</p>
                       </div>
                       <span style={{ fontSize: 10, color: 'var(--text-muted)', background: 'var(--surface-2)', padding: '2px 7px', borderRadius: 100 }}>×{f.count}</span>
                       <button onClick={() => saveToFavorites(f)} style={{ background: 'none', border: 'none', cursor: saved.some(s => s.name === f.name) ? 'default' : 'pointer', padding: 4, color: saved.some(s => s.name === f.name) ? '#f59e0b' : 'var(--border)' }}>
@@ -426,7 +429,7 @@ export default function FoodDatabasePage() {
                   </div>
                   {f.brand && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 5 }}>{f.brand}</p>}
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {[`🔥 ${f.kcal_100g}kcal`, `P:${f.proteins_100g}g`, `C:${f.carbs_100g}g`, `G:${f.fats_100g}g`].map(v => (
+                    {[`🔥 ${r0(f.kcal_100g)}kcal`, `P:${r1(f.proteins_100g)}g`, `C:${r1(f.carbs_100g)}g`, `G:${r1(f.fats_100g)}g`].map(v => (
                       <span key={v} style={{ fontSize: 11, background: 'var(--surface-2)', padding: '2px 7px', borderRadius: 100, color: 'var(--text-secondary)' }}>{v}</span>
                     ))}
                   </div>
@@ -469,7 +472,7 @@ export default function FoodDatabasePage() {
                       </div>
                     ))}
                     <div style={{ marginTop: 10, background: 'var(--green-pale)', borderRadius: 10, padding: '8px 12px' }}>
-                      {(() => { const mt = mealTotals(mealForm.ingredients); const g = mealForm.ingredients.reduce((s, i) => s + (parseFloat(i.grams) || 0), 0); return <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--green-dark)' }}>{t('food.total_label')} ({Math.round(g)}g): {mt.kcal} kcal · P:{mt.proteins}g · C:{mt.carbs}g · G:{mt.fats}g</p> })()}
+                      {(() => { const mt = mealTotals(mealForm.ingredients); const g = mealForm.ingredients.reduce((s, i) => s + (parseFloat(i.grams) || 0), 0); return <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--green-dark)' }}>{t('food.total_label')} ({Math.round(g)}g): {r0(mt.kcal)} kcal · P:{r1(mt.proteins)}g · C:{r1(mt.carbs)}g · G:{r1(mt.fats)}g</p> })()}
                     </div>
                   </div>
                 )}

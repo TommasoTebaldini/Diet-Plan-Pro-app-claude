@@ -102,7 +102,8 @@ function MealPieChart({ log, meals }) {
 
 const FREE_HISTORY_DAYS = 7
 
-function r1(v) { return Math.round(v * 10) / 10 }
+function r1(v) { return Math.round((+v || 0) * 10) / 10 }
+function r0(v) { return Math.round(+v || 0) }
 
 // Campi che vanno nella tabella food_logs
 function calcMacros(food, grams) {
@@ -1126,10 +1127,10 @@ export default function MacroTrackerPage() {
                           <p style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.food_name}</p>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 6px', marginTop: 4 }}>
                             <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7280' }}>📦 {f.grams}g</span>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: '#ea580c' }}>🔥 {f.kcal}</span>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8' }}>💪 {f.proteins}g</span>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: '#d97706' }}>🍞 {f.carbs}g</span>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626' }}>🧈 {f.fats}g</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#ea580c' }}>🔥 {r0(f.kcal)}</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8' }}>💪 {r1(f.proteins)}g</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#d97706' }}>🍞 {r1(f.carbs)}g</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626' }}>🧈 {r1(f.fats)}g</span>
                             {f.food_data?.fatSat_100g > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#b91c1c' }}>⚠️ {r1(f.food_data.fatSat_100g * (f.grams || 0) / 100)}g sat</span>}
                             {f.food_data?.sugar_100g > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed' }}>🍬 {r1(f.food_data.sugar_100g * (f.grams || 0) / 100)}g zucc</span>}
                             {f.food_data?.salt_100g > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#0369a1' }}>🧂 {Math.round(f.food_data.salt_100g * (f.grams || 0) / 100 * 100) / 100}g sale</span>}
@@ -1322,7 +1323,7 @@ export default function MacroTrackerPage() {
                                   })()}
                                 </div>
                                 <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                                  {f.brand ? `${f.brand} · ` : ''}{f.kcal_100g} kcal · P:{f.proteins_100g} C:{f.carbs_100g} G:{f.fats_100g}
+                                  {f.brand ? `${f.brand} · ` : ''}{r0(f.kcal_100g)} kcal · P:{r1(f.proteins_100g)} C:{r1(f.carbs_100g)} G:{r1(f.fats_100g)}
                                 </p>
                               </button>
                             ))}
@@ -1749,10 +1750,10 @@ export default function MacroTrackerPage() {
                 {food.brand && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>{food.brand}</p>}
                 <div style={{ display: 'flex', gap: 14 }}>
                   {[
-                    { label: 'Kcal', val: food.kcal_100g },
-                    { label: 'Prot.', val: `${food.proteins_100g}g` },
-                    { label: 'Carbo', val: `${food.carbs_100g}g` },
-                    { label: 'Grassi', val: `${food.fats_100g}g` },
+                    { label: 'Kcal', val: r0(food.kcal_100g) },
+                    { label: 'Prot.', val: `${r1(food.proteins_100g)}g` },
+                    { label: 'Carbo', val: `${r1(food.carbs_100g)}g` },
+                    { label: 'Grassi', val: `${r1(food.fats_100g)}g` },
                   ].map(s => (
                     <div key={s.label} style={{ textAlign: 'center' }}>
                       <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--green-dark)' }}>{s.val}</p>

@@ -17,6 +17,9 @@ import OnboardingFlow from '../components/OnboardingFlow'
 import TutorialTooltip from '../components/TutorialTooltip'
 import { useFirstVisit } from '../hooks/useFirstVisit'
 
+const r1 = v => Math.round((+v || 0) * 10) / 10
+const r0 = v => Math.round(+v || 0)
+
 // Animated progress ring: starts at 0, transitions to target pct on mount
 function Ring({ pct, color, size = 60, strokeWidth = 7 }) {
   const [display, setDisplay] = useState(0)
@@ -324,7 +327,7 @@ export default function DashboardPage() {
             </div>
             <div style={{ flex: 1 }}>
               <p style={{ color: 'rgba(255,255,255,.7)', fontSize: 11, marginBottom: 2 }}>Calorie oggi</p>
-              <p style={{ color: 'white', fontSize: 22, fontWeight: 700, lineHeight: 1 }}>{kcal} <span style={{ fontSize: 13, opacity: .7, fontWeight: 400 }}>/ {kcalTarget} kcal</span></p>
+              <p style={{ color: 'white', fontSize: 22, fontWeight: 700, lineHeight: 1 }}>{r0(kcal)} <span style={{ fontSize: 13, opacity: .7, fontWeight: 400 }}>/ {kcalTarget} kcal</span></p>
               <div style={{ marginTop: 8, height: 5, background: 'rgba(255,255,255,.2)', borderRadius: 3, overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: `${kcalPct}%`, background: 'white', borderRadius: 3, transition: 'width 1.2s ease' }} />
               </div>
@@ -333,10 +336,10 @@ export default function DashboardPage() {
 
           {/* Macro pills */}
           <div style={{ display: 'flex', gap: 6 }}>
-            <StatPill label="Prot." val={`${todayLog?.proteins || 0}g`} target={diet?.protein_target ? `${diet.protein_target}g` : null} color="#93c5fd" />
-            <StatPill label="Carbo" val={`${todayLog?.carbs || 0}g`} target={diet?.carbs_target ? `${diet.carbs_target}g` : null} color="#fcd34d" />
-            <StatPill label="Grassi" val={`${todayLog?.fats || 0}g`} target={diet?.fats_target ? `${diet.fats_target}g` : null} color="#fca5a5" />
-            <StatPill label="Acqua" val={`${Math.round(waterLog/100)/10}L`} target="2.5L" color="#7dd3fc" />
+            <StatPill label="Prot." val={`${r1(todayLog?.proteins)}g`} target={diet?.protein_target ? `${diet.protein_target}g` : null} color="#93c5fd" />
+            <StatPill label="Carbo" val={`${r1(todayLog?.carbs)}g`} target={diet?.carbs_target ? `${diet.carbs_target}g` : null} color="#fcd34d" />
+            <StatPill label="Grassi" val={`${r1(todayLog?.fats)}g`} target={diet?.fats_target ? `${diet.fats_target}g` : null} color="#fca5a5" />
+            <StatPill label="Acqua" val={`${r1(waterLog / 1000)}L`} target="2.5L" color="#7dd3fc" />
           </div>
 
           {/* Motivational message */}
@@ -407,7 +410,7 @@ export default function DashboardPage() {
                 <p style={{ fontSize: 15, fontWeight: 600 }}>{t(`meal.${nextMealInfo.type}`)}</p>
                 <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>
                   🕐 {MEAL_STATIC[nextMealInfo.type]?.time}
-                  {nextMealInfo.meal.kcal ? ` · ${nextMealInfo.meal.kcal} kcal` : ''}
+                  {nextMealInfo.meal.kcal ? ` · ${r0(nextMealInfo.meal.kcal)} kcal` : ''}
                 </p>
               </div>
               <ChevronRight size={16} color="var(--text-muted)" />
