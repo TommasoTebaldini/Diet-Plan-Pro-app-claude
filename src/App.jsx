@@ -1,6 +1,5 @@
 import { lazy, Suspense, Component, useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { AnimatePresence } from 'framer-motion'
 import { useAuth } from './context/AuthContext'
 import { AppSettingsProvider } from './context/AppSettingsContext'
 import LoadingScreen from './components/LoadingScreen'
@@ -102,10 +101,8 @@ function ScrollToTop() {
 }
 
 function AnimatedRoutes() {
-  const location = useLocation()
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <Routes location={location} key={location.pathname}>
+    <Routes>
         <Route path="/login" element={<PublicRoute><PageTransition><LoginPage /></PageTransition></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><PageTransition><RegisterPage /></PageTransition></PublicRoute>} />
         <Route path="/dietitian/chat" element={<PrivateRoute><PageTransition><DietitianChatPage /></PageTransition></PrivateRoute>} />
@@ -136,7 +133,6 @@ function AnimatedRoutes() {
         <Route path="/quiz" element={<PatientRoute><PageTransition><QuizPage /></PageTransition></PatientRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </AnimatePresence>
   )
 }
 
