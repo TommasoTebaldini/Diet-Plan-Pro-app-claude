@@ -122,6 +122,8 @@ const converted = ALL_RAW.map((f, i) => {
     fiber_100g:    f.fi || 0,
     sugar_100g:    f.z  || 0,
     fatSat_100g:   f.gs || 0,
+    calcium_100g:  f.ca || 0,
+    iron_100g:     f.fe || 0,
     serving_size_g: SERVING_BY_CAT[cat] || 100,
   };
 });

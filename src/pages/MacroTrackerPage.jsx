@@ -491,6 +491,7 @@ export default function MacroTrackerPage() {
         fiber_100g: food.fiber_100g || 0, source: food.source || '',
         sugar_100g: food.sugar_100g || 0, fatSat_100g: food.fatSat_100g || 0,
         salt_100g: food.salt_100g || 0,
+        calcium_100g: food.calcium_100g || 0, iron_100g: food.iron_100g || 0,
       }
       const payload = {
         user_id: user.id,
@@ -537,6 +538,7 @@ export default function MacroTrackerPage() {
         fiber_100g: selected.fiber_100g || 0, source: selected.source || '',
         sugar_100g: selected.sugar_100g || 0, fatSat_100g: selected.fatSat_100g || 0,
         salt_100g: selected.salt_100g || 0,
+        calcium_100g: selected.calcium_100g || 0, iron_100g: selected.iron_100g || 0,
         meal_time: mealTime || null,
       }
       const basePayload = {
@@ -874,11 +876,13 @@ export default function MacroTrackerPage() {
       const fd = f.food_data || {}
       const g = f.grams || 100
       return {
-        fiber: a.fiber + (fd.fiber_100g || 0) * g / 100,
-        sugar: a.sugar + (fd.sugar_100g || 0) * g / 100,
-        fatSat: a.fatSat + (fd.fatSat_100g || 0) * g / 100,
+        fiber:   a.fiber   + (fd.fiber_100g    || 0) * g / 100,
+        sugar:   a.sugar   + (fd.sugar_100g    || 0) * g / 100,
+        fatSat:  a.fatSat  + (fd.fatSat_100g   || 0) * g / 100,
+        calcium: a.calcium + (fd.calcium_100g  || 0) * g / 100,
+        iron:    a.iron    + (fd.iron_100g     || 0) * g / 100,
       }
-    }, { fiber: 0, sugar: 0, fatSat: 0 })
+    }, { fiber: 0, sugar: 0, fatSat: 0, calcium: 0, iron: 0 })
 
   const effectivePreviewGrams = selected && selectedUnit !== 'g' ? gramsFromUnit(unitQty, selectedUnit) : parseFloat(grams) || 100
   const preview = selected ? { ...calcMacros(selected, String(effectivePreviewGrams)), ...calcDisplay(selected, String(effectivePreviewGrams)) } : null
@@ -958,6 +962,35 @@ export default function MacroTrackerPage() {
             )
           })}
         </div>
+
+        {/* Micro row — Fibra, Calcio, Ferro */}
+        {(microTotals.fiber > 0 || microTotals.calcium > 0 || microTotals.iron > 0) && (
+          <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+            {microTotals.fiber > 0 && (
+              <div style={{ background: 'rgba(255,255,255,.1)', borderRadius: 8, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ fontSize: 13 }}>🌾</span>
+                <span style={{ color: 'white', fontSize: 11, fontWeight: 700 }}>{r1(microTotals.fiber)}g</span>
+                <span style={{ color: 'rgba(255,255,255,.55)', fontSize: 10 }}>fibra</span>
+              </div>
+            )}
+            {microTotals.calcium > 0 && (
+              <div style={{ background: 'rgba(255,255,255,.1)', borderRadius: 8, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ fontSize: 13 }}>🦴</span>
+                <span style={{ color: 'white', fontSize: 11, fontWeight: 700 }}>{r0(microTotals.calcium)}mg</span>
+                <span style={{ color: 'rgba(255,255,255,.55)', fontSize: 10 }}>Ca</span>
+                {microTotals.calcium >= 800 && <span style={{ color: '#86efac', fontSize: 10 }}>✓</span>}
+              </div>
+            )}
+            {microTotals.iron > 0 && (
+              <div style={{ background: 'rgba(255,255,255,.1)', borderRadius: 8, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ fontSize: 13 }}>🩸</span>
+                <span style={{ color: 'white', fontSize: 11, fontWeight: 700 }}>{r1(microTotals.iron)}mg</span>
+                <span style={{ color: 'rgba(255,255,255,.55)', fontSize: 10 }}>Fe</span>
+                {microTotals.iron >= 10 && <span style={{ color: '#86efac', fontSize: 10 }}>✓</span>}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Mood row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

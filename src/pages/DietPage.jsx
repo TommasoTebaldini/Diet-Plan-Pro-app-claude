@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { Clock, ChevronDown, ChevronUp, Flame, Leaf, FileText, CheckCircle2, Circle, History, RefreshCw, TrendingUp, Calendar, Download, ClipboardList, ImageOff, ClipboardCopy, Check } from 'lucide-react'
+import { Clock, ChevronDown, ChevronUp, Flame, Leaf, FileText, CheckCircle2, Circle, History, RefreshCw, TrendingUp, Calendar, Download, ClipboardList, ImageOff, ClipboardCopy, Check, MessageSquare, X, Send } from 'lucide-react'
 import { useT } from '../i18n'
 
 const r1 = v => Math.round((+v || 0) * 10) / 10
@@ -119,8 +119,73 @@ function FoodItem({ food }) {
   )
 }
 
-function MealCard({ meal, completed, onToggleComplete }) {
+function MealFeedbackModal({ meal, user, onClose }) {
+  const [text, setText] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+
+  async function send() {
+    if (!text.trim()) return
+    setSending(true)
+    try {
+      // Fetch active diet to get dietitian link
+      const { data: diet } = await supabase
+        .from('patient_diets').select('dietitian_id').eq('user_id', user.id).eq('is_active', true).maybeSingle()
+      const dietitianId = diet?.dietitian_id
+      await supabase.from('chat_messages').insert({
+        patient_id: user.id,
+        sender_id: user.id,
+        sender_role: 'patient',
+        content: `💬 Feedback sul pasto "${meal.nome || meal.meal_type}": ${text.trim()}`,
+        ...(dietitianId ? {} : {}),
+      })
+      setSent(true)
+      setTimeout(onClose, 1800)
+    } catch { /* ignore */ }
+    setSending(false)
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', padding: '0 0 calc(64px + env(safe-area-inset-bottom))' }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', padding: '20px 20px 24px', width: '100%', boxShadow: '0 -8px 32px rgba(0,0,0,0.2)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div>
+            <p style={{ fontSize: 15, fontWeight: 700 }}>💬 Feedback al dietista</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Pasto: {meal.nome || meal.meal_type}</p>
+          </div>
+          <button onClick={onClose} style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <X size={16} color="var(--text-muted)" />
+          </button>
+        </div>
+        {sent ? (
+          <div style={{ textAlign: 'center', padding: '12px 0', color: 'var(--green-main)', fontWeight: 600, fontSize: 15 }}>✅ Feedback inviato!</div>
+        ) : (
+          <>
+            <textarea
+              value={text}
+              onChange={e => setText(e.target.value)}
+              placeholder="Es: questo pranzo era troppo pesante, posso ridurre i carboidrati?"
+              rows={3}
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1.5px solid var(--border)', fontFamily: 'inherit', fontSize: 14, resize: 'none', outline: 'none', boxSizing: 'border-box', marginBottom: 12 }}
+              autoFocus
+            />
+            <button
+              onClick={send}
+              disabled={!text.trim() || sending}
+              style={{ width: '100%', background: text.trim() ? 'var(--green-main)' : 'var(--border)', color: 'white', border: 'none', borderRadius: 12, padding: '13px', fontSize: 15, fontWeight: 700, cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit' }}
+            >
+              <Send size={16} />{sending ? 'Invio...' : 'Invia al dietista'}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function MealCard({ meal, completed, onToggleComplete, user }) {
   const [open, setOpen] = useState(false)
+  const [showFeedback, setShowFeedback] = useState(false)
   const t = useT()
   const mealLabels = useMemo(() => Object.fromEntries(
     Object.entries(MEAL_META_STATIC).map(([k, v]) => [k, { ...v, label: t(`meal.${k}`) }])
@@ -168,7 +233,18 @@ function MealCard({ meal, completed, onToggleComplete }) {
         >
           {completed ? <CheckCircle2 size={22} /> : <Circle size={22} />}
         </button>
+        <button
+          onClick={() => setShowFeedback(true)}
+          title="Invia feedback al dietista su questo pasto"
+          style={{ padding: '14px 8px 14px 0', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', transition: 'color 0.2s' }}
+        >
+          <MessageSquare size={18} />
+        </button>
       </div>
+
+      {showFeedback && user && (
+        <MealFeedbackModal meal={meal} user={user} onClose={() => setShowFeedback(false)} />
+      )}
 
       {open && (
         <div style={{ borderTop: '1px solid var(--border-light)', padding: '14px 16px 16px' }}>
@@ -966,6 +1042,7 @@ export default function DietPage() {
                     meal={m}
                     completed={completions.has(m.id)}
                     onToggleComplete={toggleComplete}
+                    user={user}
                   />
                 </motion.div>
               ))

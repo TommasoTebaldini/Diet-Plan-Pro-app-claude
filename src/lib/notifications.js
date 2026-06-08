@@ -145,9 +145,11 @@ export function initScheduledNotifications(prefs) {
 
   // Meal reminders
   if (p.mealReminder && Array.isArray(p.mealTimes)) {
+    const defaultLabels = ['Colazione','Spuntino mattina','Pranzo','Spuntino pomeriggio','Cena','Spuntino sera']
     p.mealTimes.forEach((time, i) => {
+      const label = (p.mealLabels && p.mealLabels[i]) || defaultLabels[i] || `Pasto ${i+1}`
       _scheduleDaily(
-        () => showNotification('🍽️ Ora di mangiare!', 'Ricordati di registrare il tuo pasto', `meal-${i}`),
+        () => showNotification(`🍽️ ${label}`, `Hai registrato ${label.toLowerCase()}? Apri l'app per il diario pasti.`, `meal-${i}`),
         time,
       )
     })

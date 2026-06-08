@@ -471,31 +471,53 @@ function NotificationsModal({ onClose }) {
         <div style={{ ...rowStyle, borderBottom: prefs.mealReminder ? '1px solid var(--border-light)' : 'none' }}>
           <div style={{ flex: 1 }}>
             <p style={{ fontSize: 14, fontWeight: 500 }}>Promemoria pasti</p>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Ricordami di registrare i pasti</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Notifica per ogni pasto configurato</p>
           </div>
           <Toggle on={prefs.mealReminder} onClick={() => update({ mealReminder: !prefs.mealReminder })} />
         </div>
         {prefs.mealReminder && (
           <div style={{ padding: '10px 0 4px' }}>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>Orari promemoria</p>
-            {prefs.mealTimes.map((t, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <input
-                  type="time"
-                  value={t}
-                  onChange={e => updateMealTime(i, e.target.value)}
-                  style={{ ...inputStyle, flex: 1 }}
-                />
-                {prefs.mealTimes.length > 1 && (
-                  <button onClick={() => removeMealTime(i)} style={{ background: '#fff0f0', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)', cursor: 'pointer', flexShrink: 0 }}>
-                    <Trash2 size={15} />
-                  </button>
-                )}
-              </div>
-            ))}
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>Configura orario e nome per ogni pasto</p>
+            {prefs.mealTimes.map((t, i) => {
+              const labels = prefs.mealLabels || []
+              const label = labels[i] || ''
+              const defaultLabels = ['Colazione','Spuntino mattina','Pranzo','Spuntino pomeriggio','Cena','Spuntino sera']
+              const placeholder = defaultLabels[i] || `Pasto ${i+1}`
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <input
+                    type="text"
+                    value={label}
+                    placeholder={placeholder}
+                    onChange={e => {
+                      const labels = [...(prefs.mealLabels || Array(prefs.mealTimes.length).fill(''))]
+                      labels[i] = e.target.value
+                      update({ mealLabels: labels })
+                    }}
+                    style={{ ...inputStyle, flex: 1.4, fontSize: 13 }}
+                  />
+                  <input
+                    type="time"
+                    value={t}
+                    onChange={e => updateMealTime(i, e.target.value)}
+                    style={{ ...inputStyle, flex: 1 }}
+                  />
+                  {prefs.mealTimes.length > 1 && (
+                    <button onClick={() => {
+                      const labels = [...(prefs.mealLabels || [])]
+                      labels.splice(i, 1)
+                      update({ mealLabels: labels })
+                      removeMealTime(i)
+                    }} style={{ background: '#fff0f0', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)', cursor: 'pointer', flexShrink: 0 }}>
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
+              )
+            })}
             {prefs.mealTimes.length < 6 && (
               <button onClick={addMealTime} style={{ background: 'var(--green-pale)', border: '1.5px dashed var(--green-light)', borderRadius: 10, width: '100%', padding: '9px', fontSize: 13, color: 'var(--green-main)', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, font: 'inherit', marginTop: 2 }}>
-                <Plus size={14} />Aggiungi orario
+                <Plus size={14} />Aggiungi pasto
               </button>
             )}
           </div>
