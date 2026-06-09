@@ -1146,17 +1146,19 @@ export default function MacroTrackerPage() {
                           <Apple size={14} color={m.accent || 'var(--green-main)'} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.food_name}</p>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 6px', marginTop: 4 }}>
-                            <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7280' }}>📦 {f.grams}g</span>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: '#ea580c' }}>🔥 {r0(f.kcal)}</span>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8' }}>💪 {r1(f.proteins)}g</span>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: '#d97706' }}>🍞 {r1(f.carbs)}g</span>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626' }}>🧈 {r1(f.fats)}g</span>
-                            {f.food_data?.fatSat_100g > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#b91c1c' }}>⚠️ {r1(f.food_data.fatSat_100g * (f.grams || 0) / 100)}g sat</span>}
-                            {f.food_data?.sugar_100g > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed' }}>🍬 {r1(f.food_data.sugar_100g * (f.grams || 0) / 100)}g zucc</span>}
-                            {f.food_data?.salt_100g > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#0369a1' }}>🧂 {Math.round(f.food_data.salt_100g * (f.grams || 0) / 100 * 100) / 100}g sale</span>}
-                            {f._pending && <span style={{ fontSize: 10, color: '#d97706' }}><WifiOff size={9} style={{ display: 'inline', verticalAlign: 'middle' }} /> in coda</span>}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                            <p style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, margin: 0 }}>{f.food_name}</p>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: 'white', background: '#6b7280', padding: '2px 8px', borderRadius: 20, flexShrink: 0 }}>{f.grams}g</span>
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#9a3412', background: '#fff7ed', padding: '2px 7px', borderRadius: 6, border: '1px solid #fed7aa' }}>🔥 {r0(f.kcal)} kcal</span>
+                            <span style={{ fontSize: 11, fontWeight: 600, color: '#1e40af', background: '#eff6ff', padding: '2px 7px', borderRadius: 6, border: '1px solid #bfdbfe' }}>P {r1(f.proteins)}g</span>
+                            <span style={{ fontSize: 11, fontWeight: 600, color: '#92400e', background: '#fffbeb', padding: '2px 7px', borderRadius: 6, border: '1px solid #fde68a' }}>C {r1(f.carbs)}g</span>
+                            <span style={{ fontSize: 11, fontWeight: 600, color: '#991b1b', background: '#fef2f2', padding: '2px 7px', borderRadius: 6, border: '1px solid #fecaca' }}>G {r1(f.fats)}g</span>
+                            {f.food_data?.fatSat_100g > 0 && <span style={{ fontSize: 11, fontWeight: 600, color: '#7f1d1d', background: '#fef2f2', padding: '2px 7px', borderRadius: 6 }}>Sat {r1(f.food_data.fatSat_100g * (f.grams || 0) / 100)}g</span>}
+                            {f.food_data?.sugar_100g > 0 && <span style={{ fontSize: 11, fontWeight: 600, color: '#5b21b6', background: '#f5f3ff', padding: '2px 7px', borderRadius: 6 }}>Zucc {r1(f.food_data.sugar_100g * (f.grams || 0) / 100)}g</span>}
+                            {f.food_data?.salt_100g > 0 && <span style={{ fontSize: 11, fontWeight: 600, color: '#075985', background: '#f0f9ff', padding: '2px 7px', borderRadius: 6 }}>Sale {Math.round(f.food_data.salt_100g * (f.grams || 0) / 100 * 100) / 100}g</span>}
+                            {f._pending && <span style={{ fontSize: 10, color: '#d97706', display: 'flex', alignItems: 'center', gap: 3 }}><WifiOff size={9} style={{ display: 'inline', verticalAlign: 'middle' }} /> in coda</span>}
                           </div>
                         </div>
                         {/* Feature 3: Favorite star */}
@@ -1194,6 +1196,26 @@ export default function MacroTrackerPage() {
                       )}
                     </div>
                   ))}
+
+                  {/* Meal subtotal */}
+                  {mealFoods.length > 1 && (() => {
+                    const st = mealFoods.reduce((a, f) => ({
+                      kcal: a.kcal + (f.kcal || 0),
+                      proteins: a.proteins + (f.proteins || 0),
+                      carbs: a.carbs + (f.carbs || 0),
+                      fats: a.fats + (f.fats || 0),
+                    }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', padding: '8px 12px', background: m.pale || 'var(--green-pale)', borderRadius: 10, marginBottom: 8, borderLeft: `3px solid ${m.accent || 'var(--green-main)'}` }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', marginRight: 2 }}>Subtotale</span>
+                        <span style={{ fontSize: 11.5, fontWeight: 800, color: '#9a3412', background: 'rgba(255,255,255,0.7)', padding: '2px 8px', borderRadius: 20 }}>🔥 {r0(st.kcal)} kcal</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#1e40af', background: 'rgba(255,255,255,0.7)', padding: '2px 7px', borderRadius: 20 }}>P {r1(st.proteins)}g</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#92400e', background: 'rgba(255,255,255,0.7)', padding: '2px 7px', borderRadius: 20 }}>C {r1(st.carbs)}g</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#991b1b', background: 'rgba(255,255,255,0.7)', padding: '2px 7px', borderRadius: 20 }}>G {r1(st.fats)}g</span>
+                      </div>
+                    )
+                  })()}
+
                   {/* Meal notes */}
                   {mealNotes.map(n => {
                     const fd = n.food_data
