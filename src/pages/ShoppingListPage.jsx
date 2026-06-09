@@ -120,7 +120,7 @@ function DietTab({ user }) {
       const allFoods = []
 
       // Load clinical plans from piani table
-      const linkRes = await supabase.from('patient_dietitian').select('cartella_id').eq('patient_id', user.id).maybeSingle().catch(() => ({ data: null }))
+      const linkRes = await supabase.from('patient_dietitian').select('cartella_id').eq('patient_id', user.id).maybeSingle().then(r => r, () => ({ data: null }))
       const cartellaId = linkRes?.data?.cartella_id ?? null
       if (cartellaId) {
         const { data: piani } = await supabase.from('piani').select('meals').eq('cartella_id', cartellaId).eq('visible_to_patient', true).order('saved_at', { ascending: false }).limit(1)
