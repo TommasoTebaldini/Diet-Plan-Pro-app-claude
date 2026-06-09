@@ -119,25 +119,26 @@ function FoodItem({ food }) {
   )
 }
 
+const MEAL_LABELS_IT = {
+  colazione: 'Colazione', spuntino_mattina: 'Spuntino mattina',
+  pranzo: 'Pranzo', spuntino_pomeriggio: 'Spuntino pomeriggio', cena: 'Cena',
+}
+
 function MealFeedbackModal({ meal, user, onClose }) {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
+  const mealLabel = meal.nome || MEAL_LABELS_IT[meal.meal_type] || meal.meal_type
 
   async function send() {
     if (!text.trim()) return
     setSending(true)
     try {
-      // Fetch active diet to get dietitian link
-      const { data: diet } = await supabase
-        .from('patient_diets').select('dietitian_id').eq('user_id', user.id).eq('is_active', true).maybeSingle()
-      const dietitianId = diet?.dietitian_id
       await supabase.from('chat_messages').insert({
         patient_id: user.id,
         sender_id: user.id,
         sender_role: 'patient',
-        content: `💬 Feedback sul pasto "${meal.nome || meal.meal_type}": ${text.trim()}`,
-        ...(dietitianId ? {} : {}),
+        content: `💬 Feedback sul pasto "${mealLabel}": ${text.trim()}`,
       })
       setSent(true)
       setTimeout(onClose, 1800)
@@ -151,7 +152,7 @@ function MealFeedbackModal({ meal, user, onClose }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div>
             <p style={{ fontSize: 15, fontWeight: 700 }}>💬 Feedback al dietista</p>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Pasto: {meal.nome || meal.meal_type}</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Pasto: {mealLabel}</p>
           </div>
           <button onClick={onClose} style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <X size={16} color="var(--text-muted)" />

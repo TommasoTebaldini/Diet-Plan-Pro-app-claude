@@ -964,31 +964,20 @@ export default function MacroTrackerPage() {
         </div>
 
         {/* Micro row — Fibra, Calcio, Ferro */}
-        {(microTotals.fiber > 0 || microTotals.calcium > 0 || microTotals.iron > 0) && (
+        {log.filter(f => f.food_name !== '__note__').length > 0 && (
           <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-            {microTotals.fiber > 0 && (
-              <div style={{ background: 'rgba(255,255,255,.1)', borderRadius: 8, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ fontSize: 13 }}>🌾</span>
-                <span style={{ color: 'white', fontSize: 11, fontWeight: 700 }}>{r1(microTotals.fiber)}g</span>
-                <span style={{ color: 'rgba(255,255,255,.55)', fontSize: 10 }}>fibra</span>
+            {[
+              { emoji: '🌾', val: r1(microTotals.fiber),   unit: 'g',  label: 'fibra',  ok: microTotals.fiber >= 25  },
+              { emoji: '🦴', val: r0(microTotals.calcium), unit: 'mg', label: 'Ca',     ok: microTotals.calcium >= 800 },
+              { emoji: '🩸', val: r1(microTotals.iron),    unit: 'mg', label: 'Fe',     ok: microTotals.iron >= 10  },
+            ].map(({ emoji, val, unit, label, ok }) => (
+              <div key={label} style={{ background: 'rgba(255,255,255,.1)', borderRadius: 8, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ fontSize: 13 }}>{emoji}</span>
+                <span style={{ color: val > 0 ? 'white' : 'rgba(255,255,255,.35)', fontSize: 11, fontWeight: 700 }}>{val}{unit}</span>
+                <span style={{ color: 'rgba(255,255,255,.55)', fontSize: 10 }}>{label}</span>
+                {ok && <span style={{ color: '#86efac', fontSize: 10 }}>✓</span>}
               </div>
-            )}
-            {microTotals.calcium > 0 && (
-              <div style={{ background: 'rgba(255,255,255,.1)', borderRadius: 8, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ fontSize: 13 }}>🦴</span>
-                <span style={{ color: 'white', fontSize: 11, fontWeight: 700 }}>{r0(microTotals.calcium)}mg</span>
-                <span style={{ color: 'rgba(255,255,255,.55)', fontSize: 10 }}>Ca</span>
-                {microTotals.calcium >= 800 && <span style={{ color: '#86efac', fontSize: 10 }}>✓</span>}
-              </div>
-            )}
-            {microTotals.iron > 0 && (
-              <div style={{ background: 'rgba(255,255,255,.1)', borderRadius: 8, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ fontSize: 13 }}>🩸</span>
-                <span style={{ color: 'white', fontSize: 11, fontWeight: 700 }}>{r1(microTotals.iron)}mg</span>
-                <span style={{ color: 'rgba(255,255,255,.55)', fontSize: 10 }}>Fe</span>
-                {microTotals.iron >= 10 && <span style={{ color: '#86efac', fontSize: 10 }}>✓</span>}
-              </div>
-            )}
+            ))}
           </div>
         )}
 
