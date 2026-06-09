@@ -390,6 +390,7 @@ function PianoAlimentareContent({ piano }) {
   const { user } = useAuth()
   const today = new Date().toISOString().split('T')[0]
   const [copyState, setCopyState] = useState({ dayIdx: null, date: today, busy: false, doneIdx: null })
+  const [feedbackMeal, setFeedbackMeal] = useState(null)
 
   let days = []
   try {
@@ -445,6 +446,9 @@ function PianoAlimentareContent({ piano }) {
 
   return (
     <div style={{ padding: '12px 14px 20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {feedbackMeal && user && (
+        <MealFeedbackModal meal={feedbackMeal} user={user} onClose={() => setFeedbackMeal(null)} />
+      )}
       {days.map((day, di) => {
         // Compute day totals from meal data
         const allFoods = (day.meals || []).flatMap(m => m.items || m.foods || m.alimenti || [])
@@ -538,6 +542,13 @@ function PianoAlimentareContent({ piano }) {
                           <p style={{ fontSize: 10, color: 'var(--green-dark)', fontWeight: 600 }}>kcal</p>
                         </div>
                       ) : null}
+                      <button
+                        onClick={() => setFeedbackMeal({ meal_type: meal.id || meal.tipo || 'pasto', nome: mealLabel })}
+                        title="Invia feedback al dietista su questo pasto"
+                        style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                      >
+                        <MessageSquare size={16} />
+                      </button>
                     </div>
 
                     {/* Food rows */}

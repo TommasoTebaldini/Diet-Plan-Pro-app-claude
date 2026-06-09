@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users, ChefHat, Star, Flower2, MoreHorizontal, X, Droplets, Brain, Award } from 'lucide-react'
+import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users, ChefHat, Star, Flower2, MoreHorizontal, X, Droplets, Brain, Award, ShoppingCart } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
@@ -97,6 +97,7 @@ export default function BottomNav() {
     { to: '/dieta', icon: Utensils, label: t('nav.diet') },
     { to: '/macro', icon: BookOpen, label: t('nav.diary') },
     { to: '/ricette', icon: ChefHat, label: t('nav.recipes') },
+    { to: '/lista-spesa', icon: ShoppingCart, label: 'Lista spesa' },
     { to: '/chat', icon: MessageCircle, label: t('nav.chat'), badge: unreadChat },
     { to: '/documenti', icon: FileText, label: t('nav.documents'), badge: newDocs },
     { to: '/dietisti', icon: Users, label: t('nav.dietitians') },
@@ -115,7 +116,7 @@ export default function BottomNav() {
     const tabMap = Object.fromEntries(TABS.map(t => [t.to, t]))
     const DESKTOP_SECTIONS = [
       { label: null, items: ['/'] },
-      { label: t('nav.section_nutrition'), items: ['/dieta', '/macro', '/ricette'] },
+      { label: t('nav.section_nutrition'), items: ['/dieta', '/macro', '/ricette', '/lista-spesa'] },
       { label: t('nav.section_professionals'), items: ['/chat', '/documenti', '/dietisti'] },
       { label: t('nav.section_monitoring'), items: ['/progressi', '/attivita', '/benessere', '/ciclo', '/statistiche'] },
       { label: null, items: PAYMENTS_ACTIVE ? ['/profilo', '/pro', '/abbonamento'] : ['/profilo', '/pro'] },
@@ -203,6 +204,7 @@ export default function BottomNav() {
       { to: '/acqua', icon: Droplets, label: 'Acqua' },
       { to: '/ricette', icon: ChefHat, label: t('nav.recipes') },
       { to: '/alimenti', icon: BookOpen, label: 'Alimenti' },
+      { to: '/lista-spesa', icon: ShoppingCart, label: 'Lista spesa' },
     ]},
     { label: 'Salute & Benessere', items: [
       { to: '/progressi', icon: TrendingUp, label: t('nav.progress') },
