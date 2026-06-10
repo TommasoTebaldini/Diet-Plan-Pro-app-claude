@@ -398,6 +398,8 @@ function PianoAlimentareContent({ piano }) {
     days = Array.isArray(raw) ? raw : []
   } catch { days = [] }
 
+  const displayMode = piano.display_mode || 'normale'
+
   async function copyDayToDiary(day, di) {
     setCopyState(s => ({ ...s, busy: true }))
     const targetDate = copyState.date
@@ -496,12 +498,14 @@ function PianoAlimentareContent({ piano }) {
                 )}
               </div>
               {/* Day macro summary */}
-              {dayTot && (
+              {dayTot && displayMode !== 'semplice' && (
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 11, background: 'rgba(255,255,255,.18)', color: 'white', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>🔥 {Math.round(dayTot.kcal)} kcal</span>
-                  <span style={{ fontSize: 11, background: 'rgba(96,165,250,.3)', color: '#dbeafe', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>💪 {Math.round(dayTot.prot * 10) / 10}g prot</span>
-                  <span style={{ fontSize: 11, background: 'rgba(251,191,36,.3)', color: '#fef3c7', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>🍞 {Math.round(dayTot.carb * 10) / 10}g carbo</span>
-                  <span style={{ fontSize: 11, background: 'rgba(248,113,113,.3)', color: '#fee2e2', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>🧈 {Math.round(dayTot.fat * 10) / 10}g grassi</span>
+                  {displayMode !== 'compatta' && <>
+                    <span style={{ fontSize: 11, background: 'rgba(96,165,250,.3)', color: '#dbeafe', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>💪 {Math.round(dayTot.prot * 10) / 10}g prot</span>
+                    <span style={{ fontSize: 11, background: 'rgba(251,191,36,.3)', color: '#fef3c7', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>🍞 {Math.round(dayTot.carb * 10) / 10}g carbo</span>
+                    <span style={{ fontSize: 11, background: 'rgba(248,113,113,.3)', color: '#fee2e2', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>🧈 {Math.round(dayTot.fat * 10) / 10}g grassi</span>
+                  </>}
                 </div>
               )}
             </div>
@@ -536,7 +540,7 @@ function PianoAlimentareContent({ piano }) {
                       <div style={{ flex: 1 }}>
                         <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--green-dark)', lineHeight: 1 }}>{mealLabel}</p>
                       </div>
-                      {mealKcal ? (
+                      {mealKcal && displayMode !== 'semplice' ? (
                         <div style={{ textAlign: 'center', background: 'var(--green-pale)', borderRadius: 10, padding: '4px 10px' }}>
                           <p style={{ fontSize: 15, fontWeight: 800, color: 'var(--green-main)', lineHeight: 1 }}>{mealKcal}</p>
                           <p style={{ fontSize: 10, color: 'var(--green-dark)', fontWeight: 600 }}>kcal</p>
@@ -559,10 +563,13 @@ function PianoAlimentareContent({ piano }) {
                           if (!nome) return null
                           const qt = parseFloat(food.qt || food.quantita || food.quantity || food.grammi || food.grams || 0) || 0
                           const unit = food.misura || food.unita || food.unit || 'g'
-                          const kcalItem = food.kcal_100g && qt ? Math.round(food.kcal_100g * qt / 100) : null
-                          const protItem = food.proteins_100g && qt ? Math.round(food.proteins_100g * qt / 100 * 10) / 10 : null
-                          const carbItem = food.carbs_100g && qt ? Math.round(food.carbs_100g * qt / 100 * 10) / 10 : null
-                          const fatItem  = food.fats_100g  && qt ? Math.round(food.fats_100g  * qt / 100 * 10) / 10 : null
+                          const kcalItem   = food.kcal_100g     && qt ? Math.round(food.kcal_100g * qt / 100) : null
+                          const protItem   = food.proteins_100g && qt ? Math.round(food.proteins_100g * qt / 100 * 10) / 10 : null
+                          const carbItem   = food.carbs_100g    && qt ? Math.round(food.carbs_100g * qt / 100 * 10) / 10 : null
+                          const fatItem    = food.fats_100g     && qt ? Math.round(food.fats_100g * qt / 100 * 10) / 10 : null
+                          const fatSatItem = food.fatSat_100g   && qt ? Math.round(food.fatSat_100g * qt / 100 * 10) / 10 : null
+                          const sugarItem  = food.sugar_100g    && qt ? Math.round(food.sugar_100g * qt / 100 * 10) / 10 : null
+                          const saltItem   = food.salt_100g     && qt ? Math.round(food.salt_100g * qt / 100 * 10) / 10 : null
                           const alts = food.altPrint || []
                           return (
                             <div key={fi} style={{ padding: '8px 14px', borderBottom: fi < foods.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
@@ -574,12 +581,17 @@ function PianoAlimentareContent({ piano }) {
                                   </span>
                                 </div>
                               </div>
-                              {hasMacros && (kcalItem != null || protItem != null) && (
+                              {hasMacros && displayMode !== 'semplice' && (kcalItem != null || protItem != null) && (
                                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 5 }}>
                                   <MacroChip val={kcalItem} label="🔥 Kcal" color="#92400e" bg="#fef3c7" />
-                                  <MacroChip val={protItem != null ? `${protItem}g` : null} label="💪 Prot" color="#1e40af" bg="#dbeafe" />
-                                  <MacroChip val={carbItem != null ? `${carbItem}g` : null} label="🍞 Carbo" color="#92400e" bg="#fef9c3" />
-                                  <MacroChip val={fatItem != null ? `${fatItem}g` : null} label="🧈 Grassi" color="#991b1b" bg="#fee2e2" />
+                                  {displayMode !== 'compatta' && <>
+                                    <MacroChip val={protItem != null ? `${protItem}g` : null} label="💪 Prot" color="#1e40af" bg="#dbeafe" />
+                                    <MacroChip val={carbItem != null ? `${carbItem}g` : null} label="🍞 Carbo" color="#92400e" bg="#fef9c3" />
+                                    <MacroChip val={fatItem != null ? `${fatItem}g` : null} label="🧈 Grassi" color="#991b1b" bg="#fee2e2" />
+                                    <MacroChip val={fatSatItem != null ? `${fatSatItem}g` : null} label="🥩 Gr.sat" color="#7c2d12" bg="#fef2e2" />
+                                    <MacroChip val={sugarItem != null ? `${sugarItem}g` : null} label="🍬 Zucch" color="#78350f" bg="#fef9c3" />
+                                    <MacroChip val={saltItem != null ? `${saltItem}g` : null} label="🧂 Sale" color="#374151" bg="#f3f4f6" />
+                                  </>}
                                 </div>
                               )}
                               {alts.length > 0 && (
@@ -730,7 +742,7 @@ export default function DietPage() {
       }
       if (cartellaId) {
         batch2.push(
-          supabase.from('piani').select('id, nome, data_piano, meals, print_image_url, saved_at').eq('cartella_id', cartellaId).eq('visible_to_patient', true).order('saved_at', { ascending: false }).then(r => r, () => ({ data: null }))
+          supabase.from('piani').select('id, nome, data_piano, meals, print_image_url, saved_at, display_mode').eq('cartella_id', cartellaId).eq('visible_to_patient', true).order('saved_at', { ascending: false }).then(r => r, () => ({ data: null }))
         )
       } else {
         batch2.push(Promise.resolve({ data: null }))

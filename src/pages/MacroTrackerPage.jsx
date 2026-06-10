@@ -879,10 +879,11 @@ export default function MacroTrackerPage() {
         fiber:   a.fiber   + (fd.fiber_100g    || 0) * g / 100,
         sugar:   a.sugar   + (fd.sugar_100g    || 0) * g / 100,
         fatSat:  a.fatSat  + (fd.fatSat_100g   || 0) * g / 100,
+        salt:    a.salt    + (fd.salt_100g     || 0) * g / 100,
         calcium: a.calcium + (fd.calcium_100g  || 0) * g / 100,
         iron:    a.iron    + (fd.iron_100g     || 0) * g / 100,
       }
-    }, { fiber: 0, sugar: 0, fatSat: 0, calcium: 0, iron: 0 })
+    }, { fiber: 0, sugar: 0, fatSat: 0, salt: 0, calcium: 0, iron: 0 })
 
   const effectivePreviewGrams = selected && selectedUnit !== 'g' ? gramsFromUnit(unitQty, selectedUnit) : parseFloat(grams) || 100
   const preview = selected ? { ...calcMacros(selected, String(effectivePreviewGrams)), ...calcDisplay(selected, String(effectivePreviewGrams)) } : null
@@ -970,6 +971,9 @@ export default function MacroTrackerPage() {
               { emoji: '🌾', val: r1(microTotals.fiber),   unit: 'g',  label: 'fibra',  ok: microTotals.fiber >= 25  },
               { emoji: '🦴', val: r0(microTotals.calcium), unit: 'mg', label: 'Ca',     ok: microTotals.calcium >= 800 },
               { emoji: '🩸', val: r1(microTotals.iron),    unit: 'mg', label: 'Fe',     ok: microTotals.iron >= 10  },
+              ...(microTotals.fatSat > 0 ? [{ emoji: '🥩', val: r1(microTotals.fatSat), unit: 'g', label: 'gr.sat', ok: false }] : []),
+              ...(microTotals.sugar  > 0 ? [{ emoji: '🍬', val: r1(microTotals.sugar),  unit: 'g', label: 'zucch',  ok: false }] : []),
+              ...(microTotals.salt   > 0 ? [{ emoji: '🧂', val: r1(microTotals.salt),   unit: 'g', label: 'sale',   ok: false }] : []),
             ].map(({ emoji, val, unit, label, ok }) => (
               <div key={label} style={{ background: 'rgba(255,255,255,.1)', borderRadius: 8, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5 }}>
                 <span style={{ fontSize: 13 }}>{emoji}</span>
