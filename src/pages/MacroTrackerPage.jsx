@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
@@ -865,25 +865,29 @@ export default function MacroTrackerPage() {
   const daysFromToday = Math.round((new Date(todayStr) - new Date(date)) / (1000 * 60 * 60 * 24))
   const atFreeLimit = !isPro && daysFromToday >= FREE_HISTORY_DAYS - 1
 
-  const totals = log.filter(f => f.food_name !== '__note__').reduce((a, f) => ({
-    kcal: a.kcal + (f.kcal || 0), proteins: a.proteins + (f.proteins || 0),
-    carbs: a.carbs + (f.carbs || 0), fats: a.fats + (f.fats || 0),
-  }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
+  const totals = useMemo(() =>
+    log.filter(f => f.food_name !== '__note__').reduce((a, f) => ({
+      kcal: a.kcal + (f.kcal || 0), proteins: a.proteins + (f.proteins || 0),
+      carbs: a.carbs + (f.carbs || 0), fats: a.fats + (f.fats || 0),
+    }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
+  , [log])
 
-  const microTotals = log
-    .filter(f => f.food_name !== '__note__')
-    .reduce((a, f) => {
-      const fd = f.food_data || {}
-      const g = f.grams || 100
-      return {
-        fiber:   a.fiber   + (fd.fiber_100g    || 0) * g / 100,
-        sugar:   a.sugar   + (fd.sugar_100g    || 0) * g / 100,
-        fatSat:  a.fatSat  + (fd.fatSat_100g   || 0) * g / 100,
-        salt:    a.salt    + (fd.salt_100g     || 0) * g / 100,
-        calcium: a.calcium + (fd.calcium_100g  || 0) * g / 100,
-        iron:    a.iron    + (fd.iron_100g     || 0) * g / 100,
-      }
-    }, { fiber: 0, sugar: 0, fatSat: 0, salt: 0, calcium: 0, iron: 0 })
+  const microTotals = useMemo(() =>
+    log
+      .filter(f => f.food_name !== '__note__')
+      .reduce((a, f) => {
+        const fd = f.food_data || {}
+        const g = f.grams || 100
+        return {
+          fiber:   a.fiber   + (fd.fiber_100g    || 0) * g / 100,
+          sugar:   a.sugar   + (fd.sugar_100g    || 0) * g / 100,
+          fatSat:  a.fatSat  + (fd.fatSat_100g   || 0) * g / 100,
+          salt:    a.salt    + (fd.salt_100g     || 0) * g / 100,
+          calcium: a.calcium + (fd.calcium_100g  || 0) * g / 100,
+          iron:    a.iron    + (fd.iron_100g     || 0) * g / 100,
+        }
+      }, { fiber: 0, sugar: 0, fatSat: 0, salt: 0, calcium: 0, iron: 0 })
+  , [log])
 
   const effectivePreviewGrams = selected && selectedUnit !== 'g' ? gramsFromUnit(unitQty, selectedUnit) : parseFloat(grams) || 100
   const preview = selected ? { ...calcMacros(selected, String(effectivePreviewGrams)), ...calcDisplay(selected, String(effectivePreviewGrams)) } : null
