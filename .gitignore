@@ -7,3 +7,5 @@ dist/
 # Claude Code local files
 .claude/
 check_app.mjs
+
+.vercel
