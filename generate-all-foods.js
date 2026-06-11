@@ -35,8 +35,9 @@ const DB_UPF      = extractArray(dbContent, 'DB_UPF');
 const DB_ONS      = extractArray(dbContent, 'DB_ONS');
 const DB_APROTEICI = extractArray(dbContent, 'DB_APROTEICI');
 const DB_FLAVIS   = extractArray(dbContent, 'DB_FLAVIS');
+const DB_EXTRA    = extractArray(dbContent, 'DB_EXTRA');
 
-const ALL_RAW = [...DB_CREA, ...DB_BDA, ...DB_ONS, ...DB_APROTEICI, ...DB_FLAVIS, ...DB_UPF];
+const ALL_RAW = [...DB_CREA, ...DB_BDA, ...DB_ONS, ...DB_APROTEICI, ...DB_FLAVIS, ...DB_UPF, ...DB_EXTRA];
 console.log(`Total raw entries: ${ALL_RAW.length}`);
 
 // Normalise category names to patient-app standard categories
@@ -87,6 +88,20 @@ const CAT_MAP = {
   'Salse e condimenti UPF':     'Condimenti e Salse',
   'Pane e prodotti da forno UPF': 'Pane e Prodotti da Forno',
   'Formaggi fusi e spalmabili UPF': 'Latticini',
+  // DB_EXTRA
+  'Cucina etnica':              'Piatti Pronti',
+  'Gelati':                     'Dolci e Zuccheri',
+  'Baby food':                  'Altro',
+  'Prodotti vegani':            'Altro',
+  'Senza glutine':              'Altro',
+  'Integratori sportivi':       'Altro',
+  'Energy drink':               'Bevande',
+  'Alternative vegetali':       'Latticini',
+  'Bevande alcoliche':          'Bevande',
+  'Bevande':                    'Bevande',
+  'Dolci e dessert':            'Dolci e Zuccheri',
+  'Cioccolato e dolciumi':      'Dolci e Zuccheri',
+  'Frutta esotica':             'Frutta',
 };
 
 const SERVING_BY_CAT = {
