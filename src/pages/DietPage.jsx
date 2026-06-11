@@ -35,14 +35,16 @@ function MacroBar({ label, value, max, color }) {
 
 function DailyNutritionSummary({ meals, diet }) {
   const t = useT()
-  const total = meals.reduce((acc, m) => ({
+  const total = useMemo(() => meals.reduce((acc, m) => ({
     kcal: acc.kcal + (m.kcal || 0),
     proteins: acc.proteins + Number(m.proteins || 0),
     carbs: acc.carbs + Number(m.carbs || 0),
     fats: acc.fats + Number(m.fats || 0),
-  }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
+  }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 }), [meals])
 
-  const kcalPct = diet?.kcal_target ? Math.min(100, Math.round((total.kcal / diet.kcal_target) * 100)) : null
+  const kcalPct = useMemo(() =>
+    diet?.kcal_target ? Math.min(100, Math.round((total.kcal / diet.kcal_target) * 100)) : null
+  , [diet?.kcal_target, total.kcal])
 
   return (
     <div className="card">
