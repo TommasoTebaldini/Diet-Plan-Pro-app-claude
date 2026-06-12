@@ -165,9 +165,37 @@ const MOOD_OPTIONS = [
   { value: 5, emoji: '😄', label: 'Ottimo' },
 ]
 
+const ALLERGEN_RULES = [
+  { key: 'Glutine', icon: '🌾', col: '#92400E', bg: '#FEF3C7', kw: ['grano','frumento','farro','orzo','segale','kamut','spelta','pane','pasta','semola','semolino','crackers','biscotti','pizza','focaccia','grissini','taralli','farina','avena','seitan','bulgur','couscous'] },
+  { key: 'Lattosio', icon: '🥛', col: '#1D4ED8', bg: '#DBEAFE', kw: ['latte','lattosio','formaggio','yogurt','burro','panna','mozzarella','ricotta','parmigiano','pecorino','gorgonzola','mascarpone','kefir','whey','latticini','scamorza','provola','fontina','brie','asiago','caciotta'] },
+  { key: 'Uova', icon: '🥚', col: '#B45309', bg: '#FEFCE8', kw: ['uova','uovo','egg','maionese','mayo','omelette','frittata','albume','tuorlo'] },
+  { key: 'Arachidi', icon: '🥜', col: '#92400E', bg: '#FFF7ED', kw: ['arachidi','arachide','peanut'] },
+  { key: 'Frutta a guscio', icon: '🌰', col: '#78350F', bg: '#FEF3C7', kw: ['noci','mandorle','nocciole','pistacchi','anacardi','cashew','macadamia','pecan','pinoli','noci brasiliane'] },
+  { key: 'Pesce', icon: '🐟', col: '#1E40AF', bg: '#DBEAFE', kw: ['pesce','merluzzo','salmone','tonno','trota','alici','sardine','spigola','orata','branzino','nasello','baccalà','stoccafisso','acciughe','sgombro','aringa','halibut','sogliola'] },
+  { key: 'Crostacei e molluschi', icon: '🦐', col: '#B91C1C', bg: '#FEE2E2', kw: ['gamberi','gambero','crostacei','aragosta','granchio','scampi','astice','vongole','cozze','ostriche','calamari','polpo','seppia','molluschi'] },
+  { key: 'Soia', icon: '🌱', col: '#16A34A', bg: '#DCFCE7', kw: ['soia','soy','tofu','tempeh','edamame','miso','tamari'] },
+  { key: 'Sedano', icon: '🌿', col: '#15803D', bg: '#F0FDF4', kw: ['sedano','celery'] },
+  { key: 'Sesamo', icon: '🌾', col: '#CA8A04', bg: '#FEFCE8', kw: ['sesamo','sesame','tahini','tahin'] },
+  { key: 'Senape', icon: '🌶', col: '#B45309', bg: '#FFFBEB', kw: ['senape','mustard'] },
+  { key: 'Lupini', icon: '🌼', col: '#D97706', bg: '#FFF7ED', kw: ['lupini','lupino','lupin'] },
+  { key: 'Anidride solforosa e solfiti', icon: '🍷', col: '#7C3AED', bg: '#F5F3FF', kw: ['solfiti','vino','aceto di vino','prugne secche','uva passa','albicocche secche'] },
+]
+
+function detectAllergens(food) {
+  const text = ((food.name || '') + ' ' + (food.brand || '') + ' ' + (food.category || '')).toLowerCase()
+  return ALLERGEN_RULES.filter(rule => rule.kw.some(k => text.includes(k)))
+}
+
+function conflictingAllergens(food, intolerances) {
+  if (!intolerances?.length) return []
+  const detected = detectAllergens(food)
+  return detected.filter(a =>
+    intolerances.some(intol => intol.toLowerCase().includes(a.key.toLowerCase().split(' ')[0]))
+  )
+}
 
 export default function MacroTrackerPage() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const { isPro } = useSubscription()
   const t = useT()
   const MEALS = MEALS_STATIC.map(m => ({
@@ -1377,6 +1405,23 @@ export default function MacroTrackerPage() {
                                 <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
                                   {f.brand ? `${f.brand} · ` : ''}{r0(f.kcal_100g)} kcal · P:{r1(f.proteins_100g)} C:{r1(f.carbs_100g)} G:{r1(f.fats_100g)}
                                 </p>
+                                {(() => {
+                                  const conflicts = conflictingAllergens(f, profile?.intolerances)
+                                  const all = detectAllergens(f)
+                                  if (!all.length) return null
+                                  return (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 3 }}>
+                                      {all.map(a => {
+                                        const isConflict = conflicts.some(c => c.key === a.key)
+                                        return (
+                                          <span key={a.key} style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, fontWeight: 700, background: isConflict ? '#FEE2E2' : a.bg, color: isConflict ? '#B91C1C' : a.col, border: isConflict ? '1px solid #FECACA' : 'none' }}>
+                                            {a.icon} {a.key}{isConflict ? ' ⚠️' : ''}
+                                          </span>
+                                        )
+                                      })}
+                                    </div>
+                                  )
+                                })()}
                               </button>
                             ))}
                           </div>,
@@ -1498,6 +1543,29 @@ export default function MacroTrackerPage() {
                               </div>
                             )}
                           </div>
+                          {/* Allergen alert */}
+                          {(() => {
+                            const conflicts = conflictingAllergens(selected, profile?.intolerances)
+                            const all = detectAllergens(selected)
+                            if (!all.length) return null
+                            return (
+                              <div style={{ margin: '0 0 10px', padding: '10px 12px', borderRadius: 10, background: conflicts.length ? '#FEF2F2' : '#FFFBEB', border: `1.5px solid ${conflicts.length ? '#FCA5A5' : '#FDE68A'}` }}>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: conflicts.length ? '#B91C1C' : '#92400E', marginBottom: 5 }}>
+                                  {conflicts.length ? '⚠️ Contiene allergeni a te segnalati!' : 'ℹ️ Allergeni presenti:'}
+                                </div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                  {all.map(a => {
+                                    const isConflict = conflicts.some(c => c.key === a.key)
+                                    return (
+                                      <span key={a.key} style={{ fontSize: 10, padding: '2px 7px', borderRadius: 8, fontWeight: 700, background: isConflict ? '#FEE2E2' : a.bg, color: isConflict ? '#B91C1C' : a.col }}>
+                                        {a.icon} {a.key}{isConflict ? ' ⚠️' : ''}
+                                      </span>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )
+                          })()}
                           {/* Feature 6: Unit selector */}
                           <div className="input-group" style={{ marginBottom: 6 }}>
                             <label className="input-label">Unità di misura</label>
