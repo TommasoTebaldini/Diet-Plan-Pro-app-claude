@@ -70,7 +70,7 @@ export default function ProgressPage() {
       setCartellaId(cid)
       const [schedeRes, biaRes] = await Promise.all([
         supabase.from('schede_valutazione').select('id,saved_at,peso,vita,fianchi,braccio,plica,massa_grassa_pct,massa_magra').eq('cartella_id', cid).eq('visible_to_patient', true).order('saved_at', { ascending: true }),
-        supabase.from('bia_records').select('id,data_misura,peso,bf_pct,ffm_kg,fm_kg,tbw,angolo_fase,bcm,muscle').eq('cartella_id', cid).eq('visible_to_patient', true).order('data_misura', { ascending: true }),
+        supabase.from('bia_records').select('id,data_misura,peso,bf_pct,ffm_kg,fm_kg,tbw,angolo_fase,bcm,muscle,bone,icw,ecw,ffmi').eq('cartella_id', cid).eq('visible_to_patient', true).order('data_misura', { ascending: true }),
       ])
       setSchede(schedeRes.data || [])
       setBiaData(biaRes.data || [])
@@ -515,86 +515,200 @@ export default function ProgressPage() {
               </div>
             ) : (
               <>
-                {/* Latest BIA */}
                 {(() => {
                   const last = biaData[biaData.length - 1]
                   const prev = biaData[biaData.length - 2]
-                  const delta = (field) => {
-                    const d = last[field] != null && prev?.[field] != null ? (last[field] - prev[field]).toFixed(1) : null
-                    return d !== null ? <span style={{ fontSize: 10, color: parseFloat(d) > 0 ? '#EF4444' : '#22C55E', marginLeft: 4 }}>{parseFloat(d) > 0 ? '+' : ''}{d}</span> : null
+                  const r1b = v => v != null ? parseFloat(v).toFixed(1) : null
+
+                  const allMetrics = [
+                    { key: 'bf_pct',      label: '% Grasso',    unit: '%',     icon: '🔴', col: '#dc2626', bg: '#fee2e2', good: 'down' },
+                    { key: 'ffm_kg',      label: 'Massa Magra', unit: ' kg',   icon: '💪', col: '#1d4ed8', bg: '#dbeafe', good: 'up' },
+                    { key: 'fm_kg',       label: 'Massa Grassa',unit: ' kg',   icon: '📊', col: '#ea580c', bg: '#fff7ed', good: 'down' },
+                    { key: 'tbw',         label: 'Acqua Tot.',  unit: ' L',    icon: '💧', col: '#0369a1', bg: '#e0f2fe', good: null },
+                    { key: 'icw',         label: 'Intra (ICW)', unit: ' L',    icon: '🫀', col: '#1d4ed8', bg: '#eff6ff', good: null },
+                    { key: 'ecw',         label: 'Extra (ECW)', unit: ' L',    icon: '💦', col: '#0e7490', bg: '#ecfeff', good: null },
+                    { key: 'bcm',         label: 'BCM',         unit: ' kg',   icon: '⚡', col: '#7c3aed', bg: '#f5f3ff', good: 'up' },
+                    { key: 'muscle',      label: 'Muscolo',     unit: ' kg',   icon: '🏋️', col: '#0891b2', bg: '#ecfeff', good: 'up' },
+                    { key: 'bone',        label: 'Massa Ossea', unit: ' kg',   icon: '🦴', col: '#64748b', bg: '#f1f5f9', good: null },
+                    { key: 'ffmi',        label: 'FFMI',        unit: ' kg/m²',icon: '📐', col: '#059669', bg: '#f0fdf4', good: 'up' },
+                    { key: 'angolo_fase', label: 'Ang. di Fase',unit: '°',     icon: '🎯', col: '#15803d', bg: '#f0fdf4', good: 'up' },
+                  ].filter(m => last[m.key] != null)
+
+                  const getDelta = (field) => {
+                    const cur = last[field], pre = prev?.[field]
+                    if (cur == null || pre == null) return null
+                    return parseFloat((cur - pre).toFixed(1))
                   }
+
+                  const fm = last.fm_kg != null ? last.fm_kg : (last.bf_pct != null && last.peso ? last.peso * last.bf_pct / 100 : null)
+                  const ffm = last.ffm_kg != null ? last.ffm_kg : (fm != null && last.peso ? last.peso - fm : null)
+                  const showComp = last.peso && (fm != null || ffm != null)
+                  const showWater = last.tbw && (last.icw != null || last.ecw != null)
+
+                  const icwVal = last.icw != null ? last.icw : (last.tbw ? last.tbw * 0.605 : null)
+                  const ecwVal = last.ecw != null ? last.ecw : (last.tbw ? last.tbw * 0.395 : null)
+                  const ecwRatio = last.tbw && ecwVal ? ecwVal / last.tbw : null
+                  const ecwColor = ecwRatio == null ? '#64748b' : ecwRatio < 0.36 ? '#1d4ed8' : ecwRatio < 0.39 ? '#16a34a' : ecwRatio < 0.41 ? '#f59e0b' : '#dc2626'
+                  const ecwStatus = ecwRatio == null ? '' : ecwRatio < 0.36 ? 'Disidratazione' : ecwRatio < 0.39 ? 'Normale' : ecwRatio < 0.41 ? 'Ritenzione idrica' : 'Edema'
+
                   return (
-                    <div className="card" style={{ padding: 16 }}>
-                      <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Ultima BIA · {new Date(last.data_misura).toLocaleDateString('it-IT')}</h3>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 8 }}>
-                        {[
-                          { key: 'bf_pct', label: '% Grasso', unit: '%', icon: '🔴', color: '#dc2626', bg: '#fee2e2' },
-                          { key: 'ffm_kg', label: 'Massa magra', unit: 'kg', icon: '💪', color: '#1d4ed8', bg: '#dbeafe' },
-                          { key: 'fm_kg', label: 'Massa grassa', unit: 'kg', icon: '📊', color: '#ea580c', bg: '#fff7ed' },
-                          { key: 'tbw', label: 'Acqua tot.', unit: 'L', icon: '💧', color: '#0369a1', bg: '#e0f2fe' },
-                          { key: 'bcm', label: 'BCM', unit: 'kg', icon: '⚡', color: '#7c3aed', bg: '#f5f3ff' },
-                          { key: 'angolo_fase', label: 'Ang. Fase', unit: '°', icon: '📐', color: '#15803d', bg: '#f0fdf4' },
-                        ].filter(m => last[m.key] != null).map(m => (
-                          <div key={m.key} style={{ background: m.bg, borderRadius: 12, padding: '12px 8px', textAlign: 'center' }}>
-                            <div style={{ fontSize: 18 }}>{m.icon}</div>
-                            <div style={{ fontSize: 16, fontWeight: 800, color: m.color, marginTop: 4 }}>{last[m.key]}{m.unit}</div>
-                            {delta(m.key)}
-                            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>{m.label}</div>
-                          </div>
-                        ))}
+                    <>
+                      {/* Header */}
+                      <div className="card" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>⚡ Ultima BIA</h3>
+                          <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(last.data_misura).toLocaleDateString('it-IT')}{last.peso ? ` · ${r1b(last.peso)} kg` : ''}</p>
+                        </div>
+                        {prev && <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'right' }}>vs. {new Date(prev.data_misura).toLocaleDateString('it-IT')}</p>}
                       </div>
-                    </div>
+
+                      {/* Metric tiles */}
+                      <div className="card" style={{ padding: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))', gap: 8 }}>
+                          {allMetrics.map(m => {
+                            const d = getDelta(m.key)
+                            const dColor = d == null ? null :
+                              m.good === 'up' ? (d > 0 ? '#16a34a' : d < 0 ? '#dc2626' : 'var(--text-muted)') :
+                              m.good === 'down' ? (d < 0 ? '#16a34a' : d > 0 ? '#dc2626' : 'var(--text-muted)') :
+                              d !== 0 ? '#f59e0b' : 'var(--text-muted)'
+                            return (
+                              <div key={m.key} style={{ background: m.bg, borderRadius: 12, padding: '10px 6px', textAlign: 'center' }}>
+                                <div style={{ fontSize: 15 }}>{m.icon}</div>
+                                <div style={{ fontSize: 14, fontWeight: 800, color: m.col, marginTop: 3, lineHeight: 1.1 }}>
+                                  {r1b(last[m.key])}{m.unit}
+                                </div>
+                                {d != null && (
+                                  <div style={{ fontSize: 10, color: dColor, fontWeight: 700, marginTop: 1 }}>
+                                    {d > 0 ? '+' : ''}{d}
+                                  </div>
+                                )}
+                                <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.2 }}>{m.label}</div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Body composition bar */}
+                      {showComp && (() => {
+                        const fmVal = fm || 0
+                        const ffmVal = ffm || 0
+                        const total = fmVal + ffmVal
+                        const fmPct = total > 0 ? (fmVal / total * 100).toFixed(1) : 0
+                        const ffmPct = total > 0 ? (ffmVal / total * 100).toFixed(1) : 0
+                        return (
+                          <div className="card" style={{ padding: 16 }}>
+                            <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>📊 Composizione corporea — {r1b(last.peso)} kg</h3>
+                            <div style={{ height: 26, borderRadius: 13, overflow: 'hidden', display: 'flex', marginBottom: 10 }}>
+                              <div style={{ width: `${fmPct}%`, background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {parseFloat(fmPct) > 10 && <span style={{ fontSize: 9, color: 'white', fontWeight: 700 }}>{fmPct}%</span>}
+                              </div>
+                              <div style={{ flex: 1, background: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <span style={{ fontSize: 9, color: 'white', fontWeight: 700 }}>{ffmPct}%</span>
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: 14, fontSize: 11, flexWrap: 'wrap' }}>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#ef4444', display: 'inline-block' }}/>Massa Grassa {r1b(fmVal)} kg ({fmPct}%)</span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#1d4ed8', display: 'inline-block' }}/>Massa Magra {r1b(ffmVal)} kg ({ffmPct}%)</span>
+                            </div>
+                          </div>
+                        )
+                      })()}
+
+                      {/* Water distribution */}
+                      {showWater && (
+                        <div className="card" style={{ padding: 16 }}>
+                          <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>💧 Distribuzione Idrica — {r1b(last.tbw)} L TBW</h3>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {[
+                              { label: 'ICW — Intracellulare', val: icwVal, col: '#1d4ed8' },
+                              { label: 'ECW — Extracellulare', val: ecwVal, col: ecwRatio > 0.39 ? '#f59e0b' : '#0ea5e9' },
+                            ].map(w => w.val != null && (
+                              <div key={w.label}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 3 }}>
+                                  <span style={{ color: 'var(--text-muted)' }}>{w.label}</span>
+                                  <span style={{ fontWeight: 600 }}>{r1b(w.val)} L ({last.tbw > 0 ? (w.val / last.tbw * 100).toFixed(0) : '—'}%)</span>
+                                </div>
+                                <div style={{ height: 8, background: 'var(--surface-2)', borderRadius: 4, overflow: 'hidden' }}>
+                                  <div style={{ height: '100%', width: `${last.tbw > 0 ? Math.min(100, w.val / last.tbw * 100) : 0}%`, background: w.col, borderRadius: 4 }} />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {ecwRatio != null && (
+                            <div style={{ background: '#eff6ff', borderRadius: 8, padding: '8px 12px', fontSize: 11, marginTop: 10, display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ color: 'var(--text-muted)' }}>ECW/TBW ratio</span>
+                              <span style={{ fontWeight: 700, color: ecwColor }}>{ecwRatio.toFixed(2)} — {ecwStatus}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Trend chart */}
+                      {biaData.length > 1 && (
+                        <ProGate feature="Grafici BIA nel tempo" teaser="Visualizza l'andamento completo della composizione corporea">
+                          <div className="card" style={{ padding: '16px 12px 12px' }}>
+                            <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, padding: '0 4px' }}>📈 Andamento composizione corporea</h3>
+                            <ResponsiveContainer width="100%" height={180}>
+                              <LineChart data={biaData.map(b => ({
+                                d: new Date(b.data_misura).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }),
+                                'Grasso %': b.bf_pct != null ? parseFloat(parseFloat(b.bf_pct).toFixed(1)) : null,
+                                'Massa magra': b.ffm_kg != null ? parseFloat(parseFloat(b.ffm_kg).toFixed(1)) : null,
+                                'Acqua L': b.tbw != null ? parseFloat(parseFloat(b.tbw).toFixed(1)) : null,
+                              }))} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
+                                <XAxis dataKey="d" tick={{ fontSize: 9, fill: 'var(--text-muted)' }} interval="preserveStartEnd" />
+                                <YAxis tick={{ fontSize: 9, fill: 'var(--text-muted)' }} />
+                                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid var(--border)' }} />
+                                {biaData.some(b => b.bf_pct != null) && <Line type="monotone" dataKey="Grasso %" stroke="#dc2626" strokeWidth={2} dot={{ r: 3 }} connectNulls />}
+                                {biaData.some(b => b.ffm_kg != null) && <Line type="monotone" dataKey="Massa magra" stroke="#1d4ed8" strokeWidth={2} dot={{ r: 3 }} connectNulls />}
+                                {biaData.some(b => b.tbw != null) && <Line type="monotone" dataKey="Acqua L" stroke="#0369a1" strokeWidth={2} dot={{ r: 3 }} connectNulls />}
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </ProGate>
+                      )}
+
+                      {/* Storico */}
+                      <div className="card" style={{ padding: 16 }}>
+                        <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>📋 Storico BIA</h3>
+                        <div style={{ overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                            <thead><tr style={{ borderBottom: '1.5px solid var(--border)' }}>
+                              {['Data','Peso','%Gr.','M.Magra','M.Grassa','TBW','Ang.°','FFMI'].map(h => (
+                                <th key={h} style={{ padding: '5px 6px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600, fontSize: 10, whiteSpace: 'nowrap' }}>{h}</th>
+                              ))}
+                            </tr></thead>
+                            <tbody>
+                              {[...biaData].reverse().map((b, idx, arr) => {
+                                const nxt = arr[idx + 1]
+                                const dVal = (cur, prv) => cur != null && prv != null ? parseFloat((cur - prv).toFixed(1)) : null
+                                const cell = (v, unit, d, goodDir) => {
+                                  const dColor = d == null ? null : (goodDir === 'down' ? (d < 0 ? '#16a34a' : '#dc2626') : goodDir === 'up' ? (d > 0 ? '#16a34a' : '#dc2626') : '#f59e0b')
+                                  return v != null
+                                    ? <>{r1b(v)}{unit}{d != null && <span style={{ fontSize: 9, color: dColor, marginLeft: 2 }}>{d > 0 ? '+' : ''}{d}</span>}</>
+                                    : '—'
+                                }
+                                return (
+                                  <tr key={b.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                                    <td style={{ padding: '6px 6px', whiteSpace: 'nowrap' }}>{new Date(b.data_misura).toLocaleDateString('it-IT')}</td>
+                                    <td style={{ padding: '6px 6px' }}>{b.peso != null ? `${r1b(b.peso)} kg` : '—'}</td>
+                                    <td style={{ padding: '6px 6px', color: '#dc2626', fontWeight: 600 }}>{cell(b.bf_pct, '%', dVal(b.bf_pct, nxt?.bf_pct), 'down')}</td>
+                                    <td style={{ padding: '6px 6px' }}>{cell(b.ffm_kg, ' kg', dVal(b.ffm_kg, nxt?.ffm_kg), 'up')}</td>
+                                    <td style={{ padding: '6px 6px' }}>{cell(b.fm_kg, ' kg', dVal(b.fm_kg, nxt?.fm_kg), 'down')}</td>
+                                    <td style={{ padding: '6px 6px' }}>{cell(b.tbw, ' L', null, null)}</td>
+                                    <td style={{ padding: '6px 6px', fontWeight: 600 }}>{cell(b.angolo_fase, '°', dVal(b.angolo_fase, nxt?.angolo_fase), 'up')}</td>
+                                    <td style={{ padding: '6px 6px' }}>{cell(b.ffmi, '', dVal(b.ffmi, nxt?.ffmi), 'up')}</td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </>
                   )
                 })()}
-                {/* BIA chart */}
-                {biaData.length > 1 && (
-                  <ProGate feature="Grafico BIA" teaser="Visualizza l'andamento della composizione corporea nel tempo">
-                  <div className="card" style={{ padding: '18px 12px 12px' }}>
-                    <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, padding: '0 6px' }}>⚡ Composizione corporea nel tempo</h3>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <LineChart data={biaData.map(b => ({
-                        data: new Date(b.data_misura).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }),
-                        'Grasso (%)': b.bf_pct || null,
-                        'Massa magra (kg)': b.ffm_kg || null,
-                        'Acqua (L)': b.tbw || null,
-                      }))} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
-                        <XAxis dataKey="data" tick={{ fontSize: 9, fill: 'var(--text-muted)' }} interval="preserveStartEnd" />
-                        <YAxis tick={{ fontSize: 9, fill: 'var(--text-muted)' }} />
-                        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid var(--border)' }} />
-                        {biaData.some(b => b.bf_pct) && <Line type="monotone" dataKey="Grasso (%)" stroke="#dc2626" strokeWidth={2} dot={{ r: 3 }} />}
-                        {biaData.some(b => b.ffm_kg) && <Line type="monotone" dataKey="Massa magra (kg)" stroke="#1d4ed8" strokeWidth={2} dot={{ r: 3 }} />}
-                        {biaData.some(b => b.tbw) && <Line type="monotone" dataKey="Acqua (L)" stroke="#0369a1" strokeWidth={2} dot={{ r: 3 }} />}
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                  </ProGate>
-                )}
-                {/* BIA history */}
-                <div className="card" style={{ padding: 16 }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Storico BIA</h3>
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                      <thead><tr style={{ borderBottom: '1.5px solid var(--border)' }}>
-                        {['Data','%Grasso','M.Magra','M.Grassa','Acqua','Ang.Fase'].map(h => (
-                          <th key={h} style={{ padding: '6px 8px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600, fontSize: 11 }}>{h}</th>
-                        ))}
-                      </tr></thead>
-                      <tbody>
-                        {[...biaData].reverse().map(b => (
-                          <tr key={b.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                            <td style={{ padding: '7px 8px', whiteSpace: 'nowrap' }}>{new Date(b.data_misura).toLocaleDateString('it-IT')}</td>
-                            <td style={{ padding: '7px 8px' }}>{b.bf_pct != null ? `${b.bf_pct}%` : '—'}</td>
-                            <td style={{ padding: '7px 8px' }}>{b.ffm_kg != null ? `${b.ffm_kg}kg` : '—'}</td>
-                            <td style={{ padding: '7px 8px' }}>{b.fm_kg != null ? `${b.fm_kg}kg` : '—'}</td>
-                            <td style={{ padding: '7px 8px' }}>{b.tbw != null ? `${b.tbw}L` : '—'}</td>
-                            <td style={{ padding: '7px 8px' }}>{b.angolo_fase != null ? `${b.angolo_fase}°` : '—'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
               </>
             )}
           </div>

@@ -1398,12 +1398,14 @@ export default function MacroTrackerPage() {
                                   <p style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.3, flex: 1 }}>{f.name}</p>
                                   {(() => {
                                     const badges = { recent: ['Recente', 'var(--icon-bg-orange)', 'var(--alert-warning-text)'], diet: ['Piano', 'var(--green-pale)', 'var(--green-main)'], recipe: ['Ricetta', 'var(--icon-bg-orange)', 'var(--alert-warning-text)'], custom_meal: ['Pasto', 'var(--icon-bg-green)', 'var(--green-dark)'], openfoodfacts: ['OFF', 'var(--surface-3)', 'var(--text-muted)'], dietitian: ['CREA', 'var(--icon-bg-green)', 'var(--green-dark)'] }
-                                    const [label, bg, color] = badges[f.source] || badges.openfoodfacts
+                                    const [label, bg, color] = f.source === 'public'
+                                      ? [f.brand && f.brand.includes(' — ') ? f.brand.split(' — ')[0] : 'DB', 'var(--icon-bg-green)', 'var(--green-dark)']
+                                      : (badges[f.source] || badges.openfoodfacts)
                                     return <span style={{ fontSize: 9, background: bg, color, padding: '2px 6px', borderRadius: 100, fontWeight: 700, flexShrink: 0 }}>{label}</span>
                                   })()}
                                 </div>
                                 <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                                  {f.brand ? `${f.brand} · ` : ''}{r0(f.kcal_100g)} kcal · P:{r1(f.proteins_100g)} C:{r1(f.carbs_100g)} G:{r1(f.fats_100g)}
+                                  {(f.source !== 'dietitian' && f.source !== 'public') && f.brand ? `${f.brand} · ` : ''}{r0(f.kcal_100g)} kcal · P:{r1(f.proteins_100g)} C:{r1(f.carbs_100g)} G:{r1(f.fats_100g)}
                                 </p>
                                 {(() => {
                                   const conflicts = conflictingAllergens(f, profile?.intolerances)
