@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
 import ProGate from '../components/ProGate'
 import { useSubscription } from '../hooks/useSubscription'
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts'
 import { TrendingDown, TrendingUp, Minus, Target, Plus, Scale, Activity } from 'lucide-react'
 
 const MOOD_OPTIONS = [
@@ -696,6 +696,75 @@ export default function ProgressPage() {
                             {last.ffmi != null && makeGauge('FFMI', last.ffmi, ' kg/m²', ffmiRanges, 0, isMale ? 30 : 26)}
                             {ecwRatio != null && makeGauge('Idratazione ECW/TBW', ecwRatio * 100, '%', ecwRanges, 0, 60)}
                           </div>
+                        )
+                      })()}
+
+                      {/* ── Grafico esagonale / radar — Profilo vs Riferimento ── */}
+                      {(() => {
+                        const sesso = last.sesso || 'F'
+                        const isMale = sesso === 'M'
+                        const rd = []
+
+                        // % Grasso: 100 = centro range normale, decresce fuori
+                        if (last.bf_pct != null) {
+                          const optLow = isMale ? 18 : 25, optHigh = isMale ? 25 : 32, worst = isMale ? 35 : 45
+                          let sc
+                          if (last.bf_pct >= optLow && last.bf_pct <= optHigh) sc = 100
+                          else if (last.bf_pct < optLow) sc = Math.max(20, 100 - (optLow - last.bf_pct) * 3)
+                          else sc = Math.max(5, 100 - (last.bf_pct - optHigh) / (worst - optHigh) * 95)
+                          rd.push({ subject: '% Grasso', Tu: Math.round(sc), Rif: 80 })
+                        }
+
+                        // Angolo di Fase: 7° = 100%
+                        if (last.angolo_fase != null) {
+                          rd.push({ subject: 'Ang. Fase', Tu: Math.min(100, Math.max(5, Math.round(last.angolo_fase / 7 * 100))), Rif: 71 })
+                        }
+
+                        // FFMI: midpoint "Buono" come riferimento
+                        if (last.ffmi != null) {
+                          const refFFMI = isMale ? 22.5 : 18.5
+                          rd.push({ subject: 'FFMI', Tu: Math.min(100, Math.max(5, Math.round(last.ffmi / refFFMI * 100))), Rif: 84 })
+                        }
+
+                        // Idratazione TBW% del peso
+                        if (last.tbw != null && last.peso) {
+                          const tbwPct = last.tbw / last.peso * 100
+                          const refTBW = isMale ? 62 : 55
+                          rd.push({ subject: 'Idratazione', Tu: Math.min(100, Math.max(5, Math.round(tbwPct / refTBW * 100))), Rif: 87 })
+                        }
+
+                        // Bilancio idrico ECW/TBW
+                        if (ecwRatio != null) {
+                          const sc = ecwRatio < 0.36 ? 55 : ecwRatio < 0.39 ? 92 : ecwRatio < 0.41 ? 62 : 30
+                          rd.push({ subject: 'Bil. Idrico', Tu: sc, Rif: 92 })
+                        }
+
+                        // BCM / FFM qualità cellulare
+                        if (last.bcm != null && last.ffm_kg && last.ffm_kg > 0) {
+                          rd.push({ subject: 'BCM', Tu: Math.min(100, Math.max(5, Math.round(last.bcm / last.ffm_kg * 100 / 55 * 100))), Rif: 78 })
+                        }
+
+                        if (rd.length < 3) return null
+                        return (
+                          <ProGate feature="Grafico radar BIA" teaser="Visualizza il tuo profilo corporeo vs popolazione di riferimento">
+                            <div className="card" style={{ padding: '16px 12px 8px' }}>
+                              <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 2, padding: '0 4px' }}>🕸️ Profilo corporeo vs Riferimento {isMale ? '♂' : '♀'}</h3>
+                              <p style={{ fontSize: 10, color: 'var(--text-muted)', padding: '0 4px', marginBottom: 4 }}>
+                                Blu = il tuo profilo · Grigio = adulto sano di riferimento · Scala 0–100
+                              </p>
+                              <ResponsiveContainer width="100%" height={270}>
+                                <RadarChart data={rd} margin={{ top: 10, right: 40, bottom: 10, left: 40 }}>
+                                  <PolarGrid stroke="var(--border)" />
+                                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                                  <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 8, fill: 'var(--text-muted)' }} tickCount={4} />
+                                  <Radar name="Tu" dataKey="Tu" stroke="#1d4ed8" fill="#1d4ed8" fillOpacity={0.22} dot={{ r: 3, fill: '#1d4ed8' }} />
+                                  <Radar name="Riferimento" dataKey="Rif" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.08} strokeDasharray="5 5" />
+                                  <Legend iconSize={8} wrapperStyle={{ fontSize: 10 }} />
+                                  <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid var(--border)' }} formatter={(v) => [v + ' / 100', '']} />
+                                </RadarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </ProGate>
                         )
                       })()}
 
