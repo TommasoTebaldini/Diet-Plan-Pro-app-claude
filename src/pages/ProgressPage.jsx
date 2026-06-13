@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
 import ProGate from '../components/ProGate'
 import { useSubscription } from '../hooks/useSubscription'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
 import { TrendingDown, TrendingUp, Minus, Target, Plus, Scale, Activity } from 'lucide-react'
 
 const MOOD_OPTIONS = [
@@ -70,7 +70,7 @@ export default function ProgressPage() {
       setCartellaId(cid)
       const [schedeRes, biaRes] = await Promise.all([
         supabase.from('schede_valutazione').select('id,saved_at,peso,vita,fianchi,braccio,plica,massa_grassa_pct,massa_magra').eq('cartella_id', cid).eq('visible_to_patient', true).order('saved_at', { ascending: true }),
-        supabase.from('bia_records').select('id,data_misura,peso,bf_pct,ffm_kg,fm_kg,tbw,angolo_fase,bcm,muscle,bone,icw,ecw,ffmi').eq('cartella_id', cid).eq('visible_to_patient', true).order('data_misura', { ascending: true }),
+        supabase.from('bia_records').select('id,data_misura,peso,altezza,sesso,eta,bf_pct,ffm_kg,fm_kg,tbw,angolo_fase,bcm,muscle,bone,icw,ecw,ffmi').eq('cartella_id', cid).eq('visible_to_patient', true).order('data_misura', { ascending: true }),
       ])
       setSchede(schedeRes.data || [])
       setBiaData(biaRes.data || [])
@@ -644,25 +644,123 @@ export default function ProgressPage() {
                         </div>
                       )}
 
-                      {/* Trend chart */}
+                      {/* ── Confronto con valori di riferimento ── */}
+                      {(() => {
+                        const sesso = last.sesso || 'F'
+                        const isMale = sesso === 'M'
+                        const bfRanges = isMale
+                          ? [{ from:0,to:6,label:'Essenziale',col:'#7c3aed',bg:'#ede9fe' },{ from:6,to:14,label:'Atleta',col:'#1d4ed8',bg:'#dbeafe' },{ from:14,to:18,label:'Fitness',col:'#16a34a',bg:'#dcfce7' },{ from:18,to:25,label:'Normale',col:'#15803d',bg:'#f0fdf4' },{ from:25,to:30,label:'Sovrappeso',col:'#f59e0b',bg:'#fef3c7' },{ from:30,to:50,label:'Obesità',col:'#dc2626',bg:'#fee2e2' }]
+                          : [{ from:0,to:14,label:'Essenziale',col:'#7c3aed',bg:'#ede9fe' },{ from:14,to:21,label:'Atleta',col:'#1d4ed8',bg:'#dbeafe' },{ from:21,to:25,label:'Fitness',col:'#16a34a',bg:'#dcfce7' },{ from:25,to:32,label:'Normale',col:'#15803d',bg:'#f0fdf4' },{ from:32,to:37,label:'Sovrappeso',col:'#f59e0b',bg:'#fef3c7' },{ from:37,to:55,label:'Obesità',col:'#dc2626',bg:'#fee2e2' }]
+                        const afRanges = [{ from:0,to:4,label:'Critico',col:'#dc2626',bg:'#fee2e2' },{ from:4,to:5,label:'Ridotto',col:'#f59e0b',bg:'#fef3c7' },{ from:5,to:7,label:'Normale',col:'#16a34a',bg:'#dcfce7' },{ from:7,to:12,label:'Ottimo',col:'#1d4ed8',bg:'#dbeafe' }]
+                        const ffmiRanges = isMale
+                          ? [{ from:0,to:18,label:'Basso',col:'#f59e0b',bg:'#fef3c7' },{ from:18,to:20,label:'Normale',col:'#16a34a',bg:'#dcfce7' },{ from:20,to:25,label:'Buono',col:'#15803d',bg:'#f0fdf4' },{ from:25,to:30,label:'Elevato',col:'#1d4ed8',bg:'#dbeafe' }]
+                          : [{ from:0,to:14,label:'Basso',col:'#f59e0b',bg:'#fef3c7' },{ from:14,to:17,label:'Normale',col:'#16a34a',bg:'#dcfce7' },{ from:17,to:20,label:'Buono',col:'#15803d',bg:'#f0fdf4' },{ from:20,to:26,label:'Elevato',col:'#1d4ed8',bg:'#dbeafe' }]
+                        const ecwRanges = [{ from:0,to:36,label:'Disidrat.',col:'#1d4ed8',bg:'#dbeafe' },{ from:36,to:39,label:'Normale',col:'#16a34a',bg:'#dcfce7' },{ from:39,to:41,label:'Ritenzione',col:'#f59e0b',bg:'#fef3c7' },{ from:41,to:60,label:'Edema',col:'#dc2626',bg:'#fee2e2' }]
+
+                        const makeGauge = (label, value, unit, ranges, min, max) => {
+                          if (value == null) return null
+                          const pct = Math.min(100, Math.max(0, (value - min) / (max - min) * 100))
+                          const active = ranges.find(r => value >= r.from && value < r.to) || ranges[ranges.length - 1]
+                          const zonePcts = ranges.map(r => Math.min(r.to, max) - Math.max(r.from, min)).map(w => Math.max(0, w / (max - min) * 100))
+                          return (
+                            <div key={label} style={{ marginBottom: 14 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
+                                <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>{label}</span>
+                                <span style={{ fontWeight: 700, color: active.col }}>{parseFloat(value).toFixed(1)}{unit} — {active.label}</span>
+                              </div>
+                              <div style={{ position: 'relative', height: 14, borderRadius: 7, overflow: 'hidden', display: 'flex' }}>
+                                {ranges.map((r, i) => <div key={i} style={{ flex: zonePcts[i], background: r.col, opacity: 0.25 }} />)}
+                                <div style={{ position: 'absolute', left: `calc(${pct}% - 5px)`, top: 0, width: 10, height: 14, background: active.col, borderRadius: 3, boxShadow: '0 1px 4px rgba(0,0,0,0.35)' }} />
+                              </div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                                {ranges.map((r, i) => (
+                                  <span key={i} style={{ fontSize: 9, color: r.col, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    <span style={{ width: 7, height: 7, borderRadius: 2, background: r.col, display: 'inline-block', opacity: 0.7 }} />
+                                    {r.label} {r.from}–{r.to < max ? r.to : '+'}{unit}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        }
+
+                        const hasSomeRef = last.bf_pct != null || last.angolo_fase != null || last.ffmi != null || (ecwRatio != null)
+                        if (!hasSomeRef) return null
+                        return (
+                          <div className="card" style={{ padding: 16 }}>
+                            <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
+                              🎯 Posizione rispetto ai valori di riferimento {sesso === 'M' ? '♂' : '♀'}
+                            </h3>
+                            {makeGauge('Massa Grassa', last.bf_pct, '%', bfRanges, 0, 50)}
+                            {makeGauge('Angolo di Fase', last.angolo_fase, '°', afRanges, 0, 12)}
+                            {last.ffmi != null && makeGauge('FFMI', last.ffmi, ' kg/m²', ffmiRanges, 0, isMale ? 30 : 26)}
+                            {ecwRatio != null && makeGauge('Idratazione ECW/TBW', ecwRatio * 100, '%', ecwRanges, 0, 60)}
+                          </div>
+                        )
+                      })()}
+
+                      {/* ── Confronto vs misura precedente ── */}
+                      {prev && (() => {
+                        const compMetrics = [
+                          { key: 'bf_pct', label: '% Grasso', col: '#dc2626' },
+                          { key: 'ffm_kg', label: 'M.Magra kg', col: '#1d4ed8' },
+                          { key: 'fm_kg', label: 'M.Grassa kg', col: '#ea580c' },
+                          { key: 'tbw', label: 'Acqua L', col: '#0369a1' },
+                          { key: 'angolo_fase', label: 'Ang. Fase°', col: '#15803d' },
+                        ].filter(m => last[m.key] != null && prev[m.key] != null)
+                        if (!compMetrics.length) return null
+
+                        const chartData = compMetrics.map(m => ({
+                          name: m.label,
+                          Precedente: parseFloat(parseFloat(prev[m.key]).toFixed(1)),
+                          Attuale: parseFloat(parseFloat(last[m.key]).toFixed(1)),
+                        }))
+
+                        return (
+                          <ProGate feature="Grafico confronto BIA" teaser="Visualizza il confronto grafico tra le misurazioni">
+                            <div className="card" style={{ padding: '16px 12px 12px' }}>
+                              <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, padding: '0 4px' }}>📊 Confronto con misura precedente</h3>
+                              <p style={{ fontSize: 11, color: 'var(--text-muted)', padding: '0 4px', marginBottom: 10 }}>
+                                {new Date(prev.data_misura).toLocaleDateString('it-IT')} → {new Date(last.data_misura).toLocaleDateString('it-IT')}
+                              </p>
+                              <ResponsiveContainer width="100%" height={200}>
+                                <BarChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 30 }} barCategoryGap="30%">
+                                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" vertical={false} />
+                                  <XAxis dataKey="name" tick={{ fontSize: 9, fill: 'var(--text-muted)' }} angle={-30} textAnchor="end" interval={0} />
+                                  <YAxis tick={{ fontSize: 9, fill: 'var(--text-muted)' }} />
+                                  <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid var(--border)' }} />
+                                  <Legend iconSize={8} wrapperStyle={{ fontSize: 10, paddingTop: 4 }} />
+                                  <Bar dataKey="Precedente" fill="#94a3b8" radius={[3,3,0,0]} />
+                                  <Bar dataKey="Attuale" fill="#1d4ed8" radius={[3,3,0,0]} />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </ProGate>
+                        )
+                      })()}
+
+                      {/* ── Trend nel tempo ── */}
                       {biaData.length > 1 && (
                         <ProGate feature="Grafici BIA nel tempo" teaser="Visualizza l'andamento completo della composizione corporea">
                           <div className="card" style={{ padding: '16px 12px 12px' }}>
-                            <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, padding: '0 4px' }}>📈 Andamento composizione corporea</h3>
-                            <ResponsiveContainer width="100%" height={180}>
+                            <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, padding: '0 4px' }}>📈 Andamento nel tempo</h3>
+                            <ResponsiveContainer width="100%" height={200}>
                               <LineChart data={biaData.map(b => ({
                                 d: new Date(b.data_misura).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }),
                                 'Grasso %': b.bf_pct != null ? parseFloat(parseFloat(b.bf_pct).toFixed(1)) : null,
-                                'Massa magra': b.ffm_kg != null ? parseFloat(parseFloat(b.ffm_kg).toFixed(1)) : null,
+                                'Massa magra kg': b.ffm_kg != null ? parseFloat(parseFloat(b.ffm_kg).toFixed(1)) : null,
                                 'Acqua L': b.tbw != null ? parseFloat(parseFloat(b.tbw).toFixed(1)) : null,
-                              }))} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                                'Ang. Fase°': b.angolo_fase != null ? parseFloat(parseFloat(b.angolo_fase).toFixed(1)) : null,
+                              }))} margin={{ top: 4, right: 4, left: -18, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
                                 <XAxis dataKey="d" tick={{ fontSize: 9, fill: 'var(--text-muted)' }} interval="preserveStartEnd" />
                                 <YAxis tick={{ fontSize: 9, fill: 'var(--text-muted)' }} />
                                 <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid var(--border)' }} />
+                                <Legend iconSize={8} wrapperStyle={{ fontSize: 10 }} />
                                 {biaData.some(b => b.bf_pct != null) && <Line type="monotone" dataKey="Grasso %" stroke="#dc2626" strokeWidth={2} dot={{ r: 3 }} connectNulls />}
-                                {biaData.some(b => b.ffm_kg != null) && <Line type="monotone" dataKey="Massa magra" stroke="#1d4ed8" strokeWidth={2} dot={{ r: 3 }} connectNulls />}
+                                {biaData.some(b => b.ffm_kg != null) && <Line type="monotone" dataKey="Massa magra kg" stroke="#1d4ed8" strokeWidth={2} dot={{ r: 3 }} connectNulls />}
                                 {biaData.some(b => b.tbw != null) && <Line type="monotone" dataKey="Acqua L" stroke="#0369a1" strokeWidth={2} dot={{ r: 3 }} connectNulls />}
+                                {biaData.some(b => b.angolo_fase != null) && <Line type="monotone" dataKey="Ang. Fase°" stroke="#15803d" strokeWidth={2} dot={{ r: 3 }} connectNulls />}
                               </LineChart>
                             </ResponsiveContainer>
                           </div>
