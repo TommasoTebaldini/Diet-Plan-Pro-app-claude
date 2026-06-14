@@ -20,8 +20,16 @@ registerRoute(
   ({ url }) => url.hostname.includes('supabase.co'),
   new NetworkFirst({
     cacheName: 'supabase-cache',
-    networkTimeoutSeconds: 5,
+    networkTimeoutSeconds: 10,
     plugins: [new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 })],
+  }),
+)
+
+registerRoute(
+  ({ url }) => url.pathname.includes('all-foods'),
+  new CacheFirst({
+    cacheName: 'all-foods-cache',
+    plugins: [new ExpirationPlugin({ maxEntries: 2, maxAgeSeconds: 60 * 60 * 24 * 30 })],
   }),
 )
 

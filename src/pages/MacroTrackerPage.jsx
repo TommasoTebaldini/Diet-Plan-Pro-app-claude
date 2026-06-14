@@ -288,10 +288,11 @@ export default function MacroTrackerPage() {
       ? 'id,date,meal_type,meal_time,food_name,grams,kcal,proteins,carbs,fats,food_data,is_favorite,unit'
       : 'id,date,meal_type,meal_time,food_name,grams,kcal,proteins,carbs,fats,food_data'
 
-    const [dietRes, wellnessRes, foodRes0] = await Promise.all([
+    const [dietRes, wellnessRes, foodRes0, dietFallbackRes] = await Promise.all([
       supabase.from('patient_diets').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
       supabase.from('daily_wellness').select('mood').eq('user_id', user.id).eq('date', date).maybeSingle(),
       supabase.from('food_logs').select(foodSelect).eq('user_id', user.id).eq('date', date).order('created_at'),
+      supabase.from('patient_diets').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
     ])
 
     let foodRes = foodRes0
@@ -307,15 +308,8 @@ export default function MacroTrackerPage() {
     if (foodRes.error) console.error('[food_logs] load error:', foodRes.error)
     setLog(foodRes.data || [])
 
-    // diet: try patient_diets first (con fallback senza is_active)
-    let dietData = dietRes.data ?? null
-    if (!dietData && !dietRes.error) {
-      const { data: fb } = await supabase.from('patient_diets')
-        .select('*').eq('user_id', user.id)
-        .order('created_at', { ascending: false }).limit(1).maybeSingle()
-      dietData = fb ?? null
-    }
-    // Fallback finale: piano + macro target da NutriPlan-Pro
+    // diet: usa is_active, poi fallback già scaricato in parallelo, poi piani NutriPlan-Pro
+    let dietData = dietRes.data ?? dietFallbackRes.data ?? null
     if (!dietData) {
       const synth = await fetchDietFromPiani(user.id)
       if (synth) dietData = synth
@@ -329,47 +323,41 @@ export default function MacroTrackerPage() {
     cutoff.setDate(cutoff.getDate() - 14)
     const from = cutoff.toISOString().split('T')[0]
 
-    // Feature 3: Favorites — only if extended columns confirmed to exist
-    if (_foodLogsExtended !== false) {
-      try {
-        const cutoff90 = new Date()
-        cutoff90.setDate(cutoff90.getDate() - 90)
-        const { data: favData, error: favErr } = await supabase
-          .from('food_logs')
-          .select('food_name,grams,food_data')
-          .eq('user_id', user.id)
-          .eq('is_favorite', true)
-          .gte('date', cutoff90.toISOString().split('T')[0])
-          .neq('food_name', '__note__')
-          .order('created_at', { ascending: false })
-          .limit(100)
-
-        if (favErr && _isColErr(favErr)) {
-          _foodLogsExtended = false
-        } else if (!favErr && favData) {
-          const favSeen = new Map()
-          for (const row of favData) {
-            if (!favSeen.has(row.food_name)) {
-              favSeen.set(row.food_name, { food_name: row.food_name, grams: row.grams, food_data: row.food_data })
-            }
-          }
-          setFavoriteFoods([...favSeen.values()])
-        }
-      } catch (_) {}
-    }
-
-    // Per-meal recent foods (last 30 days, up to 5 per meal)
+    const cutoff90 = new Date()
+    cutoff90.setDate(cutoff90.getDate() - 90)
     const cutoff30 = new Date()
     cutoff30.setDate(cutoff30.getDate() - 30)
     const from30 = cutoff30.toISOString().split('T')[0]
-    const { data: mealRecentData } = await supabase
-      .from('food_logs')
-      .select('food_name,grams,food_data,meal_type,created_at')
-      .eq('user_id', user.id)
-      .gte('date', from30)
-      .neq('food_name', '__note__')
-      .order('created_at', { ascending: false })
-      .limit(500)
+
+    // Lancia favoriti e recenti in parallelo
+    const [favResult, mealRecentResult, mealsResult] = await Promise.all([
+      _foodLogsExtended !== false
+        ? supabase.from('food_logs').select('food_name,grams,food_data').eq('user_id', user.id).eq('is_favorite', true).gte('date', cutoff90.toISOString().split('T')[0]).neq('food_name', '__note__').order('created_at', { ascending: false }).limit(100)
+        : Promise.resolve({ data: null, error: null }),
+      supabase.from('food_logs').select('food_name,grams,food_data,meal_type,created_at').eq('user_id', user.id).gte('date', from30).neq('food_name', '__note__').order('created_at', { ascending: false }).limit(500),
+      supabase.from('custom_meals').select('*').order('created_at', { ascending: false }),
+    ])
+
+    // Feature 3: Favorites
+    if (_foodLogsExtended !== false) {
+      const { data: favData, error: favErr } = favResult
+      if (favErr && _isColErr(favErr)) {
+        _foodLogsExtended = false
+      } else if (!favErr && favData) {
+        const favSeen = new Map()
+        for (const row of favData) {
+          if (!favSeen.has(row.food_name)) {
+            favSeen.set(row.food_name, { food_name: row.food_name, grams: row.grams, food_data: row.food_data })
+          }
+        }
+        setFavoriteFoods([...favSeen.values()])
+      }
+    }
+
+    setSavedMeals(mealsResult.data || [])
+
+    // Per-meal recent foods (last 30 days, up to 5 per meal)
+    const { data: mealRecentData } = mealRecentResult
     if (mealRecentData) {
       const byMeal = {}
       for (const row of mealRecentData) {
@@ -390,12 +378,6 @@ export default function MacroTrackerPage() {
       setRecentByMeal(result)
     }
 
-    // Feature 2: Saved custom meals
-    const { data: mealsData } = await supabase
-      .from('custom_meals')
-      .select('*')
-      .order('created_at', { ascending: false })
-    setSavedMeals(mealsData || [])
   }
 
   // Two-phase live search: local results first (~200ms), then OFA in background

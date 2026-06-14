@@ -94,10 +94,23 @@ function ScrollToTop() {
   const { pathname } = useLocation()
   useEffect(() => {
     window.scrollTo(0, 0)
-    // Also reset any scrollable .page element (mobile PWA inner scroll)
     const page = document.querySelector('.page')
     if (page) page.scrollTop = 0
   }, [pathname])
+  return null
+}
+
+function IdlePrefetch() {
+  useEffect(() => {
+    const cb = typeof requestIdleCallback !== 'undefined' ? requestIdleCallback : (fn) => setTimeout(fn, 2000)
+    const cancel = typeof cancelIdleCallback !== 'undefined' ? cancelIdleCallback : clearTimeout
+    const id = cb(() => {
+      import('./pages/DashboardPage')
+      import('./pages/MacroTrackerPage')
+      import('./pages/ChatPage')
+    })
+    return () => cancel(id)
+  }, [])
   return null
 }
 
@@ -150,6 +163,7 @@ function AppInner() {
     <NotificationProvider user={user}>
     <AchievementsProvider>
       <ScrollToTop />
+      <IdlePrefetch />
       <OfflineBar onReconnect={handleReconnect} />
       <InstallBanner />
       {user && !isDietitian && <BottomNav />}
