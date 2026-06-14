@@ -1359,3 +1359,4 @@ $$;
 
 grant execute on function get_my_macro_targets() to authenticated;
   with check (auth.uid() = patient_id);
+
