@@ -8,6 +8,7 @@ import { useT } from '../i18n'
 import { searchFoodsLocal, searchFoods, searchByBarcode } from '../lib/foodSearch'
 import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle, Pencil, Check, Lock, Camera, Star, BookmarkPlus, ClipboardCopy, WifiOff } from 'lucide-react'
 import { safeWrite } from '../lib/offlineDB'
+import { queueFoodLog, flushQueue } from '../lib/offlineQueue'
 const BarcodeScanner   = lazy(() => import('../components/BarcodeScanner'))
 const MealPhotoAnalyzer = lazy(() => import('../components/MealPhotoAnalyzer'))
 import ProGate from '../components/ProGate'
@@ -281,6 +282,23 @@ export default function MacroTrackerPage() {
 
   // Load recent/favorites once on mount
   useEffect(() => { loadRecentAndFavorites() }, [])
+
+  // Sync offline queue on reconnect
+  useEffect(() => {
+    const handleOnline = async () => {
+      try {
+        const count = await flushQueue(supabase, user.id)
+        if (count > 0) {
+          setAddedFood(null)
+          setTimeout(() => setAddedFood('✅ Sincronizzati ' + count + ' pasti offline'), 100)
+          setTimeout(() => setAddedFood(null), 3500)
+          await loadLog()
+        }
+      } catch {}
+    }
+    window.addEventListener('online', handleOnline)
+    return () => window.removeEventListener('online', handleOnline)
+  }, [user.id])
 
   async function loadLog() {
     // Use known column set if already determined, else try extended

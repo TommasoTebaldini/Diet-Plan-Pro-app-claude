@@ -945,6 +945,19 @@ export default function ProfilePage() {
   const [localProfile, setLocalProfile] = useState(profile)
   const [loggingOut, setLoggingOut] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
+  // Password change inline
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [pwLoading, setPwLoading] = useState(false)
+  const [pwMsg, setPwMsg] = useState('')
+  const [showPwSection, setShowPwSection] = useState(false)
+  // Notification prefs
+  const [notifPrefs, setNotifPrefs] = useState(() => {
+    try {
+      const saved = localStorage.getItem('nutriplan_notif_prefs')
+      return saved ? JSON.parse(saved) : { mealReminder: true, waterReminder: true, weeklyReport: true, dietitianMessages: true, activityReminder: false }
+    } catch { return { mealReminder: true, waterReminder: true, weeklyReport: true, dietitianMessages: true, activityReminder: false } }
+  })
 
   useEffect(() => { setLocalProfile(profile) }, [profile])
 
@@ -1090,6 +1103,65 @@ export default function ProfilePage() {
             </div>
             <ChevronRight size={16} color="rgba(255,255,255,0.55)" />
           </button>
+
+          {/* Inline password change */}
+          <div className="card" style={{ padding: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showPwSection ? 12 : 0 }}>
+              <p style={{ fontSize: 13, fontWeight: 700 }}>🔑 Cambia password</p>
+              <button onClick={() => { setShowPwSection(v => !v); setPwMsg('') }} style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--green-main)', fontWeight: 600, cursor: 'pointer' }}>
+                {showPwSection ? 'Chiudi' : 'Modifica'}
+              </button>
+            </div>
+            {showPwSection && (
+              <>
+                <input type="password" placeholder="Nuova password (min 8 caratteri)" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="input-field" style={{ marginBottom: 8 }} />
+                <input type="password" placeholder="Conferma nuova password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="input-field" style={{ marginBottom: 12 }} />
+                <button className="btn btn-primary" onClick={async () => {
+                  if (newPassword.length < 8) { setPwMsg('La password deve essere almeno 8 caratteri'); return }
+                  if (newPassword !== confirmPassword) { setPwMsg('Le password non corrispondono'); return }
+                  setPwLoading(true)
+                  const { error } = await supabase.auth.updateUser({ password: newPassword })
+                  setPwLoading(false)
+                  setPwMsg(error ? 'Errore: ' + error.message : '✅ Password aggiornata con successo')
+                  if (!error) { setNewPassword(''); setConfirmPassword('') }
+                }} disabled={pwLoading} style={{ width: '100%', justifyContent: 'center' }}>
+                  {pwLoading ? '...' : 'Aggiorna password'}
+                </button>
+                {pwMsg && <p style={{ fontSize: 12, marginTop: 8, color: pwMsg.includes('✅') ? 'var(--green-main)' : 'var(--red)' }}>{pwMsg}</p>}
+              </>
+            )}
+          </div>
+
+          {/* Notification prefs quick toggles */}
+          <div className="card" style={{ padding: 16 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>🔔 Preferenze notifiche</p>
+            {[
+              { key: 'mealReminder', label: '📊 Promemoria pasti' },
+              { key: 'waterReminder', label: '💧 Promemoria acqua' },
+              { key: 'weeklyReport', label: '📈 Report settimanale' },
+              { key: 'dietitianMessages', label: '💬 Messaggi dal dietista' },
+              { key: 'activityReminder', label: '🏃 Promemoria attività fisica' },
+            ].map(item => (
+              <div key={item.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border-light)' }}>
+                <p style={{ fontSize: 13 }}>{item.label}</p>
+                <button onClick={() => {
+                  const next = { ...notifPrefs, [item.key]: !notifPrefs[item.key] }
+                  setNotifPrefs(next)
+                  try { localStorage.setItem('nutriplan_notif_prefs', JSON.stringify(next)) } catch {}
+                }} style={{
+                  width: 44, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer',
+                  background: notifPrefs[item.key] ? 'var(--green-main)' : 'var(--border)',
+                  transition: 'background 0.2s', position: 'relative', flexShrink: 0,
+                }}>
+                  <div style={{
+                    width: 20, height: 20, borderRadius: '50%', background: 'white',
+                    position: 'absolute', top: 3, left: notifPrefs[item.key] ? 21 : 3,
+                    transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  }} />
+                </button>
+              </div>
+            ))}
+          </div>
 
           {/* App info */}
           <div className="card" style={{ padding: '14px 16px', textAlign: 'center' }}>

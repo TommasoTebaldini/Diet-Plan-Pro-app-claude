@@ -174,6 +174,15 @@ export default function ActivityPage() {
   const [stepGoal, setStepGoalState] = useState(() => getStepGoal())
   const [editingStepGoal, setEditingStepGoal] = useState(false)
   const [stepGoalInput, setStepGoalInput] = useState(String(DEFAULT_STEP_GOAL))
+  // Activity goals
+  const [activityGoals, setActivityGoals] = useState(() => {
+    try {
+      const saved = localStorage.getItem('nutriplan_activity_goals')
+      return saved ? JSON.parse(saved) : { steps: 10000, calories: 300, minutes: 30 }
+    } catch { return { steps: 10000, calories: 300, minutes: 30 } }
+  })
+  const [editingGoals, setEditingGoals] = useState(false)
+  const [goalsInput, setGoalsInput] = useState({ steps: '10000', calories: '300', minutes: '30' })
 
   // Live pedometer state
   const [liveSteps, setLiveSteps] = useState(() => getTodaySteps())
@@ -536,6 +545,65 @@ export default function ActivityPage() {
               <span>🏃</span> Google Fit <ExternalLink size={11} />
             </a>
           </div>
+        </motion.div>
+
+        {/* ── I miei obiettivi ── */}
+        <motion.div className="card" style={{ padding: '18px 20px' }} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fef9c3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🎯</div>
+              <p style={{ fontSize: 14, fontWeight: 700 }}>I miei obiettivi</p>
+            </div>
+            {!editingGoals ? (
+              <button onClick={() => { setGoalsInput({ steps: String(activityGoals.steps), calories: String(activityGoals.calories), minutes: String(activityGoals.minutes) }); setEditingGoals(true) }}
+                style={{ fontSize: 12, color: '#f97316', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>Modifica</button>
+            ) : (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button onClick={() => {
+                  const next = { steps: parseInt(goalsInput.steps) || 10000, calories: parseInt(goalsInput.calories) || 300, minutes: parseInt(goalsInput.minutes) || 30 }
+                  setActivityGoals(next)
+                  try { localStorage.setItem('nutriplan_activity_goals', JSON.stringify(next)) } catch {}
+                  setEditingGoals(false)
+                }} style={{ background: '#f97316', border: 'none', borderRadius: 8, minWidth: 44, minHeight: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  <Check size={14} color="white" />
+                </button>
+                <button onClick={() => setEditingGoals(false)} style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 8, minWidth: 44, minHeight: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  <X size={14} color="var(--text-muted)" />
+                </button>
+              </div>
+            )}
+          </div>
+          {[
+            { key: 'calories', label: 'Calorie bruciate', unit: 'kcal', current: todayCalories, icon: '🔥', color: '#f97316' },
+            { key: 'minutes', label: 'Minuti di esercizio', unit: 'min', current: todayMinutes, icon: '⏱️', color: '#8b5cf6' },
+            { key: 'steps', label: 'Passi giornalieri', unit: 'passi', current: todaySteps, icon: '👟', color: '#f59e0b' },
+          ].map(goal => {
+            const goalVal = activityGoals[goal.key] || 1
+            const pct = Math.min(100, Math.round((goal.current / goalVal) * 100))
+            const barColor = pct >= 100 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444'
+            return (
+              <div key={goal.key} style={{ marginBottom: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: 13, fontWeight: 500 }}>{goal.icon} {goal.label}</span>
+                  {editingGoals ? (
+                    <input type="number" value={goalsInput[goal.key]} onChange={e => setGoalsInput(g => ({ ...g, [goal.key]: e.target.value }))}
+                      style={{ width: 80, padding: '4px 8px', borderRadius: 8, border: '1.5px solid #f97316', fontSize: 14, fontFamily: 'inherit', outline: 'none', textAlign: 'right' }}
+                      inputMode="numeric" min="1" />
+                  ) : (
+                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                      <strong style={{ color: 'var(--text-primary)', fontSize: 14 }}>{goal.current.toLocaleString('it-IT')}</strong> / {goalVal.toLocaleString('it-IT')} {goal.unit}
+                    </span>
+                  )}
+                </div>
+                <div style={{ height: 8, background: 'var(--border-light)', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: pct + '%', background: barColor, borderRadius: 4, transition: 'width 0.6s ease' }} />
+                </div>
+                <p style={{ fontSize: 10, color: pct >= 100 ? '#16a34a' : pct >= 50 ? '#d97706' : '#dc2626', fontWeight: 600, marginTop: 3 }}>
+                  {pct >= 100 ? '\u2713 Obiettivo raggiunto!' : pct + '% completato'}
+                </p>
+              </div>
+            )
+          })}
         </motion.div>
 
         {/* ── Tabs ── */}
