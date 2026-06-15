@@ -712,9 +712,12 @@ function LanguageModal({ onClose }) {
     { val: 'it', label: 'Italiano', flag: '🇮🇹', desc: 'Lingua predefinita' },
     { val: 'en', label: 'English', flag: '🇬🇧', desc: 'English interface' },
     { val: 'de', label: 'Deutsch', flag: '🇩🇪', desc: 'Deutsche Benutzeroberfläche' },
+    { val: 'fr', label: 'Français', flag: '🇫🇷', desc: 'Interface en français' },
+    { val: 'es', label: 'Español', flag: '🇪🇸', desc: 'Interfaz en español' },
   ]
 
-  const title = settings.language === 'de' ? 'Sprache' : settings.language === 'en' ? 'Language' : 'Lingua'
+  const titleMap = { it: 'Lingua', en: 'Language', de: 'Sprache', fr: 'Langue', es: 'Idioma' }
+  const title = titleMap[settings.language] || 'Lingua'
 
   return (
     <Modal title={title} onClose={onClose}>
