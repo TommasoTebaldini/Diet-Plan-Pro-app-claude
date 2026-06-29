@@ -59,7 +59,7 @@ export function AuthProvider({ children }) {
       setProfile(cached)
       setLoading(false)
       // Background refresh (don't block render)
-      supabase.from('profiles').select('*').eq('id', userId).single().then(({ data, error }) => {
+      supabase.from('profiles').select('id,email,role,full_name,first_name,last_name,avatar_url,target_weight,height_cm,birth_date,gender,activity_level,intolerances,food_preferences,last_seen_at').eq('id', userId).single().then(({ data, error }) => {
         if (!error && data) { setProfile(data); writeProfileCache(userId, data) }
       })
       return
@@ -68,7 +68,7 @@ export function AuthProvider({ children }) {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id,email,role,full_name,first_name,last_name,avatar_url,target_weight,height_cm,birth_date,gender,activity_level,intolerances,food_preferences,last_seen_at')
         .eq('id', userId)
         .single()
       if (!error && data) { setProfile(data); writeProfileCache(userId, data) }

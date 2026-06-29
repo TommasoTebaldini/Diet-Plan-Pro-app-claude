@@ -192,7 +192,7 @@ export default function DashboardPage() {
         supabase.from('weight_logs').select('weight_kg').eq('user_id', user.id).order('date', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('chat_messages').select('id', { count: 'exact' }).eq('patient_id', user.id).eq('sender_role', 'dietitian').is('read_at', null),
         supabase.from('daily_logs').select('date').eq('user_id', user.id).gte('date', sixtyAgo.toISOString().split('T')[0]).order('date', { ascending: false }),
-        supabase.from('appointments').select('*').eq('patient_id', user.id).gte('appointment_date', now.toISOString()).order('appointment_date').limit(1).maybeSingle(),
+        supabase.from('appointments').select('id,appointment_date,title,notes').eq('patient_id', user.id).gte('appointment_date', now.toISOString()).order('appointment_date').limit(1).maybeSingle(),
       ])
 
       if (log.value?.data) setTodayLog(log.value.data)
@@ -242,7 +242,7 @@ export default function DashboardPage() {
       // Next meal — only if diet exists (second micro-batch, non-blocking for UI)
       if (currentDiet) {
         supabase.from('diet_meals')
-          .select('*')
+          .select('id,diet_id,meal_type,meal_order,day_number,kcal')
           .eq('diet_id', currentDiet.id)
           .or(`day_number.eq.${dayNumber},day_number.is.null`)
           .order('meal_order')

@@ -307,10 +307,10 @@ export default function MacroTrackerPage() {
       : 'id,date,meal_type,meal_time,food_name,grams,kcal,proteins,carbs,fats,food_data'
 
     const [dietRes, wellnessRes, foodRes0, dietFallbackRes] = await Promise.all([
-      supabase.from('patient_diets').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
+      supabase.from('patient_diets').select('id,user_id,name,kcal_target,protein_target,carbs_target,fats_target,meals_count,duration_weeks,notes,is_active,created_at').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
       supabase.from('daily_wellness').select('mood').eq('user_id', user.id).eq('date', date).maybeSingle(),
       supabase.from('food_logs').select(foodSelect).eq('user_id', user.id).eq('date', date).order('created_at'),
-      supabase.from('patient_diets').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('patient_diets').select('id,user_id,name,kcal_target,protein_target,carbs_target,fats_target,meals_count,duration_weeks,notes,is_active,created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
     ])
 
     let foodRes = foodRes0
@@ -353,7 +353,7 @@ export default function MacroTrackerPage() {
         ? supabase.from('food_logs').select('food_name,grams,food_data').eq('user_id', user.id).eq('is_favorite', true).gte('date', cutoff90.toISOString().split('T')[0]).neq('food_name', '__note__').order('created_at', { ascending: false }).limit(100)
         : Promise.resolve({ data: null, error: null }),
       supabase.from('food_logs').select('food_name,grams,food_data,meal_type,created_at').eq('user_id', user.id).gte('date', from30).neq('food_name', '__note__').order('created_at', { ascending: false }).limit(500),
-      supabase.from('custom_meals').select('*').order('created_at', { ascending: false }),
+      supabase.from('custom_meals').select('id,user_id,name,ingredients,peso_totale_g,kcal_total,proteins_total,carbs_total,fats_total,created_at').order('created_at', { ascending: false }),
     ])
 
     // Feature 3: Favorites
