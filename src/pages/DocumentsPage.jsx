@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import patientViewRaw from '../assets/patientViewHtml.js'
-import { CONSIGLI_BASE } from '../data/consigliBase.js'
+let CONSIGLI_BASE = []
+import('../data/consigliBase.js').then(m => { CONSIGLI_BASE = m.CONSIGLI_BASE })
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'

@@ -108,6 +108,8 @@ function IdlePrefetch() {
       import('./pages/DashboardPage')
       import('./pages/MacroTrackerPage')
       import('./pages/ChatPage')
+      import('./pages/DietPage')
+      import('./pages/ProfilePage')
     })
     return () => cancel(id)
   }, [])
