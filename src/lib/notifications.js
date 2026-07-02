@@ -229,7 +229,7 @@ export async function subscribeToPush(userId) {
         auth: subData.keys?.auth,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: 'user_id' },
+      { onConflict: 'endpoint' },
     )
     return sub
   } catch (e) {

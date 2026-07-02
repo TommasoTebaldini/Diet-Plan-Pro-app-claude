@@ -883,14 +883,10 @@ function buildPatientViewHtml(doc, withPrint = false) {
   let   paramsStr = `tipo=${encodeURIComponent(tipo)}&nota=${encodeURIComponent(nota)}&data=${dataB64}`
   if (withPrint) paramsStr += '&print=1'
 
-  console.log('[buildPatientViewHtml] tipo:', tipo, '| nota:', nota, '| hasStructured:', !!hasStructuredData, '| datiKeys:', Object.keys(dati))
-
   const result = patientViewRaw.replace(
     /const params\s*=\s*new URLSearchParams\(location\.search\)/,
     `const params = new URLSearchParams(${JSON.stringify(paramsStr)})`
   )
-  const replaced = result !== patientViewRaw
-  console.log('[buildPatientViewHtml] regex replaced:', replaced, '| html length:', result.length)
   return result
 }
 
@@ -917,20 +913,13 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
     setIframeHtml(null)
     setError(null)
     setImgFailed(false)
-    if (!doc || doc.file_url) {
-      console.log('[DocModal] Skipping HTML generation - has file attachment')
-      return
-    }
+    if (!doc || doc.file_url) return
 
     try {
-      console.log('[DocModal] Attempting HTML generation for doc:', doc.id)
       const html = buildDocumentPrintHTML(doc)
-      console.log('[DocModal] Generated HTML length:', html?.length || 0)
       if (html) {
-        console.log('[DocModal] HTML generated successfully, setting iframeHtml')
         setIframeHtml(html)
       } else {
-        console.log('[DocModal] HTML generation returned null')
         setError('Documento non disponibile - manca stampa originale dal dietista')
       }
     } catch (err) {
@@ -1088,7 +1077,6 @@ export default function DocumentsPage() {
     // Normalize print_image_url: if it's a JSON array string, parse into print_image_urls
     function normalizePrintUrl(doc) {
       const raw = doc.print_image_url
-      console.log(`[normalizePrintUrl] ${doc.source || doc.type} raw="${raw ? raw.substring(0, 80) : 'null'}"`)
       if (!raw) return doc
       if (raw.startsWith('[')) {
         try {
@@ -1096,11 +1084,8 @@ export default function DocumentsPage() {
           if (Array.isArray(urls) && urls.length > 0) {
             doc.print_image_url  = urls[0]
             doc.print_image_urls = urls
-            console.log(`[normalizePrintUrl] → parsed ${urls.length} URLs`)
           }
-        } catch (e) {
-          console.warn('[normalizePrintUrl] JSON parse failed:', e.message, 'raw=', raw.substring(0, 120))
-        }
+        } catch { /* malformed JSON — leave as-is */ }
       }
       return doc
     }
@@ -1119,7 +1104,6 @@ export default function DocumentsPage() {
 
         const cartellaId = linkRes.data?.cartella_id
         dietitianId = linkRes.data?.dietitian_id
-        console.log('[Docs] patient_dietitian link:', linkRes.data, '| cartellaId:', cartellaId)
 
         // Type lookup maps — defined once outside any loop
         const TYPE_KEYS = new Set([
@@ -1165,13 +1149,6 @@ export default function DocumentsPage() {
         const patientDocs = pdRes.data || []
         const pdErr = pdRes.error
 
-        console.log('[Docs] note_specialistiche:', notes?.length, '| error:', notesErr?.message)
-        console.log('[Docs] piani:', piani?.length, '| error:', pianiErr?.message)
-        console.log('[Docs] ncpt:', ncpts?.length, '| error:', ncptErr?.message)
-        console.log('[Docs] schede_valutazione:', schede?.length, '| error:', schedeErr?.message)
-        console.log('[Docs] bia_records:', bias?.length, '| error:', biaErr?.message)
-        console.log('[Docs] patient_documents:', patientDocs?.length, '| error:', pdErr?.message)
-        if (patientDocs?.length) console.log('[Docs] patient_documents[0]:', JSON.stringify(patientDocs[0]))
 
         if (cartellaId) {
           // 2a. Note specialistiche
@@ -1373,21 +1350,10 @@ export default function DocumentsPage() {
               // always populate print_image_urls so the modal can show all pages.
               if (!doc.print_image_url) doc.print_image_url = signedUrls[0]
               doc.print_image_urls = signedUrls
-              console.log(`[Docs] storage fallback set ${signedUrls.length} signed URL(s) for ${doc.source} ${doc.id}`)
             }
           }))
-        } catch (e) {
-          console.log('[Docs] storage lookup skipped:', e.message)
-        }
+        } catch { /* storage lookup optional */ }
       }
-
-      console.log('[Docs] total allDocs:', allDocs.length)
-      const missingImg = allDocs.filter(d => !d.print_image_url).map(d => `${d.source || d.type}:${d.id}`)
-      if (missingImg.length) console.log('[Docs] still missing print_image_url:', missingImg)
-      // Diagnostic: log print_image_url and print_image_urls for key doc types
-      allDocs.filter(d => ['bia','ncpt','valutazione','note'].includes(d.source)).forEach(d => {
-        console.log(`[Docs] ${d.source} id=${d.id} print_image_url="${d.print_image_url?.substring(0,80)}" pages=${d.print_image_urls?.length ?? '(none)'}`)
-      })
       setDocs(allDocs)
       setLoading(false)
     }
