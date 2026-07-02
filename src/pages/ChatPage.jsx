@@ -815,7 +815,7 @@ export default function ChatPage() {
       )}
 
       {/* Messages */}
-      <div ref={messagesContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '12px 14px 0', paddingBottom: 'calc(72px + env(safe-area-inset-bottom))', WebkitOverflowScrolling: 'touch' }}>
+      <div ref={messagesContainerRef} className="chat-messages" style={{ flex: 1, overflowY: 'auto', padding: '12px 14px 0', WebkitOverflowScrolling: 'touch' }}>
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '20px 0' }}>
             {[['70%', false], ['50%', true], ['80%', false], ['40%', true], ['65%', false]].map(([w, isMe], i) => (

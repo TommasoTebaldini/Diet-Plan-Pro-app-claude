@@ -261,9 +261,13 @@ html.dark .icon-wrap{filter:brightness(1.8) saturate(0.7)}
 
 /* ── Chat fullscreen container ── */
 .chat-fullscreen{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;background:var(--surface-2);z-index:10}
+/* Mobile: input bar sits at 64px (BottomNav) + ~61px (bar height) = ~125px from bottom */
+.chat-messages{padding-bottom:calc(134px + env(safe-area-inset-bottom))!important}
 @media(min-width:1024px){
   .chat-fullscreen{left:var(--sidebar-w,220px);transition:left .22s ease}
   .chat-input-bar{bottom:env(safe-area-inset-bottom)!important;left:var(--sidebar-w,220px)!important;transition:left .22s ease}
+  /* Desktop: input bar sits at bottom:0, ~61px tall — 72px is enough */
+  .chat-messages{padding-bottom:calc(72px + env(safe-area-inset-bottom))!important}
 }
 
 /* ── Modal form grids: collapse to 1 column on small screens ── */
