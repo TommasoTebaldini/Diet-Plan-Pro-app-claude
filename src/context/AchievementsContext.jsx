@@ -168,9 +168,13 @@ const AchievementsContext = createContext({})
 export function AchievementsProvider({ children }) {
   const { user } = useAuth()
   const [earned, setEarned] = useState({}) // { key: earned_at }
+  const earnedRef = useRef({})
   const [toastQueue, setToastQueue] = useState([])
   const [currentToast, setCurrentToast] = useState(null)
   const processingToast = useRef(false)
+
+  // Keep earnedRef in sync so checkAndAward can read it without being in its dep array
+  useEffect(() => { earnedRef.current = earned }, [earned])
 
   // Load earned achievements from Supabase
   useEffect(() => {
@@ -203,7 +207,7 @@ export function AchievementsProvider({ children }) {
 
   const checkAndAward = useCallback(async (key) => {
     if (!user) return
-    if (earned[key]) return // already earned
+    if (earnedRef.current[key]) return // already earned
 
     const achievement = ALL_ACHIEVEMENTS.find(a => a.key === key)
     if (!achievement) return
@@ -217,7 +221,7 @@ export function AchievementsProvider({ children }) {
       setEarned(prev => ({ ...prev, [key]: now }))
       setToastQueue(prev => [...prev, achievement])
     }
-  }, [user, earned])
+  }, [user])
 
   const getProgress = useCallback((key) => {
     return earned[key] ? { earned: true, earned_at: earned[key] } : { earned: false }

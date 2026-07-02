@@ -12,6 +12,8 @@ import OfflineBar from './components/OfflineBar'
 import PageTransition from './components/PageTransition'
 import { useT } from './i18n'
 
+const CURRENT_YEAR = new Date().getFullYear()
+
 const LoginPage            = lazy(() => import('./pages/LoginPage'))
 const RegisterPage         = lazy(() => import('./pages/RegisterPage'))
 const DashboardPage        = lazy(() => import('./pages/DashboardPage'))
@@ -176,7 +178,7 @@ function AppInner() {
           </Suspense>
         </ErrorBoundary>
         <footer className="global-copyright-app">
-          {t('app.copyright', { year: new Date().getFullYear() })}
+          {t('app.copyright', { year: CURRENT_YEAR })}
         </footer>
       </div>
     </AchievementsProvider>

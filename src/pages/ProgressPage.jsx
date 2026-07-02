@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -43,7 +43,7 @@ export default function ProgressPage() {
   const [saveOk, setSaveOk] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
   const [range, setRange] = useState(30)
-  const today = new Date().toISOString().split('T')[0]
+  const today = useMemo(() => new Date().toISOString().split('T')[0], [])
   const [cartellaId, setCartellaId] = useState(null)
   const [schede, setSchede] = useState([])
   const [biaData, setBiaData] = useState([])
@@ -123,7 +123,7 @@ export default function ProgressPage() {
     }
   }
 
-  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - range)
+  const cutoff = useMemo(() => { const d = new Date(); d.setDate(d.getDate() - range); return d }, [range])
   const chartData = weights
     .filter(w => new Date(w.date) >= cutoff)
     .map(w => ({
