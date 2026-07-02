@@ -178,7 +178,7 @@ html.dark .icon-wrap{filter:brightness(1.8) saturate(0.7)}
 .divider{height:1px;background:var(--border-light);margin:14px 0}
 
 /* ── Animations ── */
-@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes slideUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
 @keyframes slideDown{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
