@@ -49,6 +49,7 @@ export default function ProgressPage() {
   const [biaData, setBiaData] = useState([])
   const [activeTab, setActiveTab] = useState('peso') // 'peso' | 'circonferenze' | 'bia' | 'foto'
   const [photos, setPhotos] = useState([])
+  const [photoUrls, setPhotoUrls] = useState({})
   const [photoType, setPhotoType] = useState('progresso')
   const [photoNotes, setPhotoNotes] = useState('')
   const [photoUploading, setPhotoUploading] = useState(false)
@@ -65,7 +66,9 @@ export default function ProgressPage() {
       supabase.from('progress_photos').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
     ])
     setWeights(weightsRes.data || [])
-    setPhotos(photosRes.data || [])
+    const photoList = photosRes.data || []
+    setPhotos(photoList)
+    loadSignedUrls(photoList)
     const log = wellnessRes.data
     setTodayLog(log)
     if (log) {
@@ -131,6 +134,19 @@ export default function ProgressPage() {
     }
   }
 
+  async function loadSignedUrls(photoList) {
+    if (!photoList.length) return
+    const entries = await Promise.all(
+      photoList.map(async (p) => {
+        const { data, error } = await supabase.storage
+          .from('progress-photos')
+          .createSignedUrl(p.storage_path, 3600)
+        return [p.id, error ? null : data?.signedUrl]
+      })
+    )
+    setPhotoUrls(Object.fromEntries(entries))
+  }
+
   async function uploadPhoto(file) {
     if (!file) return
     setPhotoUploading(true)
@@ -145,17 +161,15 @@ export default function ProgressPage() {
       })
       if (dbErr) throw dbErr
       const { data: fresh } = await supabase.from('progress_photos').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50)
-      setPhotos(fresh || [])
+      const freshList = fresh || []
+      setPhotos(freshList)
+      loadSignedUrls(freshList)
       setPhotoNotes('')
     } catch (e) {
       setPhotoError('Errore nel caricamento. ' + (e?.message || 'Riprova.'))
     } finally {
       setPhotoUploading(false)
     }
-  }
-
-  function getPhotoUrl(path) {
-    return supabase.storage.from('progress-photos').getPublicUrl(path).data.publicUrl
   }
 
   const cutoff = useMemo(() => { const d = new Date(); d.setDate(d.getDate() - range); return d }, [range])
@@ -968,11 +982,15 @@ export default function ProgressPage() {
                 <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>Le tue foto ({photos.length})</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                   {photos.map(photo => {
-                    const url = getPhotoUrl(photo.storage_path)
+                    const url = photoUrls[photo.id]
                     const TYPE_LABELS = { prima: 'Prima', progresso: 'Durante', dopo: 'Dopo' }
                     return (
-                      <div key={photo.id} onClick={() => setLightboxUrl(url)} style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', aspectRatio: '1', cursor: 'pointer', background: 'var(--surface-2)' }}>
-                        <img src={url} alt={TYPE_LABELS[photo.photo_type] || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                      <div key={photo.id} onClick={() => url && setLightboxUrl(url)} style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', aspectRatio: '1', cursor: url ? 'pointer' : 'default', background: 'var(--surface-2)' }}>
+                        {url ? (
+                          <img src={url} alt={TYPE_LABELS[photo.photo_type] || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                        ) : (
+                          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 24 }}>⏳</div>
+                        )}
                         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.72))', padding: '18px 6px 5px' }}>
                           <p style={{ color: 'white', fontSize: 10, fontWeight: 700 }}>{TYPE_LABELS[photo.photo_type] || ''}</p>
                           <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 9 }}>{new Date(photo.date + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })}</p>
