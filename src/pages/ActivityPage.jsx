@@ -190,6 +190,7 @@ export default function ActivityPage() {
   const [pedoPermErr, setPedoPermErr] = useState(false)
   const [pedoNeedsGesture, setPedoNeedsGesture] = useState(false)
   const pedoRef = useRef(null)
+  const syncTimeoutRef = useRef(null)
 
   const userWeight = latestWeight || profile?.weight_kg || profile?.target_weight || 70
 
@@ -203,6 +204,11 @@ export default function ActivityPage() {
       ])
       if (!logsRes.error) setLogs(logsRes.data || [])
       if (!weightRes.error && weightRes.data?.weight_kg) setLatestWeight(weightRes.data.weight_kg)
+      // Load steps from Supabase and use if greater than local
+      const passiRes = await supabase.from('activity_logs').select('steps').eq('user_id', user.id).eq('date', today).eq('activity_type', 'passi').maybeSingle()
+      if (!passiRes.error && passiRes.data?.steps && passiRes.data.steps > getTodaySteps()) {
+        setLiveSteps(passiRes.data.steps)
+      }
       setLoading(false)
     }
     load()
@@ -303,6 +309,21 @@ export default function ActivityPage() {
       pedo.removeEventListener('stop', onStop)
     }
   }, [])
+
+  // Sync pedometer steps to Supabase (debounced 5s after last step)
+  useEffect(() => {
+    if (!user?.id || liveSteps <= 0) return
+    if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current)
+    syncTimeoutRef.current = setTimeout(async () => {
+      try {
+        await supabase.from('activity_logs').upsert(
+          { user_id: user.id, date: today, activity_type: 'passi', steps: liveSteps },
+          { onConflict: 'user_id,date,activity_type' }
+        )
+      } catch {}
+    }, 5000)
+    return () => { if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current) }
+  }, [liveSteps, today, user.id])
 
   async function activatePedometer() {
     const pedo = pedoRef.current

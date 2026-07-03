@@ -118,7 +118,7 @@ export default function ExportDataPage() {
       .from('food_logs')
       .select('*')
       .eq('user_id', user.id)
-      .order('logged_at')
+      .order('created_at')
     if (error) throw error
 
     const MEAL_LABELS = {
@@ -127,8 +127,8 @@ export default function ExportDataPage() {
     }
 
     const rows = (data || []).map(r => ({
-      data: r.logged_at ? format(new Date(r.logged_at), 'dd/MM/yyyy', { locale: it }) : '',
-      ora: r.logged_at ? format(new Date(r.logged_at), 'HH:mm') : '',
+      data: r.date ? format(new Date(r.date + 'T12:00:00'), 'dd/MM/yyyy', { locale: it }) : '',
+      ora: r.created_at ? format(new Date(r.created_at), 'HH:mm') : '',
       pasto: MEAL_LABELS[r.meal_type] || r.meal_type || '',
       alimento: r.food_name || '',
       grammi: r.grams ?? '',
@@ -211,8 +211,8 @@ export default function ExportDataPage() {
   // ── Export completo JSON ──────────────────────────────────────────────────
   async function exportAllJSON() {
     const [foodLogs, waterLogs, weightLogs, wellness, activityLogs] = await Promise.all([
-      supabase.from('food_logs').select('*').eq('user_id', user.id).order('logged_at'),
-      supabase.from('water_logs').select('*').eq('user_id', user.id).order('logged_at'),
+      supabase.from('food_logs').select('*').eq('user_id', user.id).order('created_at'),
+      supabase.from('water_logs').select('*').eq('user_id', user.id).order('created_at'),
       supabase.from('weight_logs').select('*').eq('user_id', user.id).order('date'),
       supabase.from('daily_wellness').select('*').eq('user_id', user.id).order('date'),
       supabase.from('activity_logs').select('*').eq('user_id', user.id).order('date'),

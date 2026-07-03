@@ -936,6 +936,75 @@ function BackupModal({ user, onClose }) {
   )
 }
 
+// ─── Delete account modal ─────────────────────────────────────────────────────
+function DeleteAccountModal({ user, onClose, onDeleted }) {
+  const [confirmText, setConfirmText] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleDelete() {
+    setDeleting(true)
+    setError('')
+    try {
+      const { error: rpcErr } = await supabase.rpc('delete_own_account')
+      if (rpcErr) throw rpcErr
+      onDeleted()
+    } catch {
+      setError("Errore nell'eliminazione. Contatta il supporto.")
+      setDeleting(false)
+    }
+  }
+
+  const canDelete = confirmText === 'ELIMINA'
+
+  return (
+    <Modal title="Elimina account" onClose={onClose}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ background: '#fee2e2', border: '1.5px solid #fca5a5', borderRadius: 12, padding: '14px 16px' }}>
+          <p style={{ fontSize: 14, fontWeight: 700, color: '#dc2626', marginBottom: 4 }}>⚠️ Azione irreversibile</p>
+          <p style={{ fontSize: 13, color: '#991b1b', lineHeight: 1.6 }}>
+            Questa azione eliminerà definitivamente il tuo account e tutti i tuoi dati (pasti, progressi, messaggi, ecc.). Non è possibile annullare questa operazione.
+          </p>
+        </div>
+
+        <div className="input-group">
+          <label className="input-label" style={{ color: '#dc2626' }}>Scrivi ELIMINA per confermare</label>
+          <input
+            className="input-field"
+            value={confirmText}
+            onChange={e => setConfirmText(e.target.value)}
+            placeholder="ELIMINA"
+            style={{ borderColor: canDelete ? '#dc2626' : undefined }}
+          />
+        </div>
+
+        {error && (
+          <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: '#dc2626' }}>
+            {error}
+          </div>
+        )}
+
+        <button
+          onClick={handleDelete}
+          disabled={!canDelete || deleting}
+          style={{
+            background: canDelete ? '#dc2626' : '#94a3b8',
+            color: 'white', border: 'none', borderRadius: 12, padding: '14px',
+            fontSize: 15, fontWeight: 600, cursor: canDelete && !deleting ? 'pointer' : 'not-allowed',
+            width: '100%', transition: 'background 0.2s',
+          }}
+        >
+          {deleting ? 'Eliminazione in corso…' : 'Conferma eliminazione'}
+        </button>
+
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
+          Conforme al GDPR Art. 17 – Diritto alla cancellazione.
+        </p>
+      </div>
+    </Modal>
+  )
+}
+
 // ─── Main Profile page ────────────────────────────────────────────────────────
 export default function ProfilePage() {
   const { user, profile, signOut, refreshProfile } = useAuth()
@@ -1178,6 +1247,20 @@ export default function ProfilePage() {
             <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Powered by NutriPlan Pro</p>
           </div>
 
+          {/* Danger zone */}
+          <div className="card" style={{ padding: 16, border: '1.5px solid #fca5a5', background: '#fff5f5' }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#dc2626', marginBottom: 6 }}>⚠️ Zona Pericolosa</p>
+            <p style={{ fontSize: 12, color: '#991b1b', lineHeight: 1.6, marginBottom: 12 }}>
+              Elimina definitivamente il tuo account e tutti i dati associati. Questa azione non può essere annullata.
+            </p>
+            <button
+              onClick={() => setModal('deleteaccount')}
+              style={{ background: 'none', border: '1.5px solid #dc2626', borderRadius: 10, padding: '10px 16px', color: '#dc2626', fontSize: 13, fontWeight: 600, cursor: 'pointer', font: 'inherit' }}
+            >
+              Elimina account
+            </button>
+          </div>
+
           {/* Sign out */}
           <button onClick={handleSignOut} disabled={loggingOut} className="btn btn-danger" style={{ borderRadius: 'var(--r-md)', padding: '14px', fontSize: 15, fontWeight: 500, width: '100%', justifyContent: 'center', gap: 8 }}>
             <LogOut size={17} />{loggingOut ? '…' : t('profile.sign_out')}
@@ -1194,6 +1277,7 @@ export default function ProfilePage() {
       {modal === 'language' && <LanguageModal onClose={() => setModal(null)} />}
       {modal === 'biometric' && <BiometricModal user={user} onClose={() => setModal(null)} />}
       {modal === 'backup' && <BackupModal user={user} onClose={() => setModal(null)} />}
+      {modal === 'deleteaccount' && <DeleteAccountModal user={user} onClose={() => setModal(null)} onDeleted={async () => { await signOut(); navigate('/login') }} />}
     </>
   )
 }

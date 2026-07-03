@@ -83,37 +83,61 @@ function DailyNutritionSummary({ meals, diet }) {
   )
 }
 
-function FoodItem({ food }) {
-  const [showSubs, setShowSubs] = useState(false)
+function FoodItem({ food, overrideKey, override, onOverride }) {
   const hasSubs = food.substitutes && food.substitutes.length > 0
+  const selectedSubIdx = override?.subIdx ?? null
+  const customGrams = override?.grams ?? ''
+
+  const activeSub = selectedSubIdx != null ? food.substitutes?.[selectedSubIdx] : null
+  const displayName = activeSub ? activeSub.name : (food.name || food.nome || '')
+  const displayQty = activeSub ? (customGrams || activeSub.quantity) : food.quantity
+  const displayUnit = activeSub ? (activeSub.unit || 'g') : (food.unit || 'g')
+
+  function selectSub(i) {
+    if (!onOverride || !overrideKey) return
+    if (i === selectedSubIdx) { onOverride(overrideKey, null); return }
+    const sub = food.substitutes[i]
+    onOverride(overrideKey, { subIdx: i, grams: String(sub.quantity || '') })
+  }
 
   return (
     <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-light)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-          <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'var(--font-b)' }}>{food.name}</span>
-          {hasSubs && (
-            <button
-              onClick={() => setShowSubs(v => !v)}
-              style={{ background: 'var(--green-pale)', border: 'none', cursor: 'pointer', color: 'var(--green-main)', fontSize: 10, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 100 }}
-            >
-              <RefreshCw size={9} />
-              {showSubs ? 'Nascondi' : 'Alt.'}
-            </button>
+          <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'var(--font-b)' }}>{displayName}</span>
+          {activeSub && (
+            <span style={{ fontSize: 10, color: 'var(--green-main)', fontWeight: 700, background: 'var(--green-pale)', padding: '1px 6px', borderRadius: 100 }}>sostituto</span>
           )}
         </div>
-        <span style={{ fontSize: 13, color: 'var(--green-main)', fontWeight: 700, flexShrink: 0, background: 'var(--green-pale)', padding: '2px 9px', borderRadius: 100, fontFamily: 'var(--font-b)' }}>
-          {food.quantity} {food.unit || 'g'}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {activeSub && onOverride && (
+            <input
+              type="number"
+              value={customGrams}
+              onChange={e => onOverride(overrideKey, { subIdx: selectedSubIdx, grams: e.target.value })}
+              style={{ width: 60, padding: '2px 6px', borderRadius: 8, border: '1.5px solid var(--green-main)', fontSize: 13, fontFamily: 'inherit', textAlign: 'center', outline: 'none' }}
+              min={1}
+            />
+          )}
+          <span style={{ fontSize: 13, color: activeSub ? 'white' : 'var(--green-main)', fontWeight: 700, flexShrink: 0, background: activeSub ? 'var(--green-main)' : 'var(--green-pale)', padding: '2px 9px', borderRadius: 100, fontFamily: 'var(--font-b)' }}>
+            {displayQty} {displayUnit}
+          </span>
+        </div>
       </div>
-      {hasSubs && showSubs && (
-        <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--surface-2)', borderRadius: 10, borderLeft: '3px solid var(--green-main)' }}>
-          <p style={{ fontSize: 11, color: 'var(--green-dark)', fontWeight: 700, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Sostituti:</p>
+      {hasSubs && onOverride && (
+        <div style={{ marginTop: 6, display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+          <button
+            onClick={() => onOverride(overrideKey, null)}
+            style={{ padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none', background: selectedSubIdx == null ? 'var(--green-main)' : 'var(--surface-3)', color: selectedSubIdx == null ? 'white' : 'var(--text-muted)' }}
+          >Originale</button>
           {food.substitutes.map((sub, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: i > 0 ? 5 : 0 }}>
-              <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: 'var(--font-b)' }}>{sub.name}</span>
-              <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>{sub.quantity} {sub.unit || 'g'}</span>
-            </div>
+            <button
+              key={i}
+              onClick={() => selectSub(i)}
+              style={{ padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none', background: selectedSubIdx === i ? 'var(--green-main)' : 'var(--surface-3)', color: selectedSubIdx === i ? 'white' : 'var(--text-secondary)' }}
+            >
+              {sub.name} · {sub.quantity}{sub.unit || 'g'}
+            </button>
           ))}
         </div>
       )}
@@ -186,7 +210,7 @@ function MealFeedbackModal({ meal, user, onClose }) {
   )
 }
 
-function MealCard({ meal, completed, onToggleComplete, user }) {
+function MealCard({ meal, completed, onToggleComplete, user, foodOverrides, onFoodOverride }) {
   const [open, setOpen] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
   const t = useT()
@@ -253,7 +277,15 @@ function MealCard({ meal, completed, onToggleComplete, user }) {
         <div style={{ borderTop: '1px solid var(--border-light)', padding: '14px 16px 16px' }}>
           {meal.foods && meal.foods.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: meal.notes ? 12 : 0 }}>
-              {meal.foods.map((food, i) => <FoodItem key={i} food={food} />)}
+              {meal.foods.map((food, i) => (
+                <FoodItem
+                  key={i}
+                  food={food}
+                  overrideKey={`${meal.id}_${i}`}
+                  override={foodOverrides?.[`${meal.id}_${i}`]}
+                  onOverride={onFoodOverride}
+                />
+              ))}
             </div>
           ) : meal.description ? (
             <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: meal.notes ? 12 : 0, fontFamily: 'var(--font-b)' }}>{meal.description}</p>
@@ -407,7 +439,7 @@ function PianoAlimentareContent({ piano }) {
     const targetDate = copyState.date
     const inserts = []
     for (const meal of day.meals || []) {
-      const mealKey = meal.id || meal.tipo || ''
+      const mealKey = meal.tipo || meal.meal_type || meal.id || ''
       const mealType = MEAL_TYPE_MAP[mealKey] || 'pranzo'
       const foods = meal.items || meal.foods || meal.alimenti || []
       for (const food of foods) {
@@ -702,7 +734,7 @@ function OlderClinicalPlanCard({ piano }) {
 }
 
 export default function DietPage() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const t = useT()
   const [diet, setDiet] = useState(null)
   const [meals, setMeals] = useState([])
@@ -716,8 +748,48 @@ export default function DietPage() {
   const [clinicalPlans, setClinicalPlans] = useState([])
   const [showOlderPlans, setShowOlderPlans] = useState(false)
   const [copyDiet, setCopyDiet] = useState({ open: false, date: '', busy: false, done: false })
+  const [foodOverrides, setFoodOverrides] = useState({})
+
+  const setFoodOverride = useCallback((key, val) => {
+    setFoodOverrides(prev => {
+      const next = { ...prev }
+      if (val === null) delete next[key]
+      else next[key] = val
+      return next
+    })
+  }, [])
 
   const today = useMemo(() => new Date().toISOString().split('T')[0], [])
+
+  const allergenWarning = useMemo(() => {
+    if (!profile?.intolerances?.length) return null
+    const intolerances = profile.intolerances.map(i => i.toLowerCase().trim()).filter(Boolean)
+    const problematic = new Set()
+    for (const meal of meals) {
+      for (const food of (meal.foods || [])) {
+        const name = (food.name || food.nome || '').toLowerCase()
+        for (const intol of intolerances) {
+          if (name.includes(intol)) problematic.add(food.name || food.nome)
+        }
+      }
+    }
+    for (const piano of clinicalPlans) {
+      try {
+        const raw = typeof piano.meals === 'string' ? JSON.parse(piano.meals) : piano.meals
+        for (const day of (Array.isArray(raw) ? raw : [])) {
+          for (const meal of (day.meals || [])) {
+            for (const food of (meal.items || meal.foods || meal.alimenti || [])) {
+              const name = (food.nome || food.name || food.alimento || '').toLowerCase()
+              for (const intol of intolerances) {
+                if (name.includes(intol)) problematic.add(food.nome || food.name || food.alimento)
+              }
+            }
+          }
+        }
+      } catch { /* ignore parse errors */ }
+    }
+    return problematic.size > 0 ? [...problematic] : null
+  }, [profile?.intolerances, meals, clinicalPlans])
 
   useEffect(() => {
     async function load() {
@@ -808,14 +880,25 @@ export default function DietPage() {
     for (const meal of mealsForDay) {
       const foods = meal.foods || []
       if (foods.length > 0) {
-        for (const food of foods) {
-          const name = food.name || food.nome || ''
+        for (let fi = 0; fi < foods.length; fi++) {
+          const food = foods[fi]
+          const overrideKey = `${meal.id}_${fi}`
+          const override = foodOverrides[overrideKey]
+          let name, qty, k100, p100, c100, f100
+          if (override?.subIdx != null && food.substitutes?.[override.subIdx]) {
+            const sub = food.substitutes[override.subIdx]
+            name = sub.name
+            qty = parseFloat(override.grams || sub.quantity) || 0
+            k100 = sub.kcal_100g || 0; p100 = sub.proteins_100g || 0
+            c100 = sub.carbs_100g || 0; f100 = sub.fats_100g || 0
+          } else {
+            name = food.name || food.nome || ''
+            if (!name) continue
+            qty = parseFloat(food.quantity || food.qt || 100) || 0
+            k100 = food.kcal_100g || 0; p100 = food.proteins_100g || 0
+            c100 = food.carbs_100g || 0; f100 = food.fats_100g || 0
+          }
           if (!name) continue
-          const qty = parseFloat(food.quantity || food.qt || 100) || 0
-          const k100 = food.kcal_100g || 0
-          const p100 = food.proteins_100g || 0
-          const c100 = food.carbs_100g || 0
-          const f100 = food.fats_100g || 0
           inserts.push({
             user_id: user.id, date: targetDate, meal_type: meal.meal_type,
             food_name: name, grams: qty,
@@ -839,7 +922,8 @@ export default function DietPage() {
       }
     }
     if (inserts.length) {
-      await supabase.from('food_logs').insert(inserts)
+      const { error } = await supabase.from('food_logs').insert(inserts)
+      if (error) console.error('copy error', error)
       const { data: allFoods } = await supabase.from('food_logs').select('kcal,proteins,carbs,fats').eq('user_id', user.id).eq('date', targetDate)
       if (allFoods) {
         const tot = allFoods.reduce((a, r) => ({ kcal: a.kcal + (r.kcal || 0), proteins: a.proteins + (r.proteins || 0), carbs: a.carbs + (r.carbs || 0), fats: a.fats + (r.fats || 0) }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
@@ -848,7 +932,7 @@ export default function DietPage() {
     }
     setCopyDiet({ open: false, date: '', busy: false, done: true })
     setTimeout(() => setCopyDiet(s => ({ ...s, done: false })), 3000)
-  }, [meals, tab, user.id, diet, t])
+  }, [meals, tab, user.id, diet, t, foodOverrides])
 
   if (loading) return (
     <div className="page" style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -936,6 +1020,20 @@ export default function DietPage() {
       </div>
 
       <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* Allergen warning */}
+        {allergenWarning && (
+          <div style={{ background: '#fefce8', border: '1.5px solid #fbbf24', borderRadius: 14, padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <span style={{ fontSize: 20, flexShrink: 0, lineHeight: 1 }}>⚠️</span>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 700, color: '#92400e', marginBottom: 3 }}>Attenzione alle tue intolleranze</p>
+              <p style={{ fontSize: 12, color: '#78350f', lineHeight: 1.5 }}>
+                Questo piano contiene alimenti che potrebbero non essere adatti alle tue intolleranze:{' '}
+                <strong>{allergenWarning.join(', ')}</strong>
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Clinical plans from dietitian portal */}
         {clinicalPlans.length > 0 && (
           <div>
@@ -1069,6 +1167,8 @@ export default function DietPage() {
                     completed={completions.has(m.id)}
                     onToggleComplete={toggleComplete}
                     user={user}
+                    foodOverrides={foodOverrides}
+                    onFoodOverride={setFoodOverride}
                   />
                 </motion.div>
               ))

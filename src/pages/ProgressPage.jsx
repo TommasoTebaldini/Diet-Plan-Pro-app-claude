@@ -6,7 +6,7 @@ import { useT } from '../i18n'
 import ProGate from '../components/ProGate'
 import { useSubscription } from '../hooks/useSubscription'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts'
-import { TrendingDown, TrendingUp, Minus, Target, Plus, Scale, Activity } from 'lucide-react'
+import { TrendingDown, TrendingUp, Minus, Target, Plus, Scale, Activity, Camera } from 'lucide-react'
 
 const MOOD_OPTIONS = [
   { value: 1, emoji: '😞', label: 'Pessimo' },
@@ -47,17 +47,25 @@ export default function ProgressPage() {
   const [cartellaId, setCartellaId] = useState(null)
   const [schede, setSchede] = useState([])
   const [biaData, setBiaData] = useState([])
-  const [activeTab, setActiveTab] = useState('peso') // 'peso' | 'circonferenze' | 'bia'
+  const [activeTab, setActiveTab] = useState('peso') // 'peso' | 'circonferenze' | 'bia' | 'foto'
+  const [photos, setPhotos] = useState([])
+  const [photoType, setPhotoType] = useState('progresso')
+  const [photoNotes, setPhotoNotes] = useState('')
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [photoError, setPhotoError] = useState('')
+  const [lightboxUrl, setLightboxUrl] = useState(null)
 
   useEffect(() => { loadData() }, [])
 
   async function loadData() {
-    const [weightsRes, wellnessRes, linkRes] = await Promise.all([
+    const [weightsRes, wellnessRes, linkRes, photosRes] = await Promise.all([
       supabase.from('weight_logs').select('id,date,weight_kg').eq('user_id', user.id).order('date', { ascending: true }).limit(730),
       supabase.from('daily_wellness').select('*').eq('user_id', user.id).eq('date', today).maybeSingle(),
       supabase.from('patient_dietitian').select('cartella_id').eq('patient_id', user.id).maybeSingle(),
+      supabase.from('progress_photos').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
     ])
     setWeights(weightsRes.data || [])
+    setPhotos(photosRes.data || [])
     const log = wellnessRes.data
     setTodayLog(log)
     if (log) {
@@ -123,6 +131,33 @@ export default function ProgressPage() {
     }
   }
 
+  async function uploadPhoto(file) {
+    if (!file) return
+    setPhotoUploading(true)
+    setPhotoError('')
+    try {
+      const ext = file.name.split('.').pop().toLowerCase() || 'jpg'
+      const path = `${user.id}/${today}-${photoType}-${Date.now()}.${ext}`
+      const { error: uploadErr } = await supabase.storage.from('progress-photos').upload(path, file, { upsert: false })
+      if (uploadErr) throw uploadErr
+      const { error: dbErr } = await supabase.from('progress_photos').insert({
+        user_id: user.id, date: today, photo_type: photoType, storage_path: path, notes: photoNotes || null,
+      })
+      if (dbErr) throw dbErr
+      const { data: fresh } = await supabase.from('progress_photos').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50)
+      setPhotos(fresh || [])
+      setPhotoNotes('')
+    } catch (e) {
+      setPhotoError('Errore nel caricamento. ' + (e?.message || 'Riprova.'))
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
+
+  function getPhotoUrl(path) {
+    return supabase.storage.from('progress-photos').getPublicUrl(path).data.publicUrl
+  }
+
   const cutoff = useMemo(() => { const d = new Date(); d.setDate(d.getDate() - range); return d }, [range])
   const chartData = weights
     .filter(w => new Date(w.date) >= cutoff)
@@ -179,6 +214,7 @@ export default function ProgressPage() {
             { key: 'peso', label: '⚖️ Peso' },
             { key: 'circonferenze', label: '📏 Misure' },
             { key: 'bia', label: '⚡ BIA' },
+            { key: 'foto', label: '📸 Foto' },
           ].map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
               flex: 1, padding: '8px 4px', borderRadius: 9, border: 'none', cursor: 'pointer', font: 'inherit',
@@ -877,6 +913,83 @@ export default function ProgressPage() {
                   )
                 })()}
               </>
+            )}
+          </div>
+        )}
+
+        {/* ── Foto Progressi ── */}
+        {activeTab === 'foto' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Upload card */}
+            <div className="card" style={{ padding: 20 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>📸 Carica foto</h3>
+              <p className="input-label" style={{ marginBottom: 8 }}>Tipo di foto</p>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                {[{ val: 'prima', label: 'Prima' }, { val: 'progresso', label: 'Durante' }, { val: 'dopo', label: 'Dopo' }].map(t => (
+                  <button key={t.val} onClick={() => setPhotoType(t.val)} style={{
+                    flex: 1, padding: '9px 6px', borderRadius: 10,
+                    border: `2px solid ${photoType === t.val ? 'var(--green-main)' : 'var(--border)'}`,
+                    background: photoType === t.val ? 'var(--green-pale)' : 'var(--surface-2)',
+                    color: photoType === t.val ? 'var(--green-dark)' : 'var(--text-secondary)',
+                    font: 'inherit', fontSize: 13, fontWeight: photoType === t.val ? 700 : 400, cursor: 'pointer',
+                  }}>{t.label}</button>
+                ))}
+              </div>
+              <div className="input-group" style={{ marginBottom: 14 }}>
+                <label className="input-label">Note (opzionale)</label>
+                <input className="input-field" placeholder="es. Settimana 4 di dieta…" value={photoNotes} onChange={e => setPhotoNotes(e.target.value)} />
+              </div>
+              {photoError && (
+                <div style={{ background: 'var(--alert-error-bg)', border: '1px solid var(--alert-error-border)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--alert-error-text)', marginBottom: 12 }}>
+                  {photoError}
+                </div>
+              )}
+              <label style={{ display: 'block' }}>
+                <input type="file" accept="image/*" style={{ display: 'none' }} disabled={photoUploading}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.target.value = '' }} />
+                <span className="btn btn-primary" style={{
+                  width: '100%', justifyContent: 'center', display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 0',
+                  cursor: photoUploading ? 'wait' : 'pointer', opacity: photoUploading ? 0.7 : 1,
+                }}>
+                  {photoUploading ? 'Caricamento…' : <><Camera size={16} /> Scegli foto</>}
+                </span>
+              </label>
+            </div>
+
+            {/* Gallery */}
+            {photos.length === 0 ? (
+              <div className="card" style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <p style={{ fontSize: 48, marginBottom: 8 }}>📷</p>
+                <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Nessuna foto ancora</p>
+                <p style={{ fontSize: 13 }}>Carica la tua prima foto del percorso!</p>
+              </div>
+            ) : (
+              <div className="card" style={{ padding: 16 }}>
+                <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>Le tue foto ({photos.length})</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                  {photos.map(photo => {
+                    const url = getPhotoUrl(photo.storage_path)
+                    const TYPE_LABELS = { prima: 'Prima', progresso: 'Durante', dopo: 'Dopo' }
+                    return (
+                      <div key={photo.id} onClick={() => setLightboxUrl(url)} style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', aspectRatio: '1', cursor: 'pointer', background: 'var(--surface-2)' }}>
+                        <img src={url} alt={TYPE_LABELS[photo.photo_type] || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.72))', padding: '18px 6px 5px' }}>
+                          <p style={{ color: 'white', fontSize: 10, fontWeight: 700 }}>{TYPE_LABELS[photo.photo_type] || ''}</p>
+                          <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 9 }}>{new Date(photo.date + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })}</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Lightbox */}
+            {lightboxUrl && (
+              <div onClick={() => setLightboxUrl(null)} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+                <img src={lightboxUrl} alt="Foto progressi" style={{ maxWidth: '100%', maxHeight: '90vh', borderRadius: 12, objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
+                <button onClick={() => setLightboxUrl(null)} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.18)', border: 'none', borderRadius: '50%', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', fontSize: 22, lineHeight: 1 }}>×</button>
+              </div>
             )}
           </div>
         )}

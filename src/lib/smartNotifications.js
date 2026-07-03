@@ -63,7 +63,7 @@ export async function checkMealAndNotify(userId) {
       .select('id', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('meal_type', window.meal)
-      .gte('logged_at', todayStr + 'T00:00:00')
+      .eq('date', todayStr)
 
     if (count === 0) {
       showNotification(
@@ -90,11 +90,11 @@ export async function sendWeeklyProgressNotification(userId) {
     const { supabase } = await import('./supabase')
     const { data: logs } = await supabase
       .from('food_logs')
-      .select('logged_at')
+      .select('date')
       .eq('user_id', userId)
-      .gte('logged_at', weekAgo.toISOString())
+      .gte('date', weekAgo.toISOString().split('T')[0])
 
-    const daysLogged = new Set((logs || []).map(l => l.logged_at?.split('T')[0])).size
+    const daysLogged = new Set((logs || []).map(l => l.date)).size
 
     const emoji = daysLogged >= 6 ? '🏆' : daysLogged >= 4 ? '💪' : '📊'
     const msg = daysLogged >= 6
