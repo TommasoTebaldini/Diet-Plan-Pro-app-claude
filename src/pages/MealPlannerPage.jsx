@@ -615,6 +615,8 @@ export default function MealPlannerPage() {
       setItems(prev => [...prev, data])
     } catch (err) {
       console.error('Errore aggiunta alimento:', err)
+      setSaveMsg('Errore nell\'aggiunta. Riprova.')
+      setTimeout(() => setSaveMsg(''), 2500)
     }
   }
 
@@ -626,6 +628,8 @@ export default function MealPlannerPage() {
       setItems(prev => prev.filter(i => i.id !== itemId))
     } catch (err) {
       console.error('Errore rimozione alimento:', err)
+      setSaveMsg('Errore nella rimozione. Riprova.')
+      setTimeout(() => setSaveMsg(''), 2500)
     }
   }
 

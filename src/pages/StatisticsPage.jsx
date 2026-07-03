@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -111,11 +111,12 @@ export default function StatisticsPage() {
   const [savingMeasure, setSavingMeasure] = useState(false)
   const [measureMsg, setMeasureMsg] = useState('')
 
-  const today = new Date()
-  const weekStart = startOfWeek(subWeeks(today, weekOffset), { weekStartsOn: 1 })
-  const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 })
-  const prevWeekStart = subWeeks(weekStart, 1)
-  const prevWeekEnd = subWeeks(weekEnd, 1)
+  const { today, weekStart, weekEnd, prevWeekStart, prevWeekEnd } = useMemo(() => {
+    const d = new Date()
+    const ws = startOfWeek(subWeeks(d, weekOffset), { weekStartsOn: 1 })
+    const we = endOfWeek(ws, { weekStartsOn: 1 })
+    return { today: d, weekStart: ws, weekEnd: we, prevWeekStart: subWeeks(ws, 1), prevWeekEnd: subWeeks(we, 1) }
+  }, [weekOffset])
 
   useEffect(() => {
     if (!isPro && weekOffset > 0) { setWeekOffset(0); return }

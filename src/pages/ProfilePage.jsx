@@ -948,6 +948,7 @@ export default function ProfilePage() {
   const [localProfile, setLocalProfile] = useState(profile)
   const [loggingOut, setLoggingOut] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
+  const [avatarError, setAvatarError] = useState('')
   // Password change inline
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -978,7 +979,8 @@ export default function ProfilePage() {
     const file = e.target.files?.[0]
     if (!file) return
     const maxSize = 5 * 1024 * 1024 // 5 MB
-    if (file.size > maxSize) return alert('La foto è troppo grande. Massimo 5 MB.')
+    if (file.size > maxSize) { setAvatarError('La foto è troppo grande. Massimo 5 MB.'); return }
+    setAvatarError('')
     setAvatarUploading(true)
     try {
       const ext = file.name.split('.').pop().toLowerCase()
@@ -991,6 +993,7 @@ export default function ProfilePage() {
       await refreshProfile()
     } catch (err) {
       console.error('Avatar upload error:', err)
+      setAvatarError('Errore nel caricamento. Riprova.')
     } finally {
       setAvatarUploading(false)
       e.target.value = ''
@@ -1039,6 +1042,9 @@ export default function ProfilePage() {
           <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
             <Mail size={12} />{user?.email}
           </p>
+          {avatarError && (
+            <p style={{ color: '#fecaca', fontSize: 12, marginTop: 6 }}>{avatarError}</p>
+          )}
           {localProfile?.height_cm && localProfile?.target_weight && (
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 12 }}>
               {[

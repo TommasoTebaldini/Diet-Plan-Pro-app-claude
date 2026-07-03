@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -166,12 +166,14 @@ export default function DashboardPage() {
     setShowOnboarding(false)
   }
 
-  const MEAL_META = Object.fromEntries(
+  const MEAL_META = useMemo(() => Object.fromEntries(
     MEAL_ORDER.map(k => [k, { ...MEAL_STATIC[k], label: t(`meal.${k}`) }])
-  )
+  ), [t])
 
-  const hour = new Date().getHours()
-  const greet = hour < 6 ? t('dash.greeting_evening') : hour < 12 ? t('dash.greeting_morning') : hour < 18 ? t('dash.greeting_afternoon') : t('dash.greeting_evening')
+  const { hour, greet } = useMemo(() => {
+    const h = new Date().getHours()
+    return { hour: h, greet: h < 6 ? t('dash.greeting_evening') : h < 12 ? t('dash.greeting_morning') : h < 18 ? t('dash.greeting_afternoon') : t('dash.greeting_evening') }
+  }, [t])
 
   useEffect(() => {
     async function load() {

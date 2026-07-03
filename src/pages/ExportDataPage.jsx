@@ -35,7 +35,7 @@ function today() {
 // ── ExportCard ────────────────────────────────────────────────────────────────
 
 function ExportCard({ icon: Icon, title, description, color, onExport }) {
-  const [status, setStatus] = useState('idle') // idle | loading | done
+  const [status, setStatus] = useState('idle') // idle | loading | done | error
 
   async function handle() {
     setStatus('loading')
@@ -45,7 +45,8 @@ function ExportCard({ icon: Icon, title, description, color, onExport }) {
       setTimeout(() => setStatus('idle'), 3000)
     } catch (e) {
       console.error('Export error:', e)
-      setStatus('idle')
+      setStatus('error')
+      setTimeout(() => setStatus('idle'), 3000)
     }
   }
 
@@ -80,7 +81,7 @@ function ExportCard({ icon: Icon, title, description, color, onExport }) {
         onClick={handle}
         disabled={status === 'loading'}
         style={{
-          background: status === 'done' ? '#22c55e' : color,
+          background: status === 'done' ? '#22c55e' : status === 'error' ? '#dc2626' : color,
           color: 'white',
           border: 'none',
           borderRadius: 10,
@@ -99,7 +100,8 @@ function ExportCard({ icon: Icon, title, description, color, onExport }) {
         {status === 'loading' && <Loader size={14} style={{ animation: 'spin 0.7s linear infinite' }} />}
         {status === 'done' && <CheckCircle size={14} />}
         {status === 'idle' && <Download size={14} />}
-        {status === 'loading' ? 'Esportando…' : status === 'done' ? 'Scaricato!' : 'Esporta'}
+        {status === 'error' && <Download size={14} />}
+        {status === 'loading' ? 'Esportando…' : status === 'done' ? 'Scaricato!' : status === 'error' ? 'Errore' : 'Esporta'}
       </button>
     </motion.div>
   )

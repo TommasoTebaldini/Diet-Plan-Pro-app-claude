@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -8,6 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { subDays, format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { checkWaterAndNotify } from '../lib/smartNotifications'
+import { loadPrefs, savePrefs, initScheduledNotifications, requestPermission } from '../lib/notifications'
 
 // Quick-add presets: label, icon, ml
 const QUICK_PRESETS = [
@@ -33,43 +34,6 @@ function calcTarget(profile) {
   return Math.round((weight * 35 * mult) / 50) * 50
 }
 
-const NOTIF_PREFS_KEY = 'nutriplan_notif_prefs'
-
-function getNotifPref() {
-  try { return JSON.parse(localStorage.getItem(NOTIF_PREFS_KEY) || '{}').waterReminder === true }
-  catch { return false }
-}
-
-function setNotifPref(val) {
-  try {
-    const prefs = JSON.parse(localStorage.getItem(NOTIF_PREFS_KEY) || '{}')
-    localStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify({ ...prefs, waterReminder: val }))
-  } catch { /* ignore */ }
-}
-
-async function requestAndScheduleNotifications(intervalRef) {
-  if (!('Notification' in window)) return false
-  let permission = Notification.permission
-  if (permission === 'default') permission = await Notification.requestPermission()
-  if (permission !== 'granted') return false
-  scheduleNotifications(intervalRef)
-  return true
-}
-
-function scheduleNotifications(intervalRef) {
-  if (intervalRef.current) clearInterval(intervalRef.current)
-  intervalRef.current = setInterval(() => {
-    const h = new Date().getHours()
-    if (h >= 8 && h < 21 && Notification.permission === 'granted') {
-      new Notification('💧 Ricorda di bere!', {
-        body: 'È ora di fare una pausa e bere un bicchiere d\'acqua.',
-        icon: '/icons/icon-192x192.png',
-        badge: '/icons/icon-72x72.png',
-        tag: 'water-reminder',
-      })
-    }
-  }, 60 * 60 * 1000) // every hour
-}
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload?.length) {
@@ -86,7 +50,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 export default function WaterPage() {
   const { profile, user } = useAuth()
   const t = useT()
-  const today = new Date().toISOString().split('T')[0]
+  const today = useMemo(() => new Date().toISOString().split('T')[0], [])
   const [latestWeight, setLatestWeight] = useState(null)
   const target = calcTarget({ ...profile, weight_kg: latestWeight })
 
@@ -94,9 +58,9 @@ export default function WaterPage() {
   const [weekData, setWeekData] = useState([])
   const [custom, setCustom] = useState('')
   const [loading, setLoading] = useState(false)
+  const [saveError, setSaveError] = useState(null)
   const [tab, setTab] = useState('oggi') // 'oggi' | 'settimana'
-  const [notifEnabled, setNotifEnabled] = useState(getNotifPref)
-  const intervalRef = useRef(null)
+  const [notifEnabled, setNotifEnabled] = useState(() => loadPrefs().waterReminder === true)
 
   // Load today's logs + latest weight
   useEffect(() => {
@@ -139,23 +103,20 @@ export default function WaterPage() {
     loadWeek()
   }, [today, user.id, logs])
 
-  // Notification scheduling
-  useEffect(() => {
-    if (notifEnabled && Notification.permission === 'granted') {
-      scheduleNotifications(intervalRef)
-    }
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
-  }, [notifEnabled])
-
   const total = logs.reduce((s, l) => s + l.amount_ml, 0)
   const pct = Math.min(100, Math.round((total / target) * 100))
   const remaining = Math.max(0, target - total)
   const statusMsg = pct >= 100 ? `🎉 ${t('water.goal_reached')}` : pct >= 60 ? `👍 ${t('water.well_done')}` : pct >= 30 ? `💧 ${t('water.keep_going')}` : '⚠️ Hai bevuto poco'
 
   async function addWater(ml) {
+    setSaveError(null)
     setLoading(true)
     const { data, error } = await supabase.from('water_logs').insert({ user_id: user.id, date: today, amount_ml: ml }).select().single()
-    if (error) console.error('Errore salvataggio acqua:', error)
+    if (error) {
+      setSaveError('Errore nel salvataggio. Riprova.')
+      setLoading(false)
+      return
+    }
     if (data) {
       setLogs(l => {
         const updated = [...l, data]
@@ -174,14 +135,22 @@ export default function WaterPage() {
   }
 
   async function toggleNotifications() {
+    const prefs = loadPrefs()
     if (notifEnabled) {
+      const updated = { ...prefs, waterReminder: false }
+      savePrefs(updated)
+      initScheduledNotifications(updated)
       setNotifEnabled(false)
-      setNotifPref(false)
-      if (intervalRef.current) clearInterval(intervalRef.current)
     } else {
-      const ok = await requestAndScheduleNotifications(intervalRef)
-      if (ok) { setNotifEnabled(true); setNotifPref(true) }
-      else alert('Abilita le notifiche nelle impostazioni del browser per ricevere i promemoria.')
+      const permission = await requestPermission()
+      if (permission !== 'granted') {
+        setSaveError('Abilita le notifiche nelle impostazioni del browser.')
+        return
+      }
+      const updated = { ...prefs, waterReminder: true }
+      savePrefs(updated)
+      initScheduledNotifications(updated)
+      setNotifEnabled(true)
     }
   }
 
@@ -201,6 +170,12 @@ export default function WaterPage() {
         </h1>
         <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>{statusMsg}</p>
       </div>
+
+      {saveError && (
+        <div style={{ margin: '12px 20px 0', padding: '10px 14px', background: '#fee2e2', borderRadius: 10, color: '#dc2626', fontSize: 13 }}>
+          {saveError}
+        </div>
+      )}
 
       <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
 

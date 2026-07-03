@@ -51,7 +51,6 @@ export default defineConfig({
           motion: ['framer-motion'],
           charts: ['recharts'],
           supabase: ['@supabase/supabase-js'],
-          datefns: ['date-fns'],
         }
       }
     }
