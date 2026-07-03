@@ -84,11 +84,15 @@ function DailyNutritionSummary({ meals, diet }) {
 }
 
 function FoodItem({ food, overrideKey, override, onOverride }) {
-  const hasSubs = food.substitutes && food.substitutes.length > 0
+  // Normalize: dietitian panel stores alternatives in `altPrint` ({nome,qt,misura}); standard format uses `substitutes` ({name,quantity,unit})
+  const subs = food.substitutes?.length
+    ? food.substitutes
+    : (food.altPrint || []).map(a => ({ name: a.nome || a.name || '', quantity: a.qt || a.quantita || a.quantity || '', unit: a.misura || a.unit || 'g' }))
+  const hasSubs = subs.length > 0
   const selectedSubIdx = override?.subIdx ?? null
   const customGrams = override?.grams ?? ''
 
-  const activeSub = selectedSubIdx != null ? food.substitutes?.[selectedSubIdx] : null
+  const activeSub = selectedSubIdx != null ? subs[selectedSubIdx] : null
   const displayName = activeSub ? activeSub.name : (food.name || food.nome || '')
   const displayQty = activeSub ? (customGrams || activeSub.quantity) : food.quantity
   const displayUnit = activeSub ? (activeSub.unit || 'g') : (food.unit || 'g')
@@ -96,7 +100,7 @@ function FoodItem({ food, overrideKey, override, onOverride }) {
   function selectSub(i) {
     if (!onOverride || !overrideKey) return
     if (i === selectedSubIdx) { onOverride(overrideKey, null); return }
-    const sub = food.substitutes[i]
+    const sub = subs[i]
     onOverride(overrideKey, { subIdx: i, grams: String(sub.quantity || '') })
   }
 
@@ -130,7 +134,7 @@ function FoodItem({ food, overrideKey, override, onOverride }) {
             onClick={() => onOverride(overrideKey, null)}
             style={{ padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none', background: selectedSubIdx == null ? 'var(--green-main)' : 'var(--surface-3)', color: selectedSubIdx == null ? 'white' : 'var(--text-muted)' }}
           >Originale</button>
-          {food.substitutes.map((sub, i) => (
+          {subs.map((sub, i) => (
             <button
               key={i}
               onClick={() => selectSub(i)}
@@ -410,6 +414,13 @@ const MEAL_PRINT_LABELS = {
 }
 
 const MEAL_TYPE_MAP = { colazione: 'colazione', spuntino_mattina: 'spuntino_mattina', pranzo: 'pranzo', spuntino_pomeriggio: 'spuntino_pomeriggio', cena: 'cena' }
+const NOME_TO_MEAL_TYPE = {
+  'colazione': 'colazione', 'breakfast': 'colazione',
+  'spuntino mattino': 'spuntino_mattina', 'spuntino mattina': 'spuntino_mattina', 'morning snack': 'spuntino_mattina',
+  'pranzo': 'pranzo', 'lunch': 'pranzo',
+  'spuntino pomeriggio': 'spuntino_pomeriggio', 'afternoon snack': 'spuntino_pomeriggio',
+  'cena': 'cena', 'dinner': 'cena',
+}
 
 function MacroChip({ val, label, color, bg }) {
   if (val == null) return null
@@ -439,8 +450,8 @@ function PianoAlimentareContent({ piano }) {
     const targetDate = copyState.date
     const inserts = []
     for (const meal of day.meals || []) {
-      const mealKey = meal.tipo || meal.meal_type || meal.id || ''
-      const mealType = MEAL_TYPE_MAP[mealKey] || 'pranzo'
+      const mealKey = meal.tipo || meal.meal_type || ''
+      const mealType = MEAL_TYPE_MAP[mealKey] || NOME_TO_MEAL_TYPE[(meal.nome || '').toLowerCase().trim()] || 'pranzo'
       const foods = meal.items || meal.foods || meal.alimenti || []
       for (const food of foods) {
         const nome = food.nome || food.name || food.alimento || ''
@@ -629,9 +640,14 @@ function PianoAlimentareContent({ piano }) {
                                 </div>
                               )}
                               {alts.length > 0 && (
-                                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, fontStyle: 'italic' }}>
-                                  ⇄ Alt: {alts.map(a => `${a.nome} ${a.qt}g`).join(' · ')}
-                                </p>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, marginTop: 6 }}>
+                                  <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '.04em', flexShrink: 0 }}>SOSTITUISCI CON</span>
+                                  {alts.map((a, ai) => (
+                                    <span key={ai} style={{ fontSize: 11, fontWeight: 600, background: 'var(--surface-2)', color: 'var(--green-dark)', padding: '3px 10px', borderRadius: 20, border: '1.5px solid var(--border-light)', whiteSpace: 'nowrap', cursor: 'default' }}>
+                                      ⇄ {a.nome || a.name} {a.qt || a.quantita || a.quantity}{a.misura || 'g'}
+                                    </span>
+                                  ))}
+                                </div>
                               )}
                             </div>
                           )

@@ -1182,10 +1182,19 @@ export default function MacroTrackerPage() {
                           <Apple size={14} color={m.accent || 'var(--green-main)'} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                             <p style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, margin: 0 }}>{f.food_name}</p>
                             <span style={{ fontSize: 11, fontWeight: 700, color: 'white', background: '#6b7280', padding: '2px 8px', borderRadius: 20, flexShrink: 0 }}>{f.grams}g</span>
                           </div>
+                          {(() => {
+                            const conflicts = conflictingAllergens({ name: f.food_name }, profile?.intolerances)
+                            if (!conflicts.length) return null
+                            return (
+                              <p style={{ fontSize: 11, color: '#B91C1C', fontWeight: 700, margin: '0 0 3px', display: 'flex', alignItems: 'center', gap: 3 }}>
+                                ⚠️ {conflicts.map(c => c.key).join(', ')}
+                              </p>
+                            )
+                          })()}
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                             <span style={{ fontSize: 11, fontWeight: 700, color: '#9a3412', background: '#fff7ed', padding: '2px 7px', borderRadius: 6, border: '1px solid #fed7aa' }}>🔥 {r0(f.kcal)} kcal</span>
                             <span style={{ fontSize: 11, fontWeight: 600, color: '#1e40af', background: '#eff6ff', padding: '2px 7px', borderRadius: 6, border: '1px solid #bfdbfe' }}>P {r1(f.proteins)}g</span>
