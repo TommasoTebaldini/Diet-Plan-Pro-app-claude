@@ -593,6 +593,11 @@ drop policy if exists "dietista aggiorna relazioni" on patient_dietitian;
 create policy "dietista aggiorna relazioni" on patient_dietitian
   for update using (auth.uid() = dietitian_id);
 
+-- Allows patients to self-register via dietitian invite link
+drop policy if exists "paziente si auto-registra" on patient_dietitian;
+create policy "paziente si auto-registra" on patient_dietitian
+  for insert with check (auth.uid() = patient_id);
+
 -- ── cartelle ────────────────────────────────────────────────
 drop policy if exists "dietista legge cartelle" on cartelle;
 create policy "dietista legge cartelle" on cartelle
@@ -1358,5 +1363,37 @@ end;
 $$;
 
 grant execute on function get_my_macro_targets() to authenticated;
+  with check (auth.uid() = patient_id);
+
+-- ============================================================
+-- RICETTE CONDIVISE DAL DIETISTA (Feature 8)
+-- ============================================================
+
+create table if not exists shared_recipes (
+  id uuid primary key default gen_random_uuid(),
+  dietitian_id uuid references auth.users not null,
+  patient_id uuid references auth.users not null,
+  recipe_id text,
+  recipe_data jsonb not null,
+  shared_at timestamptz default now(),
+  viewed_at timestamptz
+);
+
+create index if not exists idx_shared_recipes_patient on shared_recipes(patient_id);
+create index if not exists idx_shared_recipes_dietitian on shared_recipes(dietitian_id);
+
+alter table shared_recipes enable row level security;
+
+drop policy if exists "dietitian shares recipes" on shared_recipes;
+create policy "dietitian shares recipes" on shared_recipes
+  for all using (auth.uid() = dietitian_id);
+
+drop policy if exists "patient reads received recipes" on shared_recipes;
+create policy "patient reads received recipes" on shared_recipes
+  for select using (auth.uid() = patient_id);
+
+drop policy if exists "patient marks viewed" on shared_recipes;
+create policy "patient marks viewed" on shared_recipes
+  for update using (auth.uid() = patient_id)
   with check (auth.uid() = patient_id);
 

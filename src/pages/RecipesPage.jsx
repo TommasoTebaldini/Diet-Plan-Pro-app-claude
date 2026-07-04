@@ -484,6 +484,68 @@ function applyFiltersAndSort(recipes, filters) {
   return out
 }
 
+// ── SharedRecipeCard ──────────────────────────────────────────────────────────
+function SharedRecipeCard({ sr, onSave, onMarkViewed }) {
+  const [open, setOpen] = useState(false)
+  const rd = sr.recipe_data || {}
+  const ing = Array.isArray(rd.ingredienti) ? rd.ingredienti : []
+  const isNew = !sr.viewed_at
+  const sharedDate = sr.shared_at ? new Date(sr.shared_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }) : ''
+
+  function toggle() {
+    setOpen(o => !o)
+    if (!open) onMarkViewed()
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      className="card" style={{ padding: 0, overflow: 'hidden', border: isNew ? '2px solid #0891b2' : undefined }}>
+      <button onClick={toggle} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '13px 14px', display: 'flex', alignItems: 'flex-start', gap: 10, font: 'inherit', textAlign: 'left' }}>
+        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #0891b2, #0e7490)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>
+          🩺
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginBottom: 3 }}>
+            <p style={{ fontSize: 14, fontWeight: 700 }}>{rd.nome || 'Ricetta'}</p>
+            {isNew && <span style={{ fontSize: 9, background: '#0891b2', color: 'white', padding: '1px 6px', borderRadius: 100, fontWeight: 700, flexShrink: 0 }}>NUOVA</span>}
+          </div>
+          <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+            🩺 Dal dietista · {rd.porzioni || 1} porz. · {ing.length} ingredienti{sharedDate ? ` · ${sharedDate}` : ''}
+          </p>
+        </div>
+        {open ? <ChevronUp size={15} color="var(--text-muted)" style={{ alignSelf: 'center', flexShrink: 0 }} /> : <ChevronDown size={15} color="var(--text-muted)" style={{ alignSelf: 'center', flexShrink: 0 }} />}
+      </button>
+
+      {open && (
+        <div style={{ borderTop: '1px solid var(--border-light)', padding: '12px 14px 14px' }}>
+          {rd.note && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, fontStyle: 'italic', lineHeight: 1.5, background: '#f8fafc', borderRadius: 8, padding: '8px 10px' }}>📝 {rd.note}</p>}
+
+          <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Ingredienti ({rd.porzioni || 1} porz.)</p>
+          {ing.length === 0
+            ? <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Nessun ingrediente</p>
+            : ing.map((i, idx, arr) => {
+              const name = i.nome || i.food_name || '—'
+              const qty = i.qt || i.grams
+              return (
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: idx < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                  <p style={{ fontSize: 13, flex: 1 }}>{name}</p>
+                  {qty && <span style={{ fontSize: 12, color: '#0e7490', fontWeight: 700, flexShrink: 0, background: '#cffafe', padding: '1px 8px', borderRadius: 100 }}>{qty}g</span>}
+                </div>
+              )
+            })}
+
+          <button className="btn btn-full" onClick={onSave} style={{ marginTop: 14, background: '#ecfeff', color: '#0e7490', border: '1.5px solid #a5f3fc', borderRadius: 10, padding: '10px 16px', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
+            + Salva nelle mie ricette
+          </button>
+        </div>
+      )}
+    </motion.div>
+  )
+}
+
 // ── RecipesPage ───────────────────────────────────────────────────────────────
 const EMPTY_FORM = {
   nome: '', porzioni: '4',
@@ -498,7 +560,7 @@ export default function RecipesPage() {
   const [tab, setTab] = useState('mine')
   const [myRecipes, setMyRecipes] = useState([])
   const [publicRecipes, setPublicRecipes] = useState([])
-  const [dietistRecipes, setDietistRecipes] = useState([])
+  const [sharedRecipes, setSharedRecipes] = useState([])
   const [loadingMine, setLoadingMine] = useState(true)
   const [loadingPublic, setLoadingPublic] = useState(false)
   const [loadingDietist, setLoadingDietist] = useState(false)
@@ -533,12 +595,18 @@ export default function RecipesPage() {
   }, [tab, user.id])
 
   useEffect(() => {
+    supabase.from('shared_recipes').select('*').eq('patient_id', user.id)
+      .order('shared_at', { ascending: false })
+      .then(({ data }) => {
+        setSharedRecipes(data || [])
+        if (tab === 'dietist') setLoadingDietist(false)
+      })
+  }, [user.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
     if (tab !== 'dietist') return
-    setLoadingDietist(true)
-    supabase.from('ricette').select('*').eq('is_public', true).neq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => { setDietistRecipes(data || []); setLoadingDietist(false) })
-  }, [tab, user.id])
+    setLoadingDietist(false)
+  }, [tab])
 
   function showToast(msg) { setToast(msg); setTimeout(() => setToast(null), 2500) }
 
@@ -660,10 +728,12 @@ export default function RecipesPage() {
   const formPeso = form.ingredienti.reduce((s, i) => s + (parseFloat(i.grams) || 0), 0)
   const formPorz = Math.max(1, parseInt(form.porzioni) || 1)
 
+  const newSharedCount = sharedRecipes.filter(sr => !sr.viewed_at).length
+
   const tabs = [
     ['mine', `👨‍🍳 ${t('recipes.mine')}`],
     ['public', `🌐 ${t('recipes.public')}`],
-    ['dietist', '🩺 Dal Dietista'],
+    ['dietist', newSharedCount > 0 ? `🩺 Dal Dietista (${newSharedCount})` : '🩺 Dal Dietista'],
   ]
 
   return (
@@ -886,24 +956,50 @@ export default function RecipesPage() {
             <div style={{ background: '#ecfeff', border: '1px solid #a5f3fc', borderRadius: 12, padding: '10px 14px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
               <span style={{ fontSize: 18, flexShrink: 0 }}>🩺</span>
               <div>
-                <p style={{ fontSize: 13, fontWeight: 600, color: '#0e7490', marginBottom: 2 }}>Ricette del Dietista</p>
-                <p style={{ fontSize: 11, color: '#0891b2', lineHeight: 1.5 }}>Queste ricette sono condivise dal tuo dietista. Puoi visualizzarle e salvarle nei preferiti, ma non modificarle.</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#0e7490', marginBottom: 2 }}>Ricette dal tuo Dietista</p>
+                <p style={{ fontSize: 11, color: '#0891b2', lineHeight: 1.5 }}>Ricette condivise personalmente dal tuo dietista. Puoi salvarle nelle tue ricette per modificarle.</p>
               </div>
             </div>
             {loadingDietist
               ? <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 13 }}>{t('common.loading')}</div>
-              : dietistRecipes.length === 0
+              : sharedRecipes.length === 0
                 ? (
                   <div style={{ textAlign: 'center', padding: '50px 0', color: 'var(--text-muted)' }}>
                     <div style={{ fontSize: 52, marginBottom: 12 }}>🩺</div>
-                    <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Nessuna ricetta condivisa</p>
-                    <p style={{ fontSize: 12 }}>Il tuo dietista non ha ancora condiviso ricette pubbliche.</p>
+                    <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Nessuna ricetta ricevuta</p>
+                    <p style={{ fontSize: 12 }}>Il tuo dietista non ti ha ancora inviato ricette.</p>
                   </div>
                 )
-                : dietistRecipes.map(r => (
-                  <RecipeCard key={r.id} r={r} isOwn={false} isDietitian expandedId={expandedId} setExpandedId={setExpandedId}
-                    onSave={savePublicRecipe} onTogglePublic={togglePublic} onDelete={deleteRecipe}
-                    favIds={favIds} onToggleFav={handleToggleFav} />
+                : sharedRecipes.map(sr => (
+                  <SharedRecipeCard
+                    key={sr.id}
+                    sr={sr}
+                    onSave={() => {
+                      const rd = sr.recipe_data || {}
+                      const ing = Array.isArray(rd.ingredienti) ? rd.ingredienti : []
+                      savePublicRecipe({
+                        nome: rd.nome || 'Ricetta',
+                        porzioni: rd.porzioni || 1,
+                        ingredienti: ing.map(i => ({
+                          food_name: i.nome || i.food_name || '',
+                          grams: parseFloat(i.qt || i.grams) || 0,
+                          kcal: 0, proteins: 0, carbs: 0, fats: 0,
+                        })),
+                        note: rd.note || '',
+                        peso_totale_g: 0, kcal_100g: 0, proteins_100g: 0,
+                        carbs_100g: 0, fats_100g: 0, calorie_porzione: 0,
+                        proteine: 0, carboidrati: 0, grassi: 0, fibra: 0,
+                        fasi_preparazione: [],
+                        is_public: false,
+                      })
+                    }}
+                    onMarkViewed={async () => {
+                      if (!sr.viewed_at) {
+                        await supabase.from('shared_recipes').update({ viewed_at: new Date().toISOString() }).eq('id', sr.id)
+                        setSharedRecipes(prev => prev.map(x => x.id === sr.id ? { ...x, viewed_at: new Date().toISOString() } : x))
+                      }
+                    }}
+                  />
                 ))
             }
           </>
