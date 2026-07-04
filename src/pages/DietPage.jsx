@@ -450,14 +450,22 @@ function PianoAlimentareContent({ piano }) {
     setCopyState(s => ({ ...s, busy: true }))
     const targetDate = copyState.date
     const inserts = []
-    for (const meal of day.meals || []) {
+    const meals = day.meals || []
+    for (let mi = 0; mi < meals.length; mi++) {
+      const meal = meals[mi]
       const mealKey = meal.tipo || meal.meal_type || ''
       const mealType = MEAL_TYPE_MAP[mealKey] || NOME_TO_MEAL_TYPE[(meal.nome || '').toLowerCase().trim()] || 'pranzo'
       const foods = meal.items || meal.foods || meal.alimenti || []
-      for (const food of foods) {
-        const nome = food.nome || food.name || food.alimento || ''
+      for (let fi = 0; fi < foods.length; fi++) {
+        const food = foods[fi]
+        const altKey = `${di}_${mi}_${fi}`
+        const selAltIdx = selectedAlts[altKey] ?? null
+        const alt = selAltIdx != null ? (food.altPrint || [])[selAltIdx] : null
+        const nome = alt ? (alt.nome || alt.name || food.nome || food.name || food.alimento || '') : (food.nome || food.name || food.alimento || '')
         if (!nome) continue
-        const qt = parseFloat(food.qt || food.quantita || food.quantity || food.grammi || food.grams || 100) || 0
+        const qt = alt
+          ? (parseFloat(alt.qt || alt.quantita || alt.quantity || food.qt || food.quantita || food.quantity || food.grams || 100) || 0)
+          : (parseFloat(food.qt || food.quantita || food.quantity || food.grammi || food.grams || 100) || 0)
         const k = food.kcal_100g || 0
         const p = food.proteins_100g || 0
         const c = food.carbs_100g || 0
@@ -469,7 +477,7 @@ function PianoAlimentareContent({ piano }) {
           proteins: p ? Math.round(p * qt / 100 * 10) / 10 : null,
           carbs: c ? Math.round(c * qt / 100 * 10) / 10 : null,
           fats: f ? Math.round(f * qt / 100 * 10) / 10 : null,
-          food_data: { source: 'diet_plan', plan_nome: piano.nome || '' },
+          food_data: { source: 'diet_plan', plan_nome: piano.nome || '', alt_used: alt ? nome : null },
         })
       }
     }

@@ -92,12 +92,14 @@ function MealItem({ item, onRemove }) {
 
 // ─── Add Food Modal ───────────────────────────────────────────────────────────
 
-function AddFoodModal({ dayIndex, mealType, onClose, onAdd }) {
+function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
+  const [tab, setTab] = useState('alimento') // 'alimento' | 'ricetta'
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [selected, setSelected] = useState(null)
   const [grams, setGrams] = useState('100')
+  const [portions, setPortions] = useState('1')
   const inputRef = useRef(null)
   const debounceRef = useRef(null)
 
@@ -105,14 +107,30 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd }) {
     if (inputRef.current) inputRef.current.focus()
   }, [])
 
+  // Search foods or recipes depending on tab
   useEffect(() => {
-    if (!query.trim()) { setResults([]); return }
+    setSelected(null)
+    setResults([])
+    if (!query.trim()) return
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
       setLoading(true)
       try {
-        const res = await searchFoods(query)
-        setResults(res.slice(0, 20))
+        if (tab === 'alimento') {
+          const res = await searchFoods(query)
+          setResults(res.slice(0, 20))
+        } else {
+          const { supabase: sb } = await import('../lib/supabase')
+          const q = query.toLowerCase()
+          const { data } = await sb.from('ricette').select('id,nome,porzioni,peso_totale_g,calorie_porzione,ingredienti').or(`user_id.eq.${userId},is_public.eq.true`).ilike('nome', `%${query}%`).limit(20)
+          setResults((data || []).map(r => ({
+            _isRecipe: true, id: r.id, name: r.nome,
+            porzioni: r.porzioni || 1,
+            pesoTotale: r.peso_totale_g || 0,
+            caloriePorzione: r.calorie_porzione || 0,
+            ingredienti: r.ingredienti || [],
+          })))
+        }
       } catch {
         setResults([])
       } finally {
@@ -120,18 +138,49 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd }) {
       }
     }, 350)
     return () => clearTimeout(debounceRef.current)
-  }, [query])
+  }, [query, tab, userId])
 
-  function handleSelect(food) {
-    setSelected(food)
-    setQuery(food.name)
+  function handleSelect(item) {
+    setSelected(item)
+    setQuery(item.name)
     setResults([])
+    if (item._isRecipe) {
+      const portionG = item.pesoTotale > 0 ? Math.round(item.pesoTotale / item.porzioni) : 100
+      setPortions('1')
+      setGrams(String(portionG))
+    } else {
+      setGrams('100')
+    }
   }
 
   function handleAdd() {
     if (!selected) return
-    const g = parseFloat(grams) || 100
-    onAdd({ food: selected, grams: g })
+    if (selected._isRecipe) {
+      const nPortions = parseFloat(portions) || 1
+      const portionG = selected.pesoTotale > 0 ? selected.pesoTotale / selected.porzioni : 100
+      const totalG = Math.round(portionG * nPortions)
+      // Sum macros from ingredients per 100g of total recipe
+      const ingSum = (selected.ingredienti || []).reduce((acc, i) => ({
+        kcal: acc.kcal + (i.kcal || 0), proteins: acc.proteins + (i.proteins || 0),
+        carbs: acc.carbs + (i.carbs || 0), fats: acc.fats + (i.fats || 0),
+      }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
+      const totalW = selected.pesoTotale || 100
+      const food = {
+        name: selected.name,
+        kcal_100g: Math.round(ingSum.kcal / totalW * 100),
+        proteins_100g: Math.round(ingSum.proteins / totalW * 100 * 10) / 10,
+        carbs_100g: Math.round(ingSum.carbs / totalW * 100 * 10) / 10,
+        fats_100g: Math.round(ingSum.fats / totalW * 100 * 10) / 10,
+        _recipe_id: selected.id,
+      }
+      // Fallback: use caloriePorzione if ingredients macros not available
+      if (!food.kcal_100g && selected.caloriePorzione) {
+        food.kcal_100g = Math.round(selected.caloriePorzione / portionG * 100)
+      }
+      onAdd({ food, grams: totalG })
+    } else {
+      onAdd({ food: selected, grams: parseFloat(grams) || 100 })
+    }
     onClose()
   }
 
@@ -166,7 +215,7 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
-              Aggiungi alimento
+              Aggiungi al piano
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
               {dayLabel} · {mealLabel}
@@ -180,11 +229,21 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd }) {
           </button>
         </div>
 
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+          {[{ key: 'alimento', label: '🍎 Alimento' }, { key: 'ricetta', label: '👨‍🍳 Ricetta' }].map(t => (
+            <button key={t.key} onClick={() => { setTab(t.key); setQuery(''); setSelected(null) }}
+              style={{ flex: 1, padding: '8px', borderRadius: 10, border: 'none', font: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer', background: tab === t.key ? 'var(--green-main)' : 'var(--surface-2)', color: tab === t.key ? 'white' : 'var(--text-secondary)' }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
         <input
           ref={inputRef}
           value={query}
           onChange={e => { setQuery(e.target.value); setSelected(null) }}
-          placeholder="Cerca alimento..."
+          placeholder={tab === 'alimento' ? 'Cerca alimento...' : 'Cerca ricetta...'}
           style={{
             width: '100%', padding: '10px 12px', borderRadius: 10,
             border: '1.5px solid var(--border)', background: 'var(--surface-2)',
@@ -205,10 +264,10 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd }) {
             marginTop: 8, maxHeight: 220, overflowY: 'auto',
             background: 'var(--surface)',
           }}>
-            {results.map((food, i) => (
+            {results.map((item, i) => (
               <button
                 key={i}
-                onClick={() => handleSelect(food)}
+                onClick={() => handleSelect(item)}
                 style={{
                   display: 'block', width: '100%', textAlign: 'left',
                   padding: '9px 12px', background: 'none', border: 'none',
@@ -217,9 +276,11 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd }) {
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{food.name}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{item.name}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                  {food.kcal_100g} kcal/100g · P:{food.proteins_100g}g C:{food.carbs_100g}g G:{food.fats_100g}g
+                  {item._isRecipe
+                    ? `🍽️ ${item.porzioni} porz. · ${item.caloriePorzione} kcal/porz.`
+                    : `${item.kcal_100g} kcal/100g · P:${item.proteins_100g}g C:${item.carbs_100g}g G:${item.fats_100g}g`}
                 </div>
               </button>
             ))}
@@ -236,32 +297,56 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd }) {
                 {selected.name}
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                {selected.kcal_100g} kcal / 100g
+                {selected._isRecipe
+                  ? `👨‍🍳 ${selected.porzioni} porzione${selected.porzioni !== 1 ? 'i' : ''} · ${selected.caloriePorzione} kcal/porz.`
+                  : `${selected.kcal_100g} kcal / 100g`}
               </div>
             </div>
 
-            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
-              Grammi
-            </label>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input
-                type="number"
-                value={grams}
-                onChange={e => setGrams(e.target.value)}
-                min="1"
-                style={{
-                  width: 90, padding: '8px 10px', borderRadius: 8,
-                  border: '1.5px solid var(--border)', background: 'var(--surface-2)',
-                  color: 'var(--text-primary)', fontSize: 14, outline: 'none',
-                }}
-              />
-              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>g</span>
-              {parseFloat(grams) > 0 && (
-                <span style={{ fontSize: 12, color: 'var(--green-main)', marginLeft: 4 }}>
-                  = {Math.round((selected.kcal_100g || 0) * parseFloat(grams) / 100)} kcal
-                </span>
-              )}
-            </div>
+            {selected._isRecipe ? (
+              <>
+                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                  Numero di porzioni
+                </label>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="number"
+                    value={portions}
+                    onChange={e => setPortions(e.target.value)}
+                    min="0.5"
+                    step="0.5"
+                    style={{ width: 90, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text-primary)', fontSize: 14, outline: 'none' }}
+                  />
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>porz.</span>
+                  {parseFloat(portions) > 0 && selected.caloriePorzione > 0 && (
+                    <span style={{ fontSize: 12, color: 'var(--green-main)', marginLeft: 4 }}>
+                      = {Math.round(selected.caloriePorzione * parseFloat(portions))} kcal
+                    </span>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                  Grammi
+                </label>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="number"
+                    value={grams}
+                    onChange={e => setGrams(e.target.value)}
+                    min="1"
+                    style={{ width: 90, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text-primary)', fontSize: 14, outline: 'none' }}
+                  />
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>g</span>
+                  {parseFloat(grams) > 0 && (
+                    <span style={{ fontSize: 12, color: 'var(--green-main)', marginLeft: 4 }}>
+                      = {Math.round((selected.kcal_100g || 0) * parseFloat(grams) / 100)} kcal
+                    </span>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -889,6 +974,7 @@ export default function MealPlannerPage() {
             mealType={modal.mealType}
             onClose={closeModal}
             onAdd={handleAddFood}
+            userId={user?.id}
           />
         )}
       </AnimatePresence>

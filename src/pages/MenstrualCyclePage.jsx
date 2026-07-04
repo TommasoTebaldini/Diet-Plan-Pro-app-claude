@@ -28,6 +28,33 @@ const CYCLE_SYMPTOMS = [
   'Spotting', 'Acne', 'Insonnia', 'Voglie alimentari',
 ]
 
+const PHASE_NUTRITION = {
+  'Mestruale': {
+    color: '#ec4899', bg: '#fce7f3',
+    summary: 'Focus su ferro e antinfiammatori per ridurre crampi e affaticamento.',
+    foods: ['🥩 Carne rossa magra, legumi (ferro)', '🥦 Spinaci, broccoli (ferro + vitamina C)', '🐟 Salmone, sardine (omega-3, antinfiammatori)', '🍫 Cioccolato fondente ≥70% (magnesio)', '🫖 Tisane di zenzero e cannella (antidolorifici)'],
+    avoid: ['☕ Caffeina e alcol (aggravano crampi e perdita di ferro)', '🧂 Cibi salati (ritenzione idrica)'],
+  },
+  'Pre-ovulatoria': {
+    color: '#f59e0b', bg: '#fffbeb',
+    summary: 'Energia in crescita: privilegia fitoestrogeni e vitamina B6.',
+    foods: ['🫘 Soia, lenticchie, ceci (fitoestrogeni)', '🥚 Uova, pollo (vitamina B6)', '🌾 Avena, riso integrale (energia stabile)', '🥑 Avocado (grassi sani per estrogeni)', '🍓 Frutti di bosco (antiossidanti)'],
+    avoid: ['🍬 Zuccheri raffinati (picchi glicemici)', '🧀 Latticini in eccesso'],
+  },
+  'Ovulatoria': {
+    color: '#10b981', bg: '#ecfdf5',
+    summary: 'Picco di energia: supporta la fertilità con fibre e antiossidanti.',
+    foods: ['🥗 Verdure a foglia verde (folati)', '🍋 Agrumi, kiwi (vitamina C)', '🌰 Noci, semi di lino (zinco e omega-3)', '🐟 Tonno, sgombro (vitamina D)', '🫐 Mirtilli, lamponi (antiossidanti)'],
+    avoid: ['🍟 Fritture e grassi saturi (stress ossidativo)', '🥃 Alcol'],
+  },
+  'Luteale': {
+    color: '#7c3aed', bg: '#f5f3ff',
+    summary: 'Combatti il PMS con magnesio, triptofano e riduci sale e zucchero.',
+    foods: ['🍫 Cioccolato fondente, banane (triptofano e magnesio)', '🥜 Mandorle, noci (magnesio)', '🍗 Tacchino, avena (serotonina)', '🫘 Legumi (fibre, sazietà)', '🍠 Patate dolci, zucca (comfort food sano)'],
+    avoid: ['🧂 Sale (gonfiore e ritenzione)', '🍬 Zuccheri (aggravano sbalzi d\'umore)', '☕ Caffeina in eccesso (ansia, insonnia)'],
+  },
+}
+
 import { useState as useState2 } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
@@ -532,6 +559,35 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
             </p>
           </div>
         )}
+
+        {/* Consigli nutrizionali per fase */}
+        {currentPhase && PHASE_NUTRITION[currentPhase.name] && (() => {
+          const tips = PHASE_NUTRITION[currentPhase.name]
+          return (
+            <div className="card" style={{ padding: '18px 20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <span style={{ fontSize: 22 }}>{currentPhase.emoji}</span>
+                <div>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: tips.color, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Consigli nutrizionali</p>
+                  <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Fase {currentPhase.name}</p>
+                </div>
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5, background: tips.bg, borderRadius: 10, padding: '10px 12px', border: `1px solid ${tips.color}33` }}>{tips.summary}</p>
+              <p style={{ fontSize: 11, fontWeight: 700, color: tips.color, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>✅ Preferisci</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                {tips.foods.map((f, i) => (
+                  <p key={i} style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.4, paddingLeft: 4 }}>{f}</p>
+                ))}
+              </div>
+              <p style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>⚠️ Riduci o evita</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {tips.avoid.map((f, i) => (
+                  <p key={i} style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4, paddingLeft: 4 }}>{f}</p>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* History list */}
         {loading ? (

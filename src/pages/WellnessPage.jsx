@@ -7,7 +7,8 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, ComposedChart, Bar,
 } from 'recharts'
-import { Heart, Zap, Moon, Plus, CheckCircle, Clock, BedDouble, Brain } from 'lucide-react'
+import { Heart, Zap, Moon, Plus, CheckCircle, Clock, BedDouble, Brain, WifiOff, Lightbulb } from 'lucide-react'
+import { safeWrite } from '../lib/offlineDB'
 
 const MOOD_OPTIONS = [
   { value: 1, emoji: '😞', label: 'Pessimo' },
@@ -203,6 +204,25 @@ export default function WellnessPage() {
     setSaving(true)
     setError('')
 
+    // Offline fallback: queue to IndexedDB
+    if (!navigator.onLine) {
+      const baseFields = {
+        mood: mood ?? null, energy: energy ?? null,
+        sleep_quality: sleepQuality ?? null, sleep_hours: sleepHours ?? null,
+        sleep_restedness: sleepRestedness ?? null,
+        symptoms: symptoms.length > 0 ? symptoms : [],
+        notes: notes || null,
+        stress_level: stressLevel ?? null,
+      }
+      await safeWrite('daily_wellness', { user_id: user.id, date: today, ...baseFields })
+      setSaving(false)
+      setSaved(true)
+      setShowForm(false)
+      setError('Salvato offline — verrà sincronizzato alla prossima connessione.')
+      setTimeout(() => setSaved(false), 3000)
+      return
+    }
+
     try {
       // Base fields always supported
       const baseFields = {
@@ -341,6 +361,39 @@ export default function WellnessPage() {
   const todayEnergyOpt = ENERGY_OPTIONS.find(o => o.value === (todayLog?.energy))
   const todaySleepOpt = SLEEP_OPTIONS.find(o => o.value === (todayLog?.sleep_quality))
   const todayRestednessOpt = RESTEDNESS_OPTIONS.find(o => o.value === (todayLog?.sleep_restedness))
+
+  // Compute auto insights (min 4 data points per group)
+  const MIN_INSIGHT_PTS = 4
+  const insights = []
+  const longSleep = history.filter(w => w.sleep_hours >= 7 && w.mood)
+  const shortSleep = history.filter(w => w.sleep_hours != null && w.sleep_hours < 7 && w.mood)
+  if (longSleep.length >= MIN_INSIGHT_PTS && shortSleep.length >= MIN_INSIGHT_PTS) {
+    const al = (longSleep.reduce((s, w) => s + w.mood, 0) / longSleep.length).toFixed(1)
+    const as_ = (shortSleep.reduce((s, w) => s + w.mood, 0) / shortSleep.length).toFixed(1)
+    const diff = Math.abs(parseFloat(al) - parseFloat(as_))
+    if (diff >= 0.3) insights.push({ positive: parseFloat(al) > parseFloat(as_), text: `Quando dormi ≥7h il tuo umore medio è ${al}/5, vs ${as_}/5 con meno sonno. ${parseFloat(al) > parseFloat(as_) ? '💚 Il riposo conta!' : '🤔 Altri fattori influenzano il tuo umore.'}` })
+  }
+  const goodSleep = history.filter(w => w.sleep_quality >= 4 && w.energy)
+  const badSleep = history.filter(w => w.sleep_quality != null && w.sleep_quality <= 2 && w.energy)
+  if (goodSleep.length >= MIN_INSIGHT_PTS && badSleep.length >= MIN_INSIGHT_PTS) {
+    const ag = (goodSleep.reduce((s, w) => s + w.energy, 0) / goodSleep.length).toFixed(1)
+    const ab = (badSleep.reduce((s, w) => s + w.energy, 0) / badSleep.length).toFixed(1)
+    insights.push({ positive: parseFloat(ag) > parseFloat(ab), text: `Con sonno buono (≥4/5) la tua energia media è ${ag}/5, vs ${ab}/5 con sonno scarso. 😴` })
+  }
+  const hiKcalMoods = correlationData.filter(d => d.kcal > 1800 && d.mood)
+  const loKcalMoods = correlationData.filter(d => d.kcal > 0 && d.kcal <= 1800 && d.mood)
+  if (hiKcalMoods.length >= MIN_INSIGHT_PTS && loKcalMoods.length >= MIN_INSIGHT_PTS) {
+    const ah = (hiKcalMoods.reduce((s, d) => s + d.mood, 0) / hiKcalMoods.length).toFixed(1)
+    const al2 = (loKcalMoods.reduce((s, d) => s + d.mood, 0) / loKcalMoods.length).toFixed(1)
+    if (Math.abs(parseFloat(ah) - parseFloat(al2)) >= 0.3) insights.push({ positive: parseFloat(ah) >= parseFloat(al2), text: `Nei giorni con >1800 kcal il tuo umore medio è ${ah}/5, vs ${al2}/5 con meno calorie. 🍽️` })
+  }
+  const loStressSleep = history.filter(w => w.stress_level != null && w.stress_level <= 2 && w.sleep_quality)
+  const hiStressSleep = history.filter(w => w.stress_level >= 4 && w.sleep_quality)
+  if (loStressSleep.length >= MIN_INSIGHT_PTS && hiStressSleep.length >= MIN_INSIGHT_PTS) {
+    const als = (loStressSleep.reduce((s, w) => s + w.sleep_quality, 0) / loStressSleep.length).toFixed(1)
+    const ahs = (hiStressSleep.reduce((s, w) => s + w.sleep_quality, 0) / hiStressSleep.length).toFixed(1)
+    insights.push({ positive: parseFloat(als) > parseFloat(ahs), text: `Con stress basso la qualità del sonno è ${als}/5, vs ${ahs}/5 con stress alto. 🧠` })
+  }
 
   return (
     <div className="page">
@@ -707,6 +760,24 @@ export default function WellnessPage() {
                   </div>
                 )
               })}
+            </div>
+          </div>
+        )}
+
+        {/* Insights automatici */}
+        {insights.length > 0 && (
+          <div className="card" style={{ padding: '18px 20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <Lightbulb size={16} color="#f59e0b" />
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Insight automatici</h3>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 4 }}>ultimi {history.length}gg</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {insights.map((ins, i) => (
+                <div key={i} style={{ background: ins.positive ? '#f0fdf4' : '#fffbeb', borderRadius: 12, padding: '12px 14px', border: `1px solid ${ins.positive ? '#bbf7d0' : '#fde68a'}` }}>
+                  <p style={{ fontSize: 13, color: ins.positive ? '#166534' : '#92400e', fontWeight: 500, lineHeight: 1.5, margin: 0 }}>{ins.text}</p>
+                </div>
+              ))}
             </div>
           </div>
         )}

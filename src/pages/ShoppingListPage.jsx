@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { ShoppingCart, Plus, Trash2, Check, ChevronDown, ChevronUp, Leaf, X, Save, Edit2, ListChecks } from 'lucide-react'
+import { ShoppingCart, Plus, Trash2, Check, ChevronDown, ChevronUp, Leaf, X, Save, Edit2, ListChecks, BookOpen } from 'lucide-react'
+import { subDays, format } from 'date-fns'
+import { it } from 'date-fns/locale'
 
 // ── Food categorization ──────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -257,6 +259,125 @@ function DietTab({ user }) {
   )
 }
 
+// ── DiaryTab: shopping list from last 7 days diary ────────────────────────────
+function DiaryTab({ user }) {
+  const [loading, setLoading] = useState(true)
+  const [foods, setFoods] = useState([])
+  const [checked, setChecked] = useState({})
+  const [collapsed, setCollapsed] = useState({})
+  const [saved, setSaved] = useState(false)
+  const [days, setDays] = useState(7)
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true)
+      const from = subDays(new Date(), days - 1).toISOString().split('T')[0]
+      const { data } = await supabase
+        .from('food_logs')
+        .select('food_name, grams')
+        .eq('user_id', user.id)
+        .gte('date', from)
+        .neq('food_name', '__note__')
+      const map = {}
+      for (const row of data || []) {
+        const key = (row.food_name || '').toLowerCase().trim()
+        if (!key) continue
+        if (!map[key]) map[key] = { name: row.food_name, totalGrams: 0, count: 0, category: categorizeFood(row.food_name) }
+        map[key].totalGrams += parseFloat(row.grams || 0)
+        map[key].count++
+      }
+      setFoods(Object.values(map).sort((a, b) => b.count - a.count))
+      setChecked({})
+      setLoading(false)
+    }
+    load()
+  }, [user.id, days])
+
+  const grouped = CATEGORIES.reduce((acc, cat) => {
+    acc[cat] = foods.filter(f => f.category === cat)
+    return acc
+  }, {})
+  const checkedCount = foods.filter(f => checked[f.name]).length
+
+  function saveAsCustomList() {
+    const items = foods.map(f => ({ id: uid(), name: f.name, quantity: `~${Math.round(f.totalGrams / f.count)}g`, category: f.category, checked: !!checked[f.name] }))
+    const lists = loadLists(user.id)
+    lists.unshift({ id: uid(), name: `Dal diario – ultimi ${days}gg (${format(new Date(), 'd MMM', { locale: it })})`, createdAt: new Date().toISOString(), items })
+    saveLists(user.id, lists)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+  }
+
+  if (loading) return (
+    <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
+      <div style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+      Caricamento diario...
+    </div>
+  )
+
+  if (foods.length === 0) return (
+    <div style={{ textAlign: 'center', padding: '40px 24px', color: 'var(--text-muted)' }}>
+      <BookOpen size={40} style={{ opacity: 0.25, marginBottom: 12 }} />
+      <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Nessun dato nel diario</p>
+      <p style={{ fontSize: 13, lineHeight: 1.6 }}>Registra i pasti nel diario per gli ultimi {days} giorni per generare la lista automaticamente.</p>
+    </div>
+  )
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {/* Period selector */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 13, color: 'var(--text-muted)', flexShrink: 0 }}>Ultimi</span>
+        {[7, 14, 30].map(d => (
+          <button key={d} onClick={() => setDays(d)} style={{ padding: '5px 12px', borderRadius: 20, border: 'none', font: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer', background: days === d ? 'var(--green-main)' : 'var(--surface-2)', color: days === d ? 'white' : 'var(--text-secondary)' }}>{d}gg</button>
+        ))}
+      </div>
+
+      {/* Stats bar */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--green-pale)', borderRadius: 14, border: '1px solid var(--border-light)' }}>
+        <span style={{ fontSize: 13, color: 'var(--green-dark)', fontWeight: 600 }}>{checkedCount}/{foods.length} articoli</span>
+        <button onClick={saveAsCustomList} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 20, border: 'none', background: saved ? '#10b981' : 'var(--green-main)', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s' }}>
+          {saved ? <><Check size={12} /> Salvata!</> : <><Save size={12} /> Salva lista</>}
+        </button>
+      </div>
+
+      {CATEGORIES.map(cat => {
+        const items = grouped[cat]
+        if (!items || items.length === 0) return null
+        const isCollapsed = collapsed[cat]
+        const catChecked = items.filter(f => checked[f.name]).length
+        return (
+          <div key={cat} style={{ background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 14, overflow: 'hidden' }}>
+            <button onClick={() => setCollapsed(s => ({ ...s, [cat]: !s[cat] }))} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+              <span style={{ fontSize: 18 }}>{CATEGORY_ICONS[cat]}</span>
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{cat}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{catChecked}/{items.length}</span>
+              {isCollapsed ? <ChevronDown size={16} color="var(--text-muted)" /> : <ChevronUp size={16} color="var(--text-muted)" />}
+            </button>
+            {!isCollapsed && (
+              <div style={{ borderTop: '1px solid var(--border-light)' }}>
+                {items.map((food, idx) => {
+                  const isChecked = !!checked[food.name]
+                  return (
+                    <div key={food.name} onClick={() => setChecked(s => ({ ...s, [food.name]: !s[food.name] }))}
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderBottom: idx < items.length - 1 ? '1px solid var(--border-light)' : 'none', cursor: 'pointer', background: isChecked ? 'var(--surface-2)' : 'transparent', transition: 'background 0.15s' }}>
+                      <div style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${isChecked ? 'var(--green-main)' : 'var(--border)'}`, background: isChecked ? 'var(--green-main)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
+                        {isChecked && <Check size={13} color="white" strokeWidth={3} />}
+                      </div>
+                      <span style={{ flex: 1, fontSize: 14, color: isChecked ? 'var(--text-muted)' : 'var(--text-primary)', textDecoration: isChecked ? 'line-through' : 'none', transition: 'all 0.15s' }}>{food.name}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>{food.count}×</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ── ListsTab: custom shopping lists ──────────────────────────────────────────
 function ListsTab({ user }) {
   const [lists, setLists] = useState(() => loadLists(user.id))
@@ -492,6 +613,7 @@ export default function ShoppingListPage() {
 
   const tabs = [
     { label: 'Dalla dieta', icon: Leaf },
+    { label: 'Dal diario', icon: BookOpen },
     { label: 'Mie liste', icon: ListChecks },
   ]
 
@@ -528,7 +650,7 @@ export default function ShoppingListPage() {
       </div>
 
       <div style={{ padding: '16px 16px 100px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {tab === 0 ? <DietTab user={user} /> : <ListsTab user={user} />}
+        {tab === 0 ? <DietTab user={user} /> : tab === 1 ? <DiaryTab user={user} /> : <ListsTab user={user} />}
       </div>
     </div>
   )

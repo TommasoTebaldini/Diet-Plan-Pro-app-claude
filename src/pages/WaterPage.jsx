@@ -3,12 +3,13 @@ import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
-import { Droplets, Plus, Trash2, Bell, BellOff, BarChart2, List } from 'lucide-react'
+import { Droplets, Plus, Trash2, Bell, BellOff, BarChart2, List, WifiOff } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { subDays, format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { checkWaterAndNotify } from '../lib/smartNotifications'
 import { loadPrefs, savePrefs, initScheduledNotifications, requestPermission } from '../lib/notifications'
+import { safeWrite } from '../lib/offlineDB'
 
 // Quick-add presets: label, icon, ml
 const QUICK_PRESETS = [
@@ -61,6 +62,7 @@ export default function WaterPage() {
   const [saveError, setSaveError] = useState(null)
   const [tab, setTab] = useState('oggi') // 'oggi' | 'settimana'
   const [notifEnabled, setNotifEnabled] = useState(() => loadPrefs().waterReminder === true)
+  const [offlineSaved, setOfflineSaved] = useState(false)
 
   // Load today's logs + latest weight
   useEffect(() => {
@@ -110,20 +112,21 @@ export default function WaterPage() {
 
   async function addWater(ml) {
     setSaveError(null)
+    setOfflineSaved(false)
     setLoading(true)
-    const { data, error } = await supabase.from('water_logs').insert({ user_id: user.id, date: today, amount_ml: ml }).select().single()
-    if (error) {
-      setSaveError('Errore nel salvataggio. Riprova.')
-      setLoading(false)
-      return
-    }
-    if (data) {
-      setLogs(l => {
-        const updated = [...l, data]
+    const { data, offline } = await safeWrite('water_logs', { user_id: user.id, date: today, amount_ml: ml })
+    const logEntry = data || { id: 'pending_' + Date.now(), amount_ml: ml, created_at: new Date().toISOString(), _pending: true }
+    setLogs(l => {
+      const updated = [...l, logEntry]
+      if (!offline) {
         const newTotal = updated.reduce((s, w) => s + w.amount_ml, 0)
         checkWaterAndNotify(newTotal, target)
-        return updated
-      })
+      }
+      return updated
+    })
+    if (offline) {
+      setOfflineSaved(true)
+      setTimeout(() => setOfflineSaved(false), 4000)
     }
     setCustom('')
     setLoading(false)
@@ -174,6 +177,11 @@ export default function WaterPage() {
       {saveError && (
         <div style={{ margin: '12px 20px 0', padding: '10px 14px', background: '#fee2e2', borderRadius: 10, color: '#dc2626', fontSize: 13 }}>
           {saveError}
+        </div>
+      )}
+      {offlineSaved && (
+        <div style={{ margin: '12px 20px 0', padding: '10px 14px', background: '#fef3c7', borderRadius: 10, color: '#92400e', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <WifiOff size={14} /> Salvato offline — verrà sincronizzato alla prossima connessione
         </div>
       )}
 

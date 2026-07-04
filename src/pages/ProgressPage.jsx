@@ -6,7 +6,8 @@ import { useT } from '../i18n'
 import ProGate from '../components/ProGate'
 import { useSubscription } from '../hooks/useSubscription'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts'
-import { TrendingDown, TrendingUp, Minus, Target, Plus, Scale, Activity, Camera } from 'lucide-react'
+import { TrendingDown, TrendingUp, Minus, Target, Plus, Scale, Activity, Camera, WifiOff } from 'lucide-react'
+import { safeWrite } from '../lib/offlineDB'
 
 const MOOD_OPTIONS = [
   { value: 1, emoji: '😞', label: 'Pessimo' },
@@ -93,19 +94,28 @@ export default function ProgressPage() {
     setSaveError(null)
     setSaveOk(false)
 
+    const isOnline = navigator.onLine
     try {
       // Save weight
       if (newWeight) {
         const w = parseFloat(newWeight)
         if (!isNaN(w)) {
-          const { data, error } = await supabase.from('weight_logs')
-            .upsert({ user_id: user.id, date: today, weight_kg: w }, { onConflict: 'user_id,date' })
-            .select().single()
-          if (error) throw new Error('Errore peso: ' + error.message)
-          if (data) setWeights(prev => {
-            const filtered = prev.filter(x => x.date !== today)
-            return [...filtered, data].sort((a, b) => a.date.localeCompare(b.date))
-          })
+          if (isOnline) {
+            const { data, error } = await supabase.from('weight_logs')
+              .upsert({ user_id: user.id, date: today, weight_kg: w }, { onConflict: 'user_id,date' })
+              .select().single()
+            if (error) throw new Error('Errore peso: ' + error.message)
+            if (data) setWeights(prev => {
+              const filtered = prev.filter(x => x.date !== today)
+              return [...filtered, data].sort((a, b) => a.date.localeCompare(b.date))
+            })
+          } else {
+            await safeWrite('weight_logs', { user_id: user.id, date: today, weight_kg: w })
+            setWeights(prev => {
+              const filtered = prev.filter(x => x.date !== today)
+              return [...filtered, { date: today, weight_kg: w, _pending: true }].sort((a, b) => a.date.localeCompare(b.date))
+            })
+          }
         }
       }
 
@@ -115,18 +125,23 @@ export default function ProgressPage() {
           user_id: user.id,
           date: today,
           mood: mood || null,
-          symptoms: symptoms,   // array di stringhe
+          symptoms: symptoms,
           notes: notes || null,
         }
-        const { error } = await supabase.from('daily_wellness')
-          .upsert(wellnessData, { onConflict: 'user_id,date' })
-        if (error) throw new Error('Errore benessere: ' + error.message)
+        if (isOnline) {
+          const { error } = await supabase.from('daily_wellness')
+            .upsert(wellnessData, { onConflict: 'user_id,date' })
+          if (error) throw new Error('Errore benessere: ' + error.message)
+        } else {
+          await safeWrite('daily_wellness', wellnessData)
+        }
       }
 
       setSaveOk(true)
+      if (!isOnline) setSaveError('Dati salvati offline — verranno sincronizzati alla prossima connessione.')
       setShowAdd(false)
       setTimeout(() => setSaveOk(false), 3000)
-      loadData()
+      if (isOnline) loadData()
     } catch (e) {
       setSaveError(e.message)
     } finally {
