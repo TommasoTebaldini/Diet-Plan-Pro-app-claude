@@ -487,6 +487,7 @@ function applyFiltersAndSort(recipes, filters) {
 // ── SharedRecipeCard ──────────────────────────────────────────────────────────
 function SharedRecipeCard({ sr, onSave, onMarkViewed }) {
   const [open, setOpen] = useState(false)
+  const [saved, setSaved] = useState(false)
   const rd = sr.recipe_data || {}
   const ing = Array.isArray(rd.ingredienti) ? rd.ingredienti : []
   const isNew = !sr.viewed_at
@@ -537,9 +538,15 @@ function SharedRecipeCard({ sr, onSave, onMarkViewed }) {
               )
             })}
 
-          <button className="btn btn-full" onClick={onSave} style={{ marginTop: 14, background: '#ecfeff', color: '#0e7490', border: '1.5px solid #a5f3fc', borderRadius: 10, padding: '10px 16px', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
-            + Salva nelle mie ricette
-          </button>
+          {saved ? (
+            <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 10, padding: '10px 16px', color: '#15803d', fontWeight: 700, fontSize: 13 }}>
+              ✓ Salvata nelle tue ricette
+            </div>
+          ) : (
+            <button className="btn btn-full" onClick={() => { onSave(); setSaved(true) }} style={{ marginTop: 14, background: '#ecfeff', color: '#0e7490', border: '1.5px solid #a5f3fc', borderRadius: 10, padding: '10px 16px', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
+              + Salva nelle mie ricette
+            </button>
+          )}
         </div>
       )}
     </motion.div>
