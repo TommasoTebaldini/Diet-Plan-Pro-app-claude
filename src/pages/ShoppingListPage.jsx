@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { ShoppingCart, Plus, Trash2, Check, ChevronDown, ChevronUp, Leaf, X, Save, Edit2, ListChecks, BookOpen } from 'lucide-react'
+import { ShoppingCart, Plus, Trash2, Check, ChevronDown, ChevronUp, Leaf, X, Save, Edit2, ListChecks, BookOpen, Share2 } from 'lucide-react'
 import { subDays, format } from 'date-fns'
 import { it } from 'date-fns/locale'
 
@@ -387,6 +387,7 @@ function ListsTab({ user }) {
   const [newListName, setNewListName] = useState('')
   const [editingName, setEditingName] = useState(null)
   const [editNameText, setEditNameText] = useState('')
+  const [shareCopied, setShareCopied] = useState(false)
 
   function persist(updated) {
     setLists(updated)
@@ -430,6 +431,24 @@ function ListsTab({ user }) {
       ...l,
       items: l.items.filter(it => it.id !== itemId),
     }))
+  }
+
+  async function shareList(list) {
+    const lines = CATEGORIES.flatMap(cat => {
+      const items = list.items.filter(i => i.category === cat)
+      if (!items.length) return []
+      return [`\n${CATEGORY_ICONS[cat]} ${cat}`, ...items.map(i => `${i.checked ? '✅' : '◻️'} ${i.name}`)]
+    })
+    const text = `🛒 ${list.name}\n${lines.join('\n')}`
+    if (navigator.share) {
+      try { await navigator.share({ title: list.name, text }) } catch {}
+    } else {
+      try {
+        await navigator.clipboard.writeText(text)
+        setShareCopied(true)
+        setTimeout(() => setShareCopied(false), 2000)
+      } catch {}
+    }
   }
 
   function renameList(listId) {
@@ -478,6 +497,13 @@ function ListsTab({ user }) {
             )}
           </div>
           <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{checkedCount}/{activeList.items.length}</span>
+          <button
+            onClick={() => shareList(activeList)}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 11px', borderRadius: 10, border: '1.5px solid var(--border)', background: shareCopied ? 'var(--green-pale)' : 'var(--surface)', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: shareCopied ? 'var(--green-dark)' : 'var(--text-secondary)' }}
+          >
+            <Share2 size={13} />
+            {shareCopied ? 'Copiata!' : 'Condividi'}
+          </button>
         </div>
 
         {/* Add item */}

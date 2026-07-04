@@ -374,6 +374,8 @@ export default function ChatPage() {
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [dietitian, setDietitian] = useState(null)
   const [dietitianId, setDietitianId] = useState(null)
   const [notLinked, setNotLinked] = useState(false)
@@ -498,8 +500,8 @@ export default function ChatPage() {
       supabase.from('chat_messages')
         .select('id,patient_id,sender_role,sender_id,content,message_type,file_url,file_name,duration_seconds,read_at,created_at')
         .eq('patient_id', user.id)
-        .order('created_at', { ascending: true })
-        .limit(150),
+        .order('created_at', { ascending: false })
+        .limit(50),
       supabase.from('patient_documents').select('id, title, content, type').eq('patient_id', user.id).eq('requires_signature', true).is('signed_at', null).eq('visible', true),
     ])
 
@@ -524,7 +526,9 @@ export default function ChatPage() {
 
     setDietitian(profileRes.data || { full_name: 'Il tuo dietista' })
     setDietitianLastSeen(profileRes.data?.last_seen_at || null)
-    setMessages(msgsRes.data || [])
+    const msgs = (msgsRes.data || []).reverse()
+    setMessages(msgs)
+    setHasMore((msgsRes.data || []).length >= 50)
     setUnsignedDocs(docsRes.data || [])
 
     const unread = (msgsRes.data || []).filter(m => m.sender_role === 'dietitian' && !m.read_at)
@@ -532,6 +536,31 @@ export default function ChatPage() {
 
     setLoading(false)
     return dId
+  }
+
+  async function loadMoreMessages() {
+    if (!messages.length || loadingMore || !hasMore) return
+    setLoadingMore(true)
+    const oldest = messages[0].created_at
+    const { data } = await supabase.from('chat_messages')
+      .select('id,patient_id,sender_role,sender_id,content,message_type,file_url,file_name,duration_seconds,read_at,created_at')
+      .eq('patient_id', user.id)
+      .lt('created_at', oldest)
+      .order('created_at', { ascending: false })
+      .limit(50)
+    if (data && data.length > 0) {
+      const container = messagesContainerRef.current
+      const prevScrollHeight = container?.scrollHeight || 0
+      const older = data.reverse()
+      setMessages(prev => [...older, ...prev])
+      setHasMore(data.length >= 50)
+      requestAnimationFrame(() => {
+        if (container) container.scrollTop = container.scrollHeight - prevScrollHeight
+      })
+    } else {
+      setHasMore(false)
+    }
+    setLoadingMore(false)
   }
 
   async function markAsRead(ids) {
@@ -832,7 +861,19 @@ export default function ChatPage() {
             <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>Scrivi un messaggio a {dietitianName}<br />per domande o aggiornamenti.</p>
           </div>
         ) : (
-          Object.entries(groups).map(([day, msgs]) => (
+          <>
+            {hasMore && (
+              <div style={{ textAlign: 'center', padding: '8px 0 12px' }}>
+                <button
+                  onClick={loadMoreMessages}
+                  disabled={loadingMore}
+                  style={{ fontSize: 12, color: 'var(--green-main)', background: 'var(--green-pale)', border: '1.5px solid var(--border-light)', borderRadius: 20, padding: '7px 16px', cursor: loadingMore ? 'default' : 'pointer', fontWeight: 600, opacity: loadingMore ? 0.6 : 1 }}
+                >
+                  {loadingMore ? 'Caricamento…' : '↑ Carica messaggi precedenti'}
+                </button>
+              </div>
+            )}
+            {Object.entries(groups).map(([day, msgs]) => (
             <div key={day}>
               <div style={{ textAlign: 'center', margin: '10px 0' }}>
                 <span style={{ background: 'var(--border)', color: 'var(--text-muted)', fontSize: 11, padding: '3px 10px', borderRadius: 100 }}>{dayLabel(day)}</span>
@@ -875,7 +916,8 @@ export default function ChatPage() {
                 )
               })}
             </div>
-          ))
+          ))}
+          </>
         )}
         <div ref={bottomRef} style={{ height: 8 }} />
       </div>

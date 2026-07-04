@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { searchFoods } from '../lib/foodSearch'
 import ProGate from '../components/ProGate'
 import { useSubscription } from '../hooks/useSubscription'
-import { Search, Plus, X, Trash2, ChevronDown, ChevronUp, Globe, Lock, Bookmark, Pencil, Heart, SlidersHorizontal } from 'lucide-react'
+import { Search, Plus, X, Trash2, ChevronDown, ChevronUp, Globe, Lock, Bookmark, Pencil, Heart, SlidersHorizontal, Camera } from 'lucide-react'
 import { useT } from '../i18n'
 
 const FREE_RECIPES_LIMIT = 5
@@ -55,6 +55,7 @@ function recipeToForm(r) {
     fasi: safeArray(r.fasi_preparazione),
     note: r.note || '',
     is_public: r.is_public || false,
+    photo_url: r.photo_url || '',
   }
 }
 
@@ -199,9 +200,13 @@ function RecipeCard({ r, isOwn, isDietitian, expandedId, setExpandedId, onSave, 
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
       className="card" style={{ padding: 0, overflow: 'hidden' }}>
       <button onClick={() => setExpandedId(isOpen ? null : r.id)} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '13px 14px', display: 'flex', alignItems: 'flex-start', gap: 10, font: 'inherit', textAlign: 'left' }}>
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: isDietitian ? 'linear-gradient(135deg, #0891b2, #0e7490)' : 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>
-          {isDietitian ? '🩺' : '🍳'}
-        </div>
+        {r.photo_url ? (
+          <img src={r.photo_url} alt="" style={{ width: 40, height: 40, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+        ) : (
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: isDietitian ? 'linear-gradient(135deg, #0891b2, #0e7490)' : 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>
+            {isDietitian ? '🩺' : '🍳'}
+          </div>
+        )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginBottom: 3 }}>
             <p style={{ fontSize: 14, fontWeight: 700 }}>{r.nome}</p>
@@ -557,7 +562,7 @@ function SharedRecipeCard({ sr, onSave, onMarkViewed }) {
 const EMPTY_FORM = {
   nome: '', porzioni: '4',
   tempo_preparazione_min: '', tempo_cottura_min: '', tempo_raffreddamento_min: '',
-  ingredienti: [], fasi: [], note: '', is_public: false,
+  ingredienti: [], fasi: [], note: '', is_public: false, photo_url: '',
 }
 
 export default function RecipesPage() {
@@ -579,6 +584,9 @@ export default function RecipesPage() {
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
   const [editingRecipe, setEditingRecipe] = useState(null)
+  const [photoFile, setPhotoFile] = useState(null)
+  const [photoPreview, setPhotoPreview] = useState('')
+  const photoInputRef = React.useRef(null)
 
   // Filters (shared between mine + public tabs)
   const [myFilters, setMyFilters] = useState(EMPTY_FILTERS)
@@ -629,6 +637,18 @@ export default function RecipesPage() {
       return
     }
     setSaving(true)
+
+    let photoUrl = form.photo_url || null
+    if (photoFile) {
+      const ext = photoFile.name.split('.').pop().toLowerCase()
+      const path = `${user.id}/${Date.now()}.${ext}`
+      const { error: uploadErr } = await supabase.storage.from('recipe-photos').upload(path, photoFile)
+      if (!uploadErr) {
+        const { data: pub } = supabase.storage.from('recipe-photos').getPublicUrl(path)
+        photoUrl = pub.publicUrl
+      }
+    }
+
     const totals = sumIngredients(form.ingredienti)
     const peso = form.ingredienti.reduce((s, i) => s + (parseFloat(i.grams) || 0), 0)
     const porzioni = Math.max(1, parseInt(form.porzioni) || 1)
@@ -652,6 +672,7 @@ export default function RecipesPage() {
       tempo_raffreddamento_min: parseInt(form.tempo_raffreddamento_min) || 0,
       note: form.note,
       is_public: form.is_public,
+      photo_url: photoUrl,
     }
     if (editingRecipe) {
       const { data, error } = await supabase.from('ricette').update(payload).eq('id', editingRecipe.id).select().single()
@@ -660,7 +681,7 @@ export default function RecipesPage() {
       if (data) {
         setMyRecipes(r => r.map(x => x.id === data.id ? data : x))
         setEditingRecipe(null)
-        setForm(EMPTY_FORM); setNewStep('')
+        setForm(EMPTY_FORM); setNewStep(''); setPhotoFile(null); setPhotoPreview('')
         setShowCreate(false)
         showToast(t('recipes.updated'))
       }
@@ -671,7 +692,7 @@ export default function RecipesPage() {
       if (data) {
         setMyRecipes(r => [data, ...r])
         setTab('mine')
-        setForm(EMPTY_FORM); setNewStep('')
+        setForm(EMPTY_FORM); setNewStep(''); setPhotoFile(null); setPhotoPreview('')
         setShowCreate(false)
         showToast(t('recipes.saved'))
       }
@@ -681,6 +702,8 @@ export default function RecipesPage() {
   function handleEditRecipe(r) {
     setEditingRecipe(r)
     setForm(recipeToForm(r))
+    setPhotoFile(null)
+    setPhotoPreview('')
     setShowCreate(true)
     setTab('mine')
   }
@@ -753,7 +776,7 @@ export default function RecipesPage() {
           <button onClick={() => {
             const next = !showCreate
             setShowCreate(next)
-            if (!next) { setEditingRecipe(null); setForm(EMPTY_FORM); setNewStep('') }
+            if (!next) { setEditingRecipe(null); setForm(EMPTY_FORM); setNewStep(''); setPhotoFile(null); setPhotoPreview('') }
             setTab('mine')
           }}
             style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.2)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0 }}>
@@ -853,6 +876,43 @@ export default function RecipesPage() {
               <button className="btn btn-primary" onClick={addStep} style={{ padding: '0 14px', flexShrink: 0 }} disabled={!newStep.trim()}>
                 <Plus size={14} />
               </button>
+            </div>
+
+            {/* Photo */}
+            <div style={{ marginBottom: 14 }}>
+              <label className="input-label">Foto ricetta (opzionale)</label>
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                style={{ display: 'none' }}
+                onChange={e => {
+                  const f = e.target.files?.[0]
+                  if (!f) return
+                  setPhotoFile(f)
+                  setPhotoPreview(URL.createObjectURL(f))
+                  e.target.value = ''
+                }}
+              />
+              {photoPreview || form.photo_url ? (
+                <div style={{ position: 'relative', width: '100%', height: 140, borderRadius: 12, overflow: 'hidden', border: '1.5px solid var(--border)' }}>
+                  <img src={photoPreview || form.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button
+                    onClick={() => { setPhotoFile(null); setPhotoPreview(''); setForm(f => ({ ...f, photo_url: '' })) }}
+                    style={{ position: 'absolute', top: 6, right: 6, width: 28, height: 28, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => photoInputRef.current?.click()}
+                  style={{ width: '100%', padding: '12px 0', borderRadius: 12, border: '2px dashed var(--border)', background: 'var(--surface-2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}
+                >
+                  <Camera size={16} />
+                  Aggiungi foto
+                </button>
+              )}
             </div>
 
             {/* Note */}

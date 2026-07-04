@@ -146,6 +146,35 @@ export const ALL_ACHIEVEMENTS = [
     icon: '🎖️',
     category: 'Engagement',
   },
+  // Quiz
+  {
+    key: 'quiz_streak_3',
+    name: 'Quiz 3 giorni',
+    description: 'Hai completato il quiz per 3 giorni di fila.',
+    icon: '🎯',
+    category: 'Quiz',
+  },
+  {
+    key: 'quiz_streak_7',
+    name: 'Quiz 7 giorni',
+    description: 'Una settimana intera di quiz consecutivi!',
+    icon: '🧠',
+    category: 'Quiz',
+  },
+  {
+    key: 'quiz_streak_14',
+    name: 'Quiz 2 settimane',
+    description: 'Due settimane di quiz senza interruzioni. Bravo/a!',
+    icon: '💡',
+    category: 'Quiz',
+  },
+  {
+    key: 'quiz_streak_30',
+    name: 'Quiz un mese',
+    description: 'Un mese di quiz ogni giorno. Sei un esperto!',
+    icon: '🏆',
+    category: 'Quiz',
+  },
   // Speciali
   {
     key: 'onboarding_complete',

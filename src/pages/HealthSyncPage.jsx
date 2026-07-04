@@ -92,11 +92,16 @@ export default function HealthSyncPage() {
     setWeight(weightRes.data?.weight_kg ?? null)
     setSleep(wellRes.data?.sleep_hours ?? null)
 
-    // Steps from ActivityPage (activity_logs or pedometer localStorage)
+    // Steps from pedometer localStorage
     try {
       const stored = localStorage.getItem('pedometer_steps_' + today)
       setSteps(stored ? parseInt(stored) : null)
     } catch { setSteps(null) }
+    // Heart rate from localStorage
+    try {
+      const hr = localStorage.getItem('hr_' + today)
+      setHeartRate(hr ? parseInt(hr) : null)
+    } catch { setHeartRate(null) }
 
     setLoading(false)
   }
@@ -118,7 +123,27 @@ export default function HealthSyncPage() {
           setSteps(totalSteps)
           localStorage.setItem('pedometer_steps_' + today, String(totalSteps))
         }
-        setSyncMsg(`Sincronizzati ${totalSteps.toLocaleString()} passi da Health Connect!`)
+        // Try to sync weight
+        try {
+          const wRes = await health.readRecords('Weight', { startTime: new Date(Date.now() - 86400000).toISOString(), endTime: now.toISOString() })
+          const latestW = wRes.records?.[wRes.records.length - 1]?.weight?.value
+          if (latestW) {
+            setWeight(latestW)
+            await supabase.from('weight_logs').insert({ user_id: user.id, weight_kg: latestW, date: today })
+          }
+        } catch {}
+        // Try to sync sleep
+        try {
+          const sRes = await health.readRecords('SleepSession', { startTime: start.toISOString(), endTime: now.toISOString() })
+          const sessions = sRes.records || []
+          if (sessions.length > 0) {
+            const totalMs = sessions.reduce((s, r) => s + (new Date(r.endTime) - new Date(r.startTime)), 0)
+            const hours = Math.round(totalMs / 3600000 * 10) / 10
+            setSleep(hours)
+            await supabase.from('daily_wellness').upsert({ user_id: user.id, date: today, sleep_hours: hours }, { onConflict: 'user_id,date' })
+          }
+        } catch {}
+        setSyncMsg(`Sincronizzati ${totalSteps.toLocaleString()} passi + dati salute da Health Connect`)
       } else {
         // Fallback: open Health Connect settings
         window.open('intent://com.google.android.apps.healthdata#Intent;scheme=https;package=com.google.android.apps.healthdata;end', '_blank')
@@ -136,16 +161,50 @@ export default function HealthSyncPage() {
     }
   }
 
-  // ── Manual step import ────────────────────────────────────────────────────────
+  // ── Manual entries ────────────────────────────────────────────────────────────
   const [manualSteps, setManualSteps] = useState('')
+  const [manualWeight, setManualWeight] = useState('')
+  const [manualSleep, setManualSleep] = useState('')
+  const [manualHR, setManualHR] = useState('')
+
   async function saveManualSteps() {
     const n = parseInt(manualSteps)
     if (!n || n <= 0) return
     setSteps(n)
     localStorage.setItem('pedometer_steps_' + today, String(n))
     setManualSteps('')
-    setSyncMsg(`${n.toLocaleString()} passi salvati!`)
-    setTimeout(() => setSyncMsg(''), 3000)
+    setSyncMsg('Passi salvati!')
+    setTimeout(() => setSyncMsg(''), 2500)
+  }
+
+  async function saveManualWeight() {
+    const kg = parseFloat(manualWeight)
+    if (!kg || kg <= 0) return
+    await supabase.from('weight_logs').insert({ user_id: user.id, weight_kg: kg, date: today })
+    setWeight(kg)
+    setManualWeight('')
+    setSyncMsg('Peso salvato!')
+    setTimeout(() => setSyncMsg(''), 2500)
+  }
+
+  async function saveManualSleep() {
+    const h = parseFloat(manualSleep)
+    if (!h || h <= 0) return
+    await supabase.from('daily_wellness').upsert({ user_id: user.id, date: today, sleep_hours: h }, { onConflict: 'user_id,date' })
+    setSleep(h)
+    setManualSleep('')
+    setSyncMsg('Ore di sonno salvate!')
+    setTimeout(() => setSyncMsg(''), 2500)
+  }
+
+  function saveManualHR() {
+    const bpm = parseInt(manualHR)
+    if (!bpm || bpm <= 0) return
+    setHeartRate(bpm)
+    localStorage.setItem('hr_' + today, String(bpm))
+    setManualHR('')
+    setSyncMsg('Frequenza cardiaca salvata!')
+    setTimeout(() => setSyncMsg(''), 2500)
   }
 
   return (
@@ -238,22 +297,34 @@ export default function HealthSyncPage() {
                 )}
               </DataRow>
 
-              <DataRow icon={Heart} label="Frequenza cardiaca" value={heartRate} unit="bpm" status={os === 'ios' ? 'native' : 'unavailable'} />
+              <DataRow icon={Heart} label="Frequenza cardiaca" value={heartRate} unit="bpm" status={heartRate !== null ? 'connected' : 'manual'}>
+                <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                  <input type="number" placeholder="es. 72" value={manualHR} onChange={e => setManualHR(e.target.value)} onKeyDown={e => e.key === 'Enter' && saveManualHR()}
+                    style={{ flex: 1, padding: '5px 9px', border: '1.5px solid var(--border)', borderRadius: 8, background: 'var(--surface-2)', fontSize: 13, outline: 'none', color: 'var(--text-primary)' }} />
+                  <button onClick={saveManualHR} disabled={!manualHR} style={{ padding: '5px 12px', background: 'var(--green-main)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12 }}>
+                    {heartRate !== null ? 'Aggiorna' : 'Salva'}
+                  </button>
+                </div>
+              </DataRow>
 
               <DataRow icon={Scale} label="Peso" value={weight} unit="kg" status={weight !== null ? 'connected' : 'manual'}>
-                {weight === null && (
-                  <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
-                    Registra in <a href="/progressi" style={{ color: 'var(--green-main)' }}>Progressi</a>
-                  </p>
-                )}
+                <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                  <input type="number" step="0.1" placeholder="es. 70.5" value={manualWeight} onChange={e => setManualWeight(e.target.value)} onKeyDown={e => e.key === 'Enter' && saveManualWeight()}
+                    style={{ flex: 1, padding: '5px 9px', border: '1.5px solid var(--border)', borderRadius: 8, background: 'var(--surface-2)', fontSize: 13, outline: 'none', color: 'var(--text-primary)' }} />
+                  <button onClick={saveManualWeight} disabled={!manualWeight} style={{ padding: '5px 12px', background: 'var(--green-main)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12 }}>
+                    {weight !== null ? 'Aggiorna' : 'Salva'}
+                  </button>
+                </div>
               </DataRow>
 
               <DataRow icon={Moon} label="Ore di sonno" value={sleep} unit="ore" status={sleep !== null ? 'connected' : 'manual'}>
-                {sleep === null && (
-                  <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
-                    Registra in <a href="/benessere" style={{ color: 'var(--green-main)' }}>Benessere</a>
-                  </p>
-                )}
+                <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                  <input type="number" step="0.5" placeholder="es. 7.5" value={manualSleep} onChange={e => setManualSleep(e.target.value)} onKeyDown={e => e.key === 'Enter' && saveManualSleep()}
+                    style={{ flex: 1, padding: '5px 9px', border: '1.5px solid var(--border)', borderRadius: 8, background: 'var(--surface-2)', fontSize: 13, outline: 'none', color: 'var(--text-primary)' }} />
+                  <button onClick={saveManualSleep} disabled={!manualSleep} style={{ padding: '5px 12px', background: 'var(--green-main)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12 }}>
+                    {sleep !== null ? 'Aggiorna' : 'Salva'}
+                  </button>
+                </div>
               </DataRow>
 
               <DataRow icon={Activity} label="Attività fisica" value={null} unit="" status="manual">
@@ -265,22 +336,12 @@ export default function HealthSyncPage() {
           )}
         </motion.div>
 
-        {/* Roadmap */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="card" style={{ padding: '14px 16px' }}>
-          <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>📍 Prossimi aggiornamenti</p>
-          {[
-            { done: true,  text: 'Passi via sensore dispositivo' },
-            { done: true,  text: 'Peso e sonno via app' },
-            { done: false, text: 'Sync automatico Google Health Connect (Android 14+)' },
-            { done: false, text: 'Sync automatico Apple HealthKit (app nativa iOS)' },
-            { done: false, text: 'Frequenza cardiaca da dispositivi Bluetooth' },
-          ].map((item, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 0', borderBottom: i < 4 ? '1px solid var(--border-light)' : 'none' }}>
-              <span style={{ fontSize: 14, width: 20, textAlign: 'center' }}>{item.done ? '✅' : '🔜'}</span>
-              <p style={{ fontSize: 12, color: item.done ? 'var(--text-secondary)' : 'var(--text-muted)' }}>{item.text}</p>
-            </div>
-          ))}
-        </motion.div>
+        {syncMsg && (
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            style={{ background: '#dcfce7', border: '1.5px solid #86efac', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#15803d', fontWeight: 600 }}>
+            ✓ {syncMsg}
+          </motion.div>
+        )}
 
       </div>
     </div>

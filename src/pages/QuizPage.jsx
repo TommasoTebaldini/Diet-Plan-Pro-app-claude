@@ -4,6 +4,40 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { Zap, Star, Trophy, RefreshCw, ChevronRight, CheckCircle2, XCircle, Flame, BookOpen, Lock } from 'lucide-react'
 import QUESTIONS, { CATEGORIES } from '../data/quizQuestions'
+import { useAchievements } from '../context/AchievementsContext'
+
+// Difficulty per category
+const DIFF_MAP = {
+  calorie: 'medio', vitamine: 'difficile', minerali: 'difficile',
+  idratazione: 'facile', macronutrienti: 'medio', salute: 'facile',
+  miti: 'facile', porzioni: 'facile',
+}
+
+const DIFFS = [
+  { key: 'misto', label: 'Misto' },
+  { key: 'facile', label: 'Facile' },
+  { key: 'medio', label: 'Medio' },
+  { key: 'difficile', label: 'Difficile' },
+]
+
+function getQuestionsWithFilters(cats, diff) {
+  let pool = QUESTIONS
+  if (cats.length > 0) pool = pool.filter(q => cats.includes(q.cat))
+  if (diff !== 'misto') pool = pool.filter(q => DIFF_MAP[q.cat] === diff)
+  if (pool.length < QUESTIONS_PER_DAY) pool = QUESTIONS
+  const today = new Date().toISOString().split('T')[0]
+  let s = today.split('-').reduce((acc, v) => acc * 100 + parseInt(v), 0)
+  const indices = []
+  const len = pool.length
+  while (indices.length < Math.min(QUESTIONS_PER_DAY, len)) {
+    s = Math.imul(s ^ (s >>> 16), 0x45d9f3b)
+    s = Math.imul(s ^ (s >>> 16), 0x45d9f3b)
+    s = s ^ (s >>> 16)
+    const idx = Math.abs(s) % len
+    if (!indices.includes(idx)) indices.push(idx)
+  }
+  return indices.map(i => pool[i])
+}
 
 const QUESTIONS_PER_DAY = 5
 
@@ -75,17 +109,20 @@ function ScoreStars({ score, total }) {
 
 export default function QuizPage({ inModal = false }) {
   const { user } = useAuth()
+  const { checkAndAward } = useAchievements()
   const tp = (x) => inModal ? `${x}px` : `calc(env(safe-area-inset-top) + ${x}px)`
   const pageClass = inModal ? undefined : 'page'
   const pageStyle = inModal ? { flex: 1, display: 'flex', flexDirection: 'column', paddingBottom: 24 } : { padding: 0 }
 
   const [phase, setPhase] = useState('loading') // loading | idle | playing | done
-  const [questions] = useState(() => getQuestionsForToday())
+  const [questions, setQuestions] = useState(() => getQuestionsForToday())
   // answers[i] = null (not answered yet) | { selected: number, correct: boolean }
   const [answers, setAnswers] = useState(() => Array(QUESTIONS_PER_DAY).fill(null))
   const [idx, setIdx] = useState(0)
   const [streak, setStreak] = useState(0)
   const [finalStreak, setFinalStreak] = useState(0)
+  const [selectedCats, setSelectedCats] = useState([]) // empty = all cats
+  const [selectedDiff, setSelectedDiff] = useState('misto')
 
   useEffect(() => {
     const prog = loadProgress()
@@ -99,8 +136,10 @@ export default function QuizPage({ inModal = false }) {
   }, [])
 
   function startQuiz() {
+    const qs = getQuestionsWithFilters(selectedCats, selectedDiff)
+    setQuestions(qs)
     setIdx(0)
-    setAnswers(Array(QUESTIONS_PER_DAY).fill(null))
+    setAnswers(Array(qs.length).fill(null))
     setPhase('playing')
   }
 
@@ -133,6 +172,10 @@ export default function QuizPage({ inModal = false }) {
       { user_id: user.id, date: todayKey(), score, total: questions.length, streak: newStreak },
       { onConflict: 'user_id,date' }
     ).catch(() => {})
+    if (newStreak >= 3)  checkAndAward('quiz_streak_3')
+    if (newStreak >= 7)  checkAndAward('quiz_streak_7')
+    if (newStreak >= 14) checkAndAward('quiz_streak_14')
+    if (newStreak >= 30) checkAndAward('quiz_streak_30')
   }
 
   // ── LOADING
@@ -232,17 +275,39 @@ export default function QuizPage({ inModal = false }) {
           </div>
         </div>
         <div style={{ padding: '16px 18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {todayCategories.map(c => {
-              const cat = CATEGORIES[c]
-              return (
-                <div key={c} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', background: cat.bg, borderRadius: 20, border: `1.5px solid ${cat.light}` }}>
-                  <span style={{ fontSize: 13 }}>{cat.emoji}</span>
-                  <span style={{ fontSize: 11.5, fontWeight: 700, color: cat.color }}>{cat.label}</span>
-                </div>
-              )
-            })}
+
+          {/* Category filter */}
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>Categorie (lascia vuoto per tutte)</p>
+            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+              {Object.entries(CATEGORIES).map(([key, cat]) => {
+                const active = selectedCats.includes(key)
+                return (
+                  <button key={key}
+                    onClick={() => setSelectedCats(prev => prev.includes(key) ? prev.filter(c => c !== key) : [...prev, key])}
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', background: active ? cat.bg : 'var(--surface-2)', borderRadius: 20, border: `1.5px solid ${active ? cat.light : 'var(--border)'}`, cursor: 'pointer', transition: 'all .15s' }}>
+                    <span style={{ fontSize: 13 }}>{cat.emoji}</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: active ? cat.color : 'var(--text-muted)' }}>{cat.label}</span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
+
+          {/* Difficulty filter */}
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>Difficoltà</p>
+            <div style={{ display: 'flex', gap: 7 }}>
+              {DIFFS.map(d => (
+                <button key={d.key}
+                  onClick={() => setSelectedDiff(d.key)}
+                  style={{ flex: 1, padding: '7px 0', borderRadius: 10, border: `1.5px solid ${selectedDiff === d.key ? '#7c3aed' : 'var(--border)'}`, background: selectedDiff === d.key ? '#f5f3ff' : 'var(--surface-2)', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: selectedDiff === d.key ? '#7c3aed' : 'var(--text-muted)', transition: 'all .15s' }}>
+                  {d.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div style={{ background: '#f9fafb', borderRadius: 14, padding: '14px 16px', border: '1px solid #e5e7eb' }}>
             {[
               { icon: '↩️', text: 'Puoi andare avanti e indietro liberamente' },
