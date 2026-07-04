@@ -32,6 +32,7 @@ export default function BottomNav() {
   const { isPro } = useSubscription()
   const t = useT()
   const [newDocs, setNewDocs] = useState(0)
+  const [newShared, setNewShared] = useState(0)
   const [moreOpen, setMoreOpen] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(
     () => localStorage.getItem('sidebar_open') !== 'false'
@@ -89,6 +90,26 @@ export default function BottomNav() {
     return () => supabase.removeChannel(channel)
   }, [user])
 
+  useEffect(() => {
+    if (!user) return
+    supabase
+      .from('shared_recipes')
+      .select('*', { count: 'exact', head: true })
+      .eq('patient_id', user.id)
+      .is('viewed_at', null)
+      .then(({ count }) => setNewShared(count || 0))
+
+    const channel = supabase.channel(`nav-shared-${user.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'shared_recipes', filter: `patient_id=eq.${user.id}` }, () => {
+        setNewShared(prev => prev + 1)
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'shared_recipes', filter: `patient_id=eq.${user.id}` }, payload => {
+        if (payload.new.viewed_at && !payload.old?.viewed_at) setNewShared(prev => Math.max(0, prev - 1))
+      })
+      .subscribe()
+    return () => supabase.removeChannel(channel)
+  }, [user])
+
   useEffect(() => { if (pathname === '/chat') setUnreadChat(0) }, [pathname])
   useEffect(() => { setMoreOpen(false) }, [pathname])
 
@@ -96,7 +117,7 @@ export default function BottomNav() {
     { to: '/', icon: Home, label: t('nav.dashboard') },
     { to: '/dieta', icon: Utensils, label: t('nav.diet') },
     { to: '/macro', icon: BookOpen, label: t('nav.diary') },
-    { to: '/ricette', icon: ChefHat, label: t('nav.recipes') },
+    { to: '/ricette', icon: ChefHat, label: t('nav.recipes'), badge: newShared },
     { to: '/lista-spesa', icon: ShoppingCart, label: 'Lista spesa' },
     { to: '/chat', icon: MessageCircle, label: t('nav.chat'), badge: unreadChat },
     { to: '/documenti', icon: FileText, label: t('nav.documents'), badge: newDocs },
@@ -202,7 +223,7 @@ export default function BottomNav() {
   const MORE_SECTIONS = [
     { label: 'Nutrizione', items: [
       { to: '/acqua', icon: Droplets, label: 'Acqua' },
-      { to: '/ricette', icon: ChefHat, label: t('nav.recipes') },
+      { to: '/ricette', icon: ChefHat, label: t('nav.recipes'), badge: newShared },
       { to: '/alimenti', icon: BookOpen, label: 'Alimenti' },
       { to: '/lista-spesa', icon: ShoppingCart, label: 'Lista spesa' },
     ]},
@@ -276,7 +297,7 @@ export default function BottomNav() {
         >
           <div style={{ width: 38, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, background: (moreOpen || anyMoreActive) ? 'var(--green-pale)' : 'transparent', transition: 'background 0.2s', position: 'relative' }}>
             {moreOpen ? <X size={20} strokeWidth={2.2} style={{ transition: 'transform 0.2s' }} /> : <MoreHorizontal size={20} strokeWidth={1.8} />}
-            {newDocs > 0 && !moreOpen && <span style={badgeStyle}>{newDocs}</span>}
+            {(newDocs > 0 || newShared > 0) && !moreOpen && <span style={badgeStyle}>{newDocs + newShared}</span>}
           </div>
           <span style={{ fontSize: 9.5, fontWeight: (moreOpen || anyMoreActive) ? 600 : 400, letterSpacing: '0.01em' }}>Altro</span>
         </button>
