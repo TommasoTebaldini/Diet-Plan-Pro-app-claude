@@ -362,8 +362,8 @@ export default function WellnessPage() {
   const todaySleepOpt = SLEEP_OPTIONS.find(o => o.value === (todayLog?.sleep_quality))
   const todayRestednessOpt = RESTEDNESS_OPTIONS.find(o => o.value === (todayLog?.sleep_restedness))
 
-  // Compute auto insights (min 4 data points per group)
-  const MIN_INSIGHT_PTS = 4
+  // Compute auto insights (min 2 data points per group)
+  const MIN_INSIGHT_PTS = 2
   const insights = []
   const longSleep = history.filter(w => w.sleep_hours >= 7 && w.mood)
   const shortSleep = history.filter(w => w.sleep_hours != null && w.sleep_hours < 7 && w.mood)
@@ -765,13 +765,13 @@ export default function WellnessPage() {
         )}
 
         {/* Insights automatici */}
-        {insights.length > 0 && (
-          <div className="card" style={{ padding: '18px 20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <Lightbulb size={16} color="#f59e0b" />
-              <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Insight automatici</h3>
-              <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 4 }}>ultimi {history.length}gg</span>
-            </div>
+        <div className="card" style={{ padding: '18px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: insights.length > 0 ? 14 : 0 }}>
+            <Lightbulb size={16} color="#f59e0b" />
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Insight automatici</h3>
+            {history.length > 0 && <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 4 }}>ultimi {history.length} giorni</span>}
+          </div>
+          {insights.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {insights.map((ins, i) => (
                 <div key={i} style={{ background: ins.positive ? '#f0fdf4' : '#fffbeb', borderRadius: 12, padding: '12px 14px', border: `1px solid ${ins.positive ? '#bbf7d0' : '#fde68a'}` }}>
@@ -779,8 +779,14 @@ export default function WellnessPage() {
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 10 }}>
+              {history.length < 4
+                ? `Registra ancora qualche giornata (hai ${history.length} su 4 minime) per sbloccare correlazioni personalizzate tra sonno, umore, energia e alimentazione.`
+                : 'Ancora nessuna correlazione rilevante. Continua a registrare il tuo benessere per scoprire i tuoi pattern personali.'}
+            </p>
+          )}
+        </div>
 
         <div style={{ height: 'var(--nav)' }} />
       </div>

@@ -94,8 +94,20 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const u = session?.user ?? null
       setUser(u)
-      if (u) fetchProfile(u.id)
-      else { clearProfileCache(); setProfile(null); setLoading(false) }
+      if (u) {
+        fetchProfile(u.id)
+        // Auto-link to dietitian if patient registered via invite link
+        if (_event === 'SIGNED_IN') {
+          const ref = localStorage.getItem('pending_dietitian_ref')
+          if (ref && ref.length > 10) {
+            supabase.from('patient_dietitian')
+              .insert({ patient_id: u.id, dietitian_id: ref })
+              .then(({ error }) => {
+                if (!error) localStorage.removeItem('pending_dietitian_ref')
+              })
+          }
+        }
+      } else { clearProfileCache(); setProfile(null); setLoading(false) }
     })
 
     return () => { clearTimeout(safetyTimer); subscription.unsubscribe() }

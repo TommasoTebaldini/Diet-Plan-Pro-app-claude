@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { Leaf, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
 import { useT } from '../i18n'
 
 export default function RegisterPage() {
   const t = useT()
+  const [searchParams] = useSearchParams()
+  const dietitianRef = searchParams.get('ref') || ''
   const [form, setForm] = useState({ name: '', surname: '', email: '', password: '', confirm: '' })
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -25,13 +27,15 @@ export default function RegisterPage() {
     const { error } = await signUp(form.email, form.password, {
       full_name: `${form.name} ${form.surname}`,
       first_name: form.name,
-      last_name: form.surname
+      last_name: form.surname,
+      ...(dietitianRef ? { dietitian_ref: dietitianRef } : {})
     })
     if (error) {
       setError(error.message === 'User already registered'
         ? t('auth.error_email_taken')
         : error.message)
     } else {
+      if (dietitianRef) localStorage.setItem('pending_dietitian_ref', dietitianRef)
       setSuccess(true)
     }
     setLoading(false)
@@ -44,7 +48,14 @@ export default function RegisterPage() {
       </div>
       <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 300, marginBottom: 12 }}>{t('auth.register_success')}</h2>
       <p style={{ color: 'var(--text-secondary)', marginBottom: 8 }}>{t('auth.register_check_email')}</p>
-      <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 32 }}>{t('auth.register_dietitian_note')}</p>
+      {dietitianRef ? (
+        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '12px 16px', marginBottom: 24, textAlign: 'left' }}>
+          <p style={{ fontSize: 13, color: '#166534', fontWeight: 600 }}>✅ Registrazione tramite link del tuo dietista</p>
+          <p style={{ fontSize: 12, color: '#15803d', marginTop: 4 }}>Dopo aver confermato l'email e fatto il login, il tuo account sarà collegato automaticamente al tuo dietista.</p>
+        </div>
+      ) : (
+        <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 32 }}>{t('auth.register_dietitian_note')}</p>
+      )}
       <button className="btn btn-primary" onClick={() => navigate('/login')}>{t('auth.go_to_login')}</button>
     </div>
   )

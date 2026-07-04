@@ -458,6 +458,8 @@ function PianoAlimentareContent({ piano }) {
       const foods = meal.items || meal.foods || meal.alimenti || []
       for (let fi = 0; fi < foods.length; fi++) {
         const food = foods[fi]
+        // skip recipe header rows — ingredients are copied individually
+        if (food.isRicetta) continue
         const altKey = `${di}_${mi}_${fi}`
         const selAltIdx = selectedAlts[altKey] ?? null
         const alt = selAltIdx != null ? (food.altPrint || [])[selAltIdx] : null
@@ -610,79 +612,161 @@ function PianoAlimentareContent({ piano }) {
                     </div>
 
                     {/* Food rows */}
-                    {foods.length > 0 && (
-                      <div style={{ padding: '6px 0' }}>
-                        {foods.map((food, fi) => {
-                          const altKey = `${di}_${mi}_${fi}`
-                          const selAltIdx = selectedAlts[altKey] ?? null
-                          const alts = food.altPrint || []
-                          const selectedAlt = selAltIdx != null ? alts[selAltIdx] : null
-
-                          const nome = food.nome || food.name || food.alimento || ''
-                          if (!nome) return null
-                          const origQt = parseFloat(food.qt || food.quantita || food.quantity || food.grammi || food.grams || 0) || 0
-                          const origUnit = food.misura || food.unita || food.unit || 'g'
-
-                          const displayNome = selectedAlt ? (selectedAlt.nome || selectedAlt.name || nome) : nome
-                          const displayQt = selectedAlt ? (parseFloat(selectedAlt.qt || selectedAlt.quantita || selectedAlt.quantity || origQt) || origQt) : origQt
-                          const displayUnit = selectedAlt ? (selectedAlt.misura || 'g') : origUnit
-
-                          const kcalItem   = food.kcal_100g     && displayQt ? Math.round(food.kcal_100g * displayQt / 100) : null
-                          const protItem   = food.proteins_100g && displayQt ? Math.round(food.proteins_100g * displayQt / 100 * 10) / 10 : null
-                          const carbItem   = food.carbs_100g    && displayQt ? Math.round(food.carbs_100g * displayQt / 100 * 10) / 10 : null
-                          const fatItem    = food.fats_100g     && displayQt ? Math.round(food.fats_100g * displayQt / 100 * 10) / 10 : null
-                          const fatSatItem = food.fatSat_100g   && displayQt ? Math.round(food.fatSat_100g * displayQt / 100 * 10) / 10 : null
-                          const sugarItem  = food.sugar_100g    && displayQt ? Math.round(food.sugar_100g * displayQt / 100 * 10) / 10 : null
-                          const saltItem   = food.salt_100g     && displayQt ? Math.round(food.salt_100g * displayQt / 100 * 10) / 10 : null
-
-                          return (
-                            <div key={fi} style={{ padding: '8px 14px', borderBottom: fi < foods.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                                <p style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--text-primary)', flex: 1, lineHeight: 1.3 }}>{displayNome}</p>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                                  <span style={{ fontSize: 13, fontWeight: 800, color: 'white', background: selectedAlt ? 'var(--green-dark)' : 'var(--green-main)', padding: '2px 10px', borderRadius: 20 }}>
-                                    {displayQt || ''}{displayUnit}
-                                  </span>
-                                </div>
-                              </div>
-                              {hasMacros && displayMode !== 'semplice' && (kcalItem != null || protItem != null) && (
-                                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 5 }}>
-                                  <MacroChip val={kcalItem} label="🔥 Kcal" color="#92400e" bg="#fef3c7" />
-                                  {displayMode !== 'compatta' && <>
-                                    <MacroChip val={protItem != null ? `${protItem}g` : null} label="💪 Prot" color="#1e40af" bg="#dbeafe" />
-                                    <MacroChip val={carbItem != null ? `${carbItem}g` : null} label="🍞 Carbo" color="#92400e" bg="#fef9c3" />
-                                    <MacroChip val={fatItem != null ? `${fatItem}g` : null} label="🧈 Grassi" color="#991b1b" bg="#fee2e2" />
-                                    <MacroChip val={fatSatItem != null ? `${fatSatItem}g` : null} label="🥩 Gr.sat" color="#7c2d12" bg="#fef2e2" />
-                                    <MacroChip val={sugarItem != null ? `${sugarItem}g` : null} label="🍬 Zucch" color="#78350f" bg="#fef9c3" />
-                                    <MacroChip val={saltItem != null ? `${saltItem}g` : null} label="🧂 Sale" color="#374151" bg="#f3f4f6" />
-                                  </>}
-                                </div>
-                              )}
-                              {alts.length > 0 && (
-                                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, marginTop: 6 }}>
-                                  <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '.04em', flexShrink: 0 }}>SOSTITUISCI CON</span>
-                                  {selectedAlt && (
-                                    <button
-                                      onClick={() => setSelectedAlts(s => { const n = { ...s }; delete n[altKey]; return n })}
-                                      style={{ fontSize: 11, fontWeight: 600, background: 'var(--surface-3)', color: 'var(--text-secondary)', padding: '3px 10px', borderRadius: 20, border: '1.5px solid var(--border-light)', whiteSpace: 'nowrap', cursor: 'pointer' }}
-                                    >↩ Originale</button>
+                    {foods.length > 0 && (() => {
+                      // Group items: recipe header + following ricettaIng items form a recipe block
+                      const blocks = []
+                      let i = 0
+                      while (i < foods.length) {
+                        if (foods[i].isRicetta) {
+                          const block = { type: 'recipe', header: foods[i], headerIdx: i, ingredients: [] }
+                          let j = i + 1
+                          while (j < foods.length && foods[j].ricettaIng) { block.ingredients.push({ food: foods[j], fi: j }); j++ }
+                          blocks.push(block); i = j
+                        } else if (foods[i].ricettaIng) {
+                          i++ // orphaned ingredient — skip
+                        } else {
+                          blocks.push({ type: 'food', food: foods[i], fi: i }); i++
+                        }
+                      }
+                      return (
+                        <div style={{ padding: '6px 0' }}>
+                          {blocks.map((block, bi) => {
+                            if (block.type === 'recipe') {
+                              const hdr = block.header
+                              const porzioni = hdr.ricettaPorzioni || 1
+                              const ingList = block.ingredients
+                              // Compute recipe totals for prospetto
+                              const recTotKcal = ingList.reduce((s, { food: ing }) => s + (ing.kcal_100g && ing.qt ? Math.round(ing.kcal_100g * parseFloat(ing.qt) / 100) : 0), 0)
+                              const recTotProt = ingList.reduce((s, { food: ing }) => s + (ing.proteins_100g && ing.qt ? Math.round(ing.proteins_100g * parseFloat(ing.qt) / 100 * 10) / 10 : 0), 0)
+                              const recTotCarb = ingList.reduce((s, { food: ing }) => s + (ing.carbs_100g && ing.qt ? Math.round(ing.carbs_100g * parseFloat(ing.qt) / 100 * 10) / 10 : 0), 0)
+                              const recTotFat  = ingList.reduce((s, { food: ing }) => s + (ing.fats_100g && ing.qt ? Math.round(ing.fats_100g * parseFloat(ing.qt) / 100 * 10) / 10 : 0), 0)
+                              const hasIngMacros = ingList.some(({ food: ing }) => ing.kcal_100g)
+                              return (
+                                <div key={bi} style={{ margin: '6px 10px 8px', border: '2px solid #86efac', borderRadius: 14, overflow: 'hidden' }}>
+                                  {/* Recipe header */}
+                                  <div style={{ background: 'linear-gradient(90deg,#ecfdf5,#f0fdf4)', padding: '8px 14px', borderBottom: '1px solid #86efac', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: 14 }}>📋</span>
+                                    <span style={{ fontSize: 14, fontWeight: 700, color: '#065f46', flex: 1 }}>{hdr.nome}</span>
+                                    <span style={{ fontSize: 11, background: '#d1fae5', color: '#065f46', padding: '2px 10px', borderRadius: 20, fontWeight: 700 }}>
+                                      {porzioni} {porzioni === 1 ? 'porzione' : 'porzioni'}
+                                    </span>
+                                  </div>
+                                  {/* Ingredient list */}
+                                  {ingList.map(({ food: ing, fi: ingFi }, ii) => {
+                                    const ingQt = parseFloat(ing.qt) || 0
+                                    const ingUnit = ing.misura || 'g'
+                                    const ingKcal = ing.kcal_100g && ingQt ? Math.round(ing.kcal_100g * ingQt / 100) : null
+                                    const ingProt = ing.proteins_100g && ingQt ? Math.round(ing.proteins_100g * ingQt / 100 * 10) / 10 : null
+                                    const ingCarb = ing.carbs_100g && ingQt ? Math.round(ing.carbs_100g * ingQt / 100 * 10) / 10 : null
+                                    const ingFat  = ing.fats_100g && ingQt ? Math.round(ing.fats_100g * ingQt / 100 * 10) / 10 : null
+                                    return (
+                                      <div key={ii} style={{ padding: '6px 14px 6px 22px', borderBottom: ii < ingList.length - 1 ? '1px solid #dcfce7' : 'none', background: '#f0fdf4' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                                          <p style={{ fontSize: 13, color: '#166534', flex: 1, lineHeight: 1.3 }}>└ {ing.nome}</p>
+                                          <span style={{ fontSize: 12, fontWeight: 700, color: 'white', background: '#16a34a', padding: '1px 8px', borderRadius: 20, flexShrink: 0 }}>
+                                            {ingQt || ''}{ingUnit}
+                                          </span>
+                                        </div>
+                                        {hasIngMacros && displayMode !== 'semplice' && ingKcal != null && (
+                                          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+                                            <MacroChip val={ingKcal} label="🔥 Kcal" color="#92400e" bg="#fef3c7" />
+                                            {displayMode !== 'compatta' && <>
+                                              {ingProt != null && <MacroChip val={`${ingProt}g`} label="💪 Prot" color="#1e40af" bg="#dbeafe" />}
+                                              {ingCarb != null && <MacroChip val={`${ingCarb}g`} label="🍞 Carbo" color="#92400e" bg="#fef9c3" />}
+                                              {ingFat != null && <MacroChip val={`${ingFat}g`} label="🧈 Grassi" color="#991b1b" bg="#fee2e2" />}
+                                            </>}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )
+                                  })}
+                                  {/* Recipe totals — only in normale mode */}
+                                  {hasIngMacros && displayMode === 'normale' && recTotKcal > 0 && (
+                                    <div style={{ padding: '6px 14px', background: '#d1fae5', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                                      <span style={{ fontSize: 10, fontWeight: 700, color: '#065f46', letterSpacing: '.04em' }}>TOTALE RICETTA</span>
+                                      <MacroChip val={recTotKcal} label="🔥 Kcal" color="#92400e" bg="#fef3c7" />
+                                      <MacroChip val={`${Math.round(recTotProt * 10) / 10}g`} label="💪 Prot" color="#1e40af" bg="#dbeafe" />
+                                      <MacroChip val={`${Math.round(recTotCarb * 10) / 10}g`} label="🍞 Carbo" color="#92400e" bg="#fef9c3" />
+                                      <MacroChip val={`${Math.round(recTotFat * 10) / 10}g`} label="🧈 Grassi" color="#991b1b" bg="#fee2e2" />
+                                    </div>
                                   )}
-                                  {alts.map((a, ai) => (
-                                    <button
-                                      key={ai}
-                                      onClick={() => setSelectedAlts(s => ({ ...s, [altKey]: selAltIdx === ai ? null : ai }))}
-                                      style={{ fontSize: 11, fontWeight: 600, background: selAltIdx === ai ? 'var(--green-main)' : 'var(--surface-2)', color: selAltIdx === ai ? 'white' : 'var(--green-dark)', padding: '3px 10px', borderRadius: 20, border: selAltIdx === ai ? '1.5px solid var(--green-main)' : '1.5px solid var(--border-light)', whiteSpace: 'nowrap', cursor: 'pointer' }}
-                                    >
-                                      ⇄ {a.nome || a.name} {a.qt || a.quantita || a.quantity}{a.misura || 'g'}
-                                    </button>
-                                  ))}
                                 </div>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
+                              )
+                            }
+
+                            // Regular food item
+                            const { food, fi } = block
+                            const altKey = `${di}_${mi}_${fi}`
+                            const selAltIdx = selectedAlts[altKey] ?? null
+                            const alts = food.altPrint || []
+                            const selectedAlt = selAltIdx != null ? alts[selAltIdx] : null
+
+                            const nome = food.nome || food.name || food.alimento || ''
+                            if (!nome) return null
+                            const origQt = parseFloat(food.qt || food.quantita || food.quantity || food.grammi || food.grams || 0) || 0
+                            const origUnit = food.misura || food.unita || food.unit || 'g'
+
+                            const displayNome = selectedAlt ? (selectedAlt.nome || selectedAlt.name || nome) : nome
+                            const displayQt = selectedAlt ? (parseFloat(selectedAlt.qt || selectedAlt.quantita || selectedAlt.quantity || origQt) || origQt) : origQt
+                            const displayUnit = selectedAlt ? (selectedAlt.misura || 'g') : origUnit
+
+                            const kcalItem   = food.kcal_100g     && displayQt ? Math.round(food.kcal_100g * displayQt / 100) : null
+                            const protItem   = food.proteins_100g && displayQt ? Math.round(food.proteins_100g * displayQt / 100 * 10) / 10 : null
+                            const carbItem   = food.carbs_100g    && displayQt ? Math.round(food.carbs_100g * displayQt / 100 * 10) / 10 : null
+                            const fatItem    = food.fats_100g     && displayQt ? Math.round(food.fats_100g * displayQt / 100 * 10) / 10 : null
+                            const fatSatItem = food.fatSat_100g   && displayQt ? Math.round(food.fatSat_100g * displayQt / 100 * 10) / 10 : null
+                            const sugarItem  = food.sugar_100g    && displayQt ? Math.round(food.sugar_100g * displayQt / 100 * 10) / 10 : null
+                            const saltItem   = food.salt_100g     && displayQt ? Math.round(food.salt_100g * displayQt / 100 * 10) / 10 : null
+
+                            return (
+                              <div key={bi} style={{ padding: '8px 14px', borderBottom: bi < blocks.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                                  <p style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--text-primary)', flex: 1, lineHeight: 1.3 }}>{displayNome}</p>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                                    <span style={{ fontSize: 13, fontWeight: 800, color: 'white', background: selectedAlt ? 'var(--green-dark)' : 'var(--green-main)', padding: '2px 10px', borderRadius: 20 }}>
+                                      {displayQt || ''}{displayUnit}
+                                    </span>
+                                  </div>
+                                </div>
+                                {hasMacros && displayMode !== 'semplice' && (kcalItem != null || protItem != null) && (
+                                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 5 }}>
+                                    <MacroChip val={kcalItem} label="🔥 Kcal" color="#92400e" bg="#fef3c7" />
+                                    {displayMode !== 'compatta' && <>
+                                      <MacroChip val={protItem != null ? `${protItem}g` : null} label="💪 Prot" color="#1e40af" bg="#dbeafe" />
+                                      <MacroChip val={carbItem != null ? `${carbItem}g` : null} label="🍞 Carbo" color="#92400e" bg="#fef9c3" />
+                                      <MacroChip val={fatItem != null ? `${fatItem}g` : null} label="🧈 Grassi" color="#991b1b" bg="#fee2e2" />
+                                      <MacroChip val={fatSatItem != null ? `${fatSatItem}g` : null} label="🥩 Gr.sat" color="#7c2d12" bg="#fef2e2" />
+                                      <MacroChip val={sugarItem != null ? `${sugarItem}g` : null} label="🍬 Zucch" color="#78350f" bg="#fef9c3" />
+                                      <MacroChip val={saltItem != null ? `${saltItem}g` : null} label="🧂 Sale" color="#374151" bg="#f3f4f6" />
+                                    </>}
+                                  </div>
+                                )}
+                                {alts.length > 0 && (
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, marginTop: 6 }}>
+                                    <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '.04em', flexShrink: 0 }}>SOSTITUISCI CON</span>
+                                    {selectedAlt && (
+                                      <button
+                                        onClick={() => setSelectedAlts(s => { const n = { ...s }; delete n[altKey]; return n })}
+                                        style={{ fontSize: 11, fontWeight: 600, background: 'var(--surface-3)', color: 'var(--text-secondary)', padding: '3px 10px', borderRadius: 20, border: '1.5px solid var(--border-light)', whiteSpace: 'nowrap', cursor: 'pointer' }}
+                                      >↩ Originale</button>
+                                    )}
+                                    {alts.map((a, ai) => (
+                                      <button
+                                        key={ai}
+                                        onClick={() => setSelectedAlts(s => ({ ...s, [altKey]: selAltIdx === ai ? null : ai }))}
+                                        style={{ fontSize: 11, fontWeight: 600, background: selAltIdx === ai ? 'var(--green-main)' : 'var(--surface-2)', color: selAltIdx === ai ? 'white' : 'var(--green-dark)', padding: '3px 10px', borderRadius: 20, border: selAltIdx === ai ? '1.5px solid var(--green-main)' : '1.5px solid var(--border-light)', whiteSpace: 'nowrap', cursor: 'pointer' }}
+                                      >
+                                        ⇄ {a.nome || a.name} {a.qt || a.quantita || a.quantity}{a.misura || 'g'}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )
+                    })()}
 
                     {!foods.length && (meal.descrizione || meal.description) && (
                       <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, padding: '10px 14px' }}>{meal.descrizione || meal.description}</p>
