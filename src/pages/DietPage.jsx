@@ -436,6 +436,7 @@ function PianoAlimentareContent({ piano }) {
   const today = new Date().toISOString().split('T')[0]
   const [copyState, setCopyState] = useState({ dayIdx: null, date: today, busy: false, doneIdx: null })
   const [feedbackMeal, setFeedbackMeal] = useState(null)
+  const [selectedAlts, setSelectedAlts] = useState({})
 
   let days = []
   try {
@@ -604,25 +605,35 @@ function PianoAlimentareContent({ piano }) {
                     {foods.length > 0 && (
                       <div style={{ padding: '6px 0' }}>
                         {foods.map((food, fi) => {
+                          const altKey = `${di}_${mi}_${fi}`
+                          const selAltIdx = selectedAlts[altKey] ?? null
+                          const alts = food.altPrint || []
+                          const selectedAlt = selAltIdx != null ? alts[selAltIdx] : null
+
                           const nome = food.nome || food.name || food.alimento || ''
                           if (!nome) return null
-                          const qt = parseFloat(food.qt || food.quantita || food.quantity || food.grammi || food.grams || 0) || 0
-                          const unit = food.misura || food.unita || food.unit || 'g'
-                          const kcalItem   = food.kcal_100g     && qt ? Math.round(food.kcal_100g * qt / 100) : null
-                          const protItem   = food.proteins_100g && qt ? Math.round(food.proteins_100g * qt / 100 * 10) / 10 : null
-                          const carbItem   = food.carbs_100g    && qt ? Math.round(food.carbs_100g * qt / 100 * 10) / 10 : null
-                          const fatItem    = food.fats_100g     && qt ? Math.round(food.fats_100g * qt / 100 * 10) / 10 : null
-                          const fatSatItem = food.fatSat_100g   && qt ? Math.round(food.fatSat_100g * qt / 100 * 10) / 10 : null
-                          const sugarItem  = food.sugar_100g    && qt ? Math.round(food.sugar_100g * qt / 100 * 10) / 10 : null
-                          const saltItem   = food.salt_100g     && qt ? Math.round(food.salt_100g * qt / 100 * 10) / 10 : null
-                          const alts = food.altPrint || []
+                          const origQt = parseFloat(food.qt || food.quantita || food.quantity || food.grammi || food.grams || 0) || 0
+                          const origUnit = food.misura || food.unita || food.unit || 'g'
+
+                          const displayNome = selectedAlt ? (selectedAlt.nome || selectedAlt.name || nome) : nome
+                          const displayQt = selectedAlt ? (parseFloat(selectedAlt.qt || selectedAlt.quantita || selectedAlt.quantity || origQt) || origQt) : origQt
+                          const displayUnit = selectedAlt ? (selectedAlt.misura || 'g') : origUnit
+
+                          const kcalItem   = food.kcal_100g     && displayQt ? Math.round(food.kcal_100g * displayQt / 100) : null
+                          const protItem   = food.proteins_100g && displayQt ? Math.round(food.proteins_100g * displayQt / 100 * 10) / 10 : null
+                          const carbItem   = food.carbs_100g    && displayQt ? Math.round(food.carbs_100g * displayQt / 100 * 10) / 10 : null
+                          const fatItem    = food.fats_100g     && displayQt ? Math.round(food.fats_100g * displayQt / 100 * 10) / 10 : null
+                          const fatSatItem = food.fatSat_100g   && displayQt ? Math.round(food.fatSat_100g * displayQt / 100 * 10) / 10 : null
+                          const sugarItem  = food.sugar_100g    && displayQt ? Math.round(food.sugar_100g * displayQt / 100 * 10) / 10 : null
+                          const saltItem   = food.salt_100g     && displayQt ? Math.round(food.salt_100g * displayQt / 100 * 10) / 10 : null
+
                           return (
                             <div key={fi} style={{ padding: '8px 14px', borderBottom: fi < foods.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                                <p style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--text-primary)', flex: 1, lineHeight: 1.3 }}>{nome}</p>
+                                <p style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--text-primary)', flex: 1, lineHeight: 1.3 }}>{displayNome}</p>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                                  <span style={{ fontSize: 13, fontWeight: 800, color: 'white', background: 'var(--green-main)', padding: '2px 10px', borderRadius: 20 }}>
-                                    {qt || ''}{unit}
+                                  <span style={{ fontSize: 13, fontWeight: 800, color: 'white', background: selectedAlt ? 'var(--green-dark)' : 'var(--green-main)', padding: '2px 10px', borderRadius: 20 }}>
+                                    {displayQt || ''}{displayUnit}
                                   </span>
                                 </div>
                               </div>
@@ -642,10 +653,20 @@ function PianoAlimentareContent({ piano }) {
                               {alts.length > 0 && (
                                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, marginTop: 6 }}>
                                   <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '.04em', flexShrink: 0 }}>SOSTITUISCI CON</span>
+                                  {selectedAlt && (
+                                    <button
+                                      onClick={() => setSelectedAlts(s => { const n = { ...s }; delete n[altKey]; return n })}
+                                      style={{ fontSize: 11, fontWeight: 600, background: 'var(--surface-3)', color: 'var(--text-secondary)', padding: '3px 10px', borderRadius: 20, border: '1.5px solid var(--border-light)', whiteSpace: 'nowrap', cursor: 'pointer' }}
+                                    >↩ Originale</button>
+                                  )}
                                   {alts.map((a, ai) => (
-                                    <span key={ai} style={{ fontSize: 11, fontWeight: 600, background: 'var(--surface-2)', color: 'var(--green-dark)', padding: '3px 10px', borderRadius: 20, border: '1.5px solid var(--border-light)', whiteSpace: 'nowrap', cursor: 'default' }}>
+                                    <button
+                                      key={ai}
+                                      onClick={() => setSelectedAlts(s => ({ ...s, [altKey]: selAltIdx === ai ? null : ai }))}
+                                      style={{ fontSize: 11, fontWeight: 600, background: selAltIdx === ai ? 'var(--green-main)' : 'var(--surface-2)', color: selAltIdx === ai ? 'white' : 'var(--green-dark)', padding: '3px 10px', borderRadius: 20, border: selAltIdx === ai ? '1.5px solid var(--green-main)' : '1.5px solid var(--border-light)', whiteSpace: 'nowrap', cursor: 'pointer' }}
+                                    >
                                       ⇄ {a.nome || a.name} {a.qt || a.quantita || a.quantity}{a.misura || 'g'}
-                                    </span>
+                                    </button>
                                   ))}
                                 </div>
                               )}
