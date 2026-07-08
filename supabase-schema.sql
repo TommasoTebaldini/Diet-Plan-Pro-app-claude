@@ -562,9 +562,25 @@ drop policy if exists "pazienti leggono la propria dieta" on patient_diets;
 create policy "pazienti leggono la propria dieta" on patient_diets
   for select using (auth.uid() = user_id);
 
+-- SECURITY FIX: era "for all using (true)" — qualsiasi utente autenticato
+-- poteva leggere/modificare/cancellare la dieta di QUALSIASI paziente via
+-- client Supabase diretto. Ora richiede una relazione dietista-paziente reale.
 drop policy if exists "dietista gestisce diete" on patient_diets;
 create policy "dietista gestisce diete" on patient_diets
-  for all using (true);
+  for all using (
+    exists (
+      select 1 from patient_dietitian pd
+      where pd.patient_id = patient_diets.user_id
+        and pd.dietitian_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from patient_dietitian pd
+      where pd.patient_id = patient_diets.user_id
+        and pd.dietitian_id = auth.uid()
+    )
+  );
 
 -- ── diet_meals ──────────────────────────────────────────────
 drop policy if exists "accesso pasti dieta propria" on diet_meals;
@@ -576,9 +592,25 @@ create policy "accesso pasti dieta propria" on diet_meals
     )
   );
 
+-- SECURITY FIX: stesso problema di patient_diets, "for all using (true)".
 drop policy if exists "dietista gestisce pasti" on diet_meals;
 create policy "dietista gestisce pasti" on diet_meals
-  for all using (true);
+  for all using (
+    exists (
+      select 1 from patient_diets pd
+      join patient_dietitian pdt on pdt.patient_id = pd.user_id
+      where pd.id = diet_meals.diet_id
+        and pdt.dietitian_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from patient_diets pd
+      join patient_dietitian pdt on pdt.patient_id = pd.user_id
+      where pd.id = diet_meals.diet_id
+        and pdt.dietitian_id = auth.uid()
+    )
+  );
 
 -- ── patient_dietitian ───────────────────────────────────────
 drop policy if exists "visibile ai coinvolti" on patient_dietitian;
@@ -974,7 +1006,12 @@ begin
         then substring(coalesce(new.raw_user_meta_data->>'full_name', '') from position(' ' in coalesce(new.raw_user_meta_data->>'full_name', '')) + 1)
       else ''
     end),
-    coalesce(new.raw_user_meta_data->>'role', 'patient')
+    -- SECURITY: role NON deve mai venire da raw_user_meta_data (client-controlled) —
+    -- chiunque può passare {data:{role:'dietitian'}} a supabase.auth.signUp() con la
+    -- sola anon key e ottenere pieno accesso alle policy gated su role='dietitian'.
+    -- Ogni self-signup è sempre 'patient'; la promozione a dietista è un'azione
+    -- amministrativa fatta a mano (UPDATE diretto, mai da raw_user_meta_data).
+    'patient'
   )
   on conflict (id) do update set
     full_name  = coalesce(excluded.full_name,  profiles.full_name),
@@ -988,6 +1025,32 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- SECURITY FIX — la policy "utenti aggiornano il proprio profilo" (for update
+-- using (auth.uid() = id)) non aveva un with check dedicato: in Postgres, se il
+-- with check è omesso su una policy UPDATE viene riusato lo stesso using clause,
+-- che qui non vincola i VALORI aggiornati — quindi un utente poteva fare
+-- update profiles set role='dietitian' where id=auth.uid() ed auto-promuoversi.
+-- Questo trigger blocca il cambio di role quando la sessione è quella di un
+-- utente autenticato via client (auth.uid() non null); operazioni dirette da
+-- SQL editor/service role (auth.uid() null) restano possibili per l'admin.
+create or replace function public.prevent_role_self_update()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  if auth.uid() is not null and new.role is distinct from old.role then
+    new.role := old.role;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists prevent_role_self_update on profiles;
+create trigger prevent_role_self_update
+  before update on profiles
+  for each row execute procedure public.prevent_role_self_update();
 
 
 -- ============================================================

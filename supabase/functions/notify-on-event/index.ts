@@ -79,6 +79,17 @@ async function sendPushToUser(userId: string, title: string, body: string, url =
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
+  // SECURITY: the setup comment above says this webhook is called with
+  // "Authorization: Bearer <service_role_key>", but that header was never
+  // actually verified — anyone with the public function URL could POST an
+  // arbitrary {table, record} and trigger a push notification impersonating
+  // "il tuo dietista" to any patient_id (phishing).
+  const expected = `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''}`
+  const provided = req.headers.get('authorization') || ''
+  if (!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || provided !== expected) {
+    return json({ error: 'unauthorized' }, 401)
+  }
+
   let payload: {
     type?: string
     table?: string

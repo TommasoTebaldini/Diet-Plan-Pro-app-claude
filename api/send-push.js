@@ -5,8 +5,14 @@
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 //   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_CONTACT_EMAIL
 //
+// This endpoint is server-to-server only (called from trusted backends/webhooks,
+// never from the browser) — it must present the Supabase service role key as a
+// bearer token, the same secret already required to read push_subscriptions here.
+//   Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>
+//
 // Body: { userId, title, body, url?, tag? }
 
+import { timingSafeEqual } from 'crypto'
 import webpush from 'web-push'
 import { createClient } from '@supabase/supabase-js'
 
@@ -21,8 +27,18 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY,
 )
 
+function isAuthorized(req) {
+  const expected = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+  const provided = (req.headers.authorization || '').replace(/^Bearer\s+/i, '')
+  const a = Buffer.from(provided)
+  const b = Buffer.from(expected)
+  if (!expected || a.length !== b.length) return false
+  return timingSafeEqual(a, b)
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
+  if (!isAuthorized(req)) return res.status(401).json({ error: 'Unauthorized' })
 
   const { userId, title, body, url = '/', tag = 'nutriplan' } = req.body || {}
   if (!userId || !title) {
