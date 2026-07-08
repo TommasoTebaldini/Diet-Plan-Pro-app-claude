@@ -1321,7 +1321,7 @@ create policy "paziente vede slot prenotati" on appointments
 drop policy if exists "paziente annulla appuntamento" on appointments;
 create policy "paziente annulla appuntamento" on appointments
   for update to authenticated
-  using (auth.uid() = patient_id)
+  using (auth.uid() = patient_id);
 
 -- ============================================================
 -- RPC: get_my_macro_targets()
@@ -1426,7 +1426,6 @@ end;
 $$;
 
 grant execute on function get_my_macro_targets() to authenticated;
-  with check (auth.uid() = patient_id);
 
 -- ============================================================
 -- RICETTE CONDIVISE DAL DIETISTA (Feature 8)
