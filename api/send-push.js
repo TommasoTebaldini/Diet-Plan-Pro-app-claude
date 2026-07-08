@@ -36,6 +36,25 @@ function isAuthorized(req) {
   return timingSafeEqual(a, b)
 }
 
+// Defense in depth: this endpoint is already gated by the service role key, but
+// a rate limit per target userId caps the blast radius of a bug (or a leaked
+// secret) that ends up calling this in a loop and spamming one patient.
+const _rl = new Map()
+const RL_MAX = 20
+const RL_WIN = 60_000
+function rateLimit(userId) {
+  const now = Date.now()
+  const e = _rl.get(userId)
+  if (!e || now - e.t > RL_WIN) { _rl.set(userId, { n: 1, t: now }); return true }
+  if (e.n >= RL_MAX) return false
+  e.n++; return true
+}
+function pruneRl() {
+  if (_rl.size < 500) return
+  const cutoff = Date.now() - RL_WIN
+  for (const [k, v] of _rl) if (v.t < cutoff) _rl.delete(k)
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
   if (!isAuthorized(req)) return res.status(401).json({ error: 'Unauthorized' })
@@ -43,6 +62,11 @@ export default async function handler(req, res) {
   const { userId, title, body, url = '/', tag = 'nutriplan' } = req.body || {}
   if (!userId || !title) {
     return res.status(400).json({ error: 'userId and title are required' })
+  }
+
+  pruneRl()
+  if (!rateLimit(userId)) {
+    return res.status(429).json({ error: 'Too many notifications for this user, try again later' })
   }
 
   const { data: sub, error } = await supabaseAdmin

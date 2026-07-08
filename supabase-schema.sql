@@ -1459,3 +1459,188 @@ create policy "patient marks viewed" on shared_recipes
   for update using (auth.uid() = patient_id)
   with check (auth.uid() = patient_id);
 
+
+-- ============================================================
+-- AUDIT LOG — dati clinici
+-- Traccia scritture (insert/update/delete) sulle tabelle cliniche sensibili:
+-- chi (changed_by), cosa (table_name/record_id/operation, colonne cambiate
+-- per gli update), quando (created_at), per quale paziente/cartella.
+-- NOTA: copre solo le SCRITTURE — un audit degli ACCESSI IN LETTURA
+-- richiederebbe strumentare ogni query lato applicazione (Postgres non genera
+-- trigger sui SELECT), fuori scope qui.
+-- Tabella/funzione definite in modo identico e idempotente anche in
+-- supabase_setup.sql (NutriPlan-Pro): stesso DB Supabase condiviso, qualunque
+-- dei due script giri per primo la crea, il secondo è un no-op.
+-- ============================================================
+
+create table if not exists clinical_audit_log (
+  id               uuid        primary key default gen_random_uuid(),
+  table_name       text        not null,
+  record_id        uuid,
+  operation        text        not null check (operation in ('INSERT','UPDATE','DELETE')),
+  changed_by       uuid        references auth.users(id),
+  changed_columns  text[],
+  patient_id       uuid,
+  cartella_id      uuid,
+  created_at       timestamptz not null default now()
+);
+create index if not exists idx_clinical_audit_log_patient on clinical_audit_log(patient_id, created_at desc);
+create index if not exists idx_clinical_audit_log_cartella on clinical_audit_log(cartella_id, created_at desc);
+create index if not exists idx_clinical_audit_log_table_record on clinical_audit_log(table_name, record_id);
+
+alter table clinical_audit_log enable row level security;
+
+drop policy if exists "clinical_audit_log_dietitian_read" on clinical_audit_log;
+create policy "clinical_audit_log_dietitian_read" on clinical_audit_log
+  for select using (
+    exists (
+      select 1 from patient_dietitian pd
+      where pd.dietitian_id = auth.uid()
+        and (
+          (clinical_audit_log.patient_id is not null and pd.patient_id = clinical_audit_log.patient_id)
+          or (clinical_audit_log.cartella_id is not null and pd.cartella_id = clinical_audit_log.cartella_id)
+        )
+    )
+  );
+
+-- Trasparenza verso il paziente: può vedere chi ha toccato i propri dati clinici.
+drop policy if exists "clinical_audit_log_own_read" on clinical_audit_log;
+create policy "clinical_audit_log_own_read" on clinical_audit_log
+  for select using (patient_id = auth.uid());
+
+-- Nessuna policy INSERT/UPDATE/DELETE per authenticated/anon: le uniche
+-- scritture ammesse sono quelle della funzione trigger sotto (SECURITY DEFINER).
+
+create or replace function log_clinical_change()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_row jsonb;
+  v_changed_cols text[];
+begin
+  -- coalesce su tipi record/composite è ambiguo in plpgsql: branching esplicito.
+  if TG_OP = 'DELETE' then
+    v_row := to_jsonb(old);
+  else
+    v_row := to_jsonb(new);
+  end if;
+
+  if TG_OP = 'UPDATE' then
+    select array_agg(n.key) into v_changed_cols
+    from jsonb_each(to_jsonb(new)) n
+    join jsonb_each(to_jsonb(old)) o on n.key = o.key
+    where n.value is distinct from o.value;
+  end if;
+
+  insert into clinical_audit_log (table_name, record_id, operation, changed_by, changed_columns, patient_id, cartella_id)
+  values (
+    TG_TABLE_NAME,
+    (v_row->>'id')::uuid,
+    TG_OP,
+    auth.uid(),
+    v_changed_cols,
+    coalesce(nullif(v_row->>'patient_id',''), nullif(v_row->>'user_id',''))::uuid,
+    -- La tabella cartelle non ha una colonna cartella_id: è identificata dal
+    -- proprio id, che qui coincide col cartella_id da usare per il collegamento RLS.
+    case when TG_TABLE_NAME = 'cartelle' then (v_row->>'id')::uuid
+         else nullif(v_row->>'cartella_id','')::uuid end
+  );
+
+  -- Il valore di ritorno di un trigger AFTER viene ignorato da Postgres.
+  return null;
+end;
+$$;
+
+-- Tabelle cliniche definite in QUESTO file.
+drop trigger if exists trg_audit_patient_diets on patient_diets;
+create trigger trg_audit_patient_diets after insert or update or delete on patient_diets
+  for each row execute function log_clinical_change();
+
+drop trigger if exists trg_audit_diet_meals on diet_meals;
+create trigger trg_audit_diet_meals after insert or update or delete on diet_meals
+  for each row execute function log_clinical_change();
+
+-- Tabelle definite in ENTRAMBI i file (stessa tabella fisica, DB condiviso):
+-- riattaccare qui è sicuro grazie al drop trigger if exists, a prescindere da
+-- quale dei due script giri per primo.
+drop trigger if exists trg_audit_chat_messages on chat_messages;
+create trigger trg_audit_chat_messages after insert or update or delete on chat_messages
+  for each row execute function log_clinical_change();
+
+drop trigger if exists trg_audit_patient_documents on patient_documents;
+create trigger trg_audit_patient_documents after insert or update or delete on patient_documents
+  for each row execute function log_clinical_change();
+
+
+-- ============================================================
+-- RUOLI GRANULARI NELLO STUDIO — segretaria vs titolare (backend)
+-- Stessa tabella/funzioni definite in modo identico e idempotente anche in
+-- supabase_setup.sql (NutriPlan-Pro): stesso DB condiviso, qualunque dei due
+-- script giri per primo la crea, il secondo è un no-op. Vedi i commenti in
+-- quel file per il disegno completo (get_studio_owner, permission_level).
+-- ============================================================
+
+create table if not exists studio_collaborators (
+  id                uuid        primary key default gen_random_uuid(),
+  titolare_id       uuid        not null references auth.users(id) on delete cascade,
+  collaborator_id   uuid        not null references auth.users(id) on delete cascade,
+  permission_level  text        not null default 'secretary' check (permission_level in ('secretary','dietitian')),
+  created_at        timestamptz not null default now(),
+  unique (titolare_id, collaborator_id),
+  check (titolare_id <> collaborator_id)
+);
+create index if not exists idx_studio_collaborators_collaborator on studio_collaborators(collaborator_id);
+create index if not exists idx_studio_collaborators_titolare on studio_collaborators(titolare_id);
+
+alter table studio_collaborators enable row level security;
+
+drop policy if exists "studio_collaborators_titolare_manage" on studio_collaborators;
+create policy "studio_collaborators_titolare_manage" on studio_collaborators
+  for all using (auth.uid() = titolare_id) with check (auth.uid() = titolare_id);
+
+drop policy if exists "studio_collaborators_collaborator_read" on studio_collaborators;
+create policy "studio_collaborators_collaborator_read" on studio_collaborators
+  for select using (auth.uid() = collaborator_id);
+
+create or replace function get_studio_owner(uid uuid)
+returns uuid language sql stable security definer set search_path = public as $$
+  select coalesce(
+    (select titolare_id from studio_collaborators where collaborator_id = uid limit 1),
+    uid
+  );
+$$;
+grant execute on function get_studio_owner(uuid) to authenticated;
+
+create or replace function is_dietitian_level_collaborator(uid uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select not exists (
+    select 1 from studio_collaborators
+    where collaborator_id = uid and permission_level = 'secretary'
+  );
+$$;
+grant execute on function is_dietitian_level_collaborator(uuid) to authenticated;
+
+-- ── patient_dietitian: il collaboratore vede il roster pazienti del titolare ──
+-- (patient_dietitian è definita in entrambi i file: riattaccare la policy qui
+-- è sicuro grazie al drop policy if exists, a prescindere da quale file gira per primo)
+drop policy if exists "patient_dietitian_collaborator_read" on patient_dietitian;
+create policy "patient_dietitian_collaborator_read" on patient_dietitian
+  for select using (dietitian_id = get_studio_owner(auth.uid()));
+
+-- ── Agenda: la gestione appuntamenti/disponibilità è il compito tipico della
+--    segretaria, quindi qui entrambi i livelli di collaboratore hanno accesso pieno ──
+drop policy if exists "collaboratore gestisce appuntamenti" on appointments;
+create policy "collaboratore gestisce appuntamenti" on appointments
+  for all using (
+    dietitian_id = get_studio_owner(auth.uid())
+    or exists (
+      select 1 from patient_dietitian pd
+      where pd.patient_id = appointments.patient_id
+        and pd.dietitian_id = get_studio_owner(auth.uid())
+    )
+  );
+
+drop policy if exists "collaboratore gestisce disponibilita" on dietitian_availability;
+create policy "collaboratore gestisce disponibilita" on dietitian_availability
+  for all using (dietitian_id = get_studio_owner(auth.uid()))
+  with check (dietitian_id = get_studio_owner(auth.uid()));
+

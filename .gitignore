@@ -4,8 +4,17 @@ dist/
 .env.local
 .env.*.local
 
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
 # Claude Code local files
 .claude/
 check_app.mjs
 
 .vercel
+
+# Supabase CLI local project link cache
+supabase/.temp/

@@ -12,6 +12,7 @@
 // Google Gemini Flash free tier: 1500 richieste/giorno, 15 RPM, 1M tokens/mese
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createRateLimiter } from '../_shared/rateLimit.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -24,6 +25,10 @@ function json(data: unknown, status = 200) {
     headers: { ...CORS, 'Content-Type': 'application/json' },
   })
 }
+
+// Vision calls are the most expensive request this app makes to a paid AI API —
+// cap per-user usage so a buggy client (or a stolen JWT) can't run up the bill.
+const rateLimiter = createRateLimiter(10, 60_000)
 
 const PROMPT = `Sei un esperto nutrizionista italiano. Analizza la foto del pasto e identifica tutti gli alimenti visibili.
 Rispondi SOLO con un JSON valido (nessun testo prima o dopo) nel formato:
@@ -182,6 +187,11 @@ Deno.serve(async (req: Request) => {
   )
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) return json({ error: 'Non autorizzato' }, 401)
+
+  rateLimiter.prune()
+  if (!rateLimiter.allow(user.id)) {
+    return json({ error: 'Troppe richieste, riprova tra un minuto.' }, 429)
+  }
 
   // Parse body
   let body: { image?: string; mediaType?: string }

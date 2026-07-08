@@ -10,6 +10,7 @@
 // Headers: Authorization: Bearer <supabase-jwt>
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createRateLimiter } from '../_shared/rateLimit.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -22,6 +23,10 @@ function json(data: unknown, status = 200) {
     headers: { ...CORS, 'Content-Type': 'application/json' },
   })
 }
+
+// This only needs to run once a day per user in normal use — cap it so a buggy
+// client polling in a loop can't run up the AI API bill.
+const rateLimiter = createRateLimiter(10, 60_000)
 
 function yesterday() {
   const d = new Date()
@@ -137,6 +142,11 @@ Deno.serve(async (req: Request) => {
 
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) return json({ error: 'Non autorizzato' }, 401)
+
+  rateLimiter.prune()
+  if (!rateLimiter.allow(user.id)) {
+    return json({ error: 'Troppe richieste, riprova tra un minuto.' }, 429)
+  }
 
   const yest = yesterday()
 
