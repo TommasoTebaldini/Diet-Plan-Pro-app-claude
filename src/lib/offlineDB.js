@@ -86,7 +86,7 @@ export async function getPendingCount() {
  */
 export async function syncPendingWrites() {
   if (!navigator.onLine) return { synced: 0, failed: 0 }
-  let pending = []
+  let pending
   try { pending = await getPendingItems() } catch { return { synced: 0, failed: 0 } }
   if (!pending.length) return { synced: 0, failed: 0 }
 

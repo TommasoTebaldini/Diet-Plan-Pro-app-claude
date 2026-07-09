@@ -438,7 +438,7 @@ function PianoAlimentareContent({ piano }) {
   const [feedbackMeal, setFeedbackMeal] = useState(null)
   const [selectedAlts, setSelectedAlts] = useState({})
 
-  let days = []
+  let days
   try {
     const raw = typeof piano.meals === 'string' ? JSON.parse(piano.meals) : piano.meals
     days = Array.isArray(raw) ? raw : []

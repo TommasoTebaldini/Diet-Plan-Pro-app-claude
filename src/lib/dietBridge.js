@@ -73,7 +73,7 @@ export async function fetchDietFromPiani(patientId) {
   const piano = pianoRes.status === 'fulfilled' ? pianoRes.value?.data : null
 
   // Macro: prova prima la RPC, poi fallback a query dirette
-  let macros = {}
+  let macros
   const rpcData = rpcRes.status === 'fulfilled' ? rpcRes.value?.data : null
   if (rpcData && (rpcData.kcal_target || rpcData.protein_target)) {
     macros = rpcData

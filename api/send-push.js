@@ -55,6 +55,24 @@ function pruneRl() {
   for (const [k, v] of _rl) if (v.t < cutoff) _rl.delete(k)
 }
 
+// Dedup identical notifications to the same user in quick succession — covers
+// retry loops on the caller side (e.g. a webhook firing twice for one event)
+// that would otherwise double-notify the patient with the same content.
+const _dedup = new Map() // `${userId}|${tag}|${title}|${body}` → timestamp
+const DEDUP_WIN = 30_000
+function isDuplicate(userId, title, body, tag) {
+  const key = `${userId}|${tag}|${title}|${body}`
+  const now = Date.now()
+  const last = _dedup.get(key)
+  if (last && now - last < DEDUP_WIN) return true
+  _dedup.set(key, now)
+  if (_dedup.size > 1000) {
+    const cutoff = now - DEDUP_WIN
+    for (const [k, t] of _dedup) if (t < cutoff) _dedup.delete(k)
+  }
+  return false
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
   if (!isAuthorized(req)) return res.status(401).json({ error: 'Unauthorized' })
@@ -67,6 +85,10 @@ export default async function handler(req, res) {
   pruneRl()
   if (!rateLimit(userId)) {
     return res.status(429).json({ error: 'Too many notifications for this user, try again later' })
+  }
+
+  if (isDuplicate(userId, title, body, tag)) {
+    return res.status(200).json({ sent: false, deduped: true })
   }
 
   const { data: sub, error } = await supabaseAdmin

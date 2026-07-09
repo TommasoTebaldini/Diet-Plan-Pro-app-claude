@@ -18,12 +18,12 @@ import {
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, parseISO, addWeeks, subWeeks } from 'date-fns'
 import { it } from 'date-fns/locale'
 
-// â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── helpers ────────────────────────────────────────────────────
 const TABS_STATIC = [
-  { key: 'weekly', emoji: 'ðŸ“Š', label: 'ðŸ“Š Settimana' },
-  { key: 'adherence', emoji: 'âœ…', label: 'âœ… Aderenza' },
-  { key: 'comparison', emoji: 'âš–ï¸', label: 'âš–ï¸ Confronto' },
-  { key: 'report', emoji: 'ðŸ“„', label: 'ðŸ“„ Report PDF' },
+  { key: 'weekly', emoji: '📊', label: '📊 Settimana' },
+  { key: 'adherence', emoji: '✅', label: '✅ Aderenza' },
+  { key: 'comparison', emoji: '⚖️', label: '⚖️ Confronto' },
+  { key: 'report', emoji: '📄', label: '📄 Report PDF' },
 ]
 
 const MEAL_TYPES = ['colazione', 'spuntino_mattina', 'pranzo', 'spuntino_pomeriggio', 'cena']
@@ -46,7 +46,7 @@ function avg(arr) {
 
 function round1(n) { return Math.round((n || 0) * 10) / 10 }
 
-// â”€â”€ custom tooltip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── custom tooltip ─────────────────────────────────────────────
 function SmallTooltip({ active, payload, label, unit = '' }) {
   if (!active || !payload?.length) return null
   return (
@@ -61,7 +61,7 @@ function SmallTooltip({ active, payload, label, unit = '' }) {
   )
 }
 
-// â”€â”€ stat card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── stat card ──────────────────────────────────────────────────
 function StatCard({ icon, label, value, sub, trend }) {
   const trendColor = trend > 0 ? 'var(--green-main)' : trend < 0 ? 'var(--red)' : 'var(--text-muted)'
   return (
@@ -81,7 +81,7 @@ function StatCard({ icon, label, value, sub, trend }) {
   )
 }
 
-// â”€â”€ main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── main component ─────────────────────────────────────────────
 export default function StatisticsPage() {
   const { user, profile } = useAuth()
   const { isPro } = useSubscription()
@@ -242,7 +242,7 @@ export default function StatisticsPage() {
     }
   }
 
-  // â”€â”€ computed weekly stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── computed weekly stats ──────────────────────────────────────
   const days7 = eachDayOfInterval({ start: weekStart, end: weekEnd })
 
   function buildDailyChart() {
@@ -281,9 +281,9 @@ export default function StatisticsPage() {
     weight: prevWeekData.weights.length ? round1(avg(prevWeekData.weights.map(w => w.weight_kg))) : null,
   }
 
-  const weekLabel = `${format(weekStart, 'd MMM', { locale: it })} â€“ ${format(weekEnd, 'd MMM yyyy', { locale: it })}`
+  const weekLabel = `${format(weekStart, 'd MMM', { locale: it })} – ${format(weekEnd, 'd MMM yyyy', { locale: it })}`
 
-  // â”€â”€ PDF generation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── PDF generation ─────────────────────────────────────────────
   async function generatePdf() {
     setGeneratingPdf(true)
     try {
@@ -309,7 +309,7 @@ export default function StatisticsPage() {
       // header
       doc.setFillColor(21, 122, 74)
       doc.rect(0, 0, W, 30, 'F')
-      addText('Diet Plan Pro â€” Report Settimanale', margin, 13, { size: 14, style: 'bold', color: [255, 255, 255] })
+      addText('Diet Plan Pro — Report Settimanale', margin, 13, { size: 14, style: 'bold', color: [255, 255, 255] })
       addText(weekLabel, margin, 21, { size: 9, color: [200, 240, 220] })
       if (profile?.full_name) {
         addText(`Paziente: ${profile.full_name}`, W - margin - 50, 13, { size: 9, color: [200, 240, 220] })
@@ -355,7 +355,7 @@ export default function StatisticsPage() {
         if (y > 260) { doc.addPage(); y = 20 }
         const rowIdx = dailyChart.indexOf(row)
         if (rowIdx % 2 === 0) { doc.setFillColor(240, 250, 245); doc.rect(margin, y - 4.5, W - margin * 2, 7, 'F') }
-        const vals = [row.label, row.kcal || 'â€“', row.proteins || 'â€“', row.carbs || 'â€“', row.fats || 'â€“', row.water ? `${Math.round(row.water)} ml` : 'â€“']
+        const vals = [row.label, row.kcal || '–', row.proteins || '–', row.carbs || '–', row.fats || '–', row.water ? `${Math.round(row.water)} ml` : '–']
         vals.forEach((v, i) => addText(String(v), cols[i], y, { size: 8 }))
         y += 8
       }
@@ -396,8 +396,8 @@ export default function StatisticsPage() {
       const pageCount = doc.getNumberOfPages()
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i)
-        addText(`Diet Plan Pro â€¢ Pagina ${i} di ${pageCount}`, margin, 290, { size: 8, color: [150, 170, 160] })
-        addText('Documento riservato â€” da condividere con il proprio dietista', W - margin - 80, 290, { size: 7, color: [180, 200, 190] })
+        addText(`Diet Plan Pro • Pagina ${i} di ${pageCount}`, margin, 290, { size: 8, color: [150, 170, 160] })
+        addText('Documento riservato — da condividere con il proprio dietista', W - margin - 80, 290, { size: 7, color: [180, 200, 190] })
       }
 
       const fileName = `report_${format(weekStart, 'yyyy-MM-dd')}_${profile?.full_name?.replace(/\s+/g, '_') || 'paziente'}.pdf`
@@ -407,7 +407,7 @@ export default function StatisticsPage() {
     }
   }
 
-  // â”€â”€ Monthly PDF generation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Monthly PDF generation ─────────────────────────────────────
   async function generateMonthlyPdf() {
     setGeneratingMonthlyPdf(true)
     try {
@@ -592,19 +592,19 @@ export default function StatisticsPage() {
     }
   }
 
-  // â”€â”€ adherence stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── adherence stats ────────────────────────────────────────────
   const weekAdherenceData = adherenceData.filter(d => d.date >= isoDate(weekStart) && d.date <= isoDate(weekEnd))
   const avgAdherence = weekAdherenceData.length ? Math.round(avg(weekAdherenceData.map(d => d.pct))) : 0
 
-  // â”€â”€ comparison chart â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── comparison chart ───────────────────────────────────────────
   const comparisonData = [
-    { name: 'ðŸ”¥ Kcal', curr: weekAvg.kcal, prev: prevAvg.kcal, target: dietTarget?.kcal_target || null },
-    { name: 'ðŸ’ª Prot.', curr: weekAvg.proteins, prev: prevAvg.proteins, target: dietTarget?.protein_target || null },
-    { name: 'ðŸŒ¾ Carbo', curr: weekAvg.carbs, prev: prevAvg.carbs, target: dietTarget?.carbs_target || null },
-    { name: 'ðŸ¥‘ Grassi', curr: weekAvg.fats, prev: prevAvg.fats, target: dietTarget?.fats_target || null },
+    { name: '🔥 Kcal', curr: weekAvg.kcal, prev: prevAvg.kcal, target: dietTarget?.kcal_target || null },
+    { name: '💪 Prot.', curr: weekAvg.proteins, prev: prevAvg.proteins, target: dietTarget?.protein_target || null },
+    { name: '🌾 Carbo', curr: weekAvg.carbs, prev: prevAvg.carbs, target: dietTarget?.carbs_target || null },
+    { name: '🥑 Grassi', curr: weekAvg.fats, prev: prevAvg.fats, target: dietTarget?.fats_target || null },
   ]
 
-  // â”€â”€ render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── render ─────────────────────────────────────────────────────
   return (
     <div className="page">
       {/* header */}
@@ -646,7 +646,7 @@ export default function StatisticsPage() {
             </button>
           </div>
 
-          {/* â”€â”€ TAB: weekly report â”€â”€ */}
+          {/* ── TAB: weekly report ── */}
           {tab === 'weekly' && (
             <>
               {/* summary cards */}
@@ -655,7 +655,7 @@ export default function StatisticsPage() {
                   { icon: <Flame size={13} />, label: 'Kcal media/die', value: `${weekAvg.kcal}`, sub: dietTarget?.kcal_target ? `Obiettivo: ${dietTarget.kcal_target}` : undefined, trend: weekAvg.kcal - prevAvg.kcal },
                   { icon: <Droplets size={13} />, label: 'Acqua media/die', value: weekAvg.water ? `${Math.round(weekAvg.water)} ml` : 'N/D', trend: weekAvg.water && prevAvg.water ? weekAvg.water - prevAvg.water : undefined },
                   { icon: <Scale size={13} />, label: 'Peso medio', value: weekAvg.weight ? `${weekAvg.weight} kg` : 'N/D', trend: weekAvg.weight && prevAvg.weight ? weekAvg.weight - prevAvg.weight : undefined },
-                  { icon: <Check size={13} />, label: 'Aderenza media', value: `${avgAdherence}%`, sub: `${weekAdherenceData.filter(d => d.pct >= 80).length}/7 giorni â‰¥80%` },
+                  { icon: <Check size={13} />, label: 'Aderenza media', value: `${avgAdherence}%`, sub: `${weekAdherenceData.filter(d => d.pct >= 80).length}/7 giorni ≥80%` },
                 ].map((card, i) => (
                   <motion.div key={card.label}
                     initial={{ opacity: 0, y: 14 }}
@@ -667,10 +667,10 @@ export default function StatisticsPage() {
                 ))}
               </div>
 
-              {/* weekly macro chart â€” Pro only */}
+              {/* weekly macro chart — Pro only */}
               <ProGate feature="Grafici settimanali" teaser="Visualizza i grafici di calorie e idratazione giorno per giorno">
                 <div className="card" style={{ padding: '16px 10px 14px' }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14, paddingLeft: 6 }}>ðŸ“Š Calorie giornaliere</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14, paddingLeft: 6 }}>📊 Calorie giornaliere</h3>
                   <ResponsiveContainer width="100%" height={160}>
                     <BarChart data={dailyChart} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
@@ -686,7 +686,7 @@ export default function StatisticsPage() {
                 </div>
 
                 <div className="card" style={{ padding: 16 }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>ðŸ’§ Idratazione giornaliera</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>💧 Idratazione giornaliera</h3>
                   <ResponsiveContainer width="100%" height={140}>
                     <BarChart data={dailyChart} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
@@ -702,7 +702,7 @@ export default function StatisticsPage() {
 
               {/* macro averages table */}
               <div className="card" style={{ padding: 16 }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>ðŸ“ˆ Medie settimanali</h3>
+                <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>📈 Medie settimanali</h3>
                 {[
                   { label: 'Calorie', val: `${weekAvg.kcal} kcal`, target: dietTarget?.kcal_target ? `${dietTarget.kcal_target} kcal` : null, pct: dietTarget?.kcal_target ? Math.min(100, Math.round(weekAvg.kcal / dietTarget.kcal_target * 100)) : null, color: '#f0922b' },
                   { label: 'Proteine', val: `${weekAvg.proteins} g`, target: dietTarget?.protein_target ? `${dietTarget.protein_target} g` : null, pct: dietTarget?.protein_target ? Math.min(100, Math.round(weekAvg.proteins / dietTarget.protein_target * 100)) : null, color: '#3b82f6' },
@@ -729,7 +729,7 @@ export default function StatisticsPage() {
             </>
           )}
 
-          {/* â”€â”€ TAB: adherence â”€â”€ */}
+          {/* ── TAB: adherence ── */}
           {tab === 'adherence' && (
             <ProGate feature="Analisi aderenza" teaser="Monitora quanto segui la tua dieta giorno per giorno">
             <>
@@ -752,13 +752,13 @@ export default function StatisticsPage() {
                   </div>
                 </div>
                 <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                  {avgAdherence >= 80 ? 'ðŸ† Ottima aderenza alla dieta!' : avgAdherence >= 60 ? 'ðŸ‘ Buona aderenza, continua cosÃ¬!' : avgAdherence >= 40 ? 'ðŸ’ª Puoi migliorare! Registra tutti i pasti.' : 'âš ï¸ Aderenza bassa. Prova a registrare ogni pasto.'}
+                  {avgAdherence >= 80 ? '🏆 Ottima aderenza alla dieta!' : avgAdherence >= 60 ? '👍 Buona aderenza, continua così!' : avgAdherence >= 40 ? '💪 Puoi migliorare! Registra tutti i pasti.' : '⚠️ Aderenza bassa. Prova a registrare ogni pasto.'}
                 </p>
               </div>
 
               {/* daily adherence chart */}
               <div className="card" style={{ padding: '16px 10px 14px' }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14, paddingLeft: 6 }}>ðŸ“… Aderenza giornaliera (ultime 2 settimane)</h3>
+                <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14, paddingLeft: 6 }}>📅 Aderenza giornaliera (ultime 2 settimane)</h3>
                 <ResponsiveContainer width="100%" height={180}>
                   <BarChart data={adherenceData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
@@ -789,7 +789,7 @@ export default function StatisticsPage() {
                         </div>
                       </div>
                       <div style={{ width: 44, textAlign: 'right' }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: d.pct >= 80 ? 'var(--green-main)' : d.pct >= 50 ? 'var(--orange)' : d.pct > 0 ? 'var(--red)' : 'var(--text-muted)' }}>{d.pct > 0 ? `${d.pct}%` : 'â€“'}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: d.pct >= 80 ? 'var(--green-main)' : d.pct >= 50 ? 'var(--orange)' : d.pct > 0 ? 'var(--red)' : 'var(--text-muted)' }}>{d.pct > 0 ? `${d.pct}%` : '–'}</span>
                         <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>{d.logged}/{d.expected} pasti</p>
                       </div>
                     </div>
@@ -800,12 +800,12 @@ export default function StatisticsPage() {
             </ProGate>
           )}
 
-          {/* â”€â”€ TAB: comparison â”€â”€ */}
+          {/* ── TAB: comparison ── */}
           {tab === 'comparison' && (
             <ProGate feature="Confronto settimane" teaser="Confronta due settimane di dati per misurare i tuoi progressi">
             <>
               <div className="card" style={{ padding: 16 }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>âš–ï¸ Confronto settimane</h3>
+                <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>⚖️ Confronto settimane</h3>
                 <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
                   Settimana selezionata vs settimana precedente
                 </p>
@@ -852,15 +852,15 @@ export default function StatisticsPage() {
               {/* weight comparison */}
               {(weekAvg.weight || prevAvg.weight) && (
                 <div className="card" style={{ padding: 16 }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>âš–ï¸ Peso</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>⚖️ Peso</h3>
                   <div style={{ display: 'flex', gap: 12 }}>
                     <div style={{ flex: 1, textAlign: 'center', padding: '14px 10px', background: 'var(--green-pale)', borderRadius: 12 }}>
                       <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Questa settimana</p>
-                      <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--green-main)' }}>{weekAvg.weight ?? 'â€“'} <span style={{ fontSize: 13 }}>kg</span></p>
+                      <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--green-main)' }}>{weekAvg.weight ?? '–'} <span style={{ fontSize: 13 }}>kg</span></p>
                     </div>
                     <div style={{ flex: 1, textAlign: 'center', padding: '14px 10px', background: 'var(--surface-2)', borderRadius: 12 }}>
                       <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Settimana prec.</p>
-                      <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-secondary)' }}>{prevAvg.weight ?? 'â€“'} <span style={{ fontSize: 13 }}>kg</span></p>
+                      <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-secondary)' }}>{prevAvg.weight ?? '–'} <span style={{ fontSize: 13 }}>kg</span></p>
                     </div>
                   </div>
                   {weekAvg.weight && prevAvg.weight && (
@@ -875,15 +875,15 @@ export default function StatisticsPage() {
 
               {/* water comparison */}
               <div className="card" style={{ padding: 16 }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>ðŸ’§ Idratazione</h3>
+                <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>💧 Idratazione</h3>
                 <div style={{ display: 'flex', gap: 12 }}>
                   <div style={{ flex: 1, textAlign: 'center', padding: '14px 10px', background: 'rgba(59,130,246,0.08)', borderRadius: 12 }}>
                     <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Questa settimana</p>
-                    <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--blue)' }}>{weekAvg.water ? `${Math.round(weekAvg.water)}` : 'â€“'} <span style={{ fontSize: 13 }}>ml/die</span></p>
+                    <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--blue)' }}>{weekAvg.water ? `${Math.round(weekAvg.water)}` : '–'} <span style={{ fontSize: 13 }}>ml/die</span></p>
                   </div>
                   <div style={{ flex: 1, textAlign: 'center', padding: '14px 10px', background: 'var(--surface-2)', borderRadius: 12 }}>
                     <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Settimana prec.</p>
-                    <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-secondary)' }}>{prevAvg.water ? `${Math.round(prevAvg.water)}` : 'â€“'} <span style={{ fontSize: 13 }}>ml/die</span></p>
+                    <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-secondary)' }}>{prevAvg.water ? `${Math.round(prevAvg.water)}` : '–'} <span style={{ fontSize: 13 }}>ml/die</span></p>
                   </div>
                 </div>
               </div>
@@ -891,15 +891,15 @@ export default function StatisticsPage() {
             </ProGate>
           )}
 
-          {/* â”€â”€ TAB: report PDF â”€â”€ */}
+          {/* ── TAB: report PDF ── */}
           {tab === 'report' && (
             <ProGate feature="Report PDF" teaser="Genera report professionali da condividere con il tuo dietista">
             <>
               {/* Toggle settimanale / mensile */}
               <div style={{ display: 'flex', background: 'var(--surface-2)', borderRadius: 12, padding: 4, gap: 4 }}>
                 {[
-                  { key: 'weekly', label: 'ðŸ“… Settimanale' },
-                  { key: 'monthly', label: 'ðŸ—“ï¸ Mensile' },
+                  { key: 'weekly', label: '📅 Settimanale' },
+                  { key: 'monthly', label: '🗓️ Mensile' },
                 ].map(m => (
                   <button
                     key={m.key}
@@ -925,21 +925,21 @@ export default function StatisticsPage() {
                       Include medie macro, idratazione, peso e aderenza alla dieta.
                     </p>
                     <button className="btn btn-primary btn-full" onClick={generatePdf} disabled={generatingPdf} style={{ fontSize: 15, padding: '14px 20px' }}>
-                      {generatingPdf ? <span>Generazione in corsoâ€¦</span> : <><Download size={18} />Scarica Report PDF</>}
+                      {generatingPdf ? <span>Generazione in corso…</span> : <><Download size={18} />Scarica Report PDF</>}
                     </button>
                   </div>
                   <div className="card" style={{ padding: 16 }}>
-                    <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>ðŸ“‹ Anteprima contenuto</h3>
+                    <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>📋 Anteprima contenuto</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {[
-                        { icon: 'ðŸ“…', title: 'Periodo', desc: weekLabel },
-                        { icon: 'ðŸ”¥', title: 'Media calorie', desc: `${weekAvg.kcal} kcal/die${dietTarget?.kcal_target ? ` (obiettivo: ${dietTarget.kcal_target})` : ''}` },
-                        { icon: 'ðŸ’ª', title: 'Proteine medie', desc: `${weekAvg.proteins} g/die` },
-                        { icon: 'ðŸŒ¾', title: 'Carboidrati medi', desc: `${weekAvg.carbs} g/die` },
-                        { icon: 'ðŸ¥‘', title: 'Grassi medi', desc: `${weekAvg.fats} g/die` },
-                        { icon: 'ðŸ’§', title: 'Acqua media', desc: weekAvg.water ? `${Math.round(weekAvg.water)} ml/die` : 'Nessun dato' },
-                        { icon: 'âš–ï¸', title: 'Peso medio', desc: weekAvg.weight ? `${weekAvg.weight} kg` : 'Nessun dato' },
-                        { icon: 'âœ…', title: 'Aderenza dieta', desc: `${avgAdherence}% media settimanale` },
+                        { icon: '📅', title: 'Periodo', desc: weekLabel },
+                        { icon: '🔥', title: 'Media calorie', desc: `${weekAvg.kcal} kcal/die${dietTarget?.kcal_target ? ` (obiettivo: ${dietTarget.kcal_target})` : ''}` },
+                        { icon: '💪', title: 'Proteine medie', desc: `${weekAvg.proteins} g/die` },
+                        { icon: '🌾', title: 'Carboidrati medi', desc: `${weekAvg.carbs} g/die` },
+                        { icon: '🥑', title: 'Grassi medi', desc: `${weekAvg.fats} g/die` },
+                        { icon: '💧', title: 'Acqua media', desc: weekAvg.water ? `${Math.round(weekAvg.water)} ml/die` : 'Nessun dato' },
+                        { icon: '⚖️', title: 'Peso medio', desc: weekAvg.weight ? `${weekAvg.weight} kg` : 'Nessun dato' },
+                        { icon: '✅', title: 'Aderenza dieta', desc: `${avgAdherence}% media settimanale` },
                       ].map(item => (
                         <div key={item.title} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', background: 'var(--surface-2)', borderRadius: 10 }}>
                           <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{item.icon}</span>
@@ -980,20 +980,20 @@ export default function StatisticsPage() {
                       Il PDF include medie mensili, riepilogo per settimana, dettaglio giornaliero e aderenza alla dieta per {monthStr ? format(new Date(monthStr + '-01'), 'MMMM yyyy', { locale: it }) : 'il mese selezionato'}.
                     </p>
                     <button className="btn btn-primary btn-full" onClick={generateMonthlyPdf} disabled={generatingMonthlyPdf || !monthStr} style={{ fontSize: 15, padding: '14px 20px' }}>
-                      {generatingMonthlyPdf ? <span>Generazione in corsoâ€¦</span> : <><Download size={18} />Scarica Report Mensile</>}
+                      {generatingMonthlyPdf ? <span>Generazione in corso…</span> : <><Download size={18} />Scarica Report Mensile</>}
                     </button>
                   </div>
                   <div className="card" style={{ padding: 16 }}>
-                    <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>ðŸ“‹ Contenuto del report mensile</h3>
+                    <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>📋 Contenuto del report mensile</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                       {[
-                        { icon: 'ðŸ“Š', text: 'Medie mensili di calorie, proteine, carboidrati e grassi' },
-                        { icon: 'ðŸ“…', text: 'Riepilogo per settimana (4-5 settimane del mese)' },
-                        { icon: 'ðŸ“‹', text: 'Dettaglio giornaliero con tutti i macronutrienti' },
-                        { icon: 'ðŸ’§', text: 'Media idratazione giornaliera' },
-                        { icon: 'âš–ï¸', text: 'Andamento peso nel mese' },
-                        { icon: 'âœ…', text: 'Aderenza media alla dieta prescritta' },
-                        { icon: 'ðŸ“', text: 'Spazio note per il dietista' },
+                        { icon: '📊', text: 'Medie mensili di calorie, proteine, carboidrati e grassi' },
+                        { icon: '📅', text: 'Riepilogo per settimana (4-5 settimane del mese)' },
+                        { icon: '📋', text: 'Dettaglio giornaliero con tutti i macronutrienti' },
+                        { icon: '💧', text: 'Media idratazione giornaliera' },
+                        { icon: '⚖️', text: 'Andamento peso nel mese' },
+                        { icon: '✅', text: 'Aderenza media alla dieta prescritta' },
+                        { icon: '📝', text: 'Spazio note per il dietista' },
                       ].map(item => (
                         <div key={item.text} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '7px 10px', background: 'var(--surface-2)', borderRadius: 9 }}>
                           <span style={{ fontSize: 16, flexShrink: 0 }}>{item.icon}</span>
@@ -1006,7 +1006,7 @@ export default function StatisticsPage() {
               )}
 
               <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>
-                Il PDF viene salvato sul tuo dispositivo e puÃ² essere inviato via email o WhatsApp al tuo dietista.
+                Il PDF viene salvato sul tuo dispositivo e può essere inviato via email o WhatsApp al tuo dietista.
               </p>
             </>
             </ProGate>

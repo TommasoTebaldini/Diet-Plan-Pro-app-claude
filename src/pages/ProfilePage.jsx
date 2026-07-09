@@ -363,7 +363,7 @@ const WATER_INTERVALS = [
   { val: 4, label: 'Ogni 4 ore' },
 ]
 
-function NotificationsModal({ onClose }) {
+function NotificationsModal({ user, onClose }) {
   const [prefs, setPrefs] = useState(loadPrefs)
   const [permStatus, setPermStatus] = useState(getPermissionStatus)
   const [requesting, setRequesting] = useState(false)
@@ -1272,7 +1272,7 @@ export default function ProfilePage() {
       {modal === 'intolerances' && <IntolerancesModal profile={localProfile} user={user} onClose={() => setModal(null)} onSaved={reloadProfile} />}
       {modal === 'foodprefs' && <FoodPrefsModal profile={localProfile} user={user} onClose={() => setModal(null)} onSaved={reloadProfile} />}
       {modal === 'security' && <SecurityModal onClose={() => setModal(null)} />}
-      {modal === 'notifications' && <NotificationsModal onClose={() => setModal(null)} />}
+      {modal === 'notifications' && <NotificationsModal user={user} onClose={() => setModal(null)} />}
       {modal === 'appearance' && <AppearanceModal onClose={() => setModal(null)} />}
       {modal === 'language' && <LanguageModal onClose={() => setModal(null)} />}
       {modal === 'biometric' && <BiometricModal user={user} onClose={() => setModal(null)} />}

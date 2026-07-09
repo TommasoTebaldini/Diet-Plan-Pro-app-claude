@@ -98,7 +98,6 @@ const CAT_MAP = {
   'Energy drink':               'Bevande',
   'Alternative vegetali':       'Latticini',
   'Bevande alcoliche':          'Bevande',
-  'Bevande':                    'Bevande',
   'Dolci e dessert':            'Dolci e Zuccheri',
   'Cioccolato e dolciumi':      'Dolci e Zuccheri',
   'Frutta esotica':             'Frutta',

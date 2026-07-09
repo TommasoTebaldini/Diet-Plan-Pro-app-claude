@@ -44,7 +44,7 @@ function categorizeFood(name) {
 // ── Extract foods from clinical piano (piani table) ──────────────────────────
 function extractFoodsFromPiano(piano) {
   const foods = []
-  let days = []
+  let days
   try {
     const raw = typeof piano.meals === 'string' ? JSON.parse(piano.meals) : piano.meals
     days = Array.isArray(raw) ? raw : []

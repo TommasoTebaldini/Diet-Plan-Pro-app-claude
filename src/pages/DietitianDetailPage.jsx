@@ -21,7 +21,7 @@ function getLocalTimeHHMM(utcStr) {
 }
 
 function getDow(dateStr) {
-  // 0=Mon â€¦ 6=Sun
+  // 0=Mon … 6=Sun
   const d = new Date(dateStr + 'T00:00:00')
   return (d.getDay() + 6) % 7
 }
@@ -47,7 +47,7 @@ function generateSlots(avail) {
   return result
 }
 
-// â”€â”€â”€ Booking modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Booking modal ───────────────────────────────────────────────────────────
 
 function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
   const { user } = useAuth()
@@ -178,13 +178,13 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
               <CheckCircle size={52} color="var(--green-main)" className="animate-bounceIn" style={{ marginBottom: 16, display: 'block', margin: '0 auto 16px' }} />
               <p style={{ fontSize: 17, fontWeight: 700 }}>Prenotazione inviata!</p>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.6 }}>
-                Il dietista riceverÃ  la tua richiesta di colloquio. Ti contatteranno per conferma.
+                Il dietista riceverà la tua richiesta di colloquio. Ti contatteranno per conferma.
               </p>
             </div>
           ) : noAvailability ? (
             <div style={{ textAlign: 'center', padding: '32px 0' }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>ðŸ“…</div>
-              <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>Nessuna disponibilitÃ  configurata</p>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>📅</div>
+              <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>Nessuna disponibilità configurata</p>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
                 Questo dietista non ha ancora impostato gli orari disponibili. Contattalo direttamente.
               </p>
@@ -252,7 +252,7 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
               {selectedDate && (
                 <div style={{ marginBottom: 16 }}>
                   <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-                    Orari â€” {new Date(selectedDate + 'T00:00:00').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    Orari — {new Date(selectedDate + 'T00:00:00').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
                   </p>
                   {slotsLoading ? (
                     <div style={{ textAlign: 'center', padding: 16 }}>
@@ -315,7 +315,7 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
                 disabled={saving || !selectedDate || !selectedSlot}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
               >
-                {saving ? 'â€¦' : <><Calendar size={15} /> Conferma prenotazione</>}
+                {saving ? '…' : <><Calendar size={15} /> Conferma prenotazione</>}
               </button>
             </>
           )}
@@ -325,7 +325,7 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
   )
 }
 
-// â”€â”€â”€ Main page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function DietitianDetailPage() {
   const { dietitianId } = useParams()
@@ -411,7 +411,7 @@ export default function DietitianDetailPage() {
         </div>
         <div style={{ textAlign: 'center', padding: '60px 24px' }}>
           <p style={{ fontSize: 15, fontWeight: 500 }}>Profilo non disponibile</p>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6 }}>Questo profilo non esiste o non Ã¨ pubblico.</p>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6 }}>Questo profilo non esiste o non è pubblico.</p>
           <button onClick={() => navigate('/dietisti')} style={{ marginTop: 18, background: 'var(--green-pale)', border: 'none', borderRadius: 10, padding: '10px 20px', cursor: 'pointer', fontSize: 13, color: 'var(--green-main)', fontWeight: 600, fontFamily: 'var(--font-b)' }}>
             Torna alla lista
           </button>
@@ -479,7 +479,7 @@ export default function DietitianDetailPage() {
                       style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}
                     >
                       <XCircle size={13} style={{ color: 'var(--red)' }} />
-                      {cancelling === appt.id ? 'â€¦' : 'Annulla'}
+                      {cancelling === appt.id ? '…' : 'Annulla'}
                     </button>
                   ) : (
                     <span style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 100, textAlign: 'right' }}>Annullabile fino a 48h prima</span>
@@ -547,7 +547,7 @@ export default function DietitianDetailPage() {
         )}
       </div>
 
-      {/* Fixed bottom CTA â€” respects desktop sidebar */}
+      {/* Fixed bottom CTA — respects desktop sidebar */}
       <div style={{
         position: 'fixed', bottom: 0,
         left: sidebarW, right: 0,

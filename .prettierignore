@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.claude/
+.vercel/
+android/
+public/
+src/data/all-foods.js
+src/data/foods.js
+src/data/quizQuestions.js
+src/data/consigliBase.js
+src/data/crea-foods.js
+src/sw.js
