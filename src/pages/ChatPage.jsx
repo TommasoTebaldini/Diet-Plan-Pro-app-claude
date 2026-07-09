@@ -403,6 +403,7 @@ export default function ChatPage() {
   const recordingTimerRef = useRef(null)
   const presenceIntervalRef = useRef(null)
   const dietitianIdRef = useRef(null)
+  const dietitianRef = useRef(null)
 
   // ── Notification permission ─────────────────────────────────────────────
   useEffect(() => {
@@ -524,7 +525,9 @@ export default function ChatPage() {
       dietitianIdRef.current = dId
     }
 
-    setDietitian(profileRes.data || { full_name: 'Il tuo dietista' })
+    const dietitianProfile = profileRes.data || { full_name: 'Il tuo dietista' }
+    setDietitian(dietitianProfile)
+    dietitianRef.current = dietitianProfile
     setDietitianLastSeen(profileRes.data?.last_seen_at || null)
     const msgs = (msgsRes.data || []).reverse()
     setMessages(msgs)
@@ -571,8 +574,12 @@ export default function ChatPage() {
   function showPushNotification(msg) {
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
     if (document.visibilityState === 'visible') return
-    const dName = dietitian?.full_name ||
-      `${dietitian?.first_name || ''} ${dietitian?.last_name || ''}`.trim() || 'Dietista'
+    // Read from the ref, not the `dietitian` state: this function is captured by
+    // the realtime subscription set up once on mount, before loadData() resolves,
+    // so the state closure would stay stuck on its initial (null) value forever.
+    const d = dietitianRef.current
+    const dName = d?.full_name ||
+      `${d?.first_name || ''} ${d?.last_name || ''}`.trim() || 'Dietista'
     const body = msg.message_type === 'image' ? '📷 Foto' :
       msg.message_type === 'audio' ? '🎤 Messaggio vocale' : msg.content
     new Notification(`Nuovo messaggio da ${dName}`, { body, icon: '/icons/icon-192x192.png' })

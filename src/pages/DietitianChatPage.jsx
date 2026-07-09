@@ -872,6 +872,7 @@ export default function DietitianChatPage() {
   const [profileLoading, setProfileLoading] = useState(true)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
+  const patientIdsRef = useRef(new Set())
 
   // ── Load own profile ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -886,9 +887,13 @@ export default function DietitianChatPage() {
   // ── Load patient list ────────────────────────────────────────────────────
   useEffect(() => {
     loadPatients()
+    // chat_messages has no dietitian_id column to filter on server-side, so every
+    // INSERT in the whole table reaches every connected dietitian — filter here to
+    // only react to messages involving one of THIS dietitian's own patients,
+    // otherwise any patient writing to any dietitian reloads everyone's list.
     const channel = supabase.channel('dietitian-list-updates')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' },
-        () => loadPatients())
+        payload => { if (patientIdsRef.current.has(payload.new.patient_id)) loadPatients() })
       .subscribe()
     return () => supabase.removeChannel(channel)
   }, [user.id])
@@ -900,12 +905,14 @@ export default function DietitianChatPage() {
       .eq('dietitian_id', user.id)
 
     if (!links || links.length === 0) {
+      patientIdsRef.current = new Set()
       setPatients([])
       setLoadingList(false)
       return
     }
 
     const ids = links.map(l => l.patient_id)
+    patientIdsRef.current = new Set(ids)
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, email')

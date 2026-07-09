@@ -8,7 +8,6 @@ import { useT } from '../i18n'
 import { searchFoodsLocal, searchFoods, searchByBarcode } from '../lib/foodSearch'
 import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle, Pencil, Check, Lock, Camera, Star, BookmarkPlus, ClipboardCopy, WifiOff } from 'lucide-react'
 import { safeWrite } from '../lib/offlineDB'
-import { queueFoodLog, flushQueue } from '../lib/offlineQueue'
 const BarcodeScanner   = lazy(() => import('../components/BarcodeScanner'))
 const MealPhotoAnalyzer = lazy(() => import('../components/MealPhotoAnalyzer'))
 import ProGate from '../components/ProGate'
@@ -282,23 +281,6 @@ export default function MacroTrackerPage() {
 
   // Load recent/favorites once on mount
   useEffect(() => { loadRecentAndFavorites() }, [])
-
-  // Sync offline queue on reconnect
-  useEffect(() => {
-    const handleOnline = async () => {
-      try {
-        const count = await flushQueue(supabase, user.id)
-        if (count > 0) {
-          setAddedFood(null)
-          setTimeout(() => setAddedFood('✅ Sincronizzati ' + count + ' pasti offline'), 100)
-          setTimeout(() => setAddedFood(null), 3500)
-          await loadLog()
-        }
-      } catch {}
-    }
-    window.addEventListener('online', handleOnline)
-    return () => window.removeEventListener('online', handleOnline)
-  }, [user.id])
 
   async function loadLog() {
     // Use known column set if already determined, else try extended
@@ -770,9 +752,10 @@ export default function MacroTrackerPage() {
     }))
     const { data, error } = await supabase.from('food_logs').insert(inserts).select()
     if (!error && data) {
-      // Update daily_logs for target date
-      const t = data.reduce((a, f) => ({ kcal: a.kcal + (f.kcal || 0), proteins: a.proteins + (f.proteins || 0), carbs: a.carbs + (f.carbs || 0), fats: a.fats + (f.fats || 0) }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
-      await supabase.from('daily_logs').upsert({ user_id: user.id, date: copyTargetDate, ...t }, { onConflict: 'user_id,date' })
+      // Recompute daily_logs from ALL food_logs of the target date (not just the
+      // ones just copied), otherwise a day that already had other meals logged
+      // ends up with its totals overwritten by only the copied subset.
+      await recomputeDailyLog(copyTargetDate)
       setCopyDone(data.length)
       setTimeout(() => { setCopyDone(null); setShowCopyModal(false); setCopyTargetDate('') }, 3000)
     }
@@ -793,14 +776,18 @@ export default function MacroTrackerPage() {
     }
   }
 
-  async function updateDailyLog() {
-    const { data } = await supabase.from('food_logs').select('kcal,proteins,carbs,fats').eq('user_id', user.id).eq('date', date)
+  async function recomputeDailyLog(forDate) {
+    const { data } = await supabase.from('food_logs').select('kcal,proteins,carbs,fats').eq('user_id', user.id).eq('date', forDate)
     if (!data) return
     const t = data.reduce((a, f) => ({
       kcal: a.kcal + (f.kcal || 0), proteins: a.proteins + (f.proteins || 0),
       carbs: a.carbs + (f.carbs || 0), fats: a.fats + (f.fats || 0),
     }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
-    await supabase.from('daily_logs').upsert({ user_id: user.id, date, ...t }, { onConflict: 'user_id,date' })
+    await supabase.from('daily_logs').upsert({ user_id: user.id, date: forDate, ...t }, { onConflict: 'user_id,date' })
+  }
+
+  async function updateDailyLog() {
+    await recomputeDailyLog(date)
   }
 
   async function removeFood(id) {
