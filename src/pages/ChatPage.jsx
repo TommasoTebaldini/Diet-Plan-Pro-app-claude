@@ -6,7 +6,7 @@ import { useT } from '../i18n'
 import {
   Send, CheckCheck, Check, MessageCircle,
   ImagePlus, Mic, MicOff, X, Play, Pause, Bell, BellOff,
-  FileText, PenLine, AlertTriangle
+  FileText, PenLine, AlertTriangle, ArrowLeft
 } from 'lucide-react'
 
 // ── Default GDPR privacy document (shown when doc.content is absent) ─────────
@@ -364,6 +364,200 @@ function SignatureModal({ doc, onClose, onSigned }) {
   )
 }
 
+// ── Chat list (dietitian thread + group threads) ──────────────────────────────
+
+function profileLabel(p) {
+  return p.full_name || `${p.nome || ''} ${p.cognome || ''}`.trim() || p.email || 'Utente'
+}
+
+function ChatListView({ dietitianName, dietitianOnline, dietitianPreview, dietitianUnread, notLinked, groups, onOpenDietitian, onOpenGroup }) {
+  return (
+    <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--surface-2)' }}>
+      <div style={{ background: 'linear-gradient(160deg, var(--green-dark), var(--green-main))', padding: 'calc(env(safe-area-inset-top) + 16px) 20px 20px', flexShrink: 0 }}>
+        <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 22, color: 'white', fontWeight: 300 }}>Chat</h1>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px calc(90px + env(safe-area-inset-bottom))' }}>
+        {!notLinked && (
+          <div onClick={onOpenDietitian} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 10px', borderRadius: 14, cursor: 'pointer', background: 'var(--surface)', marginBottom: 8, border: '1px solid var(--border-light)' }}>
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 700, color: 'var(--green-main)' }}>
+                {dietitianName?.[0]?.toUpperCase() || 'D'}
+              </div>
+              {dietitianOnline && <span style={{ position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: '50%', background: '#4ade80', border: '2px solid var(--surface)' }} />}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 14.5, fontWeight: 600 }}>{dietitianName}</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dietitianPreview || 'Il tuo dietista'}</p>
+            </div>
+            {dietitianUnread && <span style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--red)', flexShrink: 0 }} />}
+          </div>
+        )}
+        {groups.map(g => (
+          <div key={g.id} onClick={() => onOpenGroup(g)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 10px', borderRadius: 14, cursor: 'pointer', background: 'var(--surface)', marginBottom: 8, border: '1px solid var(--border-light)' }}>
+            <div style={{ width: 46, height: 46, borderRadius: '50%', background: g.color || '#0F766E', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>👥</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 14.5, fontWeight: 600 }}>{g.name}</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.lastMsg ? g.lastMsg.content : 'Nessun messaggio'}</p>
+            </div>
+            {g.unread && <span style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--red)', flexShrink: 0 }} />}
+          </div>
+        ))}
+        {notLinked && groups.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: 13.5 }}>Nessuna chat disponibile.</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function GroupThreadView({ group, user, onBack }) {
+  const [messages, setMessages] = useState([])
+  const [text, setText] = useState('')
+  const [sending, setSending] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [memberProfiles, setMemberProfiles] = useState({})
+  const messagesContainerRef = useRef(null)
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    let cancelled = false
+    let channel
+
+    async function load() {
+      const [{ data: members }, { data: msgs }] = await Promise.all([
+        supabase.from('chat_group_members').select('user_id,member_role').eq('group_id', group.id),
+        supabase.from('chat_group_messages').select('*').eq('group_id', group.id).order('created_at', { ascending: true }).limit(200),
+      ])
+      if (cancelled) return
+      const ids = (members || []).map(m => m.user_id)
+      if (ids.length) {
+        const { data: profiles } = await supabase.from('profiles').select('id,nome,cognome,full_name,email,role').in('id', ids)
+        const map = {}
+        ;(profiles || []).forEach(p => { map[p.id] = { name: profileLabel(p), role: p.role } })
+        if (!cancelled) setMemberProfiles(map)
+      }
+      if (!cancelled) {
+        setMessages(msgs || [])
+        setLoading(false)
+      }
+      await supabase.from('chat_group_members').update({ last_read_at: new Date().toISOString() }).eq('group_id', group.id).eq('user_id', user.id)
+    }
+    load()
+
+    channel = supabase.channel(`group-${group.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_group_messages', filter: `group_id=eq.${group.id}` }, payload => {
+        setMessages(prev => prev.find(m => m.id === payload.new.id) ? prev : [...prev, payload.new])
+        if (payload.new.sender_id !== user.id) {
+          supabase.from('chat_group_members').update({ last_read_at: new Date().toISOString() }).eq('group_id', group.id).eq('user_id', user.id)
+        }
+      })
+      .subscribe()
+
+    return () => { cancelled = true; if (channel) supabase.removeChannel(channel) }
+  }, [group.id, user.id])
+
+  useEffect(() => {
+    const el = messagesContainerRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [messages])
+
+  async function sendMessage(e) {
+    e?.preventDefault()
+    const content = text.trim()
+    if (!content || sending) return
+    setSending(true)
+    setText('')
+    const optimistic = { id: `opt_${Date.now()}`, group_id: group.id, sender_id: user.id, content, created_at: new Date().toISOString() }
+    setMessages(prev => [...prev, optimistic])
+    const { data, error } = await supabase.from('chat_group_messages').insert({ group_id: group.id, sender_id: user.id, content }).select().single()
+    if (data) {
+      setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
+    } else if (error) {
+      setMessages(prev => prev.filter(m => m.id !== optimistic.id))
+      setText(content)
+    }
+    setSending(false)
+    inputRef.current?.focus()
+  }
+
+  const dayGroups = groupByDate(messages)
+
+  return (
+    <div className="chat-fullscreen">
+      <div style={{ background: `linear-gradient(160deg, ${group.color || '#157A4A'}, ${group.color || '#1a9f60'})`, padding: 'calc(env(safe-area-inset-top) + 14px) 16px 16px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+        <button onClick={onBack} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+          <ArrowLeft size={17} color="white" />
+        </button>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>👥</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ color: 'white', fontSize: 16, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{group.name}</p>
+          <p style={{ color: 'rgba(255,255,255,0.72)', fontSize: 11 }}>{Object.keys(memberProfiles).length || ''} membri</p>
+        </div>
+      </div>
+
+      <div ref={messagesContainerRef} className="chat-messages" style={{ flex: 1, overflowY: 'auto', padding: '12px 14px 0', WebkitOverflowScrolling: 'touch' }}>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)', fontSize: 13 }}>Caricamento…</div>
+        ) : messages.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '50px 20px' }}>
+            <div style={{ fontSize: 44, marginBottom: 12 }}>💬</div>
+            <p style={{ fontSize: 15, fontWeight: 500 }}>Inizia la conversazione di gruppo</p>
+          </div>
+        ) : (
+          Object.entries(dayGroups).map(([day, msgs]) => (
+            <div key={day}>
+              <div style={{ textAlign: 'center', margin: '10px 0' }}>
+                <span style={{ background: 'var(--border)', color: 'var(--text-muted)', fontSize: 11, padding: '3px 10px', borderRadius: 100 }}>{dayLabel(day)}</span>
+              </div>
+              {msgs.map(msg => {
+                const isMe = msg.sender_id === user.id
+                const info = memberProfiles[msg.sender_id]
+                const isDietitian = info?.role === 'dietitian'
+                return (
+                  <div key={msg.id} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start', marginBottom: 6 }}>
+                    <div style={{ maxWidth: '78%', background: isMe ? 'linear-gradient(135deg, var(--green-main), var(--green-mid))' : 'var(--surface-3)', color: isMe ? 'white' : 'var(--text-primary)', padding: '8px 13px', borderRadius: isMe ? '16px 16px 3px 16px' : '16px 16px 16px 3px', border: isMe ? 'none' : '1px solid var(--border-light)' }}>
+                      {!isMe && (
+                        <p style={{ fontSize: 11, fontWeight: 700, marginBottom: 2, color: isDietitian ? '#7C3AED' : 'var(--green-main)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                          {info?.name || 'Utente'}
+                          <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 20, background: isDietitian ? '#EDE9FE' : '#DCFCE7', color: isDietitian ? '#6D28D9' : '#15803D' }}>
+                            {isDietitian ? 'Dietista/Nutrizionista' : 'Paziente'}
+                          </span>
+                        </p>
+                      )}
+                      <p style={{ fontSize: 14, lineHeight: 1.5, wordBreak: 'break-word' }}>{msg.content}</p>
+                      <div style={{ textAlign: 'right', marginTop: 3 }}>
+                        <span style={{ fontSize: 10, opacity: 0.65 }}>{formatTime(msg.created_at)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="chat-input-bar" style={{ position: 'fixed', bottom: 'calc(64px + env(safe-area-inset-bottom))', left: 0, right: 0, padding: '8px 10px', background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(12px)', borderTop: '1px solid var(--border-light)', zIndex: 50 }}>
+        <form onSubmit={sendMessage} style={{ display: 'flex', alignItems: 'flex-end', gap: 7 }}>
+          <div style={{ flex: 1, background: 'var(--surface-2)', borderRadius: 22, border: '1.5px solid var(--border)', padding: '9px 14px' }}>
+            <textarea
+              ref={inputRef} value={text}
+              onChange={e => setText(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
+              placeholder="Scrivi al gruppo…" rows={1}
+              style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontFamily: 'var(--font-b)', fontSize: 15, color: 'var(--text-primary)', resize: 'none', maxHeight: 100, lineHeight: 1.5 }}
+            />
+          </div>
+          <button type="submit" disabled={!text.trim() || sending} style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: 'var(--green-main)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: text.trim() && !sending ? 1 : 0.5 }}>
+            <Send size={17} color="white" style={{ marginLeft: 2 }} />
+          </button>
+        </form>
+      </div>
+      <div style={{ height: 'calc(72px + env(safe-area-inset-bottom))' }} />
+    </div>
+  )
+}
+
 // ── Main Component ───────────────────────────────────────────────────────────
 
 export default function ChatPage() {
@@ -381,6 +575,11 @@ export default function ChatPage() {
   const [notLinked, setNotLinked] = useState(false)
   const [unsignedDocs, setUnsignedDocs] = useState([])
   const [signingDoc, setSigningDoc] = useState(null)
+
+  // Group chats
+  const [groups, setGroups] = useState([])
+  const [groupsLoaded, setGroupsLoaded] = useState(false)
+  const [activeThread, setActiveThread] = useState(null) // null=deciding, 'list', 'dietitian', or a group object
 
   // Online status
   const [dietitianLastSeen, setDietitianLastSeen] = useState(null)
@@ -464,6 +663,38 @@ export default function ChatPage() {
     const el = messagesContainerRef.current
     if (el) el.scrollTop = el.scrollHeight
   }, [messages])
+
+  // ── Load group chats the patient belongs to ─────────────────────────────
+  useEffect(() => {
+    async function loadGroups() {
+      const { data: mine } = await supabase.from('chat_group_members').select('group_id,last_read_at').eq('user_id', user.id)
+      const groupIds = (mine || []).map(m => m.group_id)
+      if (!groupIds.length) { setGroups([]); setGroupsLoaded(true); return }
+      const [{ data: gRows }, { data: lastMsgs }] = await Promise.all([
+        supabase.from('chat_groups').select('*').in('id', groupIds),
+        supabase.from('chat_group_messages').select('group_id,sender_id,content,created_at').in('group_id', groupIds).order('created_at', { ascending: false }),
+      ])
+      const myReadMap = Object.fromEntries((mine || []).map(m => [m.group_id, m.last_read_at]))
+      const lastByGroup = {}
+      ;(lastMsgs || []).forEach(m => { if (!lastByGroup[m.group_id]) lastByGroup[m.group_id] = m })
+      const list = (gRows || []).map(g => {
+        const last = lastByGroup[g.id]
+        const unread = !!(last && last.sender_id !== user.id && (!myReadMap[g.id] || new Date(last.created_at) > new Date(myReadMap[g.id])))
+        return { ...g, lastMsg: last || null, unread }
+      })
+      setGroups(list)
+      setGroupsLoaded(true)
+    }
+    loadGroups()
+  }, [user.id])
+
+  // ── Decide the default thread once both the dietitian chat and groups have loaded ──
+  useEffect(() => {
+    if (activeThread !== null) return
+    if (!loading && groupsLoaded) {
+      setActiveThread(groups.length > 0 ? 'list' : 'dietitian')
+    }
+  }, [loading, groupsLoaded, groups, activeThread])
 
   async function updateLastSeen() {
     await supabase.from('profiles').update({ last_seen_at: new Date().toISOString() }).eq('id', user.id)
@@ -745,6 +976,40 @@ export default function ChatPage() {
 
   const canSendText = text.trim().length > 0 && !sending && !isRecording
 
+  // ── Deciding / list / group thread routing ──────────────────────────────
+  if (activeThread === null) {
+    return (
+      <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-2)' }}>
+        <div className="skeleton" style={{ width: 60, height: 60, borderRadius: '50%' }} />
+      </div>
+    )
+  }
+
+  if (activeThread === 'list') {
+    return (
+      <ChatListView
+        dietitianName={dietitianName}
+        dietitianOnline={isOnline}
+        dietitianPreview={messages[messages.length - 1]?.content || 'Il tuo dietista'}
+        dietitianUnread={messages.some(m => m.sender_role === 'dietitian' && !m.read_at)}
+        notLinked={notLinked}
+        groups={groups}
+        onOpenDietitian={() => setActiveThread('dietitian')}
+        onOpenGroup={g => setActiveThread(g)}
+      />
+    )
+  }
+
+  if (activeThread && typeof activeThread === 'object') {
+    return (
+      <GroupThreadView
+        group={activeThread}
+        user={user}
+        onBack={() => setActiveThread(groups.length > 0 ? 'list' : 'dietitian')}
+      />
+    )
+  }
+
   // ── Not linked ──────────────────────────────────────────────────────────
   if (!loading && notLinked) return (
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--surface-2)' }}>
@@ -771,7 +1036,7 @@ export default function ChatPage() {
     </div>
   )
 
-  const groups = groupByDate(messages)
+  const dayGroups = groupByDate(messages)
 
   return (
     <div className="chat-fullscreen">
@@ -785,6 +1050,14 @@ export default function ChatPage() {
 
       {/* Header */}
       <div style={{ background: 'linear-gradient(160deg, var(--green-dark), var(--green-main))', padding: 'calc(env(safe-area-inset-top) + 14px) 16px 16px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+        {groups.length > 0 && (
+          <button
+            onClick={() => setActiveThread('list')}
+            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+          >
+            <ArrowLeft size={17} color="white" />
+          </button>
+        )}
         {/* Avatar with online indicator */}
         <div style={{ position: 'relative', flexShrink: 0 }}>
           <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: 'white', border: '2px solid rgba(255,255,255,0.3)' }}>
@@ -880,7 +1153,7 @@ export default function ChatPage() {
                 </button>
               </div>
             )}
-            {Object.entries(groups).map(([day, msgs]) => (
+            {Object.entries(dayGroups).map(([day, msgs]) => (
             <div key={day}>
               <div style={{ textAlign: 'center', margin: '10px 0' }}>
                 <span style={{ background: 'var(--border)', color: 'var(--text-muted)', fontSize: 11, padding: '3px 10px', borderRadius: 100 }}>{dayLabel(day)}</span>
