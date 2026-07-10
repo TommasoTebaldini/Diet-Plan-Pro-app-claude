@@ -397,7 +397,7 @@ function ChatListView({ dietitianName, dietitianOnline, dietitianPreview, dietit
             <div style={{ width: 46, height: 46, borderRadius: '50%', background: g.color || '#0F766E', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>👥</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: 14.5, fontWeight: 600 }}>{g.name}</p>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.lastMsg ? g.lastMsg.content : 'Nessun messaggio'}</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.lastMsg ? (g.lastMsg.type === 'voice' ? '🎤 Messaggio vocale' : g.lastMsg.content) : 'Nessun messaggio'}</p>
             </div>
             {g.unread && <span style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--red)', flexShrink: 0 }} />}
           </div>
@@ -416,8 +416,13 @@ function GroupThreadView({ group, user, onBack }) {
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
   const [memberProfiles, setMemberProfiles] = useState({})
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordingDuration, setRecordingDuration] = useState(0)
   const messagesContainerRef = useRef(null)
   const inputRef = useRef(null)
+  const mediaRecorderRef = useRef(null)
+  const audioChunksRef = useRef([])
+  const recordingTimerRef = useRef(null)
 
   useEffect(() => {
     let cancelled = false
@@ -446,14 +451,39 @@ function GroupThreadView({ group, user, onBack }) {
 
     channel = supabase.channel(`group-${group.id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_group_messages', filter: `group_id=eq.${group.id}` }, payload => {
-        setMessages(prev => prev.find(m => m.id === payload.new.id) ? prev : [...prev, payload.new])
+        if (payload.new.status !== 'sent') return // proprio messaggio programmato di un altro membro: non ancora visibile
+        setMessages(prev => prev.find(m => m.id === payload.new.id) ? prev : [...prev, payload.new].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)))
         if (payload.new.sender_id !== user.id) {
+          supabase.from('chat_group_members').update({ last_read_at: new Date().toISOString() }).eq('group_id', group.id).eq('user_id', user.id)
+        }
+      })
+      // Un messaggio programmato diventa visibile via UPDATE (scheduled -> sent),
+      // non via INSERT, per chi non l'ha inviato (vedi RLS su chat_group_messages).
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_group_messages', filter: `group_id=eq.${group.id}` }, payload => {
+        const msg = payload.new
+        let wasNew = false
+        setMessages(prev => {
+          const exists = prev.some(m => m.id === msg.id)
+          wasNew = !exists
+          const next = exists ? prev.map(m => m.id === msg.id ? msg : m) : [...prev, msg]
+          return next.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+        })
+        if (wasNew && msg.sender_id !== user.id) {
           supabase.from('chat_group_members').update({ last_read_at: new Date().toISOString() }).eq('group_id', group.id).eq('user_id', user.id)
         }
       })
       .subscribe()
 
-    return () => { cancelled = true; if (channel) supabase.removeChannel(channel) }
+    return () => {
+      cancelled = true
+      if (channel) supabase.removeChannel(channel)
+      clearInterval(recordingTimerRef.current)
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.ondataavailable = null
+        mediaRecorderRef.current.onstop = () => { mediaRecorderRef.current.stream?.getTracks().forEach(t => t.stop()) }
+        mediaRecorderRef.current.stop()
+      }
+    }
   }, [group.id, user.id])
 
   useEffect(() => {
@@ -467,9 +497,9 @@ function GroupThreadView({ group, user, onBack }) {
     if (!content || sending) return
     setSending(true)
     setText('')
-    const optimistic = { id: `opt_${Date.now()}`, group_id: group.id, sender_id: user.id, content, created_at: new Date().toISOString() }
+    const optimistic = { id: `opt_${Date.now()}`, group_id: group.id, sender_id: user.id, content, type: 'text', status: 'sent', created_at: new Date().toISOString() }
     setMessages(prev => [...prev, optimistic])
-    const { data, error } = await supabase.from('chat_group_messages').insert({ group_id: group.id, sender_id: user.id, content }).select().single()
+    const { data, error } = await supabase.from('chat_group_messages').insert({ group_id: group.id, sender_id: user.id, content, type: 'text', status: 'sent' }).select().single()
     if (data) {
       setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
     } else if (error) {
@@ -480,6 +510,71 @@ function GroupThreadView({ group, user, onBack }) {
     inputRef.current?.focus()
   }
 
+  // ── Voice recording ─────────────────────────────────────────────────────
+  async function startRecording() {
+    if (isRecording) return
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg'
+      const recorder = new MediaRecorder(stream, { mimeType })
+      audioChunksRef.current = []
+      recorder.ondataavailable = e => { if (e.data.size > 0) audioChunksRef.current.push(e.data) }
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop())
+        const blob = new Blob(audioChunksRef.current, { type: mimeType })
+        const dur = recordingDuration
+        setIsRecording(false)
+        setRecordingDuration(0)
+        if (blob.size >= 100) await sendAudio(blob, dur, mimeType)
+      }
+      recorder.start()
+      mediaRecorderRef.current = recorder
+      setIsRecording(true)
+      setRecordingDuration(0)
+      recordingTimerRef.current = setInterval(() => setRecordingDuration(d => d + 1), 1000)
+    } catch {
+      alert('Impossibile accedere al microfono.')
+    }
+  }
+
+  function stopRecording(cancel = false) {
+    clearInterval(recordingTimerRef.current)
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      if (cancel) {
+        mediaRecorderRef.current.ondataavailable = null
+        mediaRecorderRef.current.onstop = () => { mediaRecorderRef.current.stream?.getTracks().forEach(t => t.stop()) }
+      }
+      mediaRecorderRef.current.stop()
+    }
+    if (cancel) { setIsRecording(false); setRecordingDuration(0) }
+  }
+
+  async function sendAudio(blob, dur, mimeType) {
+    const ext = mimeType.includes('ogg') ? 'ogg' : 'webm'
+    setSending(true)
+    const optimistic = { id: `opt_${Date.now()}`, group_id: group.id, sender_id: user.id, content: URL.createObjectURL(blob), type: 'voice', status: 'sent', duration_seconds: dur, created_at: new Date().toISOString() }
+    setMessages(prev => [...prev, optimistic])
+    try {
+      const path = `${group.id}/${Date.now()}.${ext}`
+      const { error: upErr } = await supabase.storage.from('group-chat-media').upload(path, blob, { contentType: mimeType })
+      if (upErr) throw upErr
+      const { data: signed, error: signErr } = await supabase.storage.from('group-chat-media').createSignedUrl(path, 315_360_000)
+      if (signErr) throw signErr
+      const { data, error } = await supabase.from('chat_group_messages')
+        .insert({ group_id: group.id, sender_id: user.id, content: signed.signedUrl, type: 'voice', status: 'sent' })
+        .select().single()
+      if (data) {
+        setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
+      } else if (error) {
+        setMessages(prev => prev.filter(m => m.id !== optimistic.id))
+      }
+    } catch {
+      setMessages(prev => prev.filter(m => m.id !== optimistic.id))
+    }
+    setSending(false)
+  }
+
+  const canSendText = text.trim().length > 0 && !sending && !isRecording
   const dayGroups = groupByDate(messages)
 
   return (
@@ -524,7 +619,11 @@ function GroupThreadView({ group, user, onBack }) {
                           </span>
                         </p>
                       )}
-                      <p style={{ fontSize: 14, lineHeight: 1.5, wordBreak: 'break-word' }}>{msg.content}</p>
+                      {msg.type === 'voice' && msg.content ? (
+                        <AudioPlayer src={msg.content} isMe={isMe} />
+                      ) : (
+                        <p style={{ fontSize: 14, lineHeight: 1.5, wordBreak: 'break-word' }}>{msg.content}</p>
+                      )}
                       <div style={{ textAlign: 'right', marginTop: 3 }}>
                         <span style={{ fontSize: 10, opacity: 0.65 }}>{formatTime(msg.created_at)}</span>
                       </div>
@@ -538,20 +637,54 @@ function GroupThreadView({ group, user, onBack }) {
       </div>
 
       <div className="chat-input-bar" style={{ position: 'fixed', bottom: 'calc(64px + env(safe-area-inset-bottom))', left: 0, right: 0, padding: '8px 10px', background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(12px)', borderTop: '1px solid var(--border-light)', zIndex: 50 }}>
-        <form onSubmit={sendMessage} style={{ display: 'flex', alignItems: 'flex-end', gap: 7 }}>
-          <div style={{ flex: 1, background: 'var(--surface-2)', borderRadius: 22, border: '1.5px solid var(--border)', padding: '9px 14px' }}>
-            <textarea
-              ref={inputRef} value={text}
-              onChange={e => setText(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
-              placeholder="Scrivi al gruppo…" rows={1}
-              style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontFamily: 'var(--font-b)', fontSize: 15, color: 'var(--text-primary)', resize: 'none', maxHeight: 100, lineHeight: 1.5 }}
-            />
+        {isRecording ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 4px' }}>
+            <button
+              onClick={() => stopRecording(true)}
+              style={{ width: 38, height: 38, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#fff0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+            >
+              <X size={16} color="var(--red)" />
+            </button>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--red)', animation: 'pulse 1s infinite', flexShrink: 0 }} />
+              <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--red)' }}>{formatDuration(recordingDuration)}</span>
+              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Registrazione…</span>
+            </div>
+            <button
+              onClick={() => stopRecording(false)}
+              style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'var(--green-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(21,122,74,0.35)' }}
+            >
+              <Send size={17} color="white" style={{ marginLeft: 2 }} />
+            </button>
           </div>
-          <button type="submit" disabled={!text.trim() || sending} style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: 'var(--green-main)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: text.trim() && !sending ? 1 : 0.5 }}>
-            <Send size={17} color="white" style={{ marginLeft: 2 }} />
-          </button>
-        </form>
+        ) : (
+          <form onSubmit={sendMessage} style={{ display: 'flex', alignItems: 'flex-end', gap: 7 }}>
+            <div style={{ flex: 1, background: 'var(--surface-2)', borderRadius: 22, border: '1.5px solid var(--border)', padding: '9px 14px' }}>
+              <textarea
+                ref={inputRef} value={text}
+                onChange={e => setText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
+                placeholder="Scrivi al gruppo…" rows={1}
+                style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontFamily: 'var(--font-b)', fontSize: 15, color: 'var(--text-primary)', resize: 'none', maxHeight: 100, lineHeight: 1.5 }}
+              />
+            </div>
+            {canSendText ? (
+              <button type="submit" style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: 'var(--green-main)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(26,127,90,0.3)' }}>
+                <Send size={17} color="white" style={{ marginLeft: 2 }} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onMouseDown={startRecording}
+                onTouchStart={e => { e.preventDefault(); startRecording() }}
+                disabled={sending}
+                style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: sending ? 'var(--border)' : 'var(--surface-3)', border: 'none', cursor: sending ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: sending ? 0.5 : 1 }}
+              >
+                <Mic size={19} color="var(--text-muted)" />
+              </button>
+            )}
+          </form>
+        )}
       </div>
       <div style={{ height: 'calc(72px + env(safe-area-inset-bottom))' }} />
     </div>
@@ -672,7 +805,7 @@ export default function ChatPage() {
       if (!groupIds.length) { setGroups([]); setGroupsLoaded(true); return }
       const [{ data: gRows }, { data: lastMsgs }] = await Promise.all([
         supabase.from('chat_groups').select('*').in('id', groupIds),
-        supabase.from('chat_group_messages').select('group_id,sender_id,content,created_at').in('group_id', groupIds).order('created_at', { ascending: false }),
+        supabase.from('chat_group_messages').select('group_id,sender_id,content,type,created_at').in('group_id', groupIds).order('created_at', { ascending: false }),
       ])
       const myReadMap = Object.fromEntries((mine || []).map(m => [m.group_id, m.last_read_at]))
       const lastByGroup = {}
