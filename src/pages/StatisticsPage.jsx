@@ -215,14 +215,14 @@ export default function StatisticsPage() {
     setSavingMeasure(true)
     setMeasureMsg('')
     try {
-      const { error } = await supabase.from('body_measurements').insert({
+      const { error } = await supabase.from('body_measurements').upsert({
         user_id: user.id,
         date: measureDate,
         waist_cm: parseFloat(waist) || null,
         hips_cm: parseFloat(hips) || null,
         arm_cm: parseFloat(arms) || null,
         thigh_cm: parseFloat(thighs) || null,
-      })
+      }, { onConflict: 'user_id,date' })
       if (error) {
         if (error.code === '42P01' || String(error.message).includes('does not exist')) {
           setMeasureMsg('Funzione disponibile dopo aggiornamento database.')

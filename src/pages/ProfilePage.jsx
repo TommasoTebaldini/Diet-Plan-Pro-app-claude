@@ -831,10 +831,13 @@ function BackupModal({ user, onClose }) {
     try {
       const [profile, dietLogs, waterLogs, measurements] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).single(),
-        supabase.from('diet_logs').select('*').eq('user_id', user.id),
+        supabase.from('food_logs').select('*').eq('user_id', user.id),
         supabase.from('water_logs').select('*').eq('user_id', user.id),
-        supabase.from('measurements').select('*').eq('user_id', user.id),
+        supabase.from('body_measurements').select('*').eq('user_id', user.id),
       ])
+
+      const firstError = [profile, dietLogs, waterLogs, measurements].find(r => r.error)?.error
+      if (firstError) throw firstError
 
       const backup = {
         version: 1,
@@ -877,11 +880,13 @@ function BackupModal({ user, onClose }) {
 
       const ops = []
       if (profile) ops.push(supabase.from('profiles').upsert({ ...profile, id: user.id }))
-      if (dietLogs?.length) ops.push(supabase.from('diet_logs').upsert(dietLogs.map(r => ({ ...r, user_id: user.id }))))
+      if (dietLogs?.length) ops.push(supabase.from('food_logs').upsert(dietLogs.map(r => ({ ...r, user_id: user.id }))))
       if (waterLogs?.length) ops.push(supabase.from('water_logs').upsert(waterLogs.map(r => ({ ...r, user_id: user.id }))))
-      if (measurements?.length) ops.push(supabase.from('measurements').upsert(measurements.map(r => ({ ...r, user_id: user.id }))))
+      if (measurements?.length) ops.push(supabase.from('body_measurements').upsert(measurements.map(r => ({ ...r, user_id: user.id }))))
 
-      await Promise.all(ops)
+      const results = await Promise.all(ops)
+      const firstError = results.find(r => r.error)?.error
+      if (firstError) throw firstError
       setStatus('success'); setMsg('Ripristino completato!')
     } catch (e) {
       setStatus('error'); setMsg(e?.message || 'Errore durante il ripristino.')

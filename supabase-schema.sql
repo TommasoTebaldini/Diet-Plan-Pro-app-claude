@@ -675,6 +675,44 @@ create policy "paziente firma documento" on patient_documents
   for update using (auth.uid() = patient_id)
   with check (auth.uid() = patient_id);
 
+-- RLS è per-riga, non per-colonna: la policy sopra permetterebbe a un paziente
+-- di riscrivere QUALSIASI colonna della propria riga (inclusi dietitian_id,
+-- file_url, visible), non solo i campi di firma. Trigger che blocca l'update
+-- se un paziente (non il dietista proprietario) tocca colonne diverse dalla
+-- firma — confronto via jsonb (anziché elencare le colonne una a una) così
+-- resta corretto anche se sul DB live la tabella ha colonne aggiuntive non
+-- presenti in questo file (es. cartella_id/print_image_url di NutriPlan-Pro).
+-- Accesso ai campi via jsonb (non old.patient_id diretto): la variante
+-- NutriPlan-Pro pura di questa tabella condivisa non ha una colonna patient_id
+-- (usa cartella_id), quindi un accesso tipizzato diretto romperebbe ogni
+-- UPDATE su quella variante con "record has no field patient_id".
+create or replace function prevent_patient_document_tampering()
+returns trigger language plpgsql security definer as $$
+declare
+  allowed text[] := array['signed_at','signature_data','signature_accepted'];
+  old_j jsonb := to_jsonb(old);
+  patient_uid uuid;
+  dietitian_uid uuid;
+begin
+  if not (old_j ? 'patient_id') then
+    return new;
+  end if;
+  patient_uid   := (old_j->>'patient_id')::uuid;
+  dietitian_uid := (old_j->>'dietitian_id')::uuid;
+  if auth.uid() = patient_uid and auth.uid() is distinct from dietitian_uid then
+    if (to_jsonb(new) - allowed) is distinct from (old_j - allowed) then
+      raise exception 'Un paziente può modificare solo i campi di firma del documento';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_prevent_patient_document_tampering on patient_documents;
+create trigger trg_prevent_patient_document_tampering
+  before update on patient_documents
+  for each row execute function prevent_patient_document_tampering();
+
 drop policy if exists "dietista legge propri documenti" on patient_documents;
 create policy "dietista legge propri documenti" on patient_documents
   for select using (dietitian_id = auth.uid());
