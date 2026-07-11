@@ -221,6 +221,9 @@ export async function subscribeToPush(userId) {
     }
     const subData = sub.toJSON()
     const { supabase } = await import('./supabase')
+    // push_subscriptions ha unique(user_id), non unique(endpoint) — con
+    // onConflict:'endpoint' l'upsert falliva sempre con 42P10 (nessun vincolo
+    // corrispondente), quindi nessuna sottoscrizione veniva mai salvata.
     await supabase.from('push_subscriptions').upsert(
       {
         user_id: userId,
@@ -229,7 +232,7 @@ export async function subscribeToPush(userId) {
         auth: subData.keys?.auth,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: 'endpoint' },
+      { onConflict: 'user_id' },
     )
     return sub
   } catch (e) {

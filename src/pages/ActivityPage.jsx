@@ -316,10 +316,22 @@ export default function ActivityPage() {
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current)
     syncTimeoutRef.current = setTimeout(async () => {
       try {
-        await supabase.from('activity_logs').upsert(
-          { user_id: user.id, date: today, activity_type: 'passi', steps: liveSteps },
-          { onConflict: 'user_id,date,activity_type' }
-        )
+        // Niente vincolo unique su (user_id,date,activity_type): upsert+onConflict
+        // fallirebbe sempre con 42P10. Select-then-write invece, coerente con la
+        // lettura a riga singola già fatta altrove (vedi passiRes/.maybeSingle()).
+        const { data: existing } = await supabase.from('activity_logs')
+          .select('id')
+          .eq('user_id', user.id).eq('date', today).eq('activity_type', 'passi')
+          .maybeSingle()
+        if (existing) {
+          await supabase.from('activity_logs').update({ steps: liveSteps }).eq('id', existing.id)
+        } else {
+          // duration_minutes è NOT NULL/CHECK(>0): non ha un vero significato per
+          // un conteggio passi passivo in background, placeholder minimo valido.
+          await supabase.from('activity_logs').insert({
+            user_id: user.id, date: today, activity_type: 'passi', steps: liveSteps, duration_minutes: 1,
+          })
+        }
       } catch {}
     }, 5000)
     return () => { if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current) }
