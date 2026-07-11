@@ -6,10 +6,11 @@ import { fetchDietFromPiani } from '../lib/dietBridge'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
 import { searchFoodsLocal, searchFoods, searchByBarcode } from '../lib/foodSearch'
-import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle, Pencil, Check, Lock, Camera, Star, BookmarkPlus, ClipboardCopy, WifiOff } from 'lucide-react'
+import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle, Pencil, Check, Lock, Camera, Mic, Star, BookmarkPlus, ClipboardCopy, WifiOff } from 'lucide-react'
 import { safeWrite } from '../lib/offlineDB'
 const BarcodeScanner   = lazy(() => import('../components/BarcodeScanner'))
 const MealPhotoAnalyzer = lazy(() => import('../components/MealPhotoAnalyzer'))
+const MealTextAnalyzer = lazy(() => import('../components/MealTextAnalyzer'))
 import ProGate from '../components/ProGate'
 import { useSubscription } from '../hooks/useSubscription'
 
@@ -227,6 +228,7 @@ export default function MacroTrackerPage() {
   const [editGrams, setEditGrams] = useState('')
   const [editSaving, setEditSaving] = useState(false)
   const [showPhotoAnalyzer, setShowPhotoAnalyzer] = useState(false)
+  const [showTextAnalyzer, setShowTextAnalyzer] = useState(false)
   const searchRef = useRef(null)
   const searchCacheRef = useRef(new Map())
   const latestSearchIdRef = useRef(0)
@@ -937,6 +939,13 @@ export default function MacroTrackerPage() {
               style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}
             >
               <Camera size={18} />
+            </button>
+            <button
+              onClick={() => setShowTextAnalyzer(true)}
+              title="Racconta a voce o per iscritto cosa hai mangiato"
+              style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}
+            >
+              <Mic size={18} />
             </button>
             <button
               onClick={() => setShowScanner(true)}
@@ -1699,6 +1708,14 @@ export default function MacroTrackerPage() {
             <MealPhotoAnalyzer
               onAddFoods={addFoodsFromPhoto}
               onClose={() => setShowPhotoAnalyzer(false)}
+            />
+          </Suspense>
+        )}
+        {showTextAnalyzer && (
+          <Suspense fallback={null}>
+            <MealTextAnalyzer
+              onAddFoods={addFoodsFromPhoto}
+              onClose={() => setShowTextAnalyzer(false)}
             />
           </Suspense>
         )}
