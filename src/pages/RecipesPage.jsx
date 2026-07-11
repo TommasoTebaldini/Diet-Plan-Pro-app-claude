@@ -201,7 +201,7 @@ function RecipeCard({ r, isOwn, isDietitian, expandedId, setExpandedId, onSave, 
       className="card" style={{ padding: 0, overflow: 'hidden' }}>
       <button onClick={() => setExpandedId(isOpen ? null : r.id)} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '13px 14px', display: 'flex', alignItems: 'flex-start', gap: 10, font: 'inherit', textAlign: 'left' }}>
         {r.photo_url ? (
-          <img src={r.photo_url} alt="" style={{ width: 40, height: 40, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+          <img src={r.photo_url} alt="" loading="lazy" style={{ width: 40, height: 40, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
         ) : (
           <div style={{ width: 40, height: 40, borderRadius: 10, background: isDietitian ? 'linear-gradient(135deg, #0891b2, #0e7490)' : 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>
             {isDietitian ? '🩺' : '🍳'}

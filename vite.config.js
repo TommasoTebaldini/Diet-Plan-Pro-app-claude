@@ -118,8 +118,13 @@ export default defineConfig({
       },
       injectManifest: {
         globPatterns: ['**/*.{html,css,js,ico,png,svg,woff2,woff}'],
-        // all-foods.js è 628KB e non serve offline sul primo load — si carica on-demand
-        globIgnores: ['**/all-foods*.js'],
+        // Questi chunk sono già lazy-loaded via import() dinamico (solo su
+        // /quiz, scanner barcode, export PDF) — precacharli eagerly per OGNI
+        // visitatore fin dalla prima visita vanificherebbe il lazy-loading
+        // (~2MB extra scaricati anche da chi non apre mai quelle pagine).
+        // Restano comunque cacheati normalmente dall'HTTP cache del browser
+        // al primo uso (/assets/* ha Cache-Control immutable in vercel.json).
+        globIgnores: ['**/all-foods*.js', '**/QuizPage-*.js', '**/BarcodeScanner-*.js', '**/jspdf*.js', '**/html2canvas*.js'],
       }
     })
   ]
