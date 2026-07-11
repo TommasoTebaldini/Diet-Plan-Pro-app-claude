@@ -220,8 +220,8 @@ export default function StatisticsPage() {
         date: measureDate,
         waist_cm: parseFloat(waist) || null,
         hips_cm: parseFloat(hips) || null,
-        arms_cm: parseFloat(arms) || null,
-        thighs_cm: parseFloat(thighs) || null,
+        arm_cm: parseFloat(arms) || null,
+        thigh_cm: parseFloat(thighs) || null,
       })
       if (error) {
         if (error.code === '42P01' || String(error.message).includes('does not exist')) {
@@ -1076,8 +1076,8 @@ export default function StatisticsPage() {
                       <div style={{ display: 'flex', gap: 10, color: 'var(--text-muted)' }}>
                         {m.waist_cm && <span>○ {m.waist_cm} cm</span>}
                         {m.hips_cm && <span>○ F {m.hips_cm}</span>}
-                        {m.arms_cm && <span>○ B {m.arms_cm}</span>}
-                        {m.thighs_cm && <span>○ C {m.thighs_cm}</span>}
+                        {m.arm_cm && <span>○ B {m.arm_cm}</span>}
+                        {m.thigh_cm && <span>○ C {m.thigh_cm}</span>}
                       </div>
                     </div>
                   ))}
