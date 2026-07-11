@@ -241,6 +241,20 @@ create table if not exists activity_logs (
 );
 create index if not exists idx_activity_logs_user_date on activity_logs(user_id, date desc);
 
+-- Promemoria farmaci/integratori (notifiche locali lato client, vedi
+-- src/lib/notifications.js scheduleMedicationReminders)
+create table if not exists medication_reminders (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users not null default auth.uid(),
+  name text not null,
+  dosage text,
+  times text[] not null default '{}',
+  active boolean not null default true,
+  notes text,
+  created_at timestamptz default now()
+);
+create index if not exists idx_medication_reminders_user on medication_reminders(user_id) where active;
+
 -- Pasti completati dal paziente
 create table if not exists meal_completions (
   id uuid primary key default gen_random_uuid(),
@@ -494,6 +508,7 @@ alter table custom_meals enable row level security;
 alter table ricette enable row level security;
 alter table appointments enable row level security;
 alter table activity_logs enable row level security;
+alter table medication_reminders enable row level security;
 alter table meal_completions enable row level security;
 alter table body_measurements enable row level security;
 alter table progress_photos enable row level security;
@@ -851,6 +866,12 @@ create policy "dietista gestisce appuntamenti" on appointments
 -- ── activity_logs ───────────────────────────────────────────
 drop policy if exists "utente gestisce proprie attività" on activity_logs;
 create policy "utente gestisce proprie attività" on activity_logs
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+-- ── medication_reminders ────────────────────────────────────
+drop policy if exists "utente gestisce propri farmaci" on medication_reminders;
+create policy "utente gestisce propri farmaci" on medication_reminders
   for all using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 

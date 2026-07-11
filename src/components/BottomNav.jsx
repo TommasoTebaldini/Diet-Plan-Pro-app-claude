@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users, ChefHat, Star, Flower2, MoreHorizontal, X, Droplets, Brain, Award, ShoppingCart, Timer } from 'lucide-react'
+import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users, ChefHat, Star, Flower2, MoreHorizontal, X, Droplets, Brain, Award, ShoppingCart, Timer, Pill } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
@@ -128,6 +128,7 @@ export default function BottomNav() {
     { to: '/statistiche', icon: BarChart2, label: t('nav.report') },
     { to: '/benessere', icon: Heart, label: t('nav.wellness') },
     { to: '/ciclo', icon: Flower2, label: 'Ciclo' },
+    { to: '/farmaci', icon: Pill, label: 'Farmaci' },
     { to: '/profilo', icon: User, label: t('nav.profile') },
     { to: '/pro', icon: Star, label: isPro ? '⭐ Pro' : '🔓 Pro' },
     ...(PAYMENTS_ACTIVE ? [{ to: '/abbonamento', icon: Star, label: 'Abbonamento' }] : []),
@@ -140,7 +141,7 @@ export default function BottomNav() {
       { label: null, items: ['/'] },
       { label: t('nav.section_nutrition'), items: ['/dieta', '/macro', '/ricette', '/lista-spesa', '/digiuno'] },
       { label: t('nav.section_professionals'), items: ['/chat', '/documenti', '/dietisti'] },
-      { label: t('nav.section_monitoring'), items: ['/progressi', '/attivita', '/benessere', '/ciclo', '/statistiche'] },
+      { label: t('nav.section_monitoring'), items: ['/progressi', '/attivita', '/benessere', '/ciclo', '/farmaci', '/statistiche'] },
       { label: null, items: PAYMENTS_ACTIVE ? ['/profilo', '/pro', '/abbonamento'] : ['/profilo', '/pro'] },
     ]
 
@@ -234,6 +235,7 @@ export default function BottomNav() {
       { to: '/attivita', icon: Activity, label: t('nav.activities') },
       { to: '/benessere', icon: Heart, label: t('nav.wellness') },
       { to: '/ciclo', icon: Flower2, label: 'Ciclo' },
+      { to: '/farmaci', icon: Pill, label: 'Farmaci' },
       { to: '/statistiche', icon: BarChart2, label: t('nav.report') },
     ]},
     { label: 'Professionale', items: [

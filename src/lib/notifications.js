@@ -187,6 +187,45 @@ export function initScheduledNotifications(prefs) {
   }
 }
 
+// ─── Medication reminders ───────────────────────────────────────────────────
+// Lista dinamica (da Supabase, non da un blob localStorage a forma fissa come
+// DEFAULT_PREFS) — timer separati dai _timers di initScheduledNotifications
+// così ri-schedulare i farmaci dopo un'aggiunta/modifica non tocca pasti/
+// acqua/pesata/appuntamento, e viceversa.
+const _medTimers = []
+
+function _clearMedTimers() {
+  _medTimers.forEach(id => clearTimeout(id))
+  _medTimers.length = 0
+}
+
+/**
+ * (Ri)pianifica le notifiche locali per una lista di farmaci attivi.
+ * Ogni farmaco ha `times`: array di stringhe 'HH:MM'.
+ * Chiamare al boot (con la lista caricata da Supabase) e dopo ogni modifica.
+ */
+export function scheduleMedicationReminders(meds) {
+  _clearMedTimers()
+  if (getPermissionStatus() !== 'granted') return
+  if (!Array.isArray(meds)) return
+
+  meds.filter(m => m.active !== false).forEach(med => {
+    (med.times || []).forEach(time => {
+      const tick = () => {
+        showNotification(
+          '💊 ' + med.name,
+          med.dosage ? `Dose: ${med.dosage}` : 'È ora di prendere il farmaco',
+          `med-${med.id}-${time}`,
+        )
+        const id = setTimeout(tick, 24 * 60 * 60 * 1000)
+        _medTimers.push(id)
+      }
+      const id = setTimeout(tick, msUntilTime(time))
+      _medTimers.push(id)
+    })
+  })
+}
+
 // ─── Web Push (real background push via VAPID) ─────────────────────────────
 // Requires VITE_VAPID_PUBLIC_KEY in .env.local
 // Generate keys: node -e "const wp=require('web-push');const k=wp.generateVAPIDKeys();console.log(JSON.stringify(k))"

@@ -44,6 +44,7 @@ const HealthSyncPage       = lazy(() => import('./pages/HealthSyncPage'))
 const QuizPage             = lazy(() => import('./pages/QuizPage'))
 const ShoppingListPage     = lazy(() => import('./pages/ShoppingListPage'))
 const FastingPage          = lazy(() => import('./pages/FastingPage'))
+const MedicationsPage      = lazy(() => import('./pages/MedicationsPage'))
 
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null } }
@@ -158,6 +159,7 @@ function AnimatedRoutes() {
         <Route path="/quiz" element={<PatientRoute><PageTransition><QuizPage /></PageTransition></PatientRoute>} />
         <Route path="/lista-spesa" element={<PatientRoute><PageTransition><ShoppingListPage /></PageTransition></PatientRoute>} />
         <Route path="/digiuno" element={<PatientRoute><PageTransition><FastingPage /></PageTransition></PatientRoute>} />
+        <Route path="/farmaci" element={<PatientRoute><PageTransition><MedicationsPage /></PageTransition></PatientRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
   )

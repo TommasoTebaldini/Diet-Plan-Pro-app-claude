@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { loadPrefs, initScheduledNotifications, showNotification } from '../lib/notifications'
+import { loadPrefs, initScheduledNotifications, showNotification, scheduleMedicationReminders } from '../lib/notifications'
 import { checkMealAndNotify } from '../lib/smartNotifications'
 
 const NotificationContext = createContext({})
@@ -22,6 +22,14 @@ export function NotificationProvider({ children, user }) {
 
     // Scheduled local notifications
     initScheduledNotifications(prefsRef.current)
+
+    // Medication reminders — lista dinamica da Supabase, ripianificata anche
+    // su ogni INSERT/UPDATE/DELETE (es. modifica fatta in un'altra tab/sessione)
+    function loadAndScheduleMeds() {
+      supabase.from('medication_reminders').select('*').eq('user_id', user.id).eq('active', true)
+        .then(({ data }) => scheduleMedicationReminders(data || []))
+    }
+    loadAndScheduleMeds()
 
     // ── Supabase Realtime: canale unico con 4 subscription (era 3 canali separati)
     // Un solo WebSocket per utente invece di tre
@@ -67,6 +75,11 @@ export function NotificationProvider({ children, user }) {
             showNotification('🥗 Piano alimentare aggiornato', 'Il tuo dietista ha modificato la tua dieta', 'diet-update')
           }
         },
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'medication_reminders', filter: `user_id=eq.${user.id}` },
+        loadAndScheduleMeds,
       )
       .subscribe()
 
