@@ -3,6 +3,14 @@ const DB_NAME = 'nutriplan_offline'
 const DB_VERSION = 1
 const QUEUE_STORE = 'sync_queue'
 
+// Tables with a one-row-per-day unique constraint: a queued 'insert' must become an
+// upsert at sync time, or it 400s (unique violation) and the offline edit is lost
+// whenever a row for that day already exists on the server.
+const UPSERT_CONFLICT_TARGETS = {
+  weight_logs: 'user_id,date',
+  daily_wellness: 'user_id,date',
+}
+
 let _db = null
 
 async function getDB() {
@@ -96,7 +104,10 @@ export async function syncPendingWrites() {
   for (const item of pending) {
     try {
       if (item.operation === 'insert') {
-        const { error } = await supabase.from(item.table_name).insert(item.data)
+        const conflictTarget = UPSERT_CONFLICT_TARGETS[item.table_name]
+        const { error } = conflictTarget
+          ? await supabase.from(item.table_name).upsert(item.data, { onConflict: conflictTarget })
+          : await supabase.from(item.table_name).insert(item.data)
         if (error) throw error
       } else if (item.operation === 'update') {
         const { id, ...rest } = item.data
@@ -127,7 +138,10 @@ export async function safeWrite(tableName, data, operation = 'insert') {
       const { supabase } = await import('./supabase')
       let result
       if (operation === 'insert') {
-        result = await supabase.from(tableName).insert(data).select().single()
+        const conflictTarget = UPSERT_CONFLICT_TARGETS[tableName]
+        result = conflictTarget
+          ? await supabase.from(tableName).upsert(data, { onConflict: conflictTarget }).select().single()
+          : await supabase.from(tableName).insert(data).select().single()
       } else if (operation === 'update') {
         const { id, ...rest } = data
         result = await supabase.from(tableName).update(rest).eq('id', id).select().single()

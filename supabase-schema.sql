@@ -1311,11 +1311,22 @@ drop policy if exists "public read availability" on dietitian_availability;
 create policy "public read availability" on dietitian_availability
   for select using (true);
 
--- Aggiornamento policy appointments: pazienti possono vedere tutti gli slot (per verifica disponibilità)
+-- FIX SICUREZZA (2026-07-11): la policy sotto era "for select using (true)" su
+-- appointments per far vedere ai pazienti gli slot occupati (verifica disponibilità).
+-- Ma le policy RLS per lo stesso comando si combinano in OR: questo "using(true)"
+-- annullava di fatto la policy più stretta "paziente vede i propri appuntamenti",
+-- esponendo patient_id/title/notes di TUTTI i pazienti a chiunque fosse autenticato
+-- (RLS è per riga, non per colonna: bastava un `select('*')` lato client per leggerli).
+-- Sostituita con una vista che espone solo le colonne non sensibili necessarie per
+-- il controllo disponibilità; la policy permissiva sulla tabella base è rimossa.
 drop policy if exists "paziente vede slot prenotati" on appointments;
-create policy "paziente vede slot prenotati" on appointments
-  for select to authenticated
-  using (true);
+
+drop view if exists appointment_slots;
+create view appointment_slots as
+  select dietitian_id, appointment_date, duration_minutes, status
+  from appointments;
+
+grant select on appointment_slots to authenticated;
 
 -- Pazienti possono aggiornare (annullare) i propri appuntamenti
 drop policy if exists "paziente annulla appuntamento" on appointments;

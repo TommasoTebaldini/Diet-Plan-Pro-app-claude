@@ -93,7 +93,7 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
     const start = new Date(dateStr + 'T00:00:00')
     const end = new Date(start.getTime() + 24 * 3600 * 1000)
     const { data } = await supabase
-      .from('appointments')
+      .from('appointment_slots')
       .select('appointment_date, duration_minutes')
       .eq('dietitian_id', dietitianId)
       .gte('appointment_date', start.toISOString())

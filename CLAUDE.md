@@ -8,9 +8,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev        # Start Vite dev server at http://localhost:5173
 npm run build      # Build production bundle to /dist
 npm run preview    # Preview production build locally
+npm run lint        # ESLint (flat config)
+npm run format:check # Prettier check
+npm run test:e2e    # Playwright (e2e/smoke.spec.js — login/route-guard only, minimal coverage)
 ```
-
-No test or lint scripts are configured.
 
 ## Environment Setup
 
