@@ -3,8 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { Zap, Star, Trophy, RefreshCw, ChevronRight, CheckCircle2, XCircle, Flame, BookOpen, Lock } from 'lucide-react'
-import QUESTIONS, { CATEGORIES } from '../data/quizQuestions'
+import { CATEGORIES } from '../data/quizCategories'
 import { useAchievements } from '../context/AchievementsContext'
+
+// The ~2000-question bank lives in public/data/quiz-questions.json (fetched
+// on demand) instead of being bundled into this JS chunk — it's over 1MB of
+// data that would otherwise have to be parsed as JS on every /quiz visit.
+const QUESTION_BANK_URL = '/data/quiz-questions.json'
 
 // Difficulty per category
 const DIFF_MAP = {
@@ -20,11 +25,11 @@ const DIFFS = [
   { key: 'difficile', label: 'Difficile' },
 ]
 
-function getQuestionsWithFilters(cats, diff) {
-  let pool = QUESTIONS
+function getQuestionsWithFilters(questions, cats, diff) {
+  let pool = questions
   if (cats.length > 0) pool = pool.filter(q => cats.includes(q.cat))
   if (diff !== 'misto') pool = pool.filter(q => DIFF_MAP[q.cat] === diff)
-  if (pool.length < QUESTIONS_PER_DAY) pool = QUESTIONS
+  if (pool.length < QUESTIONS_PER_DAY) pool = questions
   const today = new Date().toISOString().split('T')[0]
   let s = today.split('-').reduce((acc, v) => acc * 100 + parseInt(v), 0)
   const indices = []
@@ -42,24 +47,19 @@ function getQuestionsWithFilters(cats, diff) {
 const QUESTIONS_PER_DAY = 5
 
 // Deterministic daily question selection — same questions for everyone on the same day
-function getQuestionsForToday() {
+function getQuestionsForToday(questions) {
   const today = new Date().toISOString().split('T')[0]
   const seed = today.split('-').reduce((acc, v) => acc * 100 + parseInt(v), 0)
   const indices = []
   let s = seed
-  // Ensure category variety: pick one from each of first 5 categories if possible
-  const cats = Object.keys(CATEGORIES)
-  const catBuckets = {}
-  cats.forEach(c => { catBuckets[c] = QUESTIONS.reduce((a, q, i) => (q.cat === c ? [...a, i] : a), []) })
-
   while (indices.length < QUESTIONS_PER_DAY) {
     s = Math.imul(s ^ (s >>> 16), 0x45d9f3b)
     s = Math.imul(s ^ (s >>> 16), 0x45d9f3b)
     s = s ^ (s >>> 16)
-    const idx = Math.abs(s) % QUESTIONS.length
+    const idx = Math.abs(s) % questions.length
     if (!indices.includes(idx)) indices.push(idx)
   }
-  return indices.map(i => QUESTIONS[i])
+  return indices.map(i => questions[i])
 }
 
 function todayKey() { return new Date().toISOString().split('T')[0] }
@@ -114,8 +114,9 @@ export default function QuizPage({ inModal = false }) {
   const pageClass = inModal ? undefined : 'page'
   const pageStyle = inModal ? { flex: 1, display: 'flex', flexDirection: 'column', paddingBottom: 24 } : { padding: 0 }
 
-  const [phase, setPhase] = useState('loading') // loading | idle | playing | done
-  const [questions, setQuestions] = useState(() => getQuestionsForToday())
+  const [phase, setPhase] = useState('loading') // loading | error | idle | playing | done
+  const [bank, setBank] = useState(null) // full question bank, fetched once on mount
+  const [questions, setQuestions] = useState([])
   // answers[i] = null (not answered yet) | { selected: number, correct: boolean }
   const [answers, setAnswers] = useState(() => Array(QUESTIONS_PER_DAY).fill(null))
   const [idx, setIdx] = useState(0)
@@ -123,20 +124,34 @@ export default function QuizPage({ inModal = false }) {
   const [finalStreak, setFinalStreak] = useState(0)
   const [selectedCats, setSelectedCats] = useState([]) // empty = all cats
   const [selectedDiff, setSelectedDiff] = useState('misto')
+  const [fetchAttempt, setFetchAttempt] = useState(0)
 
   useEffect(() => {
+    let cancelled = false
+    setPhase('loading')
+    fetch(QUESTION_BANK_URL)
+      .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json() })
+      .then(data => { if (!cancelled) setBank(data.questions) })
+      .catch(() => { if (!cancelled) setPhase('error') })
+    return () => { cancelled = true }
+  }, [fetchAttempt])
+
+  useEffect(() => {
+    if (!bank) return
     const prog = loadProgress()
     setStreak(getStreak())
     if (prog?.done) {
+      setQuestions(getQuestionsForToday(bank))
       setAnswers(prog.answers || Array(QUESTIONS_PER_DAY).fill(null))
       setPhase('done')
     } else {
+      setQuestions(getQuestionsForToday(bank))
       setPhase('idle')
     }
-  }, [])
+  }, [bank])
 
   function startQuiz() {
-    const qs = getQuestionsWithFilters(selectedCats, selectedDiff)
+    const qs = getQuestionsWithFilters(bank, selectedCats, selectedDiff)
     setQuestions(qs)
     setIdx(0)
     setAnswers(Array(qs.length).fill(null))
@@ -182,6 +197,17 @@ export default function QuizPage({ inModal = false }) {
   if (phase === 'loading') return (
     <div className={pageClass} style={{ ...pageStyle, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
       <div style={{ width: 40, height: 40, border: '3px solid #e5e7eb', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+    </div>
+  )
+
+  // ── ERROR
+  if (phase === 'error') return (
+    <div className={pageClass} style={{ ...pageStyle, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 14, padding: 24, textAlign: 'center' }}>
+      <p style={{ fontSize: 14, color: '#6b7280' }}>Non è stato possibile caricare il quiz. Controlla la connessione e riprova.</p>
+      <button onClick={() => setFetchAttempt(n => n + 1)}
+        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 10, border: 'none', background: '#7c3aed', color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+        <RefreshCw size={14} /> Riprova
+      </button>
     </div>
   )
 
