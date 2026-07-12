@@ -40,6 +40,18 @@
       ]
     },
     {
+      "source": "/icons/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=604800, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/(favicon\\.ico|favicon\\.svg|apple-touch-icon\\.png|manifest\\.webmanifest)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=604800, must-revalidate" }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         { "key": "Link", "value": "<https://hvdwqowkhutfsdpiubxe.supabase.co>; rel=preconnect crossorigin, <https://fonts.gstatic.com>; rel=preconnect crossorigin, <https://fonts.googleapis.com>; rel=preconnect" },

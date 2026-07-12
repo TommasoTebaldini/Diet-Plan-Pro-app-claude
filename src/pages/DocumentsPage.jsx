@@ -962,6 +962,7 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
               <img
                 key={i}
                 src={url}
+                loading={i === 0 ? 'eager' : 'lazy'}
                 onError={() => setImgFailed(true)}
                 alt={`${doc.title}${doc.print_image_urls?.length > 1 ? ` — pag. ${i + 1}` : ''}`}
                 style={{ display: 'block', width: '100%', maxWidth: 760, height: 'auto', boxShadow: '0 6px 24px rgba(0,0,0,0.15)', borderRadius: 8, background: 'white' }}

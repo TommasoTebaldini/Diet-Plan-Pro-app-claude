@@ -26,7 +26,7 @@ function AvatarCircle({ profile, size = 60 }) {
   const colorIdx = (profile.nome || '').charCodeAt(0) % colors.length
   if (profile.avatar_url) {
     return (
-      <img src={profile.avatar_url} alt={[profile.nome, profile.cognome].filter(Boolean).join(' ')}
+      <img src={profile.avatar_url} alt={[profile.nome, profile.cognome].filter(Boolean).join(' ')} loading="lazy"
         style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2.5px solid var(--border-light)', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }} />
     )
   }
