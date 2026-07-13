@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { Send, CheckCheck, Check, MessageCircle, LogOut, Users, ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Apple, Clock, UserPlus, Search, X, FolderOpen, User, MapPin, Eye, EyeOff, Pencil } from 'lucide-react'
+import { Send, CheckCheck, Check, MessageCircle, LogOut, Users, ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Apple, Clock, UserPlus, Search, X, FolderOpen, User, MapPin, Eye, EyeOff, Pencil, Video } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useT } from '../i18n'
+import VideoCallModal from '../components/VideoCallModal'
+import { callRoomName } from '../lib/videoCall'
 
 const MEALS = [
   { key: 'colazione', label: 'Colazione', emoji: '☀️' },
@@ -716,7 +718,7 @@ function PatientDiary({ patientId }) {
 
 // ─── Chat view ────────────────────────────────────────────────────────────────
 
-function ChatView({ currentPatient, messages, text, setText, sending, bottomRef, inputRef, onSend, onBack }) {
+function ChatView({ currentPatient, messages, text, setText, sending, bottomRef, inputRef, onSend, onBack, callRoom, onStartCall, onJoinCall, onCloseCall, dietitianName }) {
   const groups = groupByDate(messages)
   const [tab, setTab] = useState('chat')
   const t = useT()
@@ -742,12 +744,19 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
               <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'white', flexShrink: 0, border: '2px solid rgba(255,255,255,0.3)' }}>
                 {avatarInitials(currentPatient.profile)}
               </div>
-              <div>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ color: 'white', fontSize: 16, fontWeight: 600 }}>
                   {patientDisplayName(currentPatient.profile)}
                 </p>
                 <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>{t('dchat.patient_label')}</p>
               </div>
+              <button
+                onClick={onStartCall}
+                title="Avvia videochiamata"
+                style={{ background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer', padding: 9, minWidth: 40, minHeight: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+              >
+                <Video size={17} color="white" />
+              </button>
             </>
           ) : (
             <p style={{ color: 'white', fontSize: 15 }}>{t('dchat.select_patient')}</p>
@@ -815,7 +824,26 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
                           </div>
                         )}
                         <div style={{ maxWidth: '75%', background: isMe ? 'linear-gradient(135deg, var(--green-main), var(--green-mid))' : 'white', color: isMe ? 'white' : 'var(--text-primary)', padding: '9px 13px', borderRadius: isMe ? '16px 16px 3px 16px' : '16px 16px 16px 3px', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', border: isMe ? 'none' : '1px solid var(--border-light)' }}>
-                          <p style={{ fontSize: 14, lineHeight: 1.5, wordBreak: 'break-word' }}>{msg.content}</p>
+                          {msg.message_type === 'video_call' ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <Video size={16} color={isMe ? 'white' : 'var(--green-main)'} />
+                              <span style={{ fontSize: 13.5, fontWeight: 500 }}>
+                                {isMe ? 'Hai avviato una videochiamata' : 'Videochiamata in corso'}
+                              </span>
+                              <button
+                                onClick={() => onJoinCall(msg.content)}
+                                style={{
+                                  marginLeft: 4, background: isMe ? 'rgba(255,255,255,0.25)' : 'var(--green-pale)',
+                                  color: isMe ? 'white' : 'var(--green-dark)', border: 'none', borderRadius: 100,
+                                  padding: '4px 11px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', flexShrink: 0,
+                                }}
+                              >
+                                Partecipa
+                              </button>
+                            </div>
+                          ) : (
+                            <p style={{ fontSize: 14, lineHeight: 1.5, wordBreak: 'break-word' }}>{msg.content}</p>
+                          )}
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 3, marginTop: 3 }}>
                             <span style={{ fontSize: 10, opacity: 0.65 }}>{formatTime(msg.created_at)}</span>
                             {isMe && (msg.read_at
@@ -852,6 +880,9 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
           </div>
         </>
       )}
+      {callRoom && (
+        <VideoCallModal roomName={callRoom} displayName={dietitianName} onClose={onCloseCall} />
+      )}
     </div>
   )
 }
@@ -870,6 +901,7 @@ export default function DietitianChatPage() {
   const [showLinkModal, setShowLinkModal] = useState(false)
   const [dietitianProfile, setDietitianProfile] = useState(null)
   const [profileLoading, setProfileLoading] = useState(true)
+  const [callRoom, setCallRoom] = useState(null)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
   const patientIdsRef = useRef(new Set())
@@ -1015,10 +1047,27 @@ export default function DietitianChatPage() {
     inputRef.current?.focus()
   }
 
+  async function startVideoCall() {
+    if (!selected) return
+    const room = callRoomName(selected, user.id)
+    setCallRoom(room)
+    const optimistic = {
+      id: `opt_${Date.now()}`, patient_id: selected,
+      sender_role: 'dietitian', sender_id: user.id,
+      content: room, message_type: 'video_call', created_at: new Date().toISOString(), read_at: null,
+    }
+    setMessages(prev => [...prev, optimistic])
+    const { data } = await supabase
+      .from('chat_messages')
+      .insert({ patient_id: selected, sender_role: 'dietitian', sender_id: user.id, content: room, message_type: 'video_call' })
+      .select().single()
+    if (data) setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
+  }
+
   const currentPatient = patients.find(p => p.id === selected) ?? null
 
   const listProps = { patients, loading: loadingList, selected, onSelect: openChat, onSignOut: signOut, onLinkPatient: () => setShowLinkModal(true), dietitianProfile, profileLoading }
-  const chatProps = { currentPatient, messages, text, setText, sending, bottomRef, inputRef, onSend: sendMessage, onBack: () => setMobilePanel('list') }
+  const chatProps = { currentPatient, messages, text, setText, sending, bottomRef, inputRef, onSend: sendMessage, onBack: () => setMobilePanel('list'), callRoom, onStartCall: startVideoCall, onJoinCall: setCallRoom, onCloseCall: () => setCallRoom(null), dietitianName: dietitianProfile?.full_name || 'Dietista' }
 
   return (
     <>

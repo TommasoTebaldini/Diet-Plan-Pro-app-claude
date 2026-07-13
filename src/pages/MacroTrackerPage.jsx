@@ -504,6 +504,9 @@ export default function MacroTrackerPage() {
         sugar_100g: food.sugar_100g || 0, fatSat_100g: food.fatSat_100g || 0,
         salt_100g: food.salt_100g || 0,
         calcium_100g: food.calcium_100g || 0, iron_100g: food.iron_100g || 0,
+        magnesium_100g: food.magnesium_100g || 0, potassium_100g: food.potassium_100g || 0,
+        zinc_100g: food.zinc_100g || 0, folate_100g: food.folate_100g || 0,
+        selenium_100g: food.selenium_100g || 0, cholesterol_100g: food.cholesterol_100g || 0,
       }
       const payload = {
         user_id: user.id,
@@ -551,6 +554,9 @@ export default function MacroTrackerPage() {
         sugar_100g: selected.sugar_100g || 0, fatSat_100g: selected.fatSat_100g || 0,
         salt_100g: selected.salt_100g || 0,
         calcium_100g: selected.calcium_100g || 0, iron_100g: selected.iron_100g || 0,
+        magnesium_100g: selected.magnesium_100g || 0, potassium_100g: selected.potassium_100g || 0,
+        zinc_100g: selected.zinc_100g || 0, folate_100g: selected.folate_100g || 0,
+        selenium_100g: selected.selenium_100g || 0, cholesterol_100g: selected.cholesterol_100g || 0,
         meal_time: mealTime || null,
       }
       const basePayload = {
@@ -896,14 +902,20 @@ export default function MacroTrackerPage() {
         const fd = f.food_data || {}
         const g = f.grams || 100
         return {
-          fiber:   a.fiber   + (fd.fiber_100g    || 0) * g / 100,
-          sugar:   a.sugar   + (fd.sugar_100g    || 0) * g / 100,
-          fatSat:  a.fatSat  + (fd.fatSat_100g   || 0) * g / 100,
-          salt:    a.salt    + (fd.salt_100g     || 0) * g / 100,
-          calcium: a.calcium + (fd.calcium_100g  || 0) * g / 100,
-          iron:    a.iron    + (fd.iron_100g     || 0) * g / 100,
+          fiber:     a.fiber     + (fd.fiber_100g     || 0) * g / 100,
+          sugar:     a.sugar     + (fd.sugar_100g     || 0) * g / 100,
+          fatSat:    a.fatSat    + (fd.fatSat_100g    || 0) * g / 100,
+          salt:      a.salt      + (fd.salt_100g      || 0) * g / 100,
+          calcium:   a.calcium   + (fd.calcium_100g   || 0) * g / 100,
+          iron:      a.iron      + (fd.iron_100g      || 0) * g / 100,
+          magnesium: a.magnesium + (fd.magnesium_100g || 0) * g / 100,
+          potassium: a.potassium + (fd.potassium_100g || 0) * g / 100,
+          sodium:    a.sodium    + (fd.sodium_100g    || 0) * g / 100,
+          zinc:      a.zinc      + (fd.zinc_100g      || 0) * g / 100,
+          folate:    a.folate    + (fd.folate_100g    || 0) * g / 100,
+          selenium:  a.selenium  + (fd.selenium_100g  || 0) * g / 100,
         }
-      }, { fiber: 0, sugar: 0, fatSat: 0, salt: 0, calcium: 0, iron: 0 })
+      }, { fiber: 0, sugar: 0, fatSat: 0, salt: 0, calcium: 0, iron: 0, magnesium: 0, potassium: 0, sodium: 0, zinc: 0, folate: 0, selenium: 0 })
   , [log])
 
   const effectivePreviewGrams = selected && selectedUnit !== 'g' ? gramsFromUnit(unitQty, selectedUnit) : parseFloat(grams) || 100
@@ -1669,11 +1681,16 @@ export default function MacroTrackerPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               {[
                 { label: 'Fibra', val: microTotals.fiber > 0 ? `${Math.round(microTotals.fiber * 10) / 10}` : '–', unit: 'g', icon: '🌾' },
-                { label: 'Sodio', val: '–', unit: 'mg', icon: '🧂' },
-                { label: 'Calcio', val: '–', unit: 'mg', icon: '🦴' },
-                { label: 'Ferro', val: '–', unit: 'mg', icon: '🔴' },
+                { label: 'Sodio', val: microTotals.sodium > 0 ? `${Math.round(microTotals.sodium)}` : '–', unit: 'mg', icon: '🧂' },
+                { label: 'Calcio', val: microTotals.calcium > 0 ? `${Math.round(microTotals.calcium)}` : '–', unit: 'mg', icon: '🦴' },
+                { label: 'Ferro', val: microTotals.iron > 0 ? `${Math.round(microTotals.iron * 10) / 10}` : '–', unit: 'mg', icon: '🔴' },
                 { label: 'Zuccheri semplici', val: microTotals.sugar > 0 ? `${Math.round(microTotals.sugar * 10) / 10}` : '–', unit: 'g', icon: '🍬' },
                 { label: 'Grassi saturi', val: microTotals.fatSat > 0 ? `${Math.round(microTotals.fatSat * 10) / 10}` : '–', unit: 'g', icon: '🫒' },
+                { label: 'Magnesio', val: microTotals.magnesium > 0 ? `${Math.round(microTotals.magnesium)}` : '–', unit: 'mg', icon: '🥬' },
+                { label: 'Potassio', val: microTotals.potassium > 0 ? `${Math.round(microTotals.potassium)}` : '–', unit: 'mg', icon: '🍌' },
+                { label: 'Zinco', val: microTotals.zinc > 0 ? `${Math.round(microTotals.zinc * 10) / 10}` : '–', unit: 'mg', icon: '⚙️' },
+                { label: 'Folati', val: microTotals.folate > 0 ? `${Math.round(microTotals.folate)}` : '–', unit: 'µg', icon: '🥦' },
+                { label: 'Selenio', val: microTotals.selenium > 0 ? `${Math.round(microTotals.selenium)}` : '–', unit: 'µg', icon: '🐟' },
               ].map(n => (
                 <div key={n.label} style={{ background: 'var(--surface-2)', borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 18 }}>{n.icon}</span>

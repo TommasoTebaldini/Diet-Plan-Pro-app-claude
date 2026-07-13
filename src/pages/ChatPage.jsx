@@ -6,8 +6,10 @@ import { useT } from '../i18n'
 import {
   Send, CheckCheck, Check, MessageCircle,
   ImagePlus, Mic, MicOff, X, Play, Pause, Bell, BellOff,
-  FileText, PenLine, AlertTriangle, ArrowLeft
+  FileText, PenLine, AlertTriangle, ArrowLeft, Video
 } from 'lucide-react'
+import VideoCallModal from '../components/VideoCallModal'
+import { callRoomName } from '../lib/videoCall'
 
 // ── Default GDPR privacy document (shown when doc.content is absent) ─────────
 const PRIVACY_DEFAULT = `MODULO DI CONSENSO INFORMATO AL TRATTAMENTO DEI DATI PERSONALI
@@ -708,6 +710,7 @@ export default function ChatPage() {
   const [notLinked, setNotLinked] = useState(false)
   const [unsignedDocs, setUnsignedDocs] = useState([])
   const [signingDoc, setSigningDoc] = useState(null)
+  const [callRoom, setCallRoom] = useState(null)
 
   // Group chats
   const [groups, setGroups] = useState([])
@@ -976,6 +979,24 @@ export default function ChatPage() {
     inputRef.current?.focus()
   }
 
+  // ── Start video call ────────────────────────────────────────────────────
+  async function startVideoCall() {
+    if (!dietitianId) return
+    const room = callRoomName(user.id, dietitianId)
+    setCallRoom(room)
+    const optimistic = {
+      id: `opt_${Date.now()}`, patient_id: user.id,
+      sender_role: 'patient', sender_id: user.id,
+      content: room, message_type: 'video_call', created_at: new Date().toISOString(), read_at: null,
+    }
+    setMessages(prev => [...prev, optimistic])
+    const { data } = await supabase.from('chat_messages').insert({
+      patient_id: user.id, sender_role: 'patient',
+      sender_id: user.id, content: room, message_type: 'video_call',
+    }).select().single()
+    if (data) setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
+  }
+
   // ── Upload helper ───────────────────────────────────────────────────────
   async function uploadToStorage(file, folder) {
     const ext = file.name ? file.name.split('.').pop() : 'bin'
@@ -1211,6 +1232,16 @@ export default function ChatPage() {
             {seenLabel || 'Dietista'}
           </p>
         </div>
+        {/* Video call button */}
+        {dietitianId && (
+          <button
+            onClick={startVideoCall}
+            title="Avvia videochiamata"
+            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Video size={18} color="white" />
+          </button>
+        )}
         {/* Notification bell */}
         {typeof Notification !== 'undefined' && (
           <button
@@ -1318,6 +1349,24 @@ export default function ChatPage() {
                       {type === 'audio' && msg.file_url && (
                         <AudioPlayer src={msg.file_url} isMe={isMe} />
                       )}
+                      {type === 'video_call' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <Video size={16} color={isMe ? 'white' : 'var(--green-main)'} />
+                          <span style={{ fontSize: 13.5, fontWeight: 500 }}>
+                            {isMe ? 'Hai avviato una videochiamata' : 'Videochiamata in corso'}
+                          </span>
+                          <button
+                            onClick={() => setCallRoom(msg.content)}
+                            style={{
+                              marginLeft: 4, background: isMe ? 'rgba(255,255,255,0.25)' : 'var(--green-pale)',
+                              color: isMe ? 'white' : 'var(--green-dark)', border: 'none', borderRadius: 100,
+                              padding: '4px 11px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', flexShrink: 0,
+                            }}
+                          >
+                            Partecipa
+                          </button>
+                        </div>
+                      )}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 3, marginTop: 4, paddingRight: type === 'image' ? 6 : 0 }}>
                         <span style={{ fontSize: 10, opacity: 0.65 }}>{formatTime(msg.created_at)}</span>
                         {isMe && (msg.read_at
@@ -1345,6 +1394,11 @@ export default function ChatPage() {
             setSigningDoc(null)
           }}
         />
+      )}
+
+      {/* Video call */}
+      {callRoom && (
+        <VideoCallModal roomName={callRoom} displayName={user.email} onClose={() => setCallRoom(null)} />
       )}
 
       {/* Input bar */}

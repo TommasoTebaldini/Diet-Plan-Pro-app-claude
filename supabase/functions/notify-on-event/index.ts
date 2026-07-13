@@ -109,18 +109,28 @@ Deno.serve(async (req: Request) => {
 
   // ── New chat message from dietitian ──────────────────────────────────────────
   if (table === 'chat_messages') {
-    const { patient_id, sender_role, content } = record as {
-      patient_id?: string; sender_role?: string; content?: string
+    const { patient_id, sender_role, content, message_type } = record as {
+      patient_id?: string; sender_role?: string; content?: string; message_type?: string
     }
     if (sender_role === 'dietitian' && patient_id) {
-      const preview = String(content || '').slice(0, 80)
-      result = await sendPushToUser(
-        patient_id,
-        '💬 Messaggio dal tuo dietista',
-        preview || 'Hai un nuovo messaggio',
-        '/chat',
-        'chat-msg',
-      )
+      if (message_type === 'video_call') {
+        result = await sendPushToUser(
+          patient_id,
+          '📹 Videochiamata in arrivo',
+          'Il tuo dietista ti sta chiamando',
+          '/chat',
+          'video-call',
+        )
+      } else {
+        const preview = String(content || '').slice(0, 80)
+        result = await sendPushToUser(
+          patient_id,
+          '💬 Messaggio dal tuo dietista',
+          preview || 'Hai un nuovo messaggio',
+          '/chat',
+          'chat-msg',
+        )
+      }
     }
   }
 

@@ -1,5 +1,5 @@
-// generate-all-foods.js
-// Run: node generate-all-foods.js
+// generate-all-foods.cjs
+// Run: node generate-all-foods.cjs
 // Reads NutriPlan-Pro/js/db.js, extracts ALL_DB sources (CREA, BDA, ONS, APROTEICI, FLAVIS, UPF),
 // converts to patient-app format and writes src/data/all-foods.js
 
@@ -124,6 +124,8 @@ const SERVING_BY_CAT = {
 const converted = ALL_RAW.map((f, i) => {
   const rawCat = f.c || '';
   const cat = CAT_MAP[rawCat] || rawCat || 'Altro';
+  // Sodium (na, mg/100g) → salt equivalent (g/100g): salt = sodium * 2.5 / 1000
+  const saltFromSodium = f.na != null ? Math.round(f.na * 2.5) / 1000 : 0;
   return {
     id: `db_${i}`,
     name: f.n,
@@ -136,6 +138,16 @@ const converted = ALL_RAW.map((f, i) => {
     fiber_100g:    f.fi || 0,
     sugar_100g:    f.z  || 0,
     fatSat_100g:   f.gs || 0,
+    salt_100g:      saltFromSodium,
+    calcium_100g:   f.ca  || 0,
+    iron_100g:      f.fe  || 0,
+    magnesium_100g: f.mg  || 0,
+    potassium_100g: f.k2  || 0,
+    sodium_100g:    f.na  || 0,
+    zinc_100g:      f.zn  || 0,
+    folate_100g:    f.fo  || 0,
+    selenium_100g:  f.se  || 0,
+    cholesterol_100g: f.col || 0,
     serving_size_g: SERVING_BY_CAT[cat] || 100,
   };
 });
@@ -155,7 +167,7 @@ console.log(`After dedup: ${deduped.length} unique foods`);
 const lines = deduped.map(f => `  ${JSON.stringify(f)}`).join(',\n');
 const output = `// Combined food database — auto-generated from NutriPlan-Pro/js/db.js
 // Sources: CREA, BDA, ONS, APROTEICI, FLAVIS, UPF
-// Do not edit manually. Run: node generate-all-foods.js
+// Do not edit manually. Run: node generate-all-foods.cjs
 export const ALL_FOODS = [\n${lines}\n]\n`;
 
 fs.writeFileSync(outPath, output, 'utf8');
