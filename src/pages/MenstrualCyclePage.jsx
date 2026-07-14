@@ -149,7 +149,7 @@ function MiniCalendar({ cycles, predictedRanges }) {
 }
 
 export default function MenstrualCyclePage() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const today = new Date().toISOString().split('T')[0]
 
   const [cycles, setCycles] = useState([])
@@ -339,6 +339,25 @@ export default function MenstrualCyclePage() {
     : null
 
   const activeCycle = cycles.find(c => c.start_date && !c.end_date)
+
+  if (profile?.gender === 'M') {
+    return (
+      <div className="page">
+        <div style={{ background: 'linear-gradient(160deg, #9d174d, #ec4899)', padding: 'calc(env(safe-area-inset-top) + 20px) 20px 24px' }}>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Salute</p>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'white', fontWeight: 300 }}>Ciclo Mestruale</h1>
+        </div>
+        <div style={{ padding: 20 }}>
+          <div className="card" style={{ padding: 20, textAlign: 'center' }}>
+            <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Sezione non disponibile</p>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              Questa sezione è dedicata al tracciamento del ciclo mestruale e non è pertinente per il tuo profilo.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (!tableExists) {
     return (

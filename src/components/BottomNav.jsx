@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users, ChefHat, Star, Flower2, MoreHorizontal, X, Droplets, Brain, Award, ShoppingCart, Timer, Pill } from 'lucide-react'
+import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users, ChefHat, Star, Flower2, MoreHorizontal, X, Droplets, Brain, Award, ShoppingCart, Timer, Pill, Sparkles } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
 import { PAYMENTS_ACTIVE, useSubscription } from '../hooks/useSubscription'
+import { fetchVisibleSpecialtyNotes } from '../lib/specialSections'
 
 const DOCS_EPOCH = '1970-01-01T00:00:00Z'
 
@@ -28,7 +29,8 @@ function useIsDesktop() {
 
 export default function BottomNav() {
   const { pathname } = useLocation()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
+  const showCycle = profile?.gender !== 'M'
   const { isPro } = useSubscription()
   const t = useT()
   const [newDocs, setNewDocs] = useState(0)
@@ -43,7 +45,13 @@ export default function BottomNav() {
     return next
   })
   const [unreadChat, setUnreadChat] = useState(0)
+  const [hasSpecial, setHasSpecial] = useState(false)
   const isDesktop = useIsDesktop()
+
+  useEffect(() => {
+    if (!user?.id) return
+    fetchVisibleSpecialtyNotes(user.id).then(rows => setHasSpecial(rows.length > 0))
+  }, [user?.id])
 
   useEffect(() => {
     const w = (isDesktop && sidebarOpen) ? '220px' : '0px'
@@ -123,11 +131,12 @@ export default function BottomNav() {
     { to: '/chat', icon: MessageCircle, label: t('nav.chat'), badge: unreadChat },
     { to: '/documenti', icon: FileText, label: t('nav.documents'), badge: newDocs },
     { to: '/dietisti', icon: Users, label: t('nav.dietitians') },
+    ...(hasSpecial ? [{ to: '/speciale', icon: Sparkles, label: 'Speciale' }] : []),
     { to: '/progressi', icon: TrendingUp, label: t('nav.progress') },
     { to: '/attivita', icon: Activity, label: t('nav.activities') },
     { to: '/statistiche', icon: BarChart2, label: t('nav.report') },
     { to: '/benessere', icon: Heart, label: t('nav.wellness') },
-    { to: '/ciclo', icon: Flower2, label: 'Ciclo' },
+    ...(showCycle ? [{ to: '/ciclo', icon: Flower2, label: 'Ciclo' }] : []),
     { to: '/farmaci', icon: Pill, label: 'Farmaci' },
     { to: '/profilo', icon: User, label: t('nav.profile') },
     { to: '/pro', icon: Star, label: isPro ? '⭐ Pro' : '🔓 Pro' },
@@ -140,8 +149,8 @@ export default function BottomNav() {
     const DESKTOP_SECTIONS = [
       { label: null, items: ['/'] },
       { label: t('nav.section_nutrition'), items: ['/dieta', '/macro', '/ricette', '/lista-spesa', '/digiuno'] },
-      { label: t('nav.section_professionals'), items: ['/chat', '/documenti', '/dietisti'] },
-      { label: t('nav.section_monitoring'), items: ['/progressi', '/attivita', '/benessere', '/ciclo', '/farmaci', '/statistiche'] },
+      { label: t('nav.section_professionals'), items: ['/chat', '/documenti', '/dietisti', ...(hasSpecial ? ['/speciale'] : [])] },
+      { label: t('nav.section_monitoring'), items: ['/progressi', '/attivita', '/benessere', ...(showCycle ? ['/ciclo'] : []), '/farmaci', '/statistiche'] },
       { label: null, items: PAYMENTS_ACTIVE ? ['/profilo', '/pro', '/abbonamento'] : ['/profilo', '/pro'] },
     ]
 
@@ -234,13 +243,14 @@ export default function BottomNav() {
       { to: '/progressi', icon: TrendingUp, label: t('nav.progress') },
       { to: '/attivita', icon: Activity, label: t('nav.activities') },
       { to: '/benessere', icon: Heart, label: t('nav.wellness') },
-      { to: '/ciclo', icon: Flower2, label: 'Ciclo' },
+      ...(showCycle ? [{ to: '/ciclo', icon: Flower2, label: 'Ciclo' }] : []),
       { to: '/farmaci', icon: Pill, label: 'Farmaci' },
       { to: '/statistiche', icon: BarChart2, label: t('nav.report') },
     ]},
     { label: 'Professionale', items: [
       { to: '/documenti', icon: FileText, label: t('nav.documents'), badge: newDocs },
       { to: '/dietisti', icon: Users, label: t('nav.dietitians') },
+      ...(hasSpecial ? [{ to: '/speciale', icon: Sparkles, label: 'Speciale' }] : []),
     ]},
     { label: 'Altro', items: [
       { to: '/quiz', icon: Brain, label: 'Quiz' },
