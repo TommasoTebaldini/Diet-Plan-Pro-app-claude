@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
 import { PAYMENTS_ACTIVE, useSubscription } from '../hooks/useSubscription'
-import { fetchVisibleSpecialtyNotes } from '../lib/specialSections'
+import { fetchEnabledSpecialties } from '../lib/specialSections'
 
 const DOCS_EPOCH = '1970-01-01T00:00:00Z'
 
@@ -50,7 +50,7 @@ export default function BottomNav() {
 
   useEffect(() => {
     if (!user?.id) return
-    fetchVisibleSpecialtyNotes(user.id).then(rows => setHasSpecial(rows.length > 0))
+    fetchEnabledSpecialties(user.id).then(keys => setHasSpecial(keys.length > 0))
   }, [user?.id])
 
   useEffect(() => {

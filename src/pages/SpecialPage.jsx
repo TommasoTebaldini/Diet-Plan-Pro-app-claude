@@ -1,15 +1,23 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
-import { fetchVisibleSpecialtyNotes } from '../lib/specialSections'
+import { fetchSpecialSections } from '../lib/specialSections'
 import { SPECIALTIES, FIELD_CONFIG, IDDSI_LEVELS, MEAL_COLUMNS } from '../data/specialtyMeta'
+import DiabeteCalculator from '../components/specialty/DiabeteCalculator'
 import {
-  ChevronLeft, ChevronRight, Sparkles,
+  ChevronLeft, ChevronRight, Sparkles, Clock,
   Droplet, Scale, Activity, HeartPulse, Droplets, Flame, Stethoscope,
   FlaskConical, Baby, MessageCircle, Leaf, Heart,
 } from 'lucide-react'
 
 const ICONS = { Droplet, Scale, Activity, HeartPulse, Droplets, Flame, Stethoscope, FlaskConical, Baby, MessageCircle, Leaf, Heart }
+
+// Pathologies with a dedicated interactive tool beyond the generic data view.
+// Extend this as more calculators are built (chetogenica/GKI tracker,
+// pancreas/enzyme dosage, renale/food guide by CKD stage, ecc.).
+const TOOLS = {
+  diabete: DiabeteCalculator,
+}
 
 function getPath(obj, path) {
   return path.split('.').reduce((o, k) => (o && typeof o === 'object' ? o[k] : undefined), obj)
@@ -92,21 +100,21 @@ function GroupCard({ group, dati }) {
   )
 }
 
-function NoteDetail({ tipo, note }) {
+function NoteDetail({ tipo, dati }) {
   const config = FIELD_CONFIG[tipo]
   if (!config) return null
 
   if (config.flatFields) {
-    const fields = config.flatFields.filter(f => hasValue(note.dati[f.key]))
+    const fields = config.flatFields.filter(f => hasValue(dati[f.key]))
     if (!fields.length) return null
     return (
       <div className="card" style={{ padding: 16 }}>
         {fields.map(f => {
           if (f.format === 'iddsi') {
-            const lvl = IDDSI_LEVELS[note.dati[f.key]]
-            return <FieldRow key={f.key} label={f.label} value={lvl ? `Livello ${note.dati[f.key]} — ${lvl.nome}` : note.dati[f.key]} />
+            const lvl = IDDSI_LEVELS[dati[f.key]]
+            return <FieldRow key={f.key} label={f.label} value={lvl ? `Livello ${dati[f.key]} — ${lvl.nome}` : dati[f.key]} />
           }
-          return <FieldRow key={f.key} label={f.label} value={note.dati[f.key]} unit={f.unit} />
+          return <FieldRow key={f.key} label={f.label} value={dati[f.key]} unit={f.unit} />
         })}
       </div>
     )
@@ -114,7 +122,7 @@ function NoteDetail({ tipo, note }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {(config.groups || []).map(g => <GroupCard key={g.path} group={g} dati={note.dati} />)}
+      {(config.groups || []).map(g => <GroupCard key={g.path} group={g} dati={dati} />)}
     </div>
   )
 }
@@ -123,21 +131,19 @@ function NoteDetail({ tipo, note }) {
 export default function SpecialPage() {
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
-  const [notes, setNotes] = useState([])
+  const [sections, setSections] = useState([])
   const [activeTipo, setActiveTipo] = useState(null)
 
   useEffect(() => {
     if (!user?.id) return
-    fetchVisibleSpecialtyNotes(user.id).then(rows => { setNotes(rows); setLoading(false) })
+    fetchSpecialSections(user.id).then(rows => { setSections(rows); setLoading(false) })
   }, [user?.id])
 
-  const byTipo = {}
-  for (const n of notes) {
-    if (!byTipo[n.tipo]) byTipo[n.tipo] = []
-    byTipo[n.tipo].push(n)
-  }
-  const availableSpecialties = SPECIALTIES.filter(s => byTipo[s.key]?.length)
+  const byKey = Object.fromEntries(sections.map(s => [s.key, s]))
+  const availableSpecialties = SPECIALTIES.filter(s => byKey[s.key])
   const active = SPECIALTIES.find(s => s.key === activeTipo)
+  const activeSection = active ? byKey[active.key] : null
+  const Tool = active ? TOOLS[active.key] : null
 
   return (
     <div className="page">
@@ -147,7 +153,7 @@ export default function SpecialPage() {
             <ChevronLeft size={14} /> Speciale
           </button>
         ) : (
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Condiviso dal tuo dietista</p>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Attivato dal tuo dietista</p>
         )}
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'white', fontWeight: 300, display: 'flex', alignItems: 'center', gap: 8 }}>
           {!active && <Sparkles size={20} />} {active ? active.label : 'Speciale'}
@@ -168,12 +174,12 @@ export default function SpecialPage() {
                 {availableSpecialties.length === 0 ? (
                   <div className="card" style={{ padding: 24, textAlign: 'center' }}>
                     <Sparkles size={28} color="var(--text-muted)" style={{ marginBottom: 10 }} />
-                    <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Nessun contenuto condiviso</p>
-                    <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Il tuo dietista non ha ancora reso visibile nessuna scheda qui.</p>
+                    <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Nessuna sezione attiva</p>
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Il tuo dietista non ha ancora attivato nessuna sezione qui.</p>
                   </div>
                 ) : availableSpecialties.map(s => {
                   const Icon = ICONS[s.icon]
-                  const count = byTipo[s.key].length
+                  const section = byKey[s.key]
                   return (
                     <button key={s.key} onClick={() => setActiveTipo(s.key)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 14, cursor: 'pointer', font: 'inherit', textAlign: 'left' }}>
                       <div style={{ width: 42, height: 42, borderRadius: 12, background: s.bg, color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -181,7 +187,9 @@ export default function SpecialPage() {
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: 14, fontWeight: 600 }}>{s.label}</p>
-                        <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{count} {count === 1 ? 'scheda condivisa' : 'schede condivise'} · aggiornato {fmtDate(byTipo[s.key][0].created_at)}</p>
+                        <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                          {section.note ? `Aggiornato ${fmtDate(section.note.updated_at || section.note.created_at)}` : 'In attesa dei dati del dietista'}
+                        </p>
                       </div>
                       <ChevronRight size={18} color="var(--text-muted)" />
                     </button>
@@ -190,13 +198,20 @@ export default function SpecialPage() {
               </motion.div>
             ) : (
               <motion.div key="detail" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {byTipo[active.key].map(note => (
-                  <div key={note.id}>
-                    {note.nota && <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>{note.nota}</p>}
-                    <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>{fmtDate(note.updated_at || note.created_at)}</p>
-                    <NoteDetail tipo={active.key} note={note} />
+                {!activeSection?.note ? (
+                  <div className="card" style={{ padding: 24, textAlign: 'center' }}>
+                    <Clock size={26} color="var(--text-muted)" style={{ marginBottom: 10 }} />
+                    <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>In attesa dei dati</p>
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Il tuo dietista ha attivato questa sezione ma non ha ancora salvato una scheda — torna a controllare più avanti.</p>
                   </div>
-                ))}
+                ) : (
+                  <>
+                    {Tool && <Tool dati={activeSection.note.dati} />}
+                    {activeSection.note.nota && <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{activeSection.note.nota}</p>}
+                    <NoteDetail tipo={active.key} dati={activeSection.note.dati} />
+                    <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>Ultimo aggiornamento: {fmtDate(activeSection.note.updated_at || activeSection.note.created_at)}</p>
+                  </>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

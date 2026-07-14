@@ -12,26 +12,51 @@ function parseDati(raw) {
   return raw
 }
 
-// Fetches every note_specialistiche row the dietitian has made visible to this
-// patient, restricted to the 12 pathology types shown in the "Speciale" section
-// (excludes 'questionario'/'consiglio'/'soap_note'/'ristorazione' etc.).
-export async function fetchVisibleSpecialtyNotes(userId) {
-  if (!userId) return []
+async function resolveCartellaIds(userId) {
   const { data: links } = await supabase
     .from('patient_dietitian')
     .select('cartella_id')
     .eq('patient_id', userId)
-  const cartellaIds = [...new Set((links || []).map(l => l.cartella_id).filter(Boolean))]
-  if (!cartellaIds.length) return []
+  return [...new Set((links || []).map(l => l.cartella_id).filter(Boolean))]
+}
 
+// A pathology section is visible to the patient purely based on
+// patient_specialty_access.enabled — NOT on whether any note_specialistiche
+// row happens to have visible_to_patient=true. That flag only gates the
+// generic document-style views elsewhere in NutriPlan-Pro; here the dietitian
+// enables/disables a whole section independently of what's been saved.
+export async function fetchEnabledSpecialties(userId) {
+  if (!userId) return []
   const { data, error } = await supabase
-    .from('note_specialistiche')
-    .select('id, tipo, nota, dati, created_at, updated_at')
-    .in('cartella_id', cartellaIds)
-    .in('tipo', SPECIALTY_KEYS)
-    .eq('visible_to_patient', true)
-    .order('created_at', { ascending: false })
+    .from('patient_specialty_access')
+    .select('specialty')
+    .eq('patient_id', userId)
+    .eq('enabled', true)
   if (error || !data) return []
+  return data.map(r => r.specialty).filter(k => SPECIALTY_KEYS.includes(k))
+}
 
-  return data.map(row => ({ ...row, dati: parseDati(row.dati) }))
+// Returns, for every enabled specialty, its most recent note_specialistiche
+// entry (the data source) — or `note: null` if the dietitian enabled the
+// section but hasn't saved any data for it yet.
+export async function fetchSpecialSections(userId) {
+  if (!userId) return []
+  const enabled = await fetchEnabledSpecialties(userId)
+  if (!enabled.length) return []
+
+  const cartellaIds = await resolveCartellaIds(userId)
+  let latestByTipo = {}
+  if (cartellaIds.length) {
+    const { data } = await supabase
+      .from('note_specialistiche')
+      .select('id, tipo, nota, dati, created_at, updated_at')
+      .in('cartella_id', cartellaIds)
+      .in('tipo', enabled)
+      .order('created_at', { ascending: false })
+    for (const row of data || []) {
+      if (!latestByTipo[row.tipo]) latestByTipo[row.tipo] = { ...row, dati: parseDati(row.dati) }
+    }
+  }
+
+  return enabled.map(key => ({ key, note: latestByTipo[key] || null }))
 }
