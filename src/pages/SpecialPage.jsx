@@ -4,6 +4,17 @@ import { useAuth } from '../context/AuthContext'
 import { fetchSpecialSections } from '../lib/specialSections'
 import { SPECIALTIES, FIELD_CONFIG, IDDSI_LEVELS, MEAL_COLUMNS } from '../data/specialtyMeta'
 import DiabeteCalculator from '../components/specialty/DiabeteCalculator'
+import ChetogenicaCalculator from '../components/specialty/ChetogenicaCalculator'
+import PancreasCalculator from '../components/specialty/PancreasCalculator'
+import RenaleGuide from '../components/specialty/RenaleGuide'
+import SportCalculator from '../components/specialty/SportCalculator'
+import DisfagiaGuide from '../components/specialty/DisfagiaGuide'
+import GravidanzaTracker from '../components/specialty/GravidanzaTracker'
+import ObesitaTracker from '../components/specialty/ObesitaTracker'
+import OncologiaTracker from '../components/specialty/OncologiaTracker'
+import PazienteSanoTracker from '../components/specialty/PazienteSanoTracker'
+import PediatriaTracker from '../components/specialty/PediatriaTracker'
+import DcaChecklist from '../components/specialty/DcaChecklist'
 import {
   ChevronLeft, ChevronRight, Sparkles, Clock,
   Droplet, Scale, Activity, HeartPulse, Droplets, Flame, Stethoscope,
@@ -17,6 +28,17 @@ const ICONS = { Droplet, Scale, Activity, HeartPulse, Droplets, Flame, Stethosco
 // pancreas/enzyme dosage, renale/food guide by CKD stage, ecc.).
 const TOOLS = {
   diabete: DiabeteCalculator,
+  chetogenica: ChetogenicaCalculator,
+  pancreas: PancreasCalculator,
+  renale: RenaleGuide,
+  sport: SportCalculator,
+  disfagia: DisfagiaGuide,
+  gravidanza: GravidanzaTracker,
+  obesita: ObesitaTracker,
+  oncologia: OncologiaTracker,
+  paziente_sano: PazienteSanoTracker,
+  pediatria: PediatriaTracker,
+  dca: DcaChecklist,
 }
 
 function getPath(obj, path) {

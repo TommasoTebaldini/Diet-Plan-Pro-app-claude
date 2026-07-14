@@ -33,6 +33,46 @@ export const IDDSI_LEVELS = {
   7: { nome: 'Facile da Masticare', color: '#F97316' },
 }
 
+// Allowed / caution / avoid food examples per IDDSI level — ported verbatim
+// (Italian) from disfagia.html's IDDSI_ALIMENTI reference table.
+export const IDDSI_ALIMENTI = {
+  1: {
+    ok: ['Acqua addensata (livello 1)', 'Latte intero addensato', 'Succhi di frutta chiari setacciati + addensante', 'Brodo chiaro addensato', 'Tè/caffè addensato', 'ONS liquidi addensabili'],
+    mod: ['Succhi con polpa (setacciare prima)', 'Frullati densi molto diluiti + setacciati'],
+    no: ['Acqua non addensata', 'Bevande gassate', 'Qualsiasi alimento solido', 'Succhi con semi o fibre', 'Alcolici'],
+  },
+  2: {
+    ok: ['Latte intero + addensante', 'Semolino fluido addensato', 'Creme vellutate setacciate finissime', 'ONS densi addensabili', 'Yogurt liquido setacciato', 'Succhi densi + addensante'],
+    mod: ['Frullati di frutta senza bucce né semi', 'Minestre passate molto fini'],
+    no: ['Liquidi sottili non addensati', 'Alimenti con grumi', 'Pezzi solidi anche piccoli', 'Alimenti filamentosi', 'Bevande gassate'],
+  },
+  3: {
+    ok: ['Frullati densi (banana, avocado)', 'Crema di cereali frullata', 'Minestre liquidizzate passate', 'ONS crema', 'Yogurt cremoso senza grumi', 'Purè di patate molto fluido'],
+    mod: ['Composta di frutta frullata (rimuovere bucce/semi)', 'Creme di legumi passate finissime'],
+    no: ['Alimenti con grumi o fibre lunghe', 'Pane in qualsiasi forma', 'Carni non frullate', 'Verdure crude', 'Riso non frullato', 'Alimenti con doppia consistenza'],
+  },
+  4: {
+    ok: ['Purè di patate denso', 'Purè di verdure omogeneo', 'Purè di carne / pesce con besciamella', 'Budino / panna cotta', 'Crema pasticcera', 'Yogurt greco denso', 'Purè di frutta cotta', 'Uova strapazzate morbidissime', 'Formaggio spalmabile'],
+    mod: ['Polenta morbida (senza grumi)', 'Semolino denso', 'Gelato cremoso senza pezzi'],
+    no: ['Qualsiasi alimento con grumi o pezzi', 'Pane', 'Pasta', 'Riso', 'Vegetali non frullati', 'Carni non frullate', 'Frutta intera', 'Noci / frutta secca', 'Alimenti appiccicosi'],
+  },
+  5: {
+    ok: ['Carne macinata tenera in umido', 'Pesce sminuzzato (lische rimosse)', 'Pastina ben cotta in brodo', 'Riso stracotto morbido', 'Uova strapazzate', 'Verdure tenere cotte a pezzetti', 'Frutta morbida a pezzi fini', 'Yogurt con frutta tritata', 'Formaggi morbidi a pezzetti'],
+    mod: ['Gnocchi ben cotti e morbidi', 'Legumi ben cotti schiacciati parzialmente', 'Polenta morbida a pezzi piccoli'],
+    no: ['Carni fibrose o dure', 'Pane croccante / grissini', 'Verdure crude', 'Frutta con bucce/semi duri', 'Noci / nocciole / mandorle', 'Riso al dente', 'Alimenti appiccicosi (caramelle, gommose)'],
+  },
+  6: {
+    ok: ['Pasta ben cotta con sugo', 'Riso morbido / risotto', 'Pesce al forno o al vapore', 'Pollo / tacchino morbido', 'Uova in qualsiasi cottura morbida', 'Formaggi molli', 'Verdure cotte morbide a pezzi', 'Legumi in umido', 'Frutta morbida matura', 'Pane morbido senza crosta'],
+    mod: ['Carne bovina magra ben cotta e umida', 'Insalata cotta', 'Banana, kiwi, fragole'],
+    no: ['Pane croccante', 'Carni dure o fibrose', 'Verdure crude croccanti', 'Noci / frutta secca', 'Alimenti molto appiccicosi', 'Salumi duri', 'Riso al dente', 'Alimenti che si sbriciolano'],
+  },
+  7: {
+    ok: ['Pasta e riso normali ben cotti', 'Carni tenere (pollo, tacchino, pesce)', 'Uova in tutte le cotture', 'Formaggi', 'Legumi cotti', 'Verdure cotte o tenere crude', 'Frutta fresca morbida', 'Pane morbido', 'Yogurt', 'Prodotti latticini morbidi'],
+    mod: ['Carne bovina magra ben cotta', 'Pane con crosta leggera', 'Mela sbucciata tenera'],
+    no: ['Pane molto croccante / biscotti secchi duri', 'Carni particolarmente fibrose o dure', 'Noci intere', 'Caramelle dure / gomme', 'Alimenti che si attaccano al palato (burro di arachidi)', 'Crostacei con guscio'],
+  },
+}
+
 // Meal-array field keys we know how to render, in display order (MealsTable skips absent ones)
 const MEAL_COLUMNS = [
   { key: 'nome', label: 'Pasto' },

@@ -60,3 +60,35 @@ export async function fetchSpecialSections(userId) {
 
   return enabled.map(key => ({ key, note: latestByTipo[key] || null }))
 }
+
+function localDateStr(d = new Date()) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+// Today's logged intake — used by pathology tools that compare a dietitian-set
+// target (kcal/protein) against what the patient has actually eaten so far.
+export async function fetchTodayIntake(userId) {
+  if (!userId) return { kcal: 0, proteins: 0 }
+  const { data } = await supabase
+    .from('food_logs')
+    .select('kcal, proteins')
+    .eq('user_id', userId)
+    .eq('date', localDateStr())
+    .neq('food_name', '__note__')
+  return (data || []).reduce((a, f) => ({ kcal: a.kcal + (f.kcal || 0), proteins: a.proteins + (f.proteins || 0) }), { kcal: 0, proteins: 0 })
+}
+
+export async function fetchLatestWeight(userId) {
+  if (!userId) return null
+  const { data } = await supabase
+    .from('weight_logs')
+    .select('weight_kg')
+    .eq('user_id', userId)
+    .order('date', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return data?.weight_kg ?? null
+}
