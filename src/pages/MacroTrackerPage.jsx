@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { fetchDietFromPiani } from '../lib/dietBridge'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
-import { searchFoodsLocal, searchFoods, searchByBarcode } from '../lib/foodSearch'
+import { searchFoodsLocal, supplementWithOpenFoodFacts, searchByBarcode } from '../lib/foodSearch'
 import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle, Pencil, Check, Lock, Camera, Mic, Star, BookmarkPlus, ClipboardCopy, WifiOff } from 'lucide-react'
 import { safeWrite } from '../lib/offlineDB'
 const BarcodeScanner   = lazy(() => import('../components/BarcodeScanner'))
@@ -35,6 +35,15 @@ const UNIT_OPTIONS = [
 function gramsFromUnit(qty, unitKey) {
   const unit = UNIT_OPTIONS.find(u => u.key === unitKey) || UNIT_OPTIONS[0]
   return Math.round(parseFloat(qty || 1) * unit.factor)
+}
+
+// Local calendar date (not UTC) — toISOString() shifts to UTC and shows
+// the wrong day for users east of UTC (e.g. Italy) right after midnight.
+function localDateStr(d = new Date()) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 // ── Feature 5: Pie chart SVG (no extra deps) ─────────────────────────────────
@@ -203,7 +212,7 @@ export default function MacroTrackerPage() {
     ...m,
     label: m.key === 'extra' ? 'Extra' : t(`meal.${m.key}`),
   }))
-  const todayStr = new Date().toISOString().split('T')[0]
+  const todayStr = localDateStr()
   const [date, setDate] = useState(todayStr)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
@@ -410,7 +419,7 @@ export default function MacroTrackerPage() {
 
         // Phase 2: always supplement with Open Food Facts for 3+ char queries
         if (normalizedQuery.length >= 3) {
-          const allFoods = await searchFoods(normalizedQuery)
+          const allFoods = await supplementWithOpenFoodFacts(normalizedQuery, localFoods)
           if (searchId !== latestSearchIdRef.current) return
           searchCacheRef.current.set(normalizedQuery, allFoods)
           if (searchCacheRef.current.size > 40) {
@@ -502,7 +511,7 @@ export default function MacroTrackerPage() {
         carbs_100g: food.carbs_100g || 0, fats_100g: food.fats_100g || 0,
         fiber_100g: food.fiber_100g || 0, source: food.source || '',
         sugar_100g: food.sugar_100g || 0, fatSat_100g: food.fatSat_100g || 0,
-        salt_100g: food.salt_100g || 0,
+        salt_100g: food.salt_100g || 0, sodium_100g: food.sodium_100g || 0,
         calcium_100g: food.calcium_100g || 0, iron_100g: food.iron_100g || 0,
         magnesium_100g: food.magnesium_100g || 0, potassium_100g: food.potassium_100g || 0,
         zinc_100g: food.zinc_100g || 0, folate_100g: food.folate_100g || 0,
@@ -552,7 +561,7 @@ export default function MacroTrackerPage() {
         carbs_100g: selected.carbs_100g || 0, fats_100g: selected.fats_100g || 0,
         fiber_100g: selected.fiber_100g || 0, source: selected.source || '',
         sugar_100g: selected.sugar_100g || 0, fatSat_100g: selected.fatSat_100g || 0,
-        salt_100g: selected.salt_100g || 0,
+        salt_100g: selected.salt_100g || 0, sodium_100g: selected.sodium_100g || 0,
         calcium_100g: selected.calcium_100g || 0, iron_100g: selected.iron_100g || 0,
         magnesium_100g: selected.magnesium_100g || 0, potassium_100g: selected.potassium_100g || 0,
         zinc_100g: selected.zinc_100g || 0, folate_100g: selected.folate_100g || 0,
@@ -1799,7 +1808,7 @@ export default function MacroTrackerPage() {
                     className="input-field"
                     value={copyTargetDate}
                     onChange={e => setCopyTargetDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
+                    min={localDateStr()}
                   />
                 </div>
                 <button

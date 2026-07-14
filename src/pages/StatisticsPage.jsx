@@ -13,7 +13,7 @@ import {
 import {
   BarChart2, TrendingUp, TrendingDown, Minus, FileText,
   Download, Droplets, Scale, Flame, ChevronLeft, ChevronRight,
-  Check, X as XIcon, Lock,
+  Check, X as XIcon, Lock, Ruler,
 } from 'lucide-react'
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, parseISO, addWeeks, subWeeks } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -24,6 +24,13 @@ const TABS_STATIC = [
   { key: 'adherence', emoji: '✅', label: '✅ Aderenza' },
   { key: 'comparison', emoji: '⚖️', label: '⚖️ Confronto' },
   { key: 'report', emoji: '📄', label: '📄 Report PDF' },
+]
+
+const MEASURE_META = [
+  { key: 'waist_cm', label: 'Girovita', short: 'Vita', bg: 'var(--icon-bg-green)', fg: 'var(--green-main)' },
+  { key: 'hips_cm', label: 'Fianchi', short: 'Fianchi', bg: 'var(--icon-bg-blue)', fg: 'var(--blue)' },
+  { key: 'arm_cm', label: 'Braccia', short: 'Braccio', bg: 'var(--icon-bg-purple)', fg: 'var(--purple)' },
+  { key: 'thigh_cm', label: 'Cosce', short: 'Coscia', bg: 'var(--icon-bg-orange)', fg: 'var(--orange)' },
 ]
 
 const MEAL_TYPES = ['colazione', 'spuntino_mattina', 'pranzo', 'spuntino_pomeriggio', 'cena']
@@ -62,12 +69,15 @@ function SmallTooltip({ active, payload, label, unit = '' }) {
 }
 
 // ── stat card ──────────────────────────────────────────────────
-function StatCard({ icon, label, value, sub, trend }) {
+function StatCard({ icon, label, value, sub, trend, bg = 'var(--icon-bg-green)', fg = 'var(--green-main)' }) {
   const trendColor = trend > 0 ? 'var(--green-main)' : trend < 0 ? 'var(--red)' : 'var(--text-muted)'
   return (
-    <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 14, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-muted)', fontSize: 12 }}>
-        {icon}<span style={{ fontWeight: 500 }}>{label}</span>
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 14, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ width: 30, height: 30, borderRadius: '50%', background: bg, color: fg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          {icon}
+        </div>
+        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)' }}>{label}</span>
       </div>
       <p style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.1 }}>{value}</p>
       {sub && <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{sub}</p>}
@@ -604,6 +614,12 @@ export default function StatisticsPage() {
     { name: '🥑 Grassi', curr: weekAvg.fats, prev: prevAvg.fats, target: dietTarget?.fats_target || null },
   ]
 
+  // Same nutrient → same color across tabs (kcal/prot/carbo/grassi), just a different mark (radial vs bar)
+  const NUTRIENT_COLOR = { '🔥 Kcal': 'var(--orange)', '💪 Prot.': 'var(--blue)', '🌾 Carbo': '#eab308', '🥑 Grassi': 'var(--red)' }
+  const radialData = comparisonData
+    .filter(row => row.target)
+    .map(row => ({ name: row.name.replace(/^\S+\s/, ''), value: Math.min(100, Math.round(row.curr / row.target * 100)), fill: NUTRIENT_COLOR[row.name] }))
+
   // ── render ─────────────────────────────────────────────────────
   return (
     <div className="page">
@@ -614,12 +630,18 @@ export default function StatisticsPage() {
       </div>
 
       {/* tab bar */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--border-light)', background: 'var(--surface)' }}>
-        {TABS_STATIC.map(tab_ => (
-          <button key={tab_.key} onClick={() => setTab(tab_.key)} style={{ flex: 1, padding: '11px 4px', background: 'none', border: 'none', font: 'inherit', fontSize: 11.5, fontWeight: tab === tab_.key ? 700 : 400, color: tab === tab_.key ? 'var(--green-main)' : 'var(--text-muted)', borderBottom: `2px solid ${tab === tab_.key ? 'var(--green-main)' : 'transparent'}`, cursor: 'pointer', transition: 'all 0.15s', textAlign: 'center', lineHeight: 1.3 }}>
-            {tab_.label}
-          </button>
-        ))}
+      <div style={{ padding: '14px 16px', background: 'var(--surface)', borderBottom: '1px solid var(--border-light)' }}>
+        <div style={{ display: 'flex', gap: 6, background: 'var(--surface-2)', borderRadius: 12, padding: 4 }}>
+          {TABS_STATIC.map(tab_ => (
+            <button key={tab_.key} onClick={() => setTab(tab_.key)} style={{
+              flex: 1, padding: '8px 4px', borderRadius: 9, border: 'none', cursor: 'pointer', font: 'inherit',
+              fontSize: 11.5, fontWeight: tab === tab_.key ? 700 : 500, transition: 'all .15s',
+              background: tab === tab_.key ? 'var(--surface)' : 'transparent',
+              color: tab === tab_.key ? 'var(--green-main)' : 'var(--text-muted)',
+              boxShadow: tab === tab_.key ? 'var(--shadow-sm)' : 'none',
+            }}>{tab_.label}</button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
@@ -652,10 +674,10 @@ export default function StatisticsPage() {
               {/* summary cards */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 {[
-                  { icon: <Flame size={13} />, label: 'Kcal media/die', value: `${weekAvg.kcal}`, sub: dietTarget?.kcal_target ? `Obiettivo: ${dietTarget.kcal_target}` : undefined, trend: weekAvg.kcal - prevAvg.kcal },
-                  { icon: <Droplets size={13} />, label: 'Acqua media/die', value: weekAvg.water ? `${Math.round(weekAvg.water)} ml` : 'N/D', trend: weekAvg.water && prevAvg.water ? weekAvg.water - prevAvg.water : undefined },
-                  { icon: <Scale size={13} />, label: 'Peso medio', value: weekAvg.weight ? `${weekAvg.weight} kg` : 'N/D', trend: weekAvg.weight && prevAvg.weight ? weekAvg.weight - prevAvg.weight : undefined },
-                  { icon: <Check size={13} />, label: 'Aderenza media', value: `${avgAdherence}%`, sub: `${weekAdherenceData.filter(d => d.pct >= 80).length}/7 giorni ≥80%` },
+                  { icon: <Flame size={15} />, bg: 'var(--icon-bg-orange)', fg: 'var(--orange)', label: 'Kcal media/die', value: `${weekAvg.kcal}`, sub: dietTarget?.kcal_target ? `Obiettivo: ${dietTarget.kcal_target}` : undefined, trend: weekAvg.kcal - prevAvg.kcal },
+                  { icon: <Droplets size={15} />, bg: 'var(--icon-bg-blue)', fg: 'var(--blue)', label: 'Acqua media/die', value: weekAvg.water ? `${Math.round(weekAvg.water)} ml` : 'N/D', sub: !weekAvg.water ? 'Registra il primo bicchiere' : undefined, trend: weekAvg.water && prevAvg.water ? weekAvg.water - prevAvg.water : undefined },
+                  { icon: <Scale size={15} />, bg: 'var(--icon-bg-purple)', fg: 'var(--purple)', label: 'Peso medio', value: weekAvg.weight ? `${weekAvg.weight} kg` : 'N/D', sub: !weekAvg.weight ? 'Registra il primo peso' : undefined, trend: weekAvg.weight && prevAvg.weight ? weekAvg.weight - prevAvg.weight : undefined },
+                  { icon: <Check size={15} />, bg: 'var(--icon-bg-green)', fg: 'var(--green-main)', label: 'Aderenza media', value: `${avgAdherence}%`, sub: `${weekAdherenceData.filter(d => d.pct >= 80).length}/7 giorni ≥80%` },
                 ].map((card, i) => (
                   <motion.div key={card.label}
                     initial={{ opacity: 0, y: 14 }}
@@ -804,6 +826,28 @@ export default function StatisticsPage() {
           {tab === 'comparison' && (
             <ProGate feature="Confronto settimane" teaser="Confronta due settimane di dati per misurare i tuoi progressi">
             <>
+              {radialData.length > 0 && (
+                <div className="card" style={{ padding: '18px 16px' }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>🎯 Vista d'insieme</h3>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>% dell'obiettivo raggiunto questa settimana</p>
+                  <ResponsiveContainer width="100%" height={190}>
+                    <RadialBarChart innerRadius="28%" outerRadius="100%" data={radialData} startAngle={90} endAngle={-270}>
+                      <RadialBar dataKey="value" background={{ fill: 'var(--border-light)' }} cornerRadius={8}>
+                        {radialData.map((d, i) => <Cell key={i} fill={d.fill} />)}
+                      </RadialBar>
+                    </RadialBarChart>
+                  </ResponsiveContainer>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginTop: 2 }}>
+                    {radialData.map(d => (
+                      <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: d.fill, flexShrink: 0 }} />
+                        <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{d.name}</span>
+                        <span style={{ color: 'var(--text-muted)' }}>{d.value}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="card" style={{ padding: 16 }}>
                 <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>⚖️ Confronto settimane</h3>
                 <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
@@ -928,6 +972,26 @@ export default function StatisticsPage() {
                       {generatingPdf ? <span>Generazione in corso…</span> : <><Download size={18} />Scarica Report PDF</>}
                     </button>
                   </div>
+                  {radialData.length > 0 && (
+                    <div className="card" style={{ padding: '16px 16px 10px' }}>
+                      <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>📊 Anteprima grafica</h3>
+                      {comparisonData.filter(row => row.target).map(row => {
+                        const pct = Math.min(100, Math.round(row.curr / row.target * 100))
+                        const color = NUTRIENT_COLOR[row.name]
+                        return (
+                          <div key={row.name} style={{ marginBottom: 10 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                              <span style={{ fontWeight: 500 }}>{row.name}</span>
+                              <span style={{ color: 'var(--text-muted)' }}>{round1(row.curr)} / {row.target}</span>
+                            </div>
+                            <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 3 }} />
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                   <div className="card" style={{ padding: 16 }}>
                     <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>📋 Anteprima contenuto</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1015,26 +1079,29 @@ export default function StatisticsPage() {
 
           {/* Body measurements section */}
           <div className="card" style={{ padding: 16 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>📏 Misure Corporee</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--icon-bg-green)', color: 'var(--green-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Ruler size={15} />
+              </div>
+              <h3 style={{ fontSize: 15, fontWeight: 700 }}>Misure Corporee</h3>
+            </div>
 
             {/* Form */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-              <div>
-                <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Girovita (cm)</label>
-                <input type="number" className="input-field" placeholder="es. 78" value={waist} onChange={e => setWaist(e.target.value)} inputMode="decimal" step="0.1" />
-              </div>
-              <div>
-                <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Fianchi (cm)</label>
-                <input type="number" className="input-field" placeholder="es. 95" value={hips} onChange={e => setHips(e.target.value)} inputMode="decimal" step="0.1" />
-              </div>
-              <div>
-                <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Braccia (cm)</label>
-                <input type="number" className="input-field" placeholder="es. 30" value={arms} onChange={e => setArms(e.target.value)} inputMode="decimal" step="0.1" />
-              </div>
-              <div>
-                <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Cosce (cm)</label>
-                <input type="number" className="input-field" placeholder="es. 55" value={thighs} onChange={e => setThighs(e.target.value)} inputMode="decimal" step="0.1" />
-              </div>
+              {[
+                { m: MEASURE_META[0], val: waist, set: setWaist, ph: '78' },
+                { m: MEASURE_META[1], val: hips, set: setHips, ph: '95' },
+                { m: MEASURE_META[2], val: arms, set: setArms, ph: '30' },
+                { m: MEASURE_META[3], val: thighs, set: setThighs, ph: '55' },
+              ].map(({ m, val, set, ph }) => (
+                <div key={m.key}>
+                  <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: m.fg, flexShrink: 0 }} />
+                    {m.label} (cm)
+                  </label>
+                  <input type="number" className="input-field" placeholder={`es. ${ph}`} value={val} onChange={e => set(e.target.value)} inputMode="decimal" step="0.1" />
+                </div>
+              ))}
             </div>
             <div style={{ marginBottom: 10 }}>
               <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Data</label>
@@ -1049,17 +1116,20 @@ export default function StatisticsPage() {
               </p>
             )}
 
-            {/* Waist trend chart */}
+            {/* Waist / hips trend chart */}
             {bodyMeasurements.filter(m => m.waist_cm).length > 1 && (
               <div style={{ marginTop: 20 }}>
-                <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Trend girovita</h4>
+                <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Trend girovita{bodyMeasurements.some(m => m.hips_cm) ? ' e fianchi' : ''}</h4>
                 <ResponsiveContainer width="100%" height={120}>
                   <LineChart data={[...bodyMeasurements].filter(m => m.waist_cm).reverse()} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
                     <XAxis dataKey="date" tick={{ fontSize: 9, fill: 'var(--text-muted)' }} tickFormatter={d => d ? d.slice(5) : ''} />
                     <YAxis tick={{ fontSize: 9, fill: 'var(--text-muted)' }} domain={['dataMin - 2', 'dataMax + 2']} />
-                    <Tooltip formatter={v => [v + ' cm', 'Girovita']} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
-                    <Line type="monotone" dataKey="waist_cm" stroke="var(--green-main)" dot={{ r: 3 }} strokeWidth={2} />
+                    <Tooltip formatter={(v, n) => [v + ' cm', n]} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                    <Line type="monotone" dataKey="waist_cm" name="Girovita" stroke="var(--green-main)" dot={{ r: 3 }} strokeWidth={2} />
+                    {bodyMeasurements.some(m => m.hips_cm) && (
+                      <Line type="monotone" dataKey="hips_cm" name="Fianchi" stroke="var(--blue)" dot={{ r: 3 }} strokeWidth={2} connectNulls />
+                    )}
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -1071,13 +1141,14 @@ export default function StatisticsPage() {
                 <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Ultime misure</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {bodyMeasurements.map((m, i) => (
-                    <div key={m.id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 10, fontSize: 12 }}>
+                    <div key={m.id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 10, fontSize: 12, flexWrap: 'wrap', gap: 6 }}>
                       <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{m.date}</span>
-                      <div style={{ display: 'flex', gap: 10, color: 'var(--text-muted)' }}>
-                        {m.waist_cm && <span>○ {m.waist_cm} cm</span>}
-                        {m.hips_cm && <span>○ F {m.hips_cm}</span>}
-                        {m.arm_cm && <span>○ B {m.arm_cm}</span>}
-                        {m.thigh_cm && <span>○ C {m.thigh_cm}</span>}
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {MEASURE_META.map(meta => m[meta.key] ? (
+                          <span key={meta.key} style={{ fontSize: 11, background: meta.bg, color: meta.fg, borderRadius: 100, padding: '2px 8px', fontWeight: 500 }}>
+                            {meta.short} {m[meta.key]}
+                          </span>
+                        ) : null)}
                       </div>
                     </div>
                   ))}

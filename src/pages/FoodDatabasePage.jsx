@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { searchFoodsLocal, searchFoods } from '../lib/foodSearch'
+import { searchFoodsLocal, searchFoods, supplementWithOpenFoodFacts } from '../lib/foodSearch'
 import { Search, Plus, X, BookOpen, Star, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import { useT } from '../i18n'
 
@@ -37,7 +37,7 @@ function IngredientSearch({ onAdd }) {
     if (localFoods.length > 0) { setRes(localFoods); setBusy(false) }
     // Phase 2: supplement with OFA if needed
     if (q.trim().length >= 3 && localFoods.length < 8) {
-      const allFoods = await searchFoods(q.trim())
+      const allFoods = await supplementWithOpenFoodFacts(q.trim(), localFoods)
       setRes(allFoods)
     }
     setBusy(false)

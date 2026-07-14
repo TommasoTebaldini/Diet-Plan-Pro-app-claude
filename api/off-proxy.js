@@ -31,10 +31,18 @@ export default async function handler(req, res) {
     'Accept': 'application/json',
   }
 
-  async function tryFetch(url, extraHeaders = {}) {
-    const r = await fetch(url, { headers: { ...OFF_HEADERS, ...extraHeaders } })
-    if (!r.ok) throw new Error(`HTTP ${r.status}`)
-    return r.json()
+  // Per-tier timeout: a slow (not erroring) upstream must not eat the whole
+  // client-side budget (10s) before the next fallback tier gets a chance.
+  async function tryFetch(url, extraHeaders = {}, timeoutMs = 3000) {
+    const ac = new AbortController()
+    const tid = setTimeout(() => ac.abort(), timeoutMs)
+    try {
+      const r = await fetch(url, { headers: { ...OFF_HEADERS, ...extraHeaders }, signal: ac.signal })
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      return await r.json()
+    } finally {
+      clearTimeout(tid)
+    }
   }
 
   // Normalize a Meilisearch hit to the same shape as mapOFFProduct expects

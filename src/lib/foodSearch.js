@@ -65,7 +65,7 @@ async function searchRecentFoods(query) {
   try {
     const { data, error } = await supabase
       .from('food_logs')
-      .select('food_name, kcal, proteins, carbs, fats, grams')
+      .select('food_name, kcal, proteins, carbs, fats, grams, food_data')
       .ilike('food_name', `%${query}%`)
       .neq('food_name', '__note__')
       .order('created_at', { ascending: false })
@@ -75,7 +75,11 @@ async function searchRecentFoods(query) {
     for (const row of data) {
       if (seen.has(row.food_name)) continue
       const g = row.grams || 100
+      // Reuse the full micronutrient snapshot saved with the original log
+      // (fiber/calcium/iron/sodium/…) instead of rebuilding a stripped-down
+      // object with only the 4 tracked macros.
       seen.set(row.food_name, {
+        ...(row.food_data || {}),
         id: `recent_${row.food_name}`,
         name: row.food_name,
         brand: '',
@@ -83,7 +87,6 @@ async function searchRecentFoods(query) {
         proteins_100g: Math.round((row.proteins || 0) / g * 1000) / 10,
         carbs_100g: Math.round((row.carbs || 0) / g * 1000) / 10,
         fats_100g: Math.round((row.fats || 0) / g * 1000) / 10,
-        fiber_100g: 0,
         source: 'recent',
       })
     }
@@ -193,6 +196,13 @@ async function searchCustomMeals(query) {
 }
 
 // Open Food Facts — Italian-first search with multiple endpoint fallbacks
+// OFF exposes sodium/calcium/iron in grams per 100g (when present at all) —
+// our food_data convention stores them in mg, matching the master DB (all-foods.js).
+function _offMgFrom100g(n, key, saltFallbackKey) {
+  const g = n[key] || (saltFallbackKey ? (n[saltFallbackKey] || 0) / 2.5 : 0)
+  return g ? Math.round(g * 1000) : null
+}
+
 function mapOFFProduct(p) {
   const n = p.nutriments || {}
   // Try kcal directly, then convert from kJ (1 kcal ≈ 4.184 kJ)
@@ -210,6 +220,10 @@ function mapOFFProduct(p) {
     fatSat_100g: Math.round((n['saturated-fat_100g'] || 0) * 10) / 10 || null,
     sugar_100g: Math.round((n['sugars_100g'] || 0) * 10) / 10 || null,
     salt_100g: Math.round((n['salt_100g'] || 0) * 100) / 100 || null,
+    // sodium not always reported directly by OFF — derive from salt (salt(g) / 2.5 = sodium(g))
+    sodium_100g: _offMgFrom100g(n, 'sodium_100g', 'salt_100g'),
+    calcium_100g: _offMgFrom100g(n, 'calcium_100g'),
+    iron_100g: _offMgFrom100g(n, 'iron_100g'),
     fiber_100g: Math.round((n['fiber_100g'] || 0) * 10) / 10,
     source: 'openfoodfacts',
   }
@@ -291,6 +305,23 @@ export async function searchFoodsLocal(query) {
   return _dedup([a, b, c, d, e, f], seen).slice(0, 50)
 }
 
+// Supplements an already-fetched local result set with Open Food Facts,
+// without re-running the 6 local sources (searchFoodsLocal already did that) —
+// callers that do a two-phase search should use this for phase 2.
+export async function supplementWithOpenFoodFacts(query, localItems) {
+  const normalizedQuery = query.toLowerCase().trim()
+  if (!normalizedQuery) return localItems
+  const seen = new Set(localItems.map(f => (f?.name || '').toLowerCase().trim()).filter(Boolean))
+  const offItems = await searchOpenFoodFacts(normalizedQuery)
+  const extra = offItems.filter(food => {
+    if (!food || typeof food !== 'object') return false
+    const k = (food.name || '').toLowerCase().trim()
+    if (!k || seen.has(k)) return false
+    seen.add(k); return true
+  })
+  return [...localItems, ...extra].slice(0, 50)
+}
+
 export async function searchFoods(query) {
   const normalizedQuery = query.toLowerCase().trim()
   if (!normalizedQuery) return []
@@ -346,6 +377,9 @@ export async function searchByBarcode(barcode) {
       fatSat_100g: Math.round((n['saturated-fat_100g'] || 0) * 10) / 10 || null,
       sugar_100g: Math.round((n['sugars_100g'] || 0) * 10) / 10 || null,
       salt_100g: Math.round((n['salt_100g'] || 0) * 100) / 100 || null,
+      sodium_100g: _offMgFrom100g(n, 'sodium_100g', 'salt_100g'),
+      calcium_100g: _offMgFrom100g(n, 'calcium_100g'),
+      iron_100g: _offMgFrom100g(n, 'iron_100g'),
       fiber_100g: Math.round((n['fiber_100g'] || 0) * 10) / 10,
       source: 'openfoodfacts',
     }
