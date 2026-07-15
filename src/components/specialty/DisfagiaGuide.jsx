@@ -1,4 +1,3 @@
-import { MessageCircle } from 'lucide-react'
 import { IDDSI_LEVELS, IDDSI_ALIMENTI } from '../../data/specialtyMeta'
 
 const CATEGORIES = [
@@ -15,12 +14,7 @@ export default function DisfagiaGuide({ dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 10, background: `${meta.color}1a`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <MessageCircle size={16} color={meta.color} />
-        </div>
-        <h3 style={{ fontSize: 15, fontWeight: 700 }}>Alimenti per il tuo livello — IDDSI {level}</h3>
-      </div>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>🗣️ Alimenti per il tuo livello — IDDSI {level}</h3>
       <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 14 }}>
         Consistenza assegnata dal tuo dietista: <b style={{ color: meta.color }}>{meta.nome}</b>
       </p>

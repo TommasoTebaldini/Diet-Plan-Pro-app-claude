@@ -17,12 +17,12 @@ import PazienteSanoTracker from '../components/specialty/PazienteSanoTracker'
 import PediatriaTracker from '../components/specialty/PediatriaTracker'
 import DcaChecklist from '../components/specialty/DcaChecklist'
 import {
-  ChevronLeft, ChevronRight, Sparkles, Clock, Lightbulb, BookOpen,
-  Droplet, Scale, Activity, HeartPulse, Droplets, Flame, Stethoscope,
-  FlaskConical, Baby, MessageCircle, Leaf, Heart,
+  ChevronLeft, ChevronRight, Sparkles, Clock, Lightbulb, BookOpen, Scale, Droplets,
 } from 'lucide-react'
 
-const ICONS = { Droplet, Scale, Activity, HeartPulse, Droplets, Flame, Stethoscope, FlaskConical, Baby, MessageCircle, Leaf, Heart, BookOpen }
+// Icons referenced by key from QUICK_LINKS (specialtyMeta.js) — pathology
+// identity itself is shown with emoji now, not lucide icons.
+const ICONS = { BookOpen, Scale, Droplets }
 
 // Pathologies with a dedicated interactive tool beyond the generic data view.
 // Extend this as more calculators are built (chetogenica/GKI tracker,
@@ -251,7 +251,6 @@ export default function SpecialPage() {
   const headerGradient = active
     ? `linear-gradient(160deg, ${darken(active.color)}, ${active.color})`
     : 'linear-gradient(160deg, #4c1d95, #7c3aed)'
-  const ActiveIcon = active ? ICONS[active.icon] : null
 
   return (
     <div className="page">
@@ -259,14 +258,14 @@ export default function SpecialPage() {
         {active ? (
           <>
             <button onClick={() => setActiveTipo(null)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 100, padding: '6px 12px 6px 8px', color: 'white', fontSize: 12, fontWeight: 600, marginBottom: 16, cursor: 'pointer' }}>
-              <ChevronLeft size={14} /> Speciale
+              <ChevronLeft size={14} /> ✨ Speciale
             </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                {ActiveIcon && <ActiveIcon size={22} color="white" />}
+              <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 26 }}>
+                {active.emoji}
               </div>
               <div>
-                <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'white', fontWeight: 400, lineHeight: 1.2 }}>{active.label}</h1>
+                <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'white', fontWeight: 400, lineHeight: 1.2 }}>{active.emoji} {active.label}</h1>
                 <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 }}>{active.description}</p>
               </div>
             </div>
@@ -275,7 +274,7 @@ export default function SpecialPage() {
           <>
             <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Attivato dal tuo dietista</p>
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'white', fontWeight: 300, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Sparkles size={20} /> Speciale
+              ✨ Speciale
             </h1>
           </>
         )}
@@ -299,7 +298,6 @@ export default function SpecialPage() {
                     <p style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Il tuo dietista non ha ancora attivato nessuna sezione qui.</p>
                   </div>
                 ) : availableSpecialties.map((s, i) => {
-                  const Icon = ICONS[s.icon]
                   const section = byKey[s.key]
                   return (
                     <motion.button
@@ -310,11 +308,11 @@ export default function SpecialPage() {
                       onClick={() => setActiveTipo(s.key)}
                       style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px', background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 16, cursor: 'pointer', font: 'inherit', textAlign: 'left', boxShadow: 'var(--shadow-xs)' }}
                     >
-                      <div style={{ width: 46, height: 46, borderRadius: 14, background: s.bg, color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {Icon && <Icon size={21} />}
+                      <div style={{ width: 48, height: 48, borderRadius: 14, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 24 }}>
+                        {s.emoji}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 14.5, fontWeight: 700 }}>{s.label}</p>
+                        <p style={{ fontSize: 14.5, fontWeight: 700 }}>{s.emoji} {s.label}</p>
                         <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 1 }}>{s.description}</p>
                         <p style={{ fontSize: 10.5, color: section.note ? s.color : 'var(--text-muted)', fontWeight: 600, marginTop: 4 }}>
                           {section.note ? `● Aggiornato ${fmtDate(section.note.updated_at || section.note.created_at)}` : '○ In attesa dei dati del dietista'}

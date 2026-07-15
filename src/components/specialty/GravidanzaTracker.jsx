@@ -1,5 +1,3 @@
-import { Heart } from 'lucide-react'
-
 function num(v) {
   if (v === null || v === undefined || v === '') return null
   const n = parseFloat(String(v).replace(',', '.'))
@@ -54,12 +52,7 @@ export default function GravidanzaTracker({ dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 10, background: '#FAE8FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Heart size={16} color="#C026D3" />
-        </div>
-        <h3 style={{ fontSize: 15, fontWeight: 700 }}>Incremento di peso in gravidanza</h3>
-      </div>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>🤰 Incremento di peso in gravidanza</h3>
       <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 14 }}>
         Categoria pre-gravidanza: <b style={{ color: '#C026D3' }}>{cat.label}</b> (BMI {bmi}){isTwins ? ' · Gravidanza gemellare' : ''}
       </p>

@@ -5,19 +5,21 @@
 // `tipo` values match exactly what each specialist page in NutriPlan-Pro writes
 // to `note_specialistiche.tipo` — do not rename without updating both repos.
 
+// `emoji` matches exactly the icon used in pazienti.html/chat.html's own
+// specMap on the dietitian side — same visual language across both apps.
 export const SPECIALTIES = [
-  { key: 'diabete', label: 'Diabete', description: 'Calcolo dosi insulina e gestione glicemica', icon: 'Droplet', color: '#2563EB', bg: '#DBEAFE' },
-  { key: 'obesita', label: 'Obesità', description: 'Percorso peso e fabbisogno calorico', icon: 'Scale', color: '#EA580C', bg: '#FFEDD5' },
-  { key: 'sport', label: 'Nutrizione Sportiva', description: "Nutrizione per l'allenamento", icon: 'Activity', color: '#059669', bg: '#D1FAE5' },
-  { key: 'dca', label: 'DCA', description: 'Il tuo percorso di cura, un passo alla volta', icon: 'HeartPulse', color: '#E11D48', bg: '#FFE4E6' },
-  { key: 'renale', label: 'Nefropatia / IRC', description: 'Limiti e alimentazione per la salute renale', icon: 'Droplets', color: '#0D9488', bg: '#CCFBF1' },
-  { key: 'chetogenica', label: 'Dieta Chetogenica', description: 'Monitoraggio chetosi e parametri', icon: 'Flame', color: '#7C3AED', bg: '#EDE9FE' },
-  { key: 'oncologia', label: 'Oncologia', description: 'Supporto nutrizionale durante la cura', icon: 'Stethoscope', color: '#DB2777', bg: '#FCE7F3' },
-  { key: 'pancreas', label: 'IPE — Pancreas', description: 'Dosaggio enzimi e gestione digestiva', icon: 'FlaskConical', color: '#D97706', bg: '#FEF3C7' },
-  { key: 'pediatria', label: 'Pediatria', description: 'Piano alimentare e crescita', icon: 'Baby', color: '#4F46E5', bg: '#E0E7FF' },
-  { key: 'disfagia', label: 'Disfagia', description: 'Alimenti sicuri per la tua consistenza', icon: 'MessageCircle', color: '#0891B2', bg: '#CFFAFE' },
-  { key: 'paziente_sano', label: 'Percorso Nutrizionale', description: 'Il tuo fabbisogno e i tuoi obiettivi', icon: 'Leaf', color: '#16A34A', bg: '#DCFCE7' },
-  { key: 'gravidanza', label: 'Gravidanza', description: 'Alimentazione e peso in gravidanza', icon: 'Heart', color: '#C026D3', bg: '#FAE8FF' },
+  { key: 'diabete', label: 'Diabete', emoji: '🩸', description: 'Calcolo dosi insulina e gestione glicemica', icon: 'Droplet', color: '#2563EB', bg: '#DBEAFE' },
+  { key: 'obesita', label: 'Obesità', emoji: '⚖️', description: 'Percorso peso e fabbisogno calorico', icon: 'Scale', color: '#EA580C', bg: '#FFEDD5' },
+  { key: 'sport', label: 'Nutrizione Sportiva', emoji: '🏃', description: "Nutrizione per l'allenamento", icon: 'Activity', color: '#059669', bg: '#D1FAE5' },
+  { key: 'dca', label: 'DCA', emoji: '🫀', description: 'Il tuo percorso di cura, un passo alla volta', icon: 'HeartPulse', color: '#E11D48', bg: '#FFE4E6' },
+  { key: 'renale', label: 'Nefropatia / IRC', emoji: '🫘', description: 'Limiti e alimentazione per la salute renale', icon: 'Droplets', color: '#0D9488', bg: '#CCFBF1' },
+  { key: 'chetogenica', label: 'Dieta Chetogenica', emoji: '🥑', description: 'Monitoraggio chetosi e parametri', icon: 'Flame', color: '#7C3AED', bg: '#EDE9FE' },
+  { key: 'oncologia', label: 'Oncologia', emoji: '🎗️', description: 'Supporto nutrizionale durante la cura', icon: 'Stethoscope', color: '#DB2777', bg: '#FCE7F3' },
+  { key: 'pancreas', label: 'IPE — Pancreas', emoji: '🫁', description: 'Dosaggio enzimi e gestione digestiva', icon: 'FlaskConical', color: '#D97706', bg: '#FEF3C7' },
+  { key: 'pediatria', label: 'Pediatria', emoji: '👶', description: 'Piano alimentare e crescita', icon: 'Baby', color: '#4F46E5', bg: '#E0E7FF' },
+  { key: 'disfagia', label: 'Disfagia', emoji: '🗣️', description: 'Alimenti sicuri per la tua consistenza', icon: 'MessageCircle', color: '#0891B2', bg: '#CFFAFE' },
+  { key: 'paziente_sano', label: 'Percorso Nutrizionale', emoji: '🌿', description: 'Il tuo fabbisogno e i tuoi obiettivi', icon: 'Leaf', color: '#16A34A', bg: '#DCFCE7' },
+  { key: 'gravidanza', label: 'Gravidanza', emoji: '🤰', description: 'Alimentazione e peso in gravidanza', icon: 'Heart', color: '#C026D3', bg: '#FAE8FF' },
 ]
 
 export const SPECIALTY_KEYS = SPECIALTIES.map(s => s.key)

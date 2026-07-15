@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { Leaf } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { fetchTodayIntake } from '../../lib/specialSections'
 
@@ -27,12 +26,7 @@ export default function PazienteSanoTracker({ dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 10, background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Leaf size={16} color="#16A34A" />
-        </div>
-        <h3 style={{ fontSize: 15, fontWeight: 700 }}>Il tuo fabbisogno</h3>
-      </div>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 14 }}>🌿 Il tuo fabbisogno</h3>
 
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${[bmr, tdee, kcalTarget].filter(v => v !== null).length}, 1fr)`, gap: 8, marginBottom: kcalTarget ? 16 : 0 }}>
         {bmr !== null && (

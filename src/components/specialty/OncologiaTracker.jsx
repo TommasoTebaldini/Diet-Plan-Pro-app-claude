@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { Stethoscope } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { fetchTodayIntake } from '../../lib/specialSections'
 
@@ -39,12 +38,7 @@ export default function OncologiaTracker({ dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 10, background: '#FCE7F3', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Stethoscope size={16} color="#DB2777" />
-        </div>
-        <h3 style={{ fontSize: 15, fontWeight: 700 }}>Il tuo apporto di oggi</h3>
-      </div>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 14 }}>🎗️ Il tuo apporto di oggi</h3>
       {intake === null ? (
         <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Caricamento…</p>
       ) : (

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Calculator, AlertTriangle } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 
 function num(v) {
   if (v === null || v === undefined || v === '') return null
@@ -33,12 +33,7 @@ export default function PancreasCalculator({ dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 10, background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Calculator size={16} color="#D97706" />
-        </div>
-        <h3 style={{ fontSize: 15, fontWeight: 700 }}>Calcolo dose enzimi pancreatici (PERT)</h3>
-      </div>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>💊 Calcolo dose enzimi pancreatici (PERT)</h3>
 
       {!ratePerGram ? (
         <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>

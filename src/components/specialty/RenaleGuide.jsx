@@ -1,5 +1,3 @@
-import { Droplets } from 'lucide-react'
-
 // Same per-stage limits table as renale.html's calcIRC() — kept identical so
 // the patient always sees the exact numbers the dietist is working from.
 const STAGE_CONFIG = {
@@ -12,12 +10,6 @@ const STAGE_CONFIG = {
   pd:   { kMax: 3500, pMax: 1000, naMax: 2, liq: 'Diuresi + 500–750 mL', label: 'Dialisi Peritoneale', color: '#059669' },
 }
 
-const TIPS = [
-  'La doppia bollitura (lisciviazione) riduce il potassio delle verdure del 30–50% — porta a bollore, scola, cambia l\'acqua e continua la cottura.',
-  'Attenzione agli additivi a base di fosforo (sigle E338–E341, E450, E452) in salumi, formaggi fusi, pane industriale e snack: il fosforo aggiunto si assorbe quasi al 100%, molto più di quello naturale degli alimenti.',
-  'Evita i sostituti del sale a base di cloruro di potassio (KCl) — possono causare un aumento pericoloso della potassiemia.',
-]
-
 export default function RenaleGuide({ dati }) {
   const stadio = dati.calcolo?.stadio
   const cfg = STAGE_CONFIG[stadio]
@@ -25,12 +17,7 @@ export default function RenaleGuide({ dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 10, background: `${cfg.color}1a`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Droplets size={16} color={cfg.color} />
-        </div>
-        <h3 style={{ fontSize: 15, fontWeight: 700 }}>I tuoi limiti giornalieri — Stadio {cfg.label}</h3>
-      </div>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>🫘 I tuoi limiti giornalieri — Stadio {cfg.label}</h3>
       <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 14 }}>
         Impostati dal tuo dietista in base al tuo stadio di malattia renale cronica.
       </p>
@@ -51,18 +38,6 @@ export default function RenaleGuide({ dati }) {
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 12px', background: '#EFF6FF', borderRadius: 8, fontSize: 13 }}>
           <span>💧 Liquidi</span><b style={{ color: '#1D4ED8' }}>{cfg.liq}</b>
-        </div>
-      </div>
-
-      <div style={{ marginTop: 14 }}>
-        <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>Consigli pratici</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {TIPS.map((t, i) => (
-            <div key={i} style={{ display: 'flex', gap: 8, padding: '9px 11px', background: 'var(--surface-2)', borderRadius: 10 }}>
-              <span style={{ flexShrink: 0 }}>💡</span>
-              <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{t}</p>
-            </div>
-          ))}
         </div>
       </div>
     </div>

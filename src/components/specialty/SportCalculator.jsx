@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Activity } from 'lucide-react'
 
 function num(v) {
   if (v === null || v === undefined || v === '') return null
@@ -23,12 +22,7 @@ export default function SportCalculator({ dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 10, background: '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Activity size={16} color="#059669" />
-        </div>
-        <h3 style={{ fontSize: 15, fontWeight: 700 }}>Il tuo obiettivo di oggi</h3>
-      </div>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>🎯 Il tuo obiettivo di oggi</h3>
 
       {(kcalTrain !== null || kcalRest !== null) && (
         <div style={{ display: 'flex', gap: 6, background: 'var(--surface-2)', borderRadius: 12, padding: 4, marginBottom: 14, marginTop: 10 }}>

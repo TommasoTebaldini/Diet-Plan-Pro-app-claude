@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { Scale } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { fetchLatestWeight } from '../../lib/specialSections'
 
@@ -33,12 +32,7 @@ export default function ObesitaTracker({ dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 10, background: '#FFEDD5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Scale size={16} color="#EA580C" />
-        </div>
-        <h3 style={{ fontSize: 15, fontWeight: 700 }}>Il tuo percorso peso</h3>
-      </div>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 14 }}>⚖️ Il tuo percorso peso</h3>
 
       {target !== null && (
         <>

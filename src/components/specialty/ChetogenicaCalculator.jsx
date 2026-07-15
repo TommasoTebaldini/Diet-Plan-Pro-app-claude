@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Calculator, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 
 const STORAGE_KEY = 'gki_history_v1'
 const MAX_HISTORY = 20
@@ -56,12 +56,7 @@ export default function ChetogenicaCalculator() {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 10, background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Calculator size={16} color="#7C3AED" />
-        </div>
-        <h3 style={{ fontSize: 15, fontWeight: 700 }}>Calcolo GKI — Glucose Ketone Index</h3>
-      </div>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>🔬 Calcolo GKI — Glucose Ketone Index</h3>
       <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 14 }}>
         Registra glicemia e chetoni ematici dopo la misurazione per calcolare il tuo indice di chetosi.
       </p>
@@ -93,7 +88,7 @@ export default function ChetogenicaCalculator() {
       {history.length > 0 && (
         <div style={{ marginTop: 18 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Cronologia (su questo dispositivo)</p>
+            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>📋 Cronologia (su questo dispositivo)</p>
             <button onClick={cancella} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
               <Trash2 size={12} /> Cancella
             </button>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { HeartPulse, Check } from 'lucide-react'
+import { Check } from 'lucide-react'
 
 function todayKey() {
   const d = new Date()
@@ -30,12 +30,7 @@ export default function DcaChecklist({ dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 10, background: '#FFE4E6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <HeartPulse size={16} color="#E11D48" />
-        </div>
-        <h3 style={{ fontSize: 15, fontWeight: 700 }}>I tuoi pasti di oggi</h3>
-      </div>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>🫀 I tuoi pasti di oggi</h3>
       <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 14 }}>
         Un piccolo promemoria, senza numeri da inseguire — spunta man mano che li completi.
       </p>

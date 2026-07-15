@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Baby, Check } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { fetchTodayIntake } from '../../lib/specialSections'
 
@@ -41,12 +41,7 @@ export default function PediatriaTracker({ dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 10, background: '#E0E7FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Baby size={16} color="#4F46E5" />
-        </div>
-        <h3 style={{ fontSize: 15, fontWeight: 700 }}>Pasti di oggi</h3>
-      </div>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 14 }}>👶 Pasti di oggi</h3>
 
       {pasti.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: kcalTarget !== null ? 16 : 0 }}>

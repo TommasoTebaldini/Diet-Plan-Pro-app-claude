@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Calculator, AlertTriangle, History, Trash2 } from 'lucide-react'
+import { AlertTriangle, History, Trash2 } from 'lucide-react'
 
 const STORAGE_KEY = 'diabete_dose_history_v1'
 const MAX_HISTORY = 20
@@ -71,12 +71,7 @@ export default function DiabeteCalculator({ dati }) {
 
   return (
     <div className="card" style={{ padding: 18 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 10, background: '#DBEAFE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Calculator size={16} color="#1D4ED8" />
-        </div>
-        <h3 style={{ fontSize: 15, fontWeight: 700 }}>Calcolo dose insulina pasto</h3>
-      </div>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>💉 Calcolo dose insulina pasto</h3>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         <span style={{ fontSize: 11.5, fontWeight: 600, background: icRatio ? '#EFF6FF' : 'var(--surface-2)', color: icRatio ? '#1D4ED8' : 'var(--text-muted)', borderRadius: 100, padding: '4px 10px' }}>
