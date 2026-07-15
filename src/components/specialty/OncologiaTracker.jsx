@@ -39,15 +39,17 @@ export default function OncologiaTracker({ dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-        <Stethoscope size={16} color="#7C3AED" />
-        <h3 style={{ fontSize: 14, fontWeight: 700 }}>Il tuo apporto di oggi</h3>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <div style={{ width: 32, height: 32, borderRadius: 10, background: '#FCE7F3', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Stethoscope size={16} color="#DB2777" />
+        </div>
+        <h3 style={{ fontSize: 15, fontWeight: 700 }}>Il tuo apporto di oggi</h3>
       </div>
       {intake === null ? (
         <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Caricamento…</p>
       ) : (
         <>
-          {kcalTarget !== null && <Bar label="Kcal" value={intake.kcal} target={kcalTarget} color="#7C3AED" />}
+          {kcalTarget !== null && <Bar label="Kcal" value={intake.kcal} target={kcalTarget} color="#DB2777" />}
           {protTarget !== null && <Bar label="Proteine (g)" value={intake.proteins} target={protTarget} color="#1D4ED8" />}
           <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Calcolato dal diario alimentare di oggi. Se fatichi a raggiungere il target, parlane con il tuo dietista — può indicarti supplementi orali (ONS) o strategie pratiche.</p>
         </>

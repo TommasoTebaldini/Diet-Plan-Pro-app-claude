@@ -54,19 +54,21 @@ export default function GravidanzaTracker({ dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-        <Heart size={16} color="#BE185D" />
-        <h3 style={{ fontSize: 14, fontWeight: 700 }}>Incremento di peso in gravidanza</h3>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+        <div style={{ width: 32, height: 32, borderRadius: 10, background: '#FAE8FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Heart size={16} color="#C026D3" />
+        </div>
+        <h3 style={{ fontSize: 15, fontWeight: 700 }}>Incremento di peso in gravidanza</h3>
       </div>
       <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 14 }}>
-        Categoria pre-gravidanza: <b style={{ color: '#BE185D' }}>{cat.label}</b> (BMI {bmi}){isTwins ? ' · Gravidanza gemellare' : ''}
+        Categoria pre-gravidanza: <b style={{ color: '#C026D3' }}>{cat.label}</b> (BMI {bmi}){isTwins ? ' · Gravidanza gemellare' : ''}
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: gain !== null ? '1fr 1fr' : '1fr', gap: 10, marginBottom: 14 }}>
         {gain !== null && (
-          <div style={{ textAlign: 'center', padding: '14px 10px', background: '#FDF2F8', borderRadius: 12 }}>
+          <div style={{ textAlign: 'center', padding: '14px 10px', background: '#FAE8FF', borderRadius: 12 }}>
             <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Incremento finora</p>
-            <p style={{ fontSize: 22, fontWeight: 800, color: '#BE185D' }}>{gain > 0 ? '+' : ''}{gain} kg</p>
+            <p style={{ fontSize: 22, fontWeight: 800, color: '#C026D3' }}>{gain > 0 ? '+' : ''}{gain} kg</p>
           </div>
         )}
         <div style={{ textAlign: 'center', padding: '14px 10px', background: 'var(--surface-2)', borderRadius: 12 }}>

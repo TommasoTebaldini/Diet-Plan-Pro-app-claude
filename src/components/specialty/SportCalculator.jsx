@@ -23,9 +23,11 @@ export default function SportCalculator({ dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-        <Activity size={16} color="#065F46" />
-        <h3 style={{ fontSize: 14, fontWeight: 700 }}>Il tuo obiettivo di oggi</h3>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+        <div style={{ width: 32, height: 32, borderRadius: 10, background: '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Activity size={16} color="#059669" />
+        </div>
+        <h3 style={{ fontSize: 15, fontWeight: 700 }}>Il tuo obiettivo di oggi</h3>
       </div>
 
       {(kcalTrain !== null || kcalRest !== null) && (
@@ -34,14 +36,14 @@ export default function SportCalculator({ dati }) {
             flex: 1, padding: '8px 4px', borderRadius: 9, border: 'none', cursor: 'pointer', font: 'inherit',
             fontSize: 12.5, fontWeight: training ? 700 : 500,
             background: training ? 'var(--surface)' : 'transparent',
-            color: training ? '#065F46' : 'var(--text-muted)',
+            color: training ? '#059669' : 'var(--text-muted)',
             boxShadow: training ? 'var(--shadow-sm)' : 'none',
           }}>🏋️ Giorno di allenamento</button>
           <button onClick={() => setTraining(false)} style={{
             flex: 1, padding: '8px 4px', borderRadius: 9, border: 'none', cursor: 'pointer', font: 'inherit',
             fontSize: 12.5, fontWeight: !training ? 700 : 500,
             background: !training ? 'var(--surface)' : 'transparent',
-            color: !training ? '#065F46' : 'var(--text-muted)',
+            color: !training ? '#059669' : 'var(--text-muted)',
             boxShadow: !training ? 'var(--shadow-sm)' : 'none',
           }}>🛌 Giorno di riposo</button>
         </div>
@@ -49,9 +51,9 @@ export default function SportCalculator({ dati }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: protTarget ? '1fr 1fr' : '1fr', gap: 10 }}>
         {kcalTarget !== null && (
-          <div style={{ textAlign: 'center', padding: '14px 10px', background: '#ECFDF5', borderRadius: 12 }}>
+          <div style={{ textAlign: 'center', padding: '14px 10px', background: '#D1FAE5', borderRadius: 12 }}>
             <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Kcal target</p>
-            <p style={{ fontSize: 22, fontWeight: 800, color: '#065F46' }}>{kcalTarget}</p>
+            <p style={{ fontSize: 22, fontWeight: 800, color: '#059669' }}>{kcalTarget}</p>
           </div>
         )}
         {protTarget !== null && (

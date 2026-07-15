@@ -53,10 +53,37 @@ function fmtDate(d) {
   return d ? new Date(d).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) : ''
 }
 
+// Darkens a hex color for the header gradient's top stop (same two-stop
+// gradient style as the rest of the app's page headers, e.g. var(--green-dark)
+// → var(--green-main), just computed per-pathology instead of a fixed pair).
+function darken(hex, factor = 0.6) {
+  const n = parseInt(hex.slice(1), 16)
+  const r = Math.round(((n >> 16) & 255) * factor)
+  const g = Math.round(((n >> 8) & 255) * factor)
+  const b = Math.round((n & 255) * factor)
+  return `rgb(${r},${g},${b})`
+}
+
+// Keyword-based icon for a data group — avoids having to hand-annotate every
+// single group across 12 pathologies with its own icon.
+function groupIcon(path) {
+  const p = path.toLowerCase()
+  if (p.includes('piano')) return '🍽️'
+  if (p.includes('fabbisogno')) return '🔥'
+  if (p.includes('dose') || p.includes('pert')) return '💉'
+  if (p.includes('gki')) return '🔬'
+  if (p.includes('calcolo')) return '🧮'
+  if (p.includes('valutazione') || p.includes('clinica')) return '📋'
+  if (p.includes('supporto') || p.includes('sintomi')) return '💊'
+  if (p.includes('comportamento')) return '🧠'
+  if (p.includes('rapporto')) return '⚖️'
+  return '📌'
+}
+
 // ── generic field row ────────────────────────────────────────────────────────
 function FieldRow({ label, value, unit }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '8px 0', borderBottom: '1px solid var(--border-light)' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '9px 0', borderBottom: '1px solid var(--border-light)' }}>
       <span style={{ fontSize: 13, color: 'var(--text-muted)', flexShrink: 0 }}>{label}</span>
       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right' }}>{value}{unit ? ` ${unit}` : ''}</span>
     </div>
@@ -77,9 +104,9 @@ function MealsTable({ meals }) {
         </thead>
         <tbody>
           {rows.map((m, i) => (
-            <tr key={i} style={{ borderBottom: '1px solid var(--border-light)' }}>
+            <tr key={i} style={{ borderBottom: '1px solid var(--border-light)', background: i % 2 ? 'var(--surface-2)' : 'transparent' }}>
               {cols.map(c => (
-                <td key={c.key} style={{ padding: '7px 8px', color: 'var(--text-secondary)' }}>
+                <td key={c.key} style={{ padding: '8px', color: 'var(--text-secondary)' }}>
                   {hasValue(m[c.key]) ? `${m[c.key]}${c.unit ? ' ' + c.unit : ''}` : '—'}
                 </td>
               ))}
@@ -91,7 +118,7 @@ function MealsTable({ meals }) {
   )
 }
 
-function GroupCard({ group, dati }) {
+function GroupCard({ group, dati, accent }) {
   const data = getPath(dati, group.path) || {}
   const fields = (group.fields || []).filter(f => hasValue(data[f.key]))
   const meals = group.meals ? data[group.meals] : null
@@ -105,14 +132,17 @@ function GroupCard({ group, dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{group.label}</h3>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <span style={{ fontSize: 16 }}>{groupIcon(group.path)}</span>
+        <h3 style={{ fontSize: 14, fontWeight: 700 }}>{group.label}</h3>
+      </div>
       {fields.map(f => <FieldRow key={f.key} label={f.label || f.key} value={data[f.key]} unit={f.unit} />)}
       {activeCheckboxes.length > 0 && (
         <div style={{ marginTop: 10 }}>
           <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>{group.checkboxGroup.label}</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {activeCheckboxes.map(([k, label]) => (
-              <span key={k} style={{ fontSize: 11.5, background: 'var(--icon-bg-orange)', color: 'var(--orange)', borderRadius: 100, padding: '3px 10px', fontWeight: 500 }}>{label}</span>
+              <span key={k} style={{ fontSize: 11.5, background: `${accent}1a`, color: accent, borderRadius: 100, padding: '3px 10px', fontWeight: 500 }}>{label}</span>
             ))}
           </div>
         </div>
@@ -122,7 +152,7 @@ function GroupCard({ group, dati }) {
   )
 }
 
-function NoteDetail({ tipo, dati }) {
+function NoteDetail({ tipo, dati, accent }) {
   const config = FIELD_CONFIG[tipo]
   if (!config) return null
 
@@ -144,7 +174,7 @@ function NoteDetail({ tipo, dati }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {(config.groups || []).map(g => <GroupCard key={g.path} group={g} dati={dati} />)}
+      {(config.groups || []).map(g => <GroupCard key={g.path} group={g} dati={dati} accent={accent} />)}
     </div>
   )
 }
@@ -167,19 +197,37 @@ export default function SpecialPage() {
   const activeSection = active ? byKey[active.key] : null
   const Tool = active ? TOOLS[active.key] : null
 
+  const headerGradient = active
+    ? `linear-gradient(160deg, ${darken(active.color)}, ${active.color})`
+    : 'linear-gradient(160deg, #4c1d95, #7c3aed)'
+  const ActiveIcon = active ? ICONS[active.icon] : null
+
   return (
     <div className="page">
-      <div style={{ background: 'linear-gradient(160deg, #4c1d95, #7c3aed)', padding: 'calc(env(safe-area-inset-top) + 20px) 20px 24px' }}>
+      <div style={{ background: headerGradient, padding: 'calc(env(safe-area-inset-top) + 20px) 20px 24px', transition: 'background .25s' }}>
         {active ? (
-          <button onClick={() => setActiveTipo(null)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 100, padding: '6px 12px 6px 8px', color: 'white', fontSize: 12, fontWeight: 600, marginBottom: 12, cursor: 'pointer' }}>
-            <ChevronLeft size={14} /> Speciale
-          </button>
+          <>
+            <button onClick={() => setActiveTipo(null)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 100, padding: '6px 12px 6px 8px', color: 'white', fontSize: 12, fontWeight: 600, marginBottom: 16, cursor: 'pointer' }}>
+              <ChevronLeft size={14} /> Speciale
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                {ActiveIcon && <ActiveIcon size={22} color="white" />}
+              </div>
+              <div>
+                <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'white', fontWeight: 400, lineHeight: 1.2 }}>{active.label}</h1>
+                <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 }}>{active.description}</p>
+              </div>
+            </div>
+          </>
         ) : (
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Attivato dal tuo dietista</p>
+          <>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Attivato dal tuo dietista</p>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'white', fontWeight: 300, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Sparkles size={20} /> Speciale
+            </h1>
+          </>
         )}
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'white', fontWeight: 300, display: 'flex', alignItems: 'center', gap: 8 }}>
-          {!active && <Sparkles size={20} />} {active ? active.label : 'Speciale'}
-        </h1>
       </div>
 
       <div style={{ padding: 20 }}>
@@ -194,43 +242,58 @@ export default function SpecialPage() {
             {!active ? (
               <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {availableSpecialties.length === 0 ? (
-                  <div className="card" style={{ padding: 24, textAlign: 'center' }}>
-                    <Sparkles size={28} color="var(--text-muted)" style={{ marginBottom: 10 }} />
-                    <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Nessuna sezione attiva</p>
-                    <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Il tuo dietista non ha ancora attivato nessuna sezione qui.</p>
+                  <div className="card" style={{ padding: 28, textAlign: 'center' }}>
+                    <Sparkles size={30} color="var(--text-muted)" style={{ marginBottom: 12 }} />
+                    <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Nessuna sezione attiva</p>
+                    <p style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Il tuo dietista non ha ancora attivato nessuna sezione qui.</p>
                   </div>
-                ) : availableSpecialties.map(s => {
+                ) : availableSpecialties.map((s, i) => {
                   const Icon = ICONS[s.icon]
                   const section = byKey[s.key]
                   return (
-                    <button key={s.key} onClick={() => setActiveTipo(s.key)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 14, cursor: 'pointer', font: 'inherit', textAlign: 'left' }}>
-                      <div style={{ width: 42, height: 42, borderRadius: 12, background: s.bg, color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {Icon && <Icon size={20} />}
+                    <motion.button
+                      key={s.key}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.04, duration: 0.28 }}
+                      onClick={() => setActiveTipo(s.key)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px', background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 16, cursor: 'pointer', font: 'inherit', textAlign: 'left', boxShadow: 'var(--shadow-xs)' }}
+                    >
+                      <div style={{ width: 46, height: 46, borderRadius: 14, background: s.bg, color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {Icon && <Icon size={21} />}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 14, fontWeight: 600 }}>{s.label}</p>
-                        <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                          {section.note ? `Aggiornato ${fmtDate(section.note.updated_at || section.note.created_at)}` : 'In attesa dei dati del dietista'}
+                        <p style={{ fontSize: 14.5, fontWeight: 700 }}>{s.label}</p>
+                        <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 1 }}>{s.description}</p>
+                        <p style={{ fontSize: 10.5, color: section.note ? s.color : 'var(--text-muted)', fontWeight: 600, marginTop: 4 }}>
+                          {section.note ? `● Aggiornato ${fmtDate(section.note.updated_at || section.note.created_at)}` : '○ In attesa dei dati del dietista'}
                         </p>
                       </div>
                       <ChevronRight size={18} color="var(--text-muted)" />
-                    </button>
+                    </motion.button>
                   )
                 })}
               </motion.div>
             ) : (
               <motion.div key="detail" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {!activeSection?.note ? (
-                  <div className="card" style={{ padding: 24, textAlign: 'center' }}>
-                    <Clock size={26} color="var(--text-muted)" style={{ marginBottom: 10 }} />
-                    <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>In attesa dei dati</p>
-                    <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Il tuo dietista ha attivato questa sezione ma non ha ancora salvato una scheda — torna a controllare più avanti.</p>
+                  <div className="card" style={{ padding: 28, textAlign: 'center' }}>
+                    <Clock size={28} color="var(--text-muted)" style={{ marginBottom: 12 }} />
+                    <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>In attesa dei dati</p>
+                    <p style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Il tuo dietista ha attivato questa sezione ma non ha ancora salvato una scheda — torna a controllare più avanti.</p>
                   </div>
                 ) : (
                   <>
-                    {Tool && <Tool dati={activeSection.note.dati} />}
-                    {activeSection.note.nota && <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{activeSection.note.nota}</p>}
-                    <NoteDetail tipo={active.key} dati={activeSection.note.dati} />
+                    {Tool && <Tool dati={activeSection.note.dati} accent={active.color} accentBg={active.bg} />}
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                        <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
+                        <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Dati della scheda</p>
+                        <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
+                      </div>
+                      {activeSection.note.nota && <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10 }}>{activeSection.note.nota}</p>}
+                      <NoteDetail tipo={active.key} dati={activeSection.note.dati} accent={active.color} />
+                    </div>
                     <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>Ultimo aggiornamento: {fmtDate(activeSection.note.updated_at || activeSection.note.created_at)}</p>
                   </>
                 )}

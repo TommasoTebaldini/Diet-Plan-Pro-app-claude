@@ -33,9 +33,11 @@ export default function PancreasCalculator({ dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-        <Calculator size={16} color="#C2410C" />
-        <h3 style={{ fontSize: 14, fontWeight: 700 }}>Calcolo dose enzimi pancreatici (PERT)</h3>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+        <div style={{ width: 32, height: 32, borderRadius: 10, background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Calculator size={16} color="#D97706" />
+        </div>
+        <h3 style={{ fontSize: 15, fontWeight: 700 }}>Calcolo dose enzimi pancreatici (PERT)</h3>
       </div>
 
       {!ratePerGram ? (
@@ -55,9 +57,9 @@ export default function PancreasCalculator({ dati }) {
           </div>
 
           {ul !== null && (
-            <div style={{ marginTop: 14, padding: '14px 16px', background: '#FFF7ED', borderRadius: 12 }}>
-              <p style={{ fontSize: 12, color: '#C2410C', marginBottom: 4 }}>Dose stimata per questo pasto</p>
-              <p style={{ fontSize: 26, fontWeight: 800, color: '#C2410C' }}>{ul.toLocaleString('it-IT')} UL</p>
+            <div style={{ marginTop: 14, padding: '14px 16px', background: '#FEF3C7', borderRadius: 12 }}>
+              <p style={{ fontSize: 12, color: '#D97706', marginBottom: 4 }}>Dose stimata per questo pasto</p>
+              <p style={{ fontSize: 26, fontWeight: 800, color: '#D97706' }}>{ul.toLocaleString('it-IT')} UL</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
                 <span style={{ fontSize: 11.5, fontWeight: 700, background: '#DBEAFE', color: '#1D4ED8', borderRadius: 100, padding: '3px 10px' }}>Creon 40.000: {creon40} cps</span>
                 <span style={{ fontSize: 11.5, fontWeight: 700, background: '#EDE9FE', color: '#5B21B6', borderRadius: 100, padding: '3px 10px' }}>Creon 25.000: {creon25} cps</span>

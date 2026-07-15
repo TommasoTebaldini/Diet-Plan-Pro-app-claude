@@ -33,9 +33,11 @@ export default function ObesitaTracker({ dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-        <Scale size={16} color="#EA580C" />
-        <h3 style={{ fontSize: 14, fontWeight: 700 }}>Il tuo percorso peso</h3>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <div style={{ width: 32, height: 32, borderRadius: 10, background: '#FFEDD5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Scale size={16} color="#EA580C" />
+        </div>
+        <h3 style={{ fontSize: 15, fontWeight: 700 }}>Il tuo percorso peso</h3>
       </div>
 
       {target !== null && (
@@ -59,7 +61,7 @@ export default function ObesitaTracker({ dati }) {
       )}
 
       {kcalTarget !== null && (
-        <div style={{ marginTop: target !== null ? 16 : 0, textAlign: 'center', padding: '12px 10px', background: '#FFF7ED', borderRadius: 12 }}>
+        <div style={{ marginTop: target !== null ? 16 : 0, textAlign: 'center', padding: '12px 10px', background: '#FFEDD5', borderRadius: 12 }}>
           <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Kcal target giornaliero{deficit ? ` (${deficit})` : ''}</p>
           <p style={{ fontSize: 20, fontWeight: 800, color: '#EA580C' }}>{kcalTarget} kcal</p>
         </div>

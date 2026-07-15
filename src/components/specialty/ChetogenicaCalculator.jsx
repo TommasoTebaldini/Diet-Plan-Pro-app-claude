@@ -56,9 +56,11 @@ export default function ChetogenicaCalculator() {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-        <Calculator size={16} color="#7C3AED" />
-        <h3 style={{ fontSize: 14, fontWeight: 700 }}>Calcolo GKI — Glucose Ketone Index</h3>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+        <div style={{ width: 32, height: 32, borderRadius: 10, background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Calculator size={16} color="#7C3AED" />
+        </div>
+        <h3 style={{ fontSize: 15, fontWeight: 700 }}>Calcolo GKI — Glucose Ketone Index</h3>
       </div>
       <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 14 }}>
         Registra glicemia e chetoni ematici dopo la misurazione per calcolare il tuo indice di chetosi.

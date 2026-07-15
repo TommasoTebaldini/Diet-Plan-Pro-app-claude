@@ -27,9 +27,11 @@ export default function PazienteSanoTracker({ dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-        <Leaf size={16} color="#16A34A" />
-        <h3 style={{ fontSize: 14, fontWeight: 700 }}>Il tuo fabbisogno</h3>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <div style={{ width: 32, height: 32, borderRadius: 10, background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Leaf size={16} color="#16A34A" />
+        </div>
+        <h3 style={{ fontSize: 15, fontWeight: 700 }}>Il tuo fabbisogno</h3>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${[bmr, tdee, kcalTarget].filter(v => v !== null).length}, 1fr)`, gap: 8, marginBottom: kcalTarget ? 16 : 0 }}>

@@ -6,18 +6,18 @@
 // to `note_specialistiche.tipo` — do not rename without updating both repos.
 
 export const SPECIALTIES = [
-  { key: 'diabete', label: 'Diabete', icon: 'Droplet', color: '#1D4ED8', bg: '#DBEAFE' },
-  { key: 'obesita', label: 'Obesità', icon: 'Scale', color: '#EA580C', bg: '#FFF7ED' },
-  { key: 'sport', label: 'Nutrizione Sportiva', icon: 'Activity', color: '#065F46', bg: '#ECFDF5' },
-  { key: 'dca', label: 'DCA', icon: 'HeartPulse', color: '#991B1B', bg: '#FEE2E2' },
-  { key: 'renale', label: 'Nefropatia / IRC', icon: 'Droplets', color: '#0F766E', bg: '#CCFBF1' },
-  { key: 'chetogenica', label: 'Dieta Chetogenica', icon: 'Flame', color: '#7C3AED', bg: '#F5F3FF' },
-  { key: 'oncologia', label: 'Oncologia', icon: 'Stethoscope', color: '#7C3AED', bg: '#F5F3FF' },
-  { key: 'pancreas', label: 'IPE — Pancreas', icon: 'FlaskConical', color: '#C2410C', bg: '#FFF7ED' },
-  { key: 'pediatria', label: 'Pediatria', icon: 'Baby', color: '#5B21B6', bg: '#EDE9FE' },
-  { key: 'disfagia', label: 'Disfagia', icon: 'MessageCircle', color: '#0369A1', bg: '#E0F2FE' },
-  { key: 'paziente_sano', label: 'Percorso Nutrizionale', icon: 'Leaf', color: '#16A34A', bg: '#F0FDF4' },
-  { key: 'gravidanza', label: 'Gravidanza', icon: 'Heart', color: '#BE185D', bg: '#FDF2F8' },
+  { key: 'diabete', label: 'Diabete', description: 'Calcolo dosi insulina e gestione glicemica', icon: 'Droplet', color: '#2563EB', bg: '#DBEAFE' },
+  { key: 'obesita', label: 'Obesità', description: 'Percorso peso e fabbisogno calorico', icon: 'Scale', color: '#EA580C', bg: '#FFEDD5' },
+  { key: 'sport', label: 'Nutrizione Sportiva', description: "Nutrizione per l'allenamento", icon: 'Activity', color: '#059669', bg: '#D1FAE5' },
+  { key: 'dca', label: 'DCA', description: 'Il tuo percorso di cura, un passo alla volta', icon: 'HeartPulse', color: '#E11D48', bg: '#FFE4E6' },
+  { key: 'renale', label: 'Nefropatia / IRC', description: 'Limiti e alimentazione per la salute renale', icon: 'Droplets', color: '#0D9488', bg: '#CCFBF1' },
+  { key: 'chetogenica', label: 'Dieta Chetogenica', description: 'Monitoraggio chetosi e parametri', icon: 'Flame', color: '#7C3AED', bg: '#EDE9FE' },
+  { key: 'oncologia', label: 'Oncologia', description: 'Supporto nutrizionale durante la cura', icon: 'Stethoscope', color: '#DB2777', bg: '#FCE7F3' },
+  { key: 'pancreas', label: 'IPE — Pancreas', description: 'Dosaggio enzimi e gestione digestiva', icon: 'FlaskConical', color: '#D97706', bg: '#FEF3C7' },
+  { key: 'pediatria', label: 'Pediatria', description: 'Piano alimentare e crescita', icon: 'Baby', color: '#4F46E5', bg: '#E0E7FF' },
+  { key: 'disfagia', label: 'Disfagia', description: 'Alimenti sicuri per la tua consistenza', icon: 'MessageCircle', color: '#0891B2', bg: '#CFFAFE' },
+  { key: 'paziente_sano', label: 'Percorso Nutrizionale', description: 'Il tuo fabbisogno e i tuoi obiettivi', icon: 'Leaf', color: '#16A34A', bg: '#DCFCE7' },
+  { key: 'gravidanza', label: 'Gravidanza', description: 'Alimentazione e peso in gravidanza', icon: 'Heart', color: '#C026D3', bg: '#FAE8FF' },
 ]
 
 export const SPECIALTY_KEYS = SPECIALTIES.map(s => s.key)

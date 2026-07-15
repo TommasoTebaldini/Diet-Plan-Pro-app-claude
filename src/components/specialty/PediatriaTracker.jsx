@@ -41,9 +41,11 @@ export default function PediatriaTracker({ dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-        <Baby size={16} color="#5B21B6" />
-        <h3 style={{ fontSize: 14, fontWeight: 700 }}>Pasti di oggi</h3>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <div style={{ width: 32, height: 32, borderRadius: 10, background: '#E0E7FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Baby size={16} color="#4F46E5" />
+        </div>
+        <h3 style={{ fontSize: 15, fontWeight: 700 }}>Pasti di oggi</h3>
       </div>
 
       {pasti.length > 0 && (
@@ -51,12 +53,12 @@ export default function PediatriaTracker({ dati }) {
           {pasti.map((m, i) => (
             <button key={i} onClick={() => toggle(m.nome || `pasto-${i}`)} style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, border: '1.5px solid var(--border-light)',
-              background: checked[m.nome || `pasto-${i}`] ? '#EDE9FE' : 'var(--surface)', cursor: 'pointer', font: 'inherit', textAlign: 'left',
+              background: checked[m.nome || `pasto-${i}`] ? '#E0E7FF' : 'var(--surface)', cursor: 'pointer', font: 'inherit', textAlign: 'left',
             }}>
               <div style={{
                 width: 20, height: 20, borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: `1.5px solid ${checked[m.nome || `pasto-${i}`] ? '#5B21B6' : 'var(--border)'}`,
-                background: checked[m.nome || `pasto-${i}`] ? '#5B21B6' : 'transparent',
+                border: `1.5px solid ${checked[m.nome || `pasto-${i}`] ? '#4F46E5' : 'var(--border)'}`,
+                background: checked[m.nome || `pasto-${i}`] ? '#4F46E5' : 'transparent',
               }}>
                 {checked[m.nome || `pasto-${i}`] && <Check size={13} color="white" />}
               </div>
@@ -70,9 +72,9 @@ export default function PediatriaTracker({ dati }) {
       )}
 
       {kcalTarget !== null && intake !== null && (
-        <div style={{ padding: '12px 10px', background: '#EDE9FE', borderRadius: 12, textAlign: 'center' }}>
+        <div style={{ padding: '12px 10px', background: '#E0E7FF', borderRadius: 12, textAlign: 'center' }}>
           <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Kcal assunte oggi / target</p>
-          <p style={{ fontSize: 18, fontWeight: 800, color: '#5B21B6' }}>{Math.round(intake.kcal)} / {kcalTarget}</p>
+          <p style={{ fontSize: 18, fontWeight: 800, color: '#4F46E5' }}>{Math.round(intake.kcal)} / {kcalTarget}</p>
         </div>
       )}
     </div>

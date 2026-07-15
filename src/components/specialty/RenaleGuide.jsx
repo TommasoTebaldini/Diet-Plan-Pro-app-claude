@@ -25,9 +25,11 @@ export default function RenaleGuide({ dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-        <Droplets size={16} color={cfg.color} />
-        <h3 style={{ fontSize: 14, fontWeight: 700 }}>I tuoi limiti giornalieri — Stadio {cfg.label}</h3>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+        <div style={{ width: 32, height: 32, borderRadius: 10, background: `${cfg.color}1a`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Droplets size={16} color={cfg.color} />
+        </div>
+        <h3 style={{ fontSize: 15, fontWeight: 700 }}>I tuoi limiti giornalieri — Stadio {cfg.label}</h3>
       </div>
       <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 14 }}>
         Impostati dal tuo dietista in base al tuo stadio di malattia renale cronica.
