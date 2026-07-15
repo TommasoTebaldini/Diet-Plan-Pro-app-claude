@@ -131,7 +131,7 @@ export default function QuizPage({ inModal = false }) {
     setPhase('loading')
     fetch(QUESTION_BANK_URL)
       .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json() })
-      .then(data => { if (!cancelled) setBank(data.questions) })
+      .then(data => { if (!cancelled) setBank((data.questions || []).filter(Boolean)) })
       .catch(() => { if (!cancelled) setPhase('error') })
     return () => { cancelled = true }
   }, [fetchAttempt])
