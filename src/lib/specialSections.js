@@ -12,12 +12,22 @@ function parseDati(raw) {
   return raw
 }
 
+// A patient's linked cartelle essentially never change mid-session — caching
+// this avoids a redundant round-trip every time the Speciale page (or its
+// tools) is revisited, on top of the note_specialistiche query that follows.
+const _cartellaCache = new Map() // userId -> { ids, ts }
+const CARTELLA_CACHE_TTL = 5 * 60 * 1000
+
 async function resolveCartellaIds(userId) {
+  const cached = _cartellaCache.get(userId)
+  if (cached && Date.now() - cached.ts < CARTELLA_CACHE_TTL) return cached.ids
   const { data: links } = await supabase
     .from('patient_dietitian')
     .select('cartella_id')
     .eq('patient_id', userId)
-  return [...new Set((links || []).map(l => l.cartella_id).filter(Boolean))]
+  const ids = [...new Set((links || []).map(l => l.cartella_id).filter(Boolean))]
+  _cartellaCache.set(userId, { ids, ts: Date.now() })
+  return ids
 }
 
 // A pathology section is visible to the patient purely based on

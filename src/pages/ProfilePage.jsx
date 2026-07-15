@@ -24,6 +24,19 @@ import {
   subscribeToPush, DEFAULT_PREFS,
 } from '../lib/notifications'
 
+// A legacy row saved before these columns were arrays (or any manual DB edit)
+// could leave a non-JSON string here — JSON.parse would throw synchronously
+// during render and take down the whole page for that patient.
+function safeParseArray(v) {
+  if (!v) return []
+  try {
+    const parsed = JSON.parse(v)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
 // ─── Modal wrapper ────────────────────────────────────────────────────────────
 function Modal({ title, onClose, children }) {
   return (
@@ -158,7 +171,7 @@ function IntolerancesModal({ profile, user, onClose, onSaved }) {
     'Lupini',
     'Anidride solforosa e solfiti',
   ]
-  const initial = Array.isArray(profile?.intolerances) ? profile.intolerances : (profile?.intolerances ? JSON.parse(profile.intolerances) : [])
+  const initial = Array.isArray(profile?.intolerances) ? profile.intolerances : safeParseArray(profile?.intolerances)
   const [selected, setSelected] = useState(initial)
   const [other, setOther] = useState(() => {
     const custom = initial.filter(x => !ITEMS.includes(x))
@@ -219,7 +232,7 @@ function FoodPrefsModal({ profile, user, onClose, onSaved }) {
     'Senza glutine', 'Senza lattosio', 'Low carb', 'Keto', 'Paleo',
     'Senza zucchero aggiunto', 'Dieta mediterranea', 'Halal', 'Kosher',
   ]
-  const initial = Array.isArray(profile?.food_preferences) ? profile.food_preferences : (profile?.food_preferences ? JSON.parse(profile.food_preferences) : [])
+  const initial = Array.isArray(profile?.food_preferences) ? profile.food_preferences : safeParseArray(profile?.food_preferences)
   const currentDiet = DIETS.find(d => initial.includes(d.val))?.val || 'onnivoro'
   const [diet, setDiet] = useState(currentDiet)
   const [extras, setExtras] = useState(initial.filter(x => EXTRAS.includes(x)))

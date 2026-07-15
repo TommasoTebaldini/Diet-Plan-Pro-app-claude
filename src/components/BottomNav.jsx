@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users, ChefHat, Star, Flower2, MoreHorizontal, X, Droplets, Brain, Award, ShoppingCart, Timer, Pill, Sparkles } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users, ChefHat, Star, Flower2, X, Droplets, Brain, Award, ShoppingCart, Timer, Pill, Sparkles, ChevronRight } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
@@ -8,6 +9,7 @@ import { PAYMENTS_ACTIVE, useSubscription } from '../hooks/useSubscription'
 import { fetchEnabledSpecialties } from '../lib/specialSections'
 
 const DOCS_EPOCH = '1970-01-01T00:00:00Z'
+const HAS_SPECIAL_CACHE_KEY = 'has_special_cache'
 
 const badgeStyle = {
   position: 'absolute', top: -4, right: -4, width: 16, height: 16,
@@ -35,7 +37,6 @@ export default function BottomNav() {
   const t = useT()
   const [newDocs, setNewDocs] = useState(0)
   const [newShared, setNewShared] = useState(0)
-  const [moreOpen, setMoreOpen] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(
     () => localStorage.getItem('sidebar_open') !== 'false'
   )
@@ -45,12 +46,19 @@ export default function BottomNav() {
     return next
   })
   const [unreadChat, setUnreadChat] = useState(0)
-  const [hasSpecial, setHasSpecial] = useState(false)
+  // Seeded from last known state so the "Speciale" entry doesn't pop in a few
+  // seconds after the app opens on every single visit — only the very first
+  // login ever has to wait on the real network round-trip below.
+  const [hasSpecial, setHasSpecial] = useState(() => localStorage.getItem(HAS_SPECIAL_CACHE_KEY) === 'true')
   const isDesktop = useIsDesktop()
 
   useEffect(() => {
     if (!user?.id) return
-    fetchEnabledSpecialties(user.id).then(keys => setHasSpecial(keys.length > 0))
+    fetchEnabledSpecialties(user.id).then(keys => {
+      const has = keys.length > 0
+      setHasSpecial(has)
+      localStorage.setItem(HAS_SPECIAL_CACHE_KEY, String(has))
+    })
   }, [user?.id])
 
   useEffect(() => {
@@ -119,7 +127,6 @@ export default function BottomNav() {
   }, [user])
 
   useEffect(() => { if (pathname === '/chat') setUnreadChat(0) }, [pathname])
-  useEffect(() => { setMoreOpen(false) }, [pathname])
 
   const TABS = [
     { to: '/', icon: Home, label: t('nav.dashboard') },
@@ -143,7 +150,12 @@ export default function BottomNav() {
     ...(PAYMENTS_ACTIVE ? [{ to: '/abbonamento', icon: Star, label: 'Abbonamento' }] : []),
   ]
 
-  // ── Desktop sidebar ──────────────────────────────────────────────────────────
+  // Sub-section sheet state — declared before the desktop early-return so hook
+  // order stays identical across renders regardless of isDesktop.
+  const [openGroup, setOpenGroup] = useState(null)
+  useEffect(() => { setOpenGroup(null) }, [pathname])
+
+  // ── Desktop sidebar (unchanged — plenty of room, no need to group) ─────────
   if (isDesktop) {
     const tabMap = Object.fromEntries(TABS.map(t => [t.to, t]))
     const DESKTOP_SECTIONS = [
@@ -222,51 +234,70 @@ export default function BottomNav() {
     )
   }
 
-  // ── Mobile: 5 tab + sheet "Altro" ────────────────────────────────────────────
-  const MOBILE_PRIMARY = [
-    { to: '/', icon: Home, label: t('nav.dashboard') },
-    { to: '/dieta', icon: Utensils, label: t('nav.diet') },
-    { to: '/macro', icon: BookOpen, label: t('nav.diary') },
-    { to: '/chat', icon: MessageCircle, label: t('nav.chat'), badge: unreadChat },
-    { to: '/profilo', icon: User, label: t('nav.profile') },
-  ]
+  // ── Mobile: 5 macro-groups — Home is a direct destination, the other 4 open
+  // a sheet listing their sub-sections. Keeps the bar itself simple/thumb-
+  // friendly regardless of how many sections exist inside each group. ───────
+  const GROUPS = {
+    nutrizione: {
+      label: 'Nutrizione', icon: Utensils, color: 'var(--green-main)', bg: 'var(--icon-bg-green)',
+      items: [
+        { to: '/dieta', icon: Utensils, label: t('nav.diet'), color: 'var(--green-main)', bg: 'var(--icon-bg-green)' },
+        { to: '/macro', icon: BookOpen, label: t('nav.diary'), color: 'var(--blue)', bg: 'var(--icon-bg-blue)' },
+        { to: '/ricette', icon: ChefHat, label: t('nav.recipes'), badge: newShared, color: 'var(--orange)', bg: 'var(--icon-bg-orange)' },
+        { to: '/acqua', icon: Droplets, label: 'Acqua', color: '#0891B2', bg: 'var(--icon-bg-cyan)' },
+        { to: '/lista-spesa', icon: ShoppingCart, label: 'Lista spesa', color: 'var(--purple)', bg: 'var(--icon-bg-purple)' },
+        { to: '/digiuno', icon: Timer, label: 'Digiuno IF', color: '#DB2777', bg: 'var(--icon-bg-pink)' },
+        { to: '/alimenti', icon: BookOpen, label: 'Alimenti', color: '#0D9488', bg: 'var(--icon-bg-teal)' },
+      ],
+    },
+    professionisti: {
+      label: 'Professionisti', icon: Users, color: 'var(--blue)', bg: 'var(--icon-bg-blue)',
+      items: [
+        { to: '/chat', icon: MessageCircle, label: t('nav.chat'), badge: unreadChat, color: 'var(--blue)', bg: 'var(--icon-bg-blue)' },
+        { to: '/documenti', icon: FileText, label: t('nav.documents'), badge: newDocs, color: 'var(--text-secondary)', bg: 'var(--icon-bg-gray)' },
+        { to: '/dietisti', icon: Users, label: t('nav.dietitians'), color: 'var(--green-main)', bg: 'var(--icon-bg-green)' },
+        ...(hasSpecial ? [{ to: '/speciale', icon: Sparkles, label: 'Speciale', color: 'var(--purple)', bg: 'var(--icon-bg-purple)' }] : []),
+      ],
+    },
+    monitoraggio: {
+      label: 'Monitoraggio', icon: TrendingUp, color: 'var(--orange)', bg: 'var(--icon-bg-orange)',
+      items: [
+        { to: '/progressi', icon: TrendingUp, label: t('nav.progress'), color: 'var(--orange)', bg: 'var(--icon-bg-orange)' },
+        { to: '/attivita', icon: Activity, label: t('nav.activities'), color: 'var(--green-main)', bg: 'var(--icon-bg-green)' },
+        { to: '/benessere', icon: Heart, label: t('nav.wellness'), color: '#DB2777', bg: 'var(--icon-bg-pink)' },
+        ...(showCycle ? [{ to: '/ciclo', icon: Flower2, label: 'Ciclo', color: '#DB2777', bg: 'var(--icon-bg-pink)' }] : []),
+        { to: '/farmaci', icon: Pill, label: 'Farmaci', color: 'var(--red)', bg: 'var(--icon-bg-red)' },
+        { to: '/statistiche', icon: BarChart2, label: t('nav.report'), color: 'var(--purple)', bg: 'var(--icon-bg-purple)' },
+      ],
+    },
+    profilo: {
+      label: 'Profilo', icon: User, color: 'var(--green-main)', bg: 'var(--icon-bg-green)',
+      items: [
+        { to: '/profilo', icon: User, label: t('nav.profile'), color: 'var(--green-main)', bg: 'var(--icon-bg-green)' },
+        { to: '/quiz', icon: Brain, label: 'Quiz', color: 'var(--purple)', bg: 'var(--icon-bg-purple)' },
+        { to: '/badge', icon: Award, label: 'Badge', color: '#D97706', bg: 'var(--icon-bg-amber)' },
+        { to: '/pro', icon: Star, label: isPro ? '⭐ Pro' : '🔓 Pro', color: '#D97706', bg: 'var(--icon-bg-amber)' },
+        ...(PAYMENTS_ACTIVE ? [{ to: '/abbonamento', icon: Star, label: 'Abbonamento', color: 'var(--blue)', bg: 'var(--icon-bg-blue)' }] : []),
+      ],
+    },
+  }
+  const GROUP_KEYS = ['nutrizione', 'professionisti', 'monitoraggio', 'profilo']
 
-  const MORE_SECTIONS = [
-    { label: 'Nutrizione', items: [
-      { to: '/acqua', icon: Droplets, label: 'Acqua' },
-      { to: '/ricette', icon: ChefHat, label: t('nav.recipes'), badge: newShared },
-      { to: '/alimenti', icon: BookOpen, label: 'Alimenti' },
-      { to: '/lista-spesa', icon: ShoppingCart, label: 'Lista spesa' },
-      { to: '/digiuno', icon: Timer, label: 'Digiuno IF' },
-    ]},
-    { label: 'Salute & Benessere', items: [
-      { to: '/progressi', icon: TrendingUp, label: t('nav.progress') },
-      { to: '/attivita', icon: Activity, label: t('nav.activities') },
-      { to: '/benessere', icon: Heart, label: t('nav.wellness') },
-      ...(showCycle ? [{ to: '/ciclo', icon: Flower2, label: 'Ciclo' }] : []),
-      { to: '/farmaci', icon: Pill, label: 'Farmaci' },
-      { to: '/statistiche', icon: BarChart2, label: t('nav.report') },
-    ]},
-    { label: 'Professionale', items: [
-      { to: '/documenti', icon: FileText, label: t('nav.documents'), badge: newDocs },
-      { to: '/dietisti', icon: Users, label: t('nav.dietitians') },
-      ...(hasSpecial ? [{ to: '/speciale', icon: Sparkles, label: 'Speciale' }] : []),
-    ]},
-    { label: 'Altro', items: [
-      { to: '/quiz', icon: Brain, label: 'Quiz' },
-      { to: '/badge', icon: Award, label: 'Badge' },
-      { to: '/pro', icon: Star, label: isPro ? '⭐ Pro' : '🔓 Pro' },
-      ...(PAYMENTS_ACTIVE ? [{ to: '/abbonamento', icon: Star, label: 'Abbonamento' }] : []),
-    ]},
-  ]
+  function isActive(to) {
+    return pathname === to || (to !== '/' && pathname.startsWith(to + '/'))
+  }
+  function groupBadge(key) {
+    return GROUPS[key].items.reduce((sum, it) => sum + (it.badge > 0 ? it.badge : 0), 0)
+  }
+  function isGroupActive(key) {
+    return GROUPS[key].items.some(it => isActive(it.to))
+  }
 
-  const anyMoreActive = MORE_SECTIONS.flatMap(s => s.items).some(({ to }) =>
-    pathname === to || (to !== '/' && pathname.startsWith(to + '/'))
-  )
+  const active = openGroup ? GROUPS[openGroup] : null
 
   return (
     <>
-      {/* Bottom nav bar */}
+      {/* Bottom nav bar — 5 destinations, thumb-width each */}
       <nav style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 999,
         height: 'calc(64px + env(safe-area-inset-bottom))',
@@ -277,103 +308,116 @@ export default function BottomNav() {
         boxShadow: '0 -2px 16px rgba(13,92,58,0.07)',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}>
-        {MOBILE_PRIMARY.map(({ to, icon: Icon, label, badge }) => {
-          const active = pathname === to || (to !== '/' && pathname.startsWith(to + '/'))
+        <Link to="/" style={{
+          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+          justifyContent: 'center', gap: 3, textDecoration: 'none',
+          color: pathname === '/' ? 'var(--green-main)' : '#94a3b8',
+          WebkitTapHighlightColor: 'transparent', transition: 'color 0.15s', paddingTop: 6,
+        }}>
+          <div style={{ width: 38, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, background: pathname === '/' ? 'var(--green-pale)' : 'transparent', transition: 'background 0.2s' }}>
+            <Home size={20} strokeWidth={pathname === '/' ? 2.2 : 1.8} />
+          </div>
+          <span style={{ fontSize: 9.5, fontWeight: pathname === '/' ? 600 : 400, letterSpacing: '0.01em' }}>Home</span>
+        </Link>
+
+        {GROUP_KEYS.map(key => {
+          const g = GROUPS[key]
+          const groupIsOpen = openGroup === key
+          const groupIsActive = isGroupActive(key)
+          const badge = groupBadge(key)
+          const on = groupIsOpen || groupIsActive
           return (
-            <Link key={to} to={to} style={{
-              flex: 1,
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              justifyContent: 'center', gap: 3, textDecoration: 'none',
-              color: active ? 'var(--green-main)' : '#94a3b8',
-              WebkitTapHighlightColor: 'transparent',
-              transition: 'color 0.15s',
-              paddingTop: 6,
-            }}>
-              <div style={{ width: 38, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, background: active ? 'var(--green-pale)' : 'transparent', transition: 'background 0.2s', position: 'relative' }}>
-                <Icon size={20} strokeWidth={active ? 2.2 : 1.8} />
-                {badge > 0 && <span style={badgeStyle}>{badge}</span>}
+            <button
+              key={key}
+              onClick={() => setOpenGroup(v => v === key ? null : key)}
+              style={{
+                flex: 1, border: 'none', background: 'transparent', cursor: 'pointer',
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                justifyContent: 'center', gap: 3, paddingTop: 6,
+                color: on ? 'var(--green-main)' : '#94a3b8',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+            >
+              <div style={{ width: 38, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, background: on ? 'var(--green-pale)' : 'transparent', transition: 'background 0.2s', position: 'relative' }}>
+                {groupIsOpen ? <X size={20} strokeWidth={2.2} /> : <g.icon size={20} strokeWidth={on ? 2.2 : 1.8} />}
+                {badge > 0 && !groupIsOpen && <span style={badgeStyle}>{badge}</span>}
               </div>
-              <span style={{ fontSize: 9.5, fontWeight: active ? 600 : 400, letterSpacing: '0.01em' }}>{label}</span>
-            </Link>
+              <span style={{ fontSize: 9.5, fontWeight: on ? 600 : 400, letterSpacing: '0.01em' }}>{g.label}</span>
+            </button>
           )
         })}
-
-        {/* "Altro" button */}
-        <button
-          onClick={() => setMoreOpen(v => !v)}
-          style={{
-            flex: 1, border: 'none', background: 'transparent', cursor: 'pointer',
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', gap: 3, paddingTop: 6,
-            color: (moreOpen || anyMoreActive) ? 'var(--green-main)' : '#94a3b8',
-            WebkitTapHighlightColor: 'transparent',
-          }}
-        >
-          <div style={{ width: 38, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, background: (moreOpen || anyMoreActive) ? 'var(--green-pale)' : 'transparent', transition: 'background 0.2s', position: 'relative' }}>
-            {moreOpen ? <X size={20} strokeWidth={2.2} style={{ transition: 'transform 0.2s' }} /> : <MoreHorizontal size={20} strokeWidth={1.8} />}
-            {(newDocs > 0 || newShared > 0) && !moreOpen && <span style={badgeStyle}>{newDocs + newShared}</span>}
-          </div>
-          <span style={{ fontSize: 9.5, fontWeight: (moreOpen || anyMoreActive) ? 600 : 400, letterSpacing: '0.01em' }}>Altro</span>
-        </button>
       </nav>
 
-      {/* Backdrop — CSS transition, always in DOM */}
+      {/* Backdrop */}
       <div
-        onClick={() => setMoreOpen(false)}
+        onClick={() => setOpenGroup(null)}
         style={{
           position: 'fixed', inset: 0, zIndex: 997,
           background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)',
-          opacity: moreOpen ? 1 : 0,
-          pointerEvents: moreOpen ? 'auto' : 'none',
+          opacity: openGroup ? 1 : 0,
+          pointerEvents: openGroup ? 'auto' : 'none',
           transition: 'opacity 0.2s ease',
         }}
       />
 
-      {/* Sheet — CSS transition, always in DOM */}
+      {/* Group sheet */}
       <div style={{
         position: 'fixed',
         bottom: 'calc(64px + env(safe-area-inset-bottom))',
         left: 0, right: 0, zIndex: 998,
         background: 'var(--surface)',
-        borderRadius: '22px 22px 0 0',
+        borderRadius: '24px 24px 0 0',
         boxShadow: '0 -8px 40px rgba(0,0,0,0.18)',
-        maxHeight: '72vh',
-        overflowY: moreOpen ? 'auto' : 'hidden',
+        maxHeight: '75vh',
+        overflowY: openGroup ? 'auto' : 'hidden',
         padding: '10px 16px 20px',
-        transform: moreOpen ? 'translateY(0)' : 'translateY(110%)',
-        opacity: moreOpen ? 1 : 0,
-        pointerEvents: moreOpen ? 'auto' : 'none',
+        transform: openGroup ? 'translateY(0)' : 'translateY(110%)',
+        opacity: openGroup ? 1 : 0,
+        pointerEvents: openGroup ? 'auto' : 'none',
         transition: 'transform 0.32s cubic-bezier(.22,1,.36,1), opacity 0.22s ease',
       }}>
-        <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 16px' }} />
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 14px' }} />
 
-        {MORE_SECTIONS.map((section, si) => (
-          <div key={si} style={{ marginBottom: 20 }}>
-            <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>{section.label}</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-              {section.items.map(({ to, icon: Icon, label, badge }) => {
-                const active = pathname === to || (to !== '/' && pathname.startsWith(to + '/'))
-                return (
-                  <Link key={to} to={to} style={{
-                    textDecoration: 'none', display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', gap: 6, padding: '10px 4px',
-                    borderRadius: 14,
-                    background: active ? 'var(--green-pale)' : 'var(--surface-2)',
-                    border: `1.5px solid ${active ? 'var(--border)' : 'var(--border-light)'}`,
-                    position: 'relative',
-                    transition: 'background 0.15s, border-color 0.15s',
-                  }}>
-                    <div style={{ position: 'relative' }}>
-                      <Icon size={20} color={active ? 'var(--green-main)' : 'var(--text-secondary)'} strokeWidth={active ? 2.2 : 1.8} />
-                      {badge > 0 && <span style={{ ...badgeStyle, top: -5, right: -5 }}>{badge}</span>}
-                    </div>
-                    <span style={{ fontSize: 10, fontWeight: active ? 600 : 400, color: active ? 'var(--green-main)' : 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.2 }}>{label}</span>
-                  </Link>
-                )
-              })}
+        {active && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 12, background: active.bg, color: active.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <active.icon size={19} />
+              </div>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{active.label}</h2>
             </div>
-          </div>
-        ))}
+
+            <AnimatePresence mode="wait">
+              <motion.div key={openGroup} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {active.items.map((it, i) => {
+                  const on = isActive(it.to)
+                  return (
+                    <motion.div
+                      key={it.to}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.03, duration: 0.22 }}
+                    >
+                      <Link to={it.to} style={{
+                        display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                        borderRadius: 14, textDecoration: 'none',
+                        background: on ? 'var(--green-pale)' : 'var(--surface-2)',
+                        border: `1.5px solid ${on ? 'var(--border)' : 'var(--border-light)'}`,
+                      }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 11, background: it.bg, color: it.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
+                          <it.icon size={17} />
+                          {it.badge > 0 && <span style={{ ...badgeStyle, top: -4, right: -4 }}>{it.badge}</span>}
+                        </div>
+                        <span style={{ flex: 1, fontSize: 14, fontWeight: on ? 700 : 500, color: on ? 'var(--green-main)' : 'var(--text-primary)' }}>{it.label}</span>
+                        <ChevronRight size={16} color="var(--text-muted)" />
+                      </Link>
+                    </motion.div>
+                  )
+                })}
+              </motion.div>
+            </AnimatePresence>
+          </>
+        )}
       </div>
 
       <style>{`
