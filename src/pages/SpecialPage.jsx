@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { fetchSpecialSections } from '../lib/specialSections'
-import { SPECIALTIES, FIELD_CONFIG, IDDSI_LEVELS, MEAL_COLUMNS } from '../data/specialtyMeta'
+import { SPECIALTIES, FIELD_CONFIG, IDDSI_LEVELS, MEAL_COLUMNS, TIPS, QUICK_LINKS } from '../data/specialtyMeta'
 import DiabeteCalculator from '../components/specialty/DiabeteCalculator'
 import ChetogenicaCalculator from '../components/specialty/ChetogenicaCalculator'
 import PancreasCalculator from '../components/specialty/PancreasCalculator'
@@ -16,12 +17,12 @@ import PazienteSanoTracker from '../components/specialty/PazienteSanoTracker'
 import PediatriaTracker from '../components/specialty/PediatriaTracker'
 import DcaChecklist from '../components/specialty/DcaChecklist'
 import {
-  ChevronLeft, ChevronRight, Sparkles, Clock,
+  ChevronLeft, ChevronRight, Sparkles, Clock, Lightbulb, BookOpen,
   Droplet, Scale, Activity, HeartPulse, Droplets, Flame, Stethoscope,
   FlaskConical, Baby, MessageCircle, Leaf, Heart,
 } from 'lucide-react'
 
-const ICONS = { Droplet, Scale, Activity, HeartPulse, Droplets, Flame, Stethoscope, FlaskConical, Baby, MessageCircle, Leaf, Heart }
+const ICONS = { Droplet, Scale, Activity, HeartPulse, Droplets, Flame, Stethoscope, FlaskConical, Baby, MessageCircle, Leaf, Heart, BookOpen }
 
 // Pathologies with a dedicated interactive tool beyond the generic data view.
 // Extend this as more calculators are built (chetogenica/GKI tracker,
@@ -152,6 +153,56 @@ function GroupCard({ group, dati, accent }) {
   )
 }
 
+function TipsCard({ tipo, accent, accentBg }) {
+  const tips = TIPS[tipo]
+  if (!tips?.length) return null
+  return (
+    <div className="card" style={{ padding: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+        <div style={{ width: 32, height: 32, borderRadius: 10, background: accentBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Lightbulb size={16} color={accent} />
+        </div>
+        <h3 style={{ fontSize: 15, fontWeight: 700 }}>Consigli pratici</h3>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {tips.map((t, i) => {
+          const tip = typeof t === 'string' ? { text: t } : t
+          return (
+            <div key={i} style={{ display: 'flex', gap: 9, padding: '9px 11px', background: 'var(--surface-2)', borderRadius: 10 }}>
+              <span style={{ flexShrink: 0, color: accent, fontWeight: 700, fontSize: 13 }}>{i + 1}</span>
+              <div>
+                <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{tip.text}</p>
+                {tip.tel && (
+                  <a href={`tel:${tip.tel}`} style={{ display: 'inline-block', marginTop: 6, fontSize: 14, fontWeight: 700, color: accent, textDecoration: 'none' }}>
+                    📞 {tip.telLabel || tip.tel}
+                  </a>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function QuickLinksRow({ tipo }) {
+  const links = QUICK_LINKS[tipo]
+  if (!links?.length) return null
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      {links.map(l => {
+        const Icon = ICONS[l.icon]
+        return (
+          <Link key={l.to} to={l.to} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 100, textDecoration: 'none', color: 'var(--text-secondary)', fontSize: 12.5, fontWeight: 600 }}>
+            {Icon && <Icon size={14} />} {l.label}
+          </Link>
+        )
+      })}
+    </div>
+  )
+}
+
 function NoteDetail({ tipo, dati, accent }) {
   const config = FIELD_CONFIG[tipo]
   if (!config) return null
@@ -276,15 +327,19 @@ export default function SpecialPage() {
               </motion.div>
             ) : (
               <motion.div key="detail" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <QuickLinksRow tipo={active.key} />
                 {!activeSection?.note ? (
                   <div className="card" style={{ padding: 28, textAlign: 'center' }}>
-                    <Clock size={28} color="var(--text-muted)" style={{ marginBottom: 12 }} />
+                    <div style={{ width: 52, height: 52, borderRadius: 16, background: active.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+                      <Clock size={24} color={active.color} />
+                    </div>
                     <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>In attesa dei dati</p>
                     <p style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Il tuo dietista ha attivato questa sezione ma non ha ancora salvato una scheda — torna a controllare più avanti.</p>
                   </div>
                 ) : (
                   <>
                     {Tool && <Tool dati={activeSection.note.dati} accent={active.color} accentBg={active.bg} />}
+                    <TipsCard tipo={active.key} accent={active.color} accentBg={active.bg} />
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                         <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />

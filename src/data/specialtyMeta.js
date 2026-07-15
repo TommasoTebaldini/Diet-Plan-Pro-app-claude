@@ -22,6 +22,89 @@ export const SPECIALTIES = [
 
 export const SPECIALTY_KEYS = SPECIALTIES.map(s => s.key)
 
+// Short, safe, generally-accepted practical tips per pathology — general
+// education, never a substitute for the dietitian's specific instructions
+// (each tool already says so). Deliberately NOT sourced from the sensitive
+// anamnestic/behavioral fields excluded from DCA/Obesità earlier.
+export const TIPS = {
+  diabete: [
+    'Porta sempre con te una fonte di zuccheri semplici (es. succo di frutta o zollette di zucchero) per gestire un’eventuale ipoglicemia.',
+    'Controlla la glicemia prima e dopo l’attività fisica: l’esercizio può farla scendere anche diverse ore dopo.',
+    'Se sei in terapia insulinica, evita di saltare i pasti — aumenta il rischio di ipoglicemia.',
+    'Ruota il sito di iniezione dell’insulina per evitare indurimenti della pelle nel tempo.',
+  ],
+  obesita: [
+    'Una perdita di peso graduale (0,5–1 kg a settimana) è più sostenibile nel tempo di un dimagrimento rapido.',
+    'Bere un bicchiere d’acqua prima dei pasti può aiutare il senso di sazietà.',
+    'Il segnale di sazietà impiega circa 20 minuti ad arrivare al cervello: mangiare lentamente aiuta a non superarlo.',
+    'Dormire meno di 7 ore a notte altera gli ormoni della fame (grelina e leptina).',
+  ],
+  sport: [
+    'Idratati regolarmente durante l’allenamento, non solo quando avverti la sete.',
+    'Nei 30–60 minuti dopo l’allenamento il corpo assorbe meglio proteine e carboidrati per il recupero.',
+    'Non provare mai un alimento o integratore nuovo il giorno di una gara.',
+  ],
+  dca: [
+    { text: 'Numero Verde SOS Disturbi Alimentari (Ministero della Salute) — gratuito e anonimo', tel: '800180969', telLabel: '800 180 969' },
+    'Non sei solo/a in questo percorso — il tuo team di cura è qui per te.',
+    'Se un pensiero ti preoccupa, parlarne con il tuo terapeuta o dietista appena possibile fa la differenza.',
+  ],
+  renale: [
+    'Bevi secondo le indicazioni del tuo team curante: sia troppo che troppo poco liquido può essere dannoso.',
+    'La doppia bollitura (lisciviazione) riduce il potassio delle verdure del 30–50%.',
+    'Leggi le etichette: gli additivi a base di fosforo (sigle E338–E341) si assorbono quasi al 100%, molto più di quello naturale.',
+  ],
+  chetogenica: [
+    'Nei primi giorni puoi avvertire la "keto flu" (stanchezza, mal di testa) — aumentare sodio, potassio e magnesio spesso aiuta.',
+    'La chetosi ha un effetto diuretico: bevi a sufficienza.',
+    'Monitora chetoni e glicemia regolarmente, specialmente nelle prime settimane.',
+  ],
+  oncologia: [
+    'In caso di nausea, prova pasti piccoli e frequenti invece di 3 pasti abbondanti.',
+    'Se noti alterazioni del gusto, i cibi freddi o a temperatura ambiente sono spesso meglio tollerati di quelli caldi.',
+    'Con la mucosite, prediligi cibi morbidi e non acidi o piccanti.',
+  ],
+  pancreas: [
+    'Assumi gli enzimi pancreatici SEMPRE all’inizio del pasto, mai a fine pasto.',
+    'Non saltare le vitamine liposolubili (A, D, E, K) se prescritte: il loro assorbimento dipende dai grassi.',
+    'Pasti piccoli e frequenti sono spesso meglio tollerati di pasti abbondanti.',
+  ],
+  pediatria: [
+    'Offri il cibo senza forzare: i bambini regolano naturalmente l’appetito se non si creano conflitti a tavola.',
+    'I bambini imparano le abitudini alimentari osservando gli adulti attorno a loro.',
+    'Orari dei pasti regolari aiutano la regolazione naturale dell’appetito.',
+  ],
+  disfagia: [
+    'Mangia seduto/a con la schiena dritta, mai sdraiato/a.',
+    'Fai bocconi piccoli e assicurati di aver deglutito prima del boccone successivo.',
+    'Se usi un addensante, rispetta sempre la quantità indicata dal tuo logopedista/dietista.',
+  ],
+  paziente_sano: [
+    'Varia gli alimenti nell’arco della settimana per un apporto più completo di nutrienti.',
+    'Preferisci alimenti integrali e minimamente processati quando possibile.',
+    'Anche un piccolo aumento di attività quotidiana (camminare, fare le scale) fa la differenza nel tempo.',
+  ],
+  gravidanza: [
+    'Evita alcolici, pesce ad alto contenuto di mercurio, formaggi non pastorizzati e salumi crudi.',
+    'Assicurati un adeguato apporto di acido folico, ferro e calcio — parlane con il tuo ginecologo per l’eventuale integrazione.',
+    'In caso di nausea, pasti piccoli e frequenti, evitando di restare a digiuno a lungo, spesso aiutano.',
+  ],
+}
+
+// Cross-links to other sections of the app already relevant to each
+// pathology — the specialty tools shouldn't feel like an island.
+export const QUICK_LINKS = {
+  diabete: [{ to: '/macro', label: 'Registra un pasto', icon: 'BookOpen' }],
+  obesita: [{ to: '/progressi', label: 'Registra il peso', icon: 'Scale' }],
+  sport: [{ to: '/acqua', label: 'Registra acqua', icon: 'Droplets' }],
+  renale: [{ to: '/acqua', label: 'Registra acqua', icon: 'Droplets' }],
+  chetogenica: [{ to: '/macro', label: 'Registra un pasto', icon: 'BookOpen' }],
+  oncologia: [{ to: '/macro', label: 'Registra un pasto', icon: 'BookOpen' }],
+  paziente_sano: [{ to: '/macro', label: 'Registra un pasto', icon: 'BookOpen' }],
+  pediatria: [{ to: '/macro', label: 'Registra un pasto', icon: 'BookOpen' }],
+  gravidanza: [{ to: '/progressi', label: 'Registra il peso', icon: 'Scale' }],
+}
+
 // IDDSI texture levels (disfagia) — name + color, from disfagia.html's IDDSI_META
 export const IDDSI_LEVELS = {
   1: { nome: 'Leggermente Addensato', color: '#9CA3AF' },
