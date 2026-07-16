@@ -89,6 +89,17 @@ export default function DiabeteCalculator({ dati }) {
     setGlicemia('')
   }
 
+  // Quick log for a glucose check with no meal involved (e.g. fasting reading) —
+  // previously the only way to save anything was through the full dose flow.
+  function registraSoloGlicemia() {
+    if (glicemiaVal === null) return
+    const entry = { cho: null, glicemia: glicemiaVal, total: null, fascia: fasciaAttiva?.nome || null, date: new Date().toISOString() }
+    const next = [entry, ...history].slice(0, MAX_HISTORY)
+    setHistory(next)
+    saveHistory(next)
+    setGlicemia('')
+  }
+
   function cancellaStorico() {
     setHistory([])
     saveHistory([])
@@ -146,6 +157,11 @@ export default function DiabeteCalculator({ dati }) {
           <label className="input-label">Glicemia attuale (mg/dL) — opzionale, per la correzione</label>
           <input type="number" inputMode="decimal" className="input-field" placeholder="es. 140" value={glicemia} onChange={e => setGlicemia(e.target.value)} />
         </div>
+        {!cho && glicemiaVal !== null && (
+          <button className="btn btn-secondary btn-full" onClick={registraSoloGlicemia}>
+            Registra solo questa glicemia (senza calcolare una dose)
+          </button>
+        )}
       </div>
 
       {total !== null && (
@@ -206,8 +222,8 @@ export default function DiabeteCalculator({ dati }) {
             {history.map((h, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'var(--surface-2)', borderRadius: 10, fontSize: 12 }}>
                 <span style={{ color: 'var(--text-muted)' }}>{new Date(h.date).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-                <span style={{ color: 'var(--text-secondary)' }}>{h.fascia ? `${h.fascia} · ` : ''}{h.cho ? `${h.cho}g CHO` : ''}{h.glicemia ? ` · ${h.glicemia} mg/dL` : ''}</span>
-                <span style={{ fontWeight: 700, color: '#1D4ED8' }}>{h.total} U</span>
+                <span style={{ color: 'var(--text-secondary)' }}>{h.fascia ? `${h.fascia} · ` : ''}{h.cho ? `${h.cho}g CHO` : ''}{h.glicemia ? `${h.cho ? ' · ' : ''}${h.glicemia} mg/dL` : ''}</span>
+                <span style={{ fontWeight: 700, color: '#1D4ED8' }}>{h.total !== null ? `${h.total} U` : '—'}</span>
               </div>
             ))}
           </div>

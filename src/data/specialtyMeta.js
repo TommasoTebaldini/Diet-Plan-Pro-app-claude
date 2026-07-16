@@ -103,8 +103,9 @@ export const QUICK_LINKS = {
   chetogenica: [{ to: '/macro', label: 'Registra un pasto', icon: 'BookOpen' }],
   oncologia: [{ to: '/macro', label: 'Registra un pasto', icon: 'BookOpen' }],
   paziente_sano: [{ to: '/macro', label: 'Registra un pasto', icon: 'BookOpen' }],
-  pediatria: [{ to: '/macro', label: 'Registra un pasto', icon: 'BookOpen' }],
+  pediatria: [{ to: '/macro', label: 'Registra un pasto', icon: 'BookOpen' }, { to: '/acqua', label: 'Registra acqua', icon: 'Droplets' }],
   gravidanza: [{ to: '/progressi', label: 'Registra il peso', icon: 'Scale' }],
+  dca: [{ to: '/chat', label: 'Scrivi al tuo dietista', icon: 'MessageCircle' }],
 }
 
 // IDDSI texture levels (disfagia) — name + color, from disfagia.html's IDDSI_META

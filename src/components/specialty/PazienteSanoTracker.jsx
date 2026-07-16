@@ -60,6 +60,23 @@ export default function PazienteSanoTracker({ dati }) {
           </div>
         </div>
       )}
+
+      {intake !== null && (intake.proteins > 0 || intake.carbs > 0 || intake.fats > 0) && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 14 }}>
+          <div style={{ textAlign: 'center', padding: '8px 4px', background: 'var(--surface-2)', borderRadius: 10 }}>
+            <p style={{ fontSize: 14, fontWeight: 700 }}>{Math.round(intake.proteins)}g</p>
+            <p style={{ fontSize: 9.5, color: 'var(--text-muted)' }}>Proteine</p>
+          </div>
+          <div style={{ textAlign: 'center', padding: '8px 4px', background: 'var(--surface-2)', borderRadius: 10 }}>
+            <p style={{ fontSize: 14, fontWeight: 700 }}>{Math.round(intake.carbs)}g</p>
+            <p style={{ fontSize: 9.5, color: 'var(--text-muted)' }}>Carboidrati</p>
+          </div>
+          <div style={{ textAlign: 'center', padding: '8px 4px', background: 'var(--surface-2)', borderRadius: 10 }}>
+            <p style={{ fontSize: 14, fontWeight: 700 }}>{Math.round(intake.fats)}g</p>
+            <p style={{ fontSize: 9.5, color: 'var(--text-muted)' }}>Grassi</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

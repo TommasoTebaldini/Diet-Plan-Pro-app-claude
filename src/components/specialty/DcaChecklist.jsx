@@ -6,21 +6,37 @@ function todayKey() {
   return `dca_meals_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+function noteKey() {
+  const d = new Date()
+  return `dca_note_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 // Deliberately no calorie/macro numbers here — for a patient in an eating
 // disorder pathway, a numeric adherence score can do more harm than good.
 // This is just a gentle "have you had your meals today" presence tracker.
 export default function DcaChecklist({ dati }) {
   const [checked, setChecked] = useState({})
+  const [nota, setNota] = useState('')
   const storageKey = todayKey()
+  const noteStorageKey = noteKey()
 
   useEffect(() => {
     try { setChecked(JSON.parse(localStorage.getItem(storageKey) || '{}')) } catch { setChecked({}) }
   }, [storageKey])
 
+  useEffect(() => {
+    setNota(localStorage.getItem(noteStorageKey) || '')
+  }, [noteStorageKey])
+
   function toggle(name) {
     const next = { ...checked, [name]: !checked[name] }
     setChecked(next)
     try { localStorage.setItem(storageKey, JSON.stringify(next)) } catch { /* storage unavailable */ }
+  }
+
+  function updateNota(v) {
+    setNota(v)
+    try { localStorage.setItem(noteStorageKey, v) } catch { /* storage unavailable */ }
   }
 
   const pasti = (dati.piano?.pasti || []).filter(m => m && (m.nome || m.alimenti))
@@ -62,6 +78,18 @@ export default function DcaChecklist({ dati }) {
           {doneCount === pasti.length ? 'Hai completato la giornata — bravo/a per esserci stato/a per te.' : 'Un passo alla volta, va bene così.'}
         </p>
       )}
+
+      <div style={{ marginTop: 16 }}>
+        <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>📓 Come ti senti oggi (spazio privato)</p>
+        <textarea
+          value={nota}
+          onChange={e => updateNota(e.target.value)}
+          placeholder="Solo per te — pensieri, emozioni, difficoltà incontrate oggi. Non viene condiviso automaticamente con nessuno."
+          rows={3}
+          style={{ width: '100%', resize: 'vertical', padding: '10px 12px', borderRadius: 10, border: '1.5px solid var(--border-light)', fontSize: 12.5, fontFamily: 'inherit', background: 'var(--surface-2)', color: 'var(--text-primary)' }}
+        />
+        <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>Salvato solo su questo dispositivo. Se vuoi, puoi condividerlo con il tuo dietista in chat.</p>
+      </div>
     </div>
   )
 }

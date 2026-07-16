@@ -10,6 +10,12 @@ const STAGE_CONFIG = {
   pd:   { kMax: 3500, pMax: 1000, naMax: 2, liq: 'Diuresi + 500–750 mL', label: 'Dialisi Peritoneale', color: '#059669' },
 }
 
+// Generic, well-known food categories to watch — not a substitute for a real
+// per-food potassium/phosphorus database (out of scope here), just a quick
+// everyday reference for the most common culprits.
+const HIGH_K = ['Banana', 'Patate (non lisciviate)', 'Pomodoro', 'Agrumi e succhi', 'Frutta secca', 'Legumi', 'Cioccolato', 'Caffè in grandi quantità']
+const HIGH_P = ['Formaggi stagionati', 'Salumi e insaccati', 'Bevande cola', 'Snack/pane industriali (additivi fosfato)', 'Frutti di mare', 'Uova (tuorlo)']
+
 export default function RenaleGuide({ dati }) {
   const stadio = dati.calcolo?.stadio
   const cfg = STAGE_CONFIG[stadio]
@@ -40,6 +46,29 @@ export default function RenaleGuide({ dati }) {
           <span>💧 Liquidi</span><b style={{ color: '#1D4ED8' }}>{cfg.liq}</b>
         </div>
       </div>
+
+      {(cfg.kMax || cfg.pMax) && (
+        <div style={{ marginTop: 16 }}>
+          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>Attenzione a questi alimenti</p>
+          {cfg.kMax && (
+            <div style={{ marginBottom: 8 }}>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Ricchi di potassio</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                {HIGH_K.map(f => <span key={f} style={{ fontSize: 11, background: '#FEF2F2', color: '#991B1B', borderRadius: 100, padding: '3px 9px' }}>{f}</span>)}
+              </div>
+            </div>
+          )}
+          {cfg.pMax && (
+            <div>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Ricchi di fosforo</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                {HIGH_P.map(f => <span key={f} style={{ fontSize: 11, background: '#EFF6FF', color: '#1D4ED8', borderRadius: 100, padding: '3px 9px' }}>{f}</span>)}
+              </div>
+            </div>
+          )}
+          <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 8 }}>Elenco generico ed esemplificativo — il tuo dietista può darti indicazioni più precise per la tua situazione.</p>
+        </div>
+      )}
     </div>
   )
 }

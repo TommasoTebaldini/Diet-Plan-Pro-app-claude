@@ -1,5 +1,10 @@
-import { useState } from 'react'
-import { AlertTriangle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { AlertTriangle, Check } from 'lucide-react'
+
+function todayKey() {
+  const d = new Date()
+  return `pancreas_vit_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 function num(v) {
   if (v === null || v === undefined || v === '') return null
@@ -17,8 +22,22 @@ function parseULText(v) {
   return digits ? parseInt(digits, 10) : null
 }
 
+const VIT_LABELS = { vitD: 'Vitamina D', vitE: 'Vitamina E', vitA: 'Vitamina A', vitK: 'Vitamina K' }
+
 export default function PancreasCalculator({ dati }) {
   const [grassiPasto, setGrassiPasto] = useState('')
+  const [checked, setChecked] = useState({})
+  const storageKey = todayKey()
+
+  useEffect(() => {
+    try { setChecked(JSON.parse(localStorage.getItem(storageKey) || '{}')) } catch { setChecked({}) }
+  }, [storageKey])
+
+  function toggleVit(key) {
+    const next = { ...checked, [key]: !checked[key] }
+    setChecked(next)
+    try { localStorage.setItem(storageKey, JSON.stringify(next)) } catch { /* storage unavailable */ }
+  }
 
   const isGrassiMethod = dati.pert?.metodo === 'grassi'
   const grassiRef = num(dati.pert?.grassi)
@@ -30,6 +49,8 @@ export default function PancreasCalculator({ dati }) {
   const creon40 = ul ? Math.ceil(ul / 40000) : null
   const creon25 = ul ? Math.ceil(ul / 25000) : null
   const creon10 = ul ? Math.ceil(ul / 10000) : null
+
+  const prescribedVits = Object.keys(VIT_LABELS).filter(k => dati.piano?.[k])
 
   return (
     <div className="card" style={{ padding: 16 }}>
@@ -63,6 +84,27 @@ export default function PancreasCalculator({ dati }) {
             </div>
           )}
         </>
+      )}
+
+      {prescribedVits.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>💊 Vitamine liposolubili di oggi</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {prescribedVits.map(k => {
+              const done = !!checked[k]
+              return (
+                <button key={k} onClick={() => toggleVit(k)} style={{
+                  display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 100,
+                  border: `1.5px solid ${done ? '#D97706' : 'var(--border)'}`,
+                  background: done ? '#FEF3C7' : 'var(--surface)', color: done ? '#D97706' : 'var(--text-secondary)',
+                  fontSize: 12.5, fontWeight: 600, cursor: 'pointer', font: 'inherit',
+                }}>
+                  {done && <Check size={13} />} {VIT_LABELS[k]}
+                </button>
+              )
+            })}
+          </div>
+        </div>
       )}
 
       <div style={{ marginTop: 14, display: 'flex', gap: 8, padding: '10px 12px', background: 'var(--alert-warning-bg)', border: '1px solid var(--alert-warning-border)', borderRadius: 10 }}>

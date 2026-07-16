@@ -79,16 +79,22 @@ function localDateStr(d = new Date()) {
 }
 
 // Today's logged intake — used by pathology tools that compare a dietitian-set
-// target (kcal/protein) against what the patient has actually eaten so far.
+// target (kcal/protein/carbs) against what the patient has actually eaten so far.
 export async function fetchTodayIntake(userId) {
-  if (!userId) return { kcal: 0, proteins: 0 }
+  const empty = { kcal: 0, proteins: 0, carbs: 0, fats: 0 }
+  if (!userId) return empty
   const { data } = await supabase
     .from('food_logs')
-    .select('kcal, proteins')
+    .select('kcal, proteins, carbs, fats')
     .eq('user_id', userId)
     .eq('date', localDateStr())
     .neq('food_name', '__note__')
-  return (data || []).reduce((a, f) => ({ kcal: a.kcal + (f.kcal || 0), proteins: a.proteins + (f.proteins || 0) }), { kcal: 0, proteins: 0 })
+  return (data || []).reduce((a, f) => ({
+    kcal: a.kcal + (f.kcal || 0),
+    proteins: a.proteins + (f.proteins || 0),
+    carbs: a.carbs + (f.carbs || 0),
+    fats: a.fats + (f.fats || 0),
+  }), empty)
 }
 
 export async function fetchLatestWeight(userId) {

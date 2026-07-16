@@ -24,6 +24,12 @@ function categoryFor(bmi, isTwins) {
   return table.find(c => bmi < c.max) || table[table.length - 1]
 }
 
+function trimesterFor(w) {
+  if (w <= 13) return 1
+  if (w <= 27) return 2
+  return 3
+}
+
 export default function GravidanzaTracker({ dati }) {
   const bmi = num(dati.bmi)
   const pesoPre = num(dati.pesoPre)
@@ -53,6 +59,16 @@ export default function GravidanzaTracker({ dati }) {
   return (
     <div className="card" style={{ padding: 16 }}>
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>🤰 Incremento di peso in gravidanza</h3>
+      {settimane !== null && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, background: '#FAE8FF', color: '#C026D3', borderRadius: 100, padding: '3px 10px' }}>
+            Settimana {settimane} · {trimesterFor(settimane)}° trimestre
+          </span>
+          <div style={{ flex: 1, height: 5, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${Math.min(100, Math.round(settimane / 40 * 100))}%`, background: '#C026D3', borderRadius: 3 }} />
+          </div>
+        </div>
+      )}
       <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 14 }}>
         Categoria pre-gravidanza: <b style={{ color: '#C026D3' }}>{cat.label}</b> (BMI {bmi}){isTwins ? ' · Gravidanza gemellare' : ''}
       </p>

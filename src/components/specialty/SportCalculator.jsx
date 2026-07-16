@@ -1,4 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { Droplets } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
+import { fetchLatestWeight } from '../../lib/specialSections'
 
 function num(v) {
   if (v === null || v === undefined || v === '') return null
@@ -7,18 +10,29 @@ function num(v) {
 }
 
 export default function SportCalculator({ dati }) {
+  const { user } = useAuth()
   const [training, setTraining] = useState(true)
+  const [latestWeight, setLatestWeight] = useState(null)
+
+  useEffect(() => {
+    if (!user?.id) return
+    fetchLatestWeight(user.id).then(setLatestWeight)
+  }, [user?.id])
 
   const kcalTrain = num(dati.piano?.kcal_train)
   const kcalRest = num(dati.piano?.kcal_rest)
   const protPerKg = num(dati.piano?.prot_per_kg)
-  const peso = num(dati.calc?.peso)
+  const peso = latestWeight ?? num(dati.calc?.peso)
   const oraTrain = dati.piano?.ora_train
 
   const kcalTarget = training ? kcalTrain : kcalRest
   const protTarget = protPerKg && peso ? Math.round(protPerKg * peso * 10) / 10 : null
+  // Standard sports-nutrition guideline: ~35 ml/kg baseline, +500-750 ml on
+  // training days to cover sweat losses (rough estimate, not a substitute
+  // for actual sweat-rate testing).
+  const waterTarget = peso ? Math.round((peso * 35 + (training ? 600 : 0)) / 50) * 50 : null
 
-  if (!kcalTrain && !kcalRest && !protTarget) return null
+  if (!kcalTrain && !kcalRest && !protTarget && !waterTarget) return null
 
   return (
     <div className="card" style={{ padding: 16 }}>
@@ -57,6 +71,16 @@ export default function SportCalculator({ dati }) {
           </div>
         )}
       </div>
+
+      {waterTarget !== null && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10, padding: '10px 12px', background: '#ECFEFF', borderRadius: 12 }}>
+          <Droplets size={18} color="#0891B2" />
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: '#0891B2' }}>Idratazione consigliata oggi: ~{waterTarget} ml</p>
+            <p style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>Stima generica in base al peso{training ? ' e al giorno di allenamento' : ''} — di più con caldo/sudorazione intensa</p>
+          </div>
+        </div>
+      )}
 
       {training && oraTrain && (
         <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 12, textAlign: 'center' }}>⏱️ Timing pre-workout consigliato: {oraTrain}</p>

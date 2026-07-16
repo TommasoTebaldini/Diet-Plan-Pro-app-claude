@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Trash2 } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
+import { fetchTodayIntake } from '../../lib/specialSections'
 
 const STORAGE_KEY = 'gki_history_v1'
 const MAX_HISTORY = 20
@@ -27,11 +29,17 @@ function interpretGKI(gki) {
 }
 
 export default function ChetogenicaCalculator() {
+  const { user } = useAuth()
   const [glicemia, setGlicemia] = useState('')
   const [chetoni, setChetoni] = useState('')
   const [history, setHistory] = useState([])
+  const [intake, setIntake] = useState(null)
 
   useEffect(() => { setHistory(loadHistory()) }, [])
+  useEffect(() => {
+    if (!user?.id) return
+    fetchTodayIntake(user.id).then(setIntake)
+  }, [user?.id])
 
   const g = parseFloat(glicemia)
   const k = parseFloat(chetoni)
@@ -84,6 +92,15 @@ export default function ChetogenicaCalculator() {
       <button className="btn btn-primary btn-full" onClick={registra} disabled={!valid} style={{ marginTop: 12 }}>
         Salva rilevazione
       </button>
+
+      {intake && intake.carbs > 0 && (
+        <div style={{ marginTop: 14, padding: '10px 12px', background: intake.carbs <= 20 ? '#F0FDF4' : intake.carbs <= 50 ? '#FEFCE8' : '#FEF2F2', borderRadius: 10 }}>
+          <p style={{ fontSize: 12, fontWeight: 600, color: intake.carbs <= 20 ? '#16A34A' : intake.carbs <= 50 ? '#CA8A04' : '#DC2626' }}>
+            🍞 Carboidrati assunti oggi: {Math.round(intake.carbs)} g
+          </p>
+          <p style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 2 }}>Riferimento generale chetogenica: solitamente sotto i 20-50 g/die — verifica il tuo target specifico con il dietista.</p>
+        </div>
+      )}
 
       {history.length > 0 && (
         <div style={{ marginTop: 18 }}>

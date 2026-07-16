@@ -17,12 +17,12 @@ import PazienteSanoTracker from '../components/specialty/PazienteSanoTracker'
 import PediatriaTracker from '../components/specialty/PediatriaTracker'
 import DcaChecklist from '../components/specialty/DcaChecklist'
 import {
-  ChevronLeft, ChevronRight, Sparkles, Clock, Lightbulb, BookOpen, Scale, Droplets,
+  ChevronLeft, ChevronRight, Sparkles, Clock, Lightbulb, BookOpen, Scale, Droplets, MessageCircle,
 } from 'lucide-react'
 
 // Icons referenced by key from QUICK_LINKS (specialtyMeta.js) — pathology
 // identity itself is shown with emoji now, not lucide icons.
-const ICONS = { BookOpen, Scale, Droplets }
+const ICONS = { BookOpen, Scale, Droplets, MessageCircle }
 
 // Pathologies with a dedicated interactive tool beyond the generic data view.
 // Extend this as more calculators are built (chetogenica/GKI tracker,

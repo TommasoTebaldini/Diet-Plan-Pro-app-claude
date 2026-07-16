@@ -8,8 +8,15 @@ function num(v) {
   return Number.isFinite(n) ? n : null
 }
 
+const BMI_CATEGORIES = [
+  { max: 18.5, label: 'Sottopeso', color: '#0891B2' },
+  { max: 25, label: 'Normopeso', color: '#16A34A' },
+  { max: 30, label: 'Sovrappeso', color: '#D97706' },
+  { max: Infinity, label: 'Obesità', color: '#DC2626' },
+]
+
 export default function ObesitaTracker({ dati }) {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const [current, setCurrent] = useState(null)
 
   useEffect(() => {
@@ -21,6 +28,7 @@ export default function ObesitaTracker({ dati }) {
   const target = num(dati.fabbisogno?.peso_target)
   const kcalTarget = num(dati.piano?.kcal)
   const deficit = dati.fabbisogno?.deficit
+  const heightCm = num(profile?.height_cm)
 
   if (target === null && kcalTarget === null) return null
 
@@ -29,10 +37,25 @@ export default function ObesitaTracker({ dati }) {
     ? Math.max(0, Math.min(100, ((start - weight) / (start - target)) * 100))
     : null
   const toGo = target !== null && weight !== null ? Math.round((weight - target) * 10) / 10 : null
+  const bmi = weight !== null && heightCm ? Math.round((weight / Math.pow(heightCm / 100, 2)) * 10) / 10 : null
+  const bmiCat = bmi !== null ? BMI_CATEGORIES.find(c => bmi < c.max) : null
 
   return (
     <div className="card" style={{ padding: 16 }}>
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 14 }}>⚖️ Il tuo percorso peso</h3>
+
+      {bmi !== null && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 12, marginBottom: 14 }}>
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ fontSize: 20, fontWeight: 800, color: bmiCat.color }}>{bmi}</p>
+            <p style={{ fontSize: 9.5, color: 'var(--text-muted)' }}>BMI</p>
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 12.5, fontWeight: 600, color: bmiCat.color }}>{bmiCat.label}</p>
+            <p style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>Calcolato dal tuo ultimo peso registrato e dall'altezza nel profilo</p>
+          </div>
+        </div>
+      )}
 
       {target !== null && (
         <>
