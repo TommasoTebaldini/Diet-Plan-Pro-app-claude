@@ -326,7 +326,7 @@ export default function SpecialPage() {
             ) : (
               <motion.div key="detail" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <QuickLinksRow tipo={active.key} />
-                {!activeSection?.note ? (
+                {!activeSection?.note && !Tool ? (
                   <div className="card" style={{ padding: 28, textAlign: 'center' }}>
                     <div style={{ width: 52, height: 52, borderRadius: 16, background: active.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
                       <Clock size={24} color={active.color} />
@@ -336,18 +336,22 @@ export default function SpecialPage() {
                   </div>
                 ) : (
                   <>
-                    {Tool && <Tool dati={activeSection.note.dati} accent={active.color} accentBg={active.bg} />}
+                    {Tool && <Tool dati={activeSection?.note?.dati || {}} accent={active.color} accentBg={active.bg} />}
                     <TipsCard tipo={active.key} accent={active.color} accentBg={active.bg} />
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                        <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
-                        <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Dati della scheda</p>
-                        <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
+                    {activeSection?.note && (
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                          <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
+                          <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Dati della scheda</p>
+                          <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
+                        </div>
+                        {activeSection.note.nota && <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10 }}>{activeSection.note.nota}</p>}
+                        <NoteDetail tipo={active.key} dati={activeSection.note.dati} accent={active.color} />
                       </div>
-                      {activeSection.note.nota && <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10 }}>{activeSection.note.nota}</p>}
-                      <NoteDetail tipo={active.key} dati={activeSection.note.dati} accent={active.color} />
-                    </div>
-                    <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>Ultimo aggiornamento: {fmtDate(activeSection.note.updated_at || activeSection.note.created_at)}</p>
+                    )}
+                    {activeSection?.note && (
+                      <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>Ultimo aggiornamento: {fmtDate(activeSection.note.updated_at || activeSection.note.created_at)}</p>
+                    )}
                   </>
                 )}
               </motion.div>

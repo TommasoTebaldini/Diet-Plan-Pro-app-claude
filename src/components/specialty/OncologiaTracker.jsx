@@ -43,10 +43,27 @@ export default function OncologiaTracker({ dati }) {
 
   const kcalTarget = num(dati.fabbisogno?.kcal_target)
   const protTarget = num(dati.fabbisogno?.prot_target)
-  if (kcalTarget === null && protTarget === null) return null
+  const dpeso = dati.clinica?.dpeso
+  const dpesoMatch = dpeso ? String(dpeso).match(/-?\d+(?:[.,]\d+)?/) : null
+  const dpesoNum = dpesoMatch ? parseFloat(dpesoMatch[0].replace(',', '.')) : null
+  const dpesoAlert = dpesoNum !== null && dpesoNum < 0
+  if (kcalTarget === null && protTarget === null && !dpeso) return null
 
   return (
     <>
+      {dpeso && (
+        <div className="card" style={{ padding: '14px 16px', marginBottom: 12, background: dpesoAlert ? '#FEF2F2' : 'var(--surface)', border: dpesoAlert ? '1.5px solid #FECACA' : undefined }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 22 }}>{dpesoAlert ? '⚠️' : '⚖️'}</span>
+            <div>
+              <p style={{ fontSize: 12, fontWeight: 700, color: dpesoAlert ? '#B91C1C' : 'var(--text-primary)' }}>Variazione di peso recente: {dpeso}</p>
+              {dpesoAlert && <p style={{ fontSize: 11, color: '#B91C1C', marginTop: 2 }}>Un calo di peso in corso — parlane con il tuo team di cura al prossimo controllo.</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {(kcalTarget !== null || protTarget !== null) && (
       <div className="card" style={{ padding: 16 }}>
         <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 14 }}>🎗️ Il tuo apporto di oggi</h3>
         {intake === null ? (
@@ -59,6 +76,7 @@ export default function OncologiaTracker({ dati }) {
           </>
         )}
       </div>
+      )}
 
       <div className="card" style={{ padding: 16, marginTop: 12 }}>
         <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 10 }}>💡 Gestione dei sintomi</h3>

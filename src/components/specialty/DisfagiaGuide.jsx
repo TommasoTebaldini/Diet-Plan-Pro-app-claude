@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Check } from 'lucide-react'
 import { IDDSI_LEVELS, IDDSI_ALIMENTI } from '../../data/specialtyMeta'
+import { useAuth } from '../../context/AuthContext'
+import { fetchTodayIntake } from '../../lib/specialSections'
 
 const CATEGORIES = [
   { key: 'ok', label: 'Consentiti', icon: '✅', color: '#16A34A', bg: '#F0FDF4' },
@@ -20,13 +22,26 @@ function todayKey() {
   return `disfagia_safety_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+function num(v) {
+  if (v === null || v === undefined || v === '') return null
+  const n = parseFloat(String(v).replace(',', '.'))
+  return Number.isFinite(n) ? n : null
+}
+
 export default function DisfagiaGuide({ dati }) {
+  const { user } = useAuth()
   const [checked, setChecked] = useState({})
+  const [intake, setIntake] = useState(null)
   const storageKey = todayKey()
 
   useEffect(() => {
     try { setChecked(JSON.parse(localStorage.getItem(storageKey) || '{}')) } catch { setChecked({}) }
   }, [storageKey])
+
+  useEffect(() => {
+    if (!user?.id) return
+    fetchTodayIntake(user.id).then(setIntake)
+  }, [user?.id])
 
   function toggle(key) {
     const next = { ...checked, [key]: !checked[key] }
@@ -37,7 +52,10 @@ export default function DisfagiaGuide({ dati }) {
   const level = dati.iddsi
   const meta = IDDSI_LEVELS[level]
   const foods = IDDSI_ALIMENTI[level]
+  const kcalTarget = num(dati.kcal)
   if (!meta || !foods) return null
+
+  const kcalPct = kcalTarget && intake ? Math.min(100, Math.round((intake.kcal / kcalTarget) * 100)) : 0
 
   return (
     <>
@@ -60,6 +78,19 @@ export default function DisfagiaGuide({ dati }) {
           ))}
         </div>
       </div>
+
+      {kcalTarget !== null && intake !== null && (
+        <div className="card" style={{ padding: 16, marginTop: 12 }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 10 }}>🎯 Apporto calorico di oggi</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
+            <span style={{ fontWeight: 500 }}>Assunte oggi</span>
+            <span><b>{Math.round(intake.kcal)}</b> / {kcalTarget} kcal</span>
+          </div>
+          <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${kcalPct}%`, background: '#0369A1', borderRadius: 3, transition: 'width .6s' }} />
+          </div>
+        </div>
+      )}
 
       <div className="card" style={{ padding: 16, marginTop: 12 }}>
         <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>✅ Controlli di sicurezza per il pasto</h3>

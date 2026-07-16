@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
-import { fetchLatestWeight } from '../../lib/specialSections'
+import { fetchLatestWeight, fetchTodayIntake } from '../../lib/specialSections'
 
 function num(v) {
   if (v === null || v === undefined || v === '') return null
@@ -18,10 +18,12 @@ const BMI_CATEGORIES = [
 export default function ObesitaTracker({ dati }) {
   const { user, profile } = useAuth()
   const [current, setCurrent] = useState(null)
+  const [intake, setIntake] = useState(null)
 
   useEffect(() => {
     if (!user?.id) return
     fetchLatestWeight(user.id).then(setCurrent)
+    fetchTodayIntake(user.id).then(setIntake)
   }, [user?.id])
 
   const start = num(dati.valutazione?.peso)
@@ -39,6 +41,13 @@ export default function ObesitaTracker({ dati }) {
   const toGo = target !== null && weight !== null ? Math.round((weight - target) * 10) / 10 : null
   const bmi = weight !== null && heightCm ? Math.round((weight / Math.pow(heightCm / 100, 2)) * 10) / 10 : null
   const bmiCat = bmi !== null ? BMI_CATEGORIES.find(c => bmi < c.max) : null
+
+  // Weeks-to-goal, same 1kg-fat≈7700kcal rule the dietitian's own tool uses (obesita.html calcObiettivoOb).
+  const deficitPerDay = deficit === 'personalizzato' ? num(dati.fabbisogno?.deficit_custom) : num(deficit)
+  const weeksToGoal = toGo !== null && toGo > 0 && deficitPerDay
+    ? Math.round((toGo * 7700) / (deficitPerDay * 7))
+    : null
+  const kcalPct = kcalTarget && intake ? Math.min(100, Math.round((intake.kcal / kcalTarget) * 100)) : 0
 
   return (
     <div className="card" style={{ padding: 16 }}>
@@ -74,6 +83,9 @@ export default function ObesitaTracker({ dati }) {
           {toGo !== null && toGo <= 0 && (
             <p style={{ fontSize: 12, color: '#16A34A', marginTop: 8, textAlign: 'center', fontWeight: 600 }}>✓ Obiettivo raggiunto</p>
           )}
+          {weeksToGoal !== null && (
+            <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, textAlign: 'center' }}>Al ritmo previsto dal tuo dietista: ~{weeksToGoal} settimane per arrivarci</p>
+          )}
         </>
       )}
 
@@ -81,6 +93,18 @@ export default function ObesitaTracker({ dati }) {
         <div style={{ marginTop: target !== null ? 16 : 0, textAlign: 'center', padding: '12px 10px', background: '#FFEDD5', borderRadius: 12 }}>
           <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Kcal target giornaliero{deficit ? ` (${deficit})` : ''}</p>
           <p style={{ fontSize: 20, fontWeight: 800, color: '#EA580C' }}>{kcalTarget} kcal</p>
+        </div>
+      )}
+
+      {kcalTarget !== null && intake !== null && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
+            <span style={{ fontWeight: 500 }}>Assunte oggi</span>
+            <span><b>{Math.round(intake.kcal)}</b> / {kcalTarget} kcal</span>
+          </div>
+          <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${kcalPct}%`, background: '#EA580C', borderRadius: 3, transition: 'width .6s' }} />
+          </div>
         </div>
       )}
     </div>

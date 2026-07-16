@@ -1,3 +1,13 @@
+import { useState, useEffect } from 'react'
+import { useAuth } from '../../context/AuthContext'
+import { fetchTodayIntake } from '../../lib/specialSections'
+
+function num(v) {
+  if (v === null || v === undefined || v === '') return null
+  const n = parseFloat(String(v).replace(',', '.'))
+  return Number.isFinite(n) ? n : null
+}
+
 // Same per-stage limits table as renale.html's calcIRC() — kept identical so
 // the patient always sees the exact numbers the dietist is working from.
 const STAGE_CONFIG = {
@@ -17,9 +27,22 @@ const HIGH_K = ['Banana', 'Patate (non lisciviate)', 'Pomodoro', 'Agrumi e succh
 const HIGH_P = ['Formaggi stagionati', 'Salumi e insaccati', 'Bevande cola', 'Snack/pane industriali (additivi fosfato)', 'Frutti di mare', 'Uova (tuorlo)']
 
 export default function RenaleGuide({ dati }) {
+  const { user } = useAuth()
+  const [intake, setIntake] = useState(null)
+
+  useEffect(() => {
+    if (!user?.id) return
+    fetchTodayIntake(user.id).then(setIntake)
+  }, [user?.id])
+
   const stadio = dati.calcolo?.stadio
   const cfg = STAGE_CONFIG[stadio]
   if (!cfg) return null
+
+  const protTot = num(dati.piano?.prot_tot)
+  const kcalTot = num(dati.piano?.kcal)
+  const protPct = protTot && intake ? Math.min(100, Math.round((intake.proteins / protTot) * 100)) : 0
+  const kcalPct = kcalTot && intake ? Math.min(100, Math.round((intake.kcal / kcalTot) * 100)) : 0
 
   return (
     <div className="card" style={{ padding: 16 }}>
@@ -46,6 +69,33 @@ export default function RenaleGuide({ dati }) {
           <span>💧 Liquidi</span><b style={{ color: '#1D4ED8' }}>{cfg.liq}</b>
         </div>
       </div>
+
+      {(protTot !== null || kcalTot !== null) && intake !== null && (
+        <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {protTot !== null && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
+                <span style={{ fontWeight: 500 }}>Proteine oggi</span>
+                <span><b>{Math.round(intake.proteins)}</b> / {protTot} g</span>
+              </div>
+              <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${protPct}%`, background: protPct >= 100 ? '#DC2626' : '#7F1D1D', borderRadius: 3, transition: 'width .6s' }} />
+              </div>
+            </div>
+          )}
+          {kcalTot !== null && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
+                <span style={{ fontWeight: 500 }}>Kcal oggi</span>
+                <span><b>{Math.round(intake.kcal)}</b> / {kcalTot} kcal</span>
+              </div>
+              <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${kcalPct}%`, background: '#1D4ED8', borderRadius: 3, transition: 'width .6s' }} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {(cfg.kMax || cfg.pMax) && (
         <div style={{ marginTop: 16 }}>
