@@ -11,6 +11,7 @@ import { AchievementsProvider } from './context/AchievementsContext'
 import OfflineBar from './components/OfflineBar'
 import PageTransition from './components/PageTransition'
 import { useT } from './i18n'
+import { getPedometer, isPedometerSupported, hasMotionPermission } from './lib/pedometer'
 
 const CURRENT_YEAR = new Date().getFullYear()
 
@@ -105,6 +106,25 @@ function ScrollToTop() {
   return null
 }
 
+// Starts the step counter as soon as the app opens, instead of only when the
+// patient happens to visit the Activity page — previously the pedometer
+// singleton (src/lib/pedometer.js) was only ever start()ed from
+// ActivityPage.jsx, so steps went uncounted all day unless that specific tab
+// was opened. Silent until permission has been granted once (from
+// ActivityPage's/HealthSyncPage's explicit "Attiva contapassi" button, which
+// needs a user gesture) — after that, hasMotionPermission() is cached and
+// this starts it automatically on every subsequent app load. On the native
+// build this immediately pulls today's step total from Health Connect/Apple
+// Health, which is how steps taken while the app was fully closed show up.
+function PedometerAutoStart() {
+  useEffect(() => {
+    if (!isPedometerSupported() || !hasMotionPermission()) return
+    const pedo = getPedometer()
+    if (!pedo.active) pedo.start()
+  }, [])
+  return null
+}
+
 function IdlePrefetch() {
   useEffect(() => {
     const cb = typeof requestIdleCallback !== 'undefined' ? requestIdleCallback : (fn) => setTimeout(fn, 2000)
@@ -180,6 +200,7 @@ function AppInner() {
     <AchievementsProvider>
       <ScrollToTop />
       <IdlePrefetch />
+      {user && !isDietitian && <PedometerAutoStart />}
       <OfflineBar onReconnect={handleReconnect} />
       <InstallBanner />
       {user && !isDietitian && <BottomNav />}

@@ -9,7 +9,7 @@ import { Plus, Trash2, Flame, Activity, List, BarChart2, Clock, X, Check, Extern
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { subDays, format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { getPedometer, isPedometerSupported, getTodaySteps, getStepGoal, setStepGoal as saveStepGoal, hasMotionPermission } from '../lib/pedometer'
+import { getPedometer, isPedometerSupported, getTodaySteps, getStepGoal, setStepGoal as saveStepGoal, hasMotionPermission, isNativeApp } from '../lib/pedometer'
 
 const STEP_GOAL_KEY = 'nutriplan_step_goal'
 const DEFAULT_STEP_GOAL = 10000
@@ -488,12 +488,19 @@ export default function ActivityPage() {
 
             {pedoPermErr && (
               <div className="alert-error" style={{ marginTop: 8, fontSize: 12 }}>
-                Accesso al sensore negato. Su iOS vai in Impostazioni → Privacy → Movimento e fitness.
+                {isNativeApp()
+                  ? 'Permesso negato. Vai in Impostazioni → Salute/Health Connect e abilita l\'accesso ai passi per NutriPlan.'
+                  : 'Accesso al sensore negato. Su iOS vai in Impostazioni → Privacy → Movimento e fitness.'}
               </div>
             )}
-            {!pedoActive && !pedoNeedsGesture && !pedoPermErr && (
+            {!pedoActive && !pedoNeedsGesture && !pedoPermErr && !isNativeApp() && (
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
                 <Info size={11} /> Tieni l'app aperta nelle app recenti per continuare il conteggio
+              </p>
+            )}
+            {!pedoActive && !pedoNeedsGesture && !pedoPermErr && isNativeApp() && (
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Info size={11} /> Conta i passi tramite {navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad') ? 'Salute' : 'Health Connect'} anche ad app chiusa
               </p>
             )}
             {pedoNeedsGesture && (

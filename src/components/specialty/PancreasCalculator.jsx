@@ -2,26 +2,11 @@ import { useState, useEffect } from 'react'
 import { AlertTriangle, Check } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { fetchLatestWeight } from '../../lib/specialSections'
+import { calcPancreasMealDose } from '../../lib/mealCalculators'
 
 function todayKey() {
   const d = new Date()
   return `pancreas_vit_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function num(v) {
-  if (v === null || v === undefined || v === '') return null
-  const n = parseFloat(String(v).replace(',', '.'))
-  return Number.isFinite(n) && n > 0 ? n : null
-}
-
-// The dietist's own PERT reference dose (grams of fat → UL) is the source of
-// truth for the per-gram rate — we back-derive it instead of re-implementing
-// the pathology/method lookup table from pancreas.html, so this can never
-// drift out of sync with what the dietist actually prescribed.
-function parseULText(v) {
-  if (!v) return null
-  const digits = String(v).replace(/[^\d]/g, '')
-  return digits ? parseInt(digits, 10) : null
 }
 
 const VIT_LABELS = { vitD: 'Vitamina D', vitE: 'Vitamina E', vitA: 'Vitamina A', vitK: 'Vitamina K' }
@@ -48,24 +33,9 @@ export default function PancreasCalculator({ dati }) {
     try { localStorage.setItem(storageKey, JSON.stringify(next)) } catch { /* storage unavailable */ }
   }
 
-  const isGrassiMethod = dati.pert?.metodo === 'grassi'
-  const isPesoMethod = dati.pert?.metodo === 'peso'
-  const grassiRef = num(dati.pert?.grassi)
-  const pesoRef = num(dati.pert?.peso)
-  const ulRef = parseULText(dati.pert?.risultato_ul)
-  const ratePerGram = isGrassiMethod && grassiRef && ulRef ? ulRef / grassiRef : null
-  // 'peso' method: dietitian's own dose is UL/kg × reference weight — back-derive
-  // the rate the same way ratePerGram is derived, then rescale to the patient's
-  // latest logged weight so the dose stays correct as weight changes.
-  const ratePerKg = isPesoMethod && pesoRef && ulRef ? ulRef / pesoRef : null
-  const weightForDose = currentWeight ?? pesoRef
-  const ulFromWeight = ratePerKg && weightForDose ? Math.round(ratePerKg * weightForDose) : null
-
-  const grassiVal = num(grassiPasto)
-  const ul = isPesoMethod ? ulFromWeight : (ratePerGram && grassiVal ? Math.round(ratePerGram * grassiVal) : null)
-  const creon40 = ul ? Math.ceil(ul / 40000) : null
-  const creon25 = ul ? Math.ceil(ul / 25000) : null
-  const creon10 = ul ? Math.ceil(ul / 10000) : null
+  // Same formula the diario's per-meal dose card uses (src/lib/mealCalculators.js).
+  const dose = calcPancreasMealDose(dati, { fatGrams: grassiPasto, currentWeight })
+  const { isGrassiMethod, isPesoMethod, ratePerGram, ratePerKg, pesoRef, ul, creon40, creon25, creon10 } = dose
 
   const prescribedVits = Object.keys(VIT_LABELS).filter(k => dati.piano?.[k])
 

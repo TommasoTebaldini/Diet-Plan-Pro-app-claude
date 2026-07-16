@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { AlertTriangle, History, Trash2, Clock } from 'lucide-react'
+import { calcDiabeteMealDose, round05 } from '../../lib/mealCalculators'
 
 const STORAGE_KEY = 'diabete_dose_history_v1'
 const MAX_HISTORY = 20
@@ -15,20 +16,6 @@ function num(v) {
   if (v === null || v === undefined || v === '') return null
   const n = parseFloat(String(v).replace(',', '.'))
   return Number.isFinite(n) && n > 0 ? n : null
-}
-
-// Free-text result strings like "1U : 8g" or "45 mg/dL" (the live calculators
-// on diabete.html write their result as display text, not a clean number) —
-// used as a fallback when the dedicated numeric field is empty. Dietitians
-// often only fill in one of the several places this ratio can end up.
-function firstNumber(v) {
-  if (!v) return null
-  const m = String(v).match(/[\d.,]+/)
-  return m ? num(m[0]) : null
-}
-
-function round05(n) {
-  return Math.round(n * 2) / 2
 }
 
 function timeToMinutes(t) {
@@ -62,22 +49,18 @@ export default function DiabeteCalculator({ dati }) {
   useEffect(() => { if (fasce.length) setFasciaIdx(findCurrentFasciaIdx(fasce)) }, [fasce.length])
 
   const fasciaAttiva = fasce[fasciaIdx]
-
-  // Pull the ratio/ISF from the active time block if set, otherwise wherever
-  // the dietitian saved a single flat value — dedicated "dose pasto" fields
-  // first, then the standalone calculators, then the depliant summary.
-  const icRatio = num(fasciaAttiva?.ic) ?? num(dati.dose_pasto?.ic) ?? firstNumber(dati.rapporto_ic?.risultato) ?? firstNumber(dati.depliant?.ic)
-  const fsi = num(fasciaAttiva?.fsi) ?? num(dati.dose_pasto?.fsi) ?? firstNumber(dati.fsi?.risultato) ?? firstNumber(dati.depliant?.fsi)
-  const target = num(fasciaAttiva?.target) ?? num(dati.dose_pasto?.target) ?? firstNumber(dati.depliant?.target)
-
   const choVal = num(cho)
   const glicemiaVal = num(glicemia)
 
-  const mealDose = icRatio && choVal ? choVal / icRatio : null
-  const correctionDose = fsi && target && glicemiaVal ? (glicemiaVal - target) / fsi : null
-  const total = mealDose !== null || correctionDose !== null
-    ? round05((mealDose || 0) + (correctionDose || 0))
-    : null
+  // Same formula the diario's per-meal dose card uses (src/lib/mealCalculators.js)
+  // — pass just the manually-selected time block so this calculator's fascia
+  // toggle and the automatic diario one never compute a different answer for
+  // the same inputs (a single-entry array always resolves to that entry).
+  const dose = calcDiabeteMealDose(
+    { ...dati, fasce_orarie: fasciaAttiva ? [fasciaAttiva] : dati.fasce_orarie },
+    { choGrams: choVal, glicemia: glicemiaVal }
+  )
+  const { icRatio, fsi, target, mealDose, correctionDose, total } = dose
 
   function registra() {
     if (total === null) return

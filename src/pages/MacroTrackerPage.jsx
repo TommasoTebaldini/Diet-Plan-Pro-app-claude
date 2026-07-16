@@ -13,6 +13,8 @@ const MealPhotoAnalyzer = lazy(() => import('../components/MealPhotoAnalyzer'))
 const MealTextAnalyzer = lazy(() => import('../components/MealTextAnalyzer'))
 import ProGate from '../components/ProGate'
 import { useSubscription } from '../hooks/useSubscription'
+import MealDoseCalculator from '../components/MealDoseCalculator'
+import { fetchSpecialSections, fetchLatestWeight } from '../lib/specialSections'
 
 // Module-level flag: whether food_logs has is_favorite and unit columns
 let _foodLogsExtended = true
@@ -292,6 +294,17 @@ export default function MacroTrackerPage() {
 
   // Load recent/favorites once on mount
   useEffect(() => { loadRecentAndFavorites() }, [])
+
+  // Enabled-specialty clinical data, for the per-meal dose calculator
+  // (MealDoseCalculator) — fetched once per visit, same source SpecialPage.jsx
+  // uses, so it only ever shows what the dietitian has actually enabled+filled.
+  const [specialtyNotes, setSpecialtyNotes] = useState([])
+  const [currentWeight, setCurrentWeight] = useState(null)
+  useEffect(() => {
+    if (!user?.id) return
+    fetchSpecialSections(user.id).then(setSpecialtyNotes)
+    fetchLatestWeight(user.id).then(setCurrentWeight)
+  }, [user?.id])
 
   async function loadLog() {
     // Use known column set if already determined, else try extended
@@ -1259,8 +1272,9 @@ export default function MacroTrackerPage() {
                     </div>
                   ))}
 
-                  {/* Meal subtotal */}
-                  {mealFoods.length > 1 && (() => {
+                  {/* Meal subtotal + per-meal dose calculator (insulin/enzymes) —
+                      both derived from the same totals, computed once. */}
+                  {mealFoods.length > 0 && (() => {
                     const st = mealFoods.reduce((a, f) => ({
                       kcal: a.kcal + (f.kcal || 0),
                       proteins: a.proteins + (f.proteins || 0),
@@ -1268,13 +1282,26 @@ export default function MacroTrackerPage() {
                       fats: a.fats + (f.fats || 0),
                     }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
                     return (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', padding: '8px 12px', background: m.pale || 'var(--green-pale)', borderRadius: 10, marginBottom: 8, borderLeft: `3px solid ${m.accent || 'var(--green-main)'}` }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', marginRight: 2 }}>Subtotale</span>
-                        <span style={{ fontSize: 11.5, fontWeight: 800, color: '#9a3412', background: 'rgba(255,255,255,0.7)', padding: '2px 8px', borderRadius: 20 }}>🔥 {r0(st.kcal)} kcal</span>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: '#1e40af', background: 'rgba(255,255,255,0.7)', padding: '2px 7px', borderRadius: 20 }}>P {r1(st.proteins)}g</span>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: '#92400e', background: 'rgba(255,255,255,0.7)', padding: '2px 7px', borderRadius: 20 }}>C {r1(st.carbs)}g</span>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: '#991b1b', background: 'rgba(255,255,255,0.7)', padding: '2px 7px', borderRadius: 20 }}>G {r1(st.fats)}g</span>
-                      </div>
+                      <>
+                        {mealFoods.length > 1 && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', padding: '8px 12px', background: m.pale || 'var(--green-pale)', borderRadius: 10, marginBottom: 8, borderLeft: `3px solid ${m.accent || 'var(--green-main)'}` }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', marginRight: 2 }}>Subtotale</span>
+                            <span style={{ fontSize: 11.5, fontWeight: 800, color: '#9a3412', background: 'rgba(255,255,255,0.7)', padding: '2px 8px', borderRadius: 20 }}>🔥 {r0(st.kcal)} kcal</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#1e40af', background: 'rgba(255,255,255,0.7)', padding: '2px 7px', borderRadius: 20 }}>P {r1(st.proteins)}g</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#92400e', background: 'rgba(255,255,255,0.7)', padding: '2px 7px', borderRadius: 20 }}>C {r1(st.carbs)}g</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#991b1b', background: 'rgba(255,255,255,0.7)', padding: '2px 7px', borderRadius: 20 }}>G {r1(st.fats)}g</span>
+                          </div>
+                        )}
+                        {specialtyNotes.length > 0 && (
+                          <MealDoseCalculator
+                            specialtyNotes={specialtyNotes}
+                            choGrams={st.carbs}
+                            fatGrams={st.fats}
+                            mealTime={timeLabel}
+                            currentWeight={currentWeight}
+                          />
+                        )}
+                      </>
                     )
                   })()}
 

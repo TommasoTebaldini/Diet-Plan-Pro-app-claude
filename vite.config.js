@@ -51,6 +51,11 @@ export default defineConfig({
           motion: ['framer-motion'],
           charts: ['recharts'],
           supabase: ['@supabase/supabase-js'],
+          // Native-only (Health Connect/HealthKit) — only ever pulled in via
+          // dynamic import() from pedometer.js on a native build. Without its
+          // own chunk, Rollup was inlining it straight into the main entry,
+          // shipping it to every plain-browser visitor for nothing.
+          health: ['capacitor-health'],
         }
       }
     }

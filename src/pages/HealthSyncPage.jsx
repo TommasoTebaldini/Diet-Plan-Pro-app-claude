@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { Activity, Heart, Scale, Moon, Footprints, RefreshCw, CheckCircle, AlertCircle, Info, ExternalLink } from 'lucide-react'
+import { Activity, Heart, Scale, Moon, Footprints, CheckCircle, AlertCircle, Info, ExternalLink } from 'lucide-react'
+import { getTodaySteps, setTodaySteps, isPedometerSupported, hasMotionPermission, isNativeApp, isNativeHealthAvailable, openHealthConnectInstall } from '../lib/pedometer'
 
 // ── Platform detection ────────────────────────────────────────────────────────
 
@@ -75,11 +76,14 @@ export default function HealthSyncPage() {
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
+  const [healthAvailable, setHealthAvailable] = useState(null) // null = not checked yet (native only)
 
   const today = new Date().toISOString().split('T')[0]
+  const native = isNativeApp()
 
   useEffect(() => {
     loadAppData()
+    if (native) isNativeHealthAvailable().then(setHealthAvailable)
   }, [])
 
   async function loadAppData() {
@@ -92,10 +96,13 @@ export default function HealthSyncPage() {
     setWeight(weightRes.data?.weight_kg ?? null)
     setSleep(wellRes.data?.sleep_hours ?? null)
 
-    // Steps from pedometer localStorage
+    // Steps from the same pedometer engine ActivityPage/App.jsx use — previously
+    // this read a different localStorage key ('pedometer_steps_') than the one
+    // the pedometer actually writes to ('nutriplan_steps_' via getTodaySteps()),
+    // so this page always showed "Nessun dato" even while steps were counting.
     try {
-      const stored = localStorage.getItem('pedometer_steps_' + today)
-      setSteps(stored ? parseInt(stored) : null)
+      const n = getTodaySteps()
+      setSteps(n > 0 ? n : null)
     } catch { setSteps(null) }
     // Heart rate from localStorage
     try {
@@ -106,56 +113,35 @@ export default function HealthSyncPage() {
     setLoading(false)
   }
 
-  // ── Android Health Connect (Web API — experimental, Android 14+ / Chrome 131+) ─
-  async function connectHealthConnect() {
+  // Neither Android Health Connect nor Apple HealthKit expose any web/JavaScript
+  // API — a plain website cannot read either, on any browser, full stop. But
+  // this app also ships as a native wrapper (Capacitor, see capacitor.config.json)
+  // for Android/iOS, and a native app CAN read them via `capacitor-health`
+  // (src/lib/pedometer.js) — Health Connect/HealthKit already count steps in
+  // the background all day regardless of whether this app is open; we just
+  // read that total whenever the app happens to be opened. In the plain
+  // browser/PWA-tab case (not the native build) this falls back to our own
+  // accelerometer counter, which only counts while the tab is open.
+  async function activateInAppPedometer() {
     setSyncing(true)
     setSyncMsg('')
     try {
-      // Check if Health Connect web API is available
-      if ('health' in navigator) {
-        const health = navigator.health
-        await health.requestAuthorization(['steps', 'weight', 'heartRate', 'sleepSession'])
-        const now = new Date()
-        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-        const records = await health.readRecords('Steps', { startTime: start.toISOString(), endTime: now.toISOString() })
-        const totalSteps = records.records.reduce((s, r) => s + (r.count?.value || 0), 0)
-        if (totalSteps > 0) {
-          setSteps(totalSteps)
-          localStorage.setItem('pedometer_steps_' + today, String(totalSteps))
-        }
-        // Try to sync weight
-        try {
-          const wRes = await health.readRecords('Weight', { startTime: new Date(Date.now() - 86400000).toISOString(), endTime: now.toISOString() })
-          const latestW = wRes.records?.[wRes.records.length - 1]?.weight?.value
-          if (latestW) {
-            setWeight(latestW)
-            await supabase.from('weight_logs').insert({ user_id: user.id, weight_kg: latestW, date: today })
-          }
-        } catch {}
-        // Try to sync sleep
-        try {
-          const sRes = await health.readRecords('SleepSession', { startTime: start.toISOString(), endTime: now.toISOString() })
-          const sessions = sRes.records || []
-          if (sessions.length > 0) {
-            const totalMs = sessions.reduce((s, r) => s + (new Date(r.endTime) - new Date(r.startTime)), 0)
-            const hours = Math.round(totalMs / 3600000 * 10) / 10
-            setSleep(hours)
-            await supabase.from('daily_wellness').upsert({ user_id: user.id, date: today, sleep_hours: hours }, { onConflict: 'user_id,date' })
-          }
-        } catch {}
-        setSyncMsg(`Sincronizzati ${totalSteps.toLocaleString()} passi + dati salute da Health Connect`)
-      } else {
-        // Fallback: open Health Connect settings
-        window.open('intent://com.google.android.apps.healthdata#Intent;scheme=https;package=com.google.android.apps.healthdata;end', '_blank')
-        setSyncMsg('Apri Google Health Connect e abilita la condivisione dati con NutriPlan.')
+      const { getPedometer, requestMotionPermission } = await import('../lib/pedometer')
+      const ok = await requestMotionPermission()
+      if (!ok) {
+        setSyncMsg(native
+          ? 'Permesso negato — abilitalo da Impostazioni → Salute/Health Connect per usare il contapassi.'
+          : 'Permesso movimento negato — abilitalo dalle impostazioni del browser per usare il contapassi.')
+        return
       }
-    } catch (e) {
-      const msg = e?.message || ''
-      if (msg.includes('not granted') || msg.includes('denied')) {
-        setSyncMsg('Permesso negato. Abilita l\'accesso da Impostazioni → Salute.')
-      } else {
-        setSyncMsg('Health Connect non disponibile su questo dispositivo o browser.')
-      }
+      const pedo = getPedometer()
+      await pedo.start()
+      setSteps(pedo.steps > 0 ? pedo.steps : null)
+      setSyncMsg(native
+        ? 'Contapassi attivo — i tuoi passi vengono contati anche ad app chiusa.'
+        : 'Contapassi attivo — conterà i tuoi passi finché l\'app è aperta.')
+    } catch {
+      setSyncMsg('Impossibile attivare il contapassi su questo dispositivo.')
     } finally {
       setSyncing(false)
     }
@@ -171,7 +157,7 @@ export default function HealthSyncPage() {
     const n = parseInt(manualSteps)
     if (!n || n <= 0) return
     setSteps(n)
-    localStorage.setItem('pedometer_steps_' + today, String(n))
+    setTodaySteps(n)
     setManualSteps('')
     setSyncMsg('Passi salvati!')
     setTimeout(() => setSyncMsg(''), 2500)
@@ -220,15 +206,58 @@ export default function HealthSyncPage() {
 
       <div style={{ padding: '16px 16px 100px', display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-        {/* Platform notice */}
+        {/* Platform notice. Native app build (Capacitor): steps come from
+            Health Connect (Android) / Apple Health (iOS) via capacitor-health
+            — the OS counts them all day regardless of whether NutriPlan is
+            open, we just read the total when the app is opened. Plain
+            browser/PWA-tab case: no website can read Health Connect/HealthKit
+            on any browser, so this falls back to our own accelerometer
+            counter, active only while the tab is open. */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card" style={{ padding: '14px 16px', background: '#f0fdf4', border: '1.5px solid #86efac' }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <span style={{ fontSize: 20, flexShrink: 0 }}>👣</span>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 14, fontWeight: 700, color: '#14532d', marginBottom: 4 }}>Contapassi NutriPlan</p>
+              <p style={{ fontSize: 12, color: '#166534', lineHeight: 1.5, marginBottom: 10 }}>
+                {native
+                  ? `Legge i passi contati automaticamente da ${os === 'ios' ? 'Salute (Apple Health)' : 'Google Health Connect'} — il conteggio prosegue anche ad app chiusa, viene solo aggiornato quando riapri NutriPlan.`
+                  : <>Conta i passi usando l'accelerometro del telefono mentre l'app è aperta (anche in un'altra scheda o sezione). {os === 'ios' ? 'Apple' : 'Google'} non permette a nessun sito web di leggere {os === 'ios' ? 'Salute/HealthKit' : 'Google Health Connect'} in background — quindi il conteggio si ferma se chiudi del tutto l'app; usa l'inserimento manuale qui sotto per i giorni in cui hai contato i passi con un altro dispositivo.</>
+                }
+              </p>
+              {native && healthAvailable === false && os === 'android' && (
+                <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 10px', marginBottom: 10 }}>
+                  <p style={{ fontSize: 11.5, color: '#92400e', marginBottom: 6 }}>Google Health Connect non è installato su questo telefono — serve per contare i passi in background.</p>
+                  <button onClick={openHealthConnectInstall} style={{ fontSize: 11.5, fontWeight: 700, color: '#92400e', background: 'none', border: 'none', padding: 0, textDecoration: 'underline', cursor: 'pointer' }}>
+                    Installa Health Connect
+                  </button>
+                </div>
+              )}
+              <button
+                onClick={activateInAppPedometer}
+                disabled={syncing || !isPedometerSupported()}
+                style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#16a34a', color: 'white', border: 'none', borderRadius: 9, padding: '9px 14px', cursor: syncing ? 'default' : 'pointer', fontSize: 13, fontWeight: 600, opacity: isPedometerSupported() ? 1 : 0.5 }}
+              >
+                <Footprints size={14} />
+                {syncing ? 'Attivazione…' : hasMotionPermission() ? 'Riattiva contapassi' : 'Attiva contapassi'}
+              </button>
+              {!isPedometerSupported() && (
+                <p style={{ fontSize: 11, color: '#78350f', marginTop: 6 }}>Il tuo browser non espone i sensori di movimento — usa l'inserimento manuale.</p>
+              )}
+              {syncMsg && <p style={{ fontSize: 12, color: '#166534', marginTop: 8 }}>{syncMsg}</p>}
+            </div>
+          </div>
+        </motion.div>
+
         {os === 'ios' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card" style={{ padding: '14px 16px', background: '#fef9f0', border: '1.5px solid #fde68a' }}>
             <div style={{ display: 'flex', gap: 10 }}>
               <span style={{ fontSize: 20, flexShrink: 0 }}>🍎</span>
               <div>
-                <p style={{ fontSize: 14, fontWeight: 700, color: '#92400e', marginBottom: 4 }}>Apple HealthKit</p>
+                <p style={{ fontSize: 14, fontWeight: 700, color: '#92400e', marginBottom: 4 }}>Frequenza cardiaca e sonno da Salute</p>
                 <p style={{ fontSize: 12, color: '#78350f', lineHeight: 1.5 }}>
-                  HealthKit richiede un'app nativa iOS. La PWA può leggere i passi via sensori del dispositivo. Per la sincronizzazione completa di frequenza cardiaca, sonno e attività è necessaria la versione nativa dell'app.
+                  {native
+                    ? 'Per ora NutriPlan legge solo i passi da Salute. Frequenza cardiaca e sonno non sono ancora collegati — puoi comunque copiarli qui a mano.'
+                    : 'Questi dati vivono nell\'app Salute di iOS e nessun sito web può leggerli — servirebbe l\'app nativa. Puoi comunque copiarli qui a mano.'}
                 </p>
                 <a
                   href="https://support.apple.com/it-it/guide/iphone/iph3ecf67d1/ios"
@@ -236,31 +265,8 @@ export default function HealthSyncPage() {
                   rel="noopener noreferrer"
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 8, fontSize: 12, color: '#d97706', fontWeight: 600 }}
                 >
-                  <ExternalLink size={11} /> Come esportare da Salute iOS
+                  <ExternalLink size={11} /> Come consultare Salute su iOS
                 </a>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {os === 'android' && (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card" style={{ padding: '14px 16px', background: '#f0fdf4', border: '1.5px solid #86efac' }}>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-              <span style={{ fontSize: 20, flexShrink: 0 }}>💚</span>
-              <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 14, fontWeight: 700, color: '#14532d', marginBottom: 4 }}>Google Health Connect</p>
-                <p style={{ fontSize: 12, color: '#166534', lineHeight: 1.5, marginBottom: 10 }}>
-                  Disponibile su Android 14+ con Chrome 131+. Il browser chiederà il permesso per accedere ai tuoi dati di salute.
-                </p>
-                <button
-                  onClick={connectHealthConnect}
-                  disabled={syncing}
-                  style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#16a34a', color: 'white', border: 'none', borderRadius: 9, padding: '9px 14px', cursor: syncing ? 'default' : 'pointer', fontSize: 13, fontWeight: 600 }}
-                >
-                  <RefreshCw size={14} style={{ animation: syncing ? 'spin 1s linear infinite' : 'none' }} />
-                  {syncing ? 'Connessione…' : 'Connetti Health Connect'}
-                </button>
-                {syncMsg && <p style={{ fontSize: 12, color: '#166534', marginTop: 8 }}>{syncMsg}</p>}
               </div>
             </div>
           </motion.div>
@@ -279,7 +285,7 @@ export default function HealthSyncPage() {
             </div>
           ) : (
             <>
-              <DataRow icon={Footprints} label="Passi" value={steps ? steps.toLocaleString('it-IT') : null} unit="passi" status={steps !== null ? 'connected' : os === 'android' ? 'unavailable' : 'manual'}>
+              <DataRow icon={Footprints} label="Passi" value={steps ? steps.toLocaleString('it-IT') : null} unit="passi" status={steps !== null ? 'connected' : 'manual'}>
                 {steps === null && (
                   <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                     <input

@@ -21,12 +21,14 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@capacitor/android": "^8.3.3",
-    "@capacitor/cli": "^8.3.3",
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/cli": "^8.4.2",
     "@capacitor/core": "^8.3.3",
+    "@capacitor/ios": "^8.4.2",
     "@supabase/supabase-js": "^2.39.0",
     "@vitejs/plugin-react": "^4.2.1",
     "@zxing/browser": "^0.1.4",
+    "capacitor-health": "^8.1.2",
     "date-fns": "^3.3.0",
     "framer-motion": "^11.0.0",
     "jspdf": "^4.2.1",

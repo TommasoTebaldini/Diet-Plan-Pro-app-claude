@@ -12,6 +12,7 @@ export default [
       '.claude/**',
       '.vercel/**',
       'android/**',
+      'ios/**',
       'public/**',
       // Large generated/data files — data literals, not hand-written logic.
       'src/data/all-foods.js',
