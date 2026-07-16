@@ -153,6 +153,13 @@ export default function StreakCalendar() {
                         setTooltip({ day, count, x: rect.left, y: rect.top, label })
                       }}
                       onMouseLeave={() => setTooltip(null)}
+                      onClick={(e) => {
+                        // Touch devices don't fire hover — show the same tooltip on
+                        // tap and auto-dismiss it, so the info isn't hover-only.
+                        const rect = e.currentTarget.getBoundingClientRect()
+                        setTooltip({ day, count, x: rect.left, y: rect.top, label })
+                        setTimeout(() => setTooltip(t => (t && t.day === day ? null : t)), 2000)
+                      }}
                     />
                   )
                 })}

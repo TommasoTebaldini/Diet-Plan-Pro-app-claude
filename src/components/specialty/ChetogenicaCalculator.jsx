@@ -106,7 +106,7 @@ export default function ChetogenicaCalculator() {
         <div style={{ marginTop: 18 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>📋 Cronologia (su questo dispositivo)</p>
-            <button onClick={cancella} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
+            <button onClick={cancella} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '10px 4px', margin: '-10px -4px' }}>
               <Trash2 size={12} /> Cancella
             </button>
           </div>

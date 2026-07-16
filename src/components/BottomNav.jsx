@@ -368,7 +368,7 @@ export default function BottomNav() {
         background: 'var(--surface)',
         borderRadius: '24px 24px 0 0',
         boxShadow: '0 -8px 40px rgba(0,0,0,0.18)',
-        maxHeight: '75vh',
+        maxHeight: '75dvh',
         overflowY: openGroup ? 'auto' : 'hidden',
         padding: '10px 16px 20px',
         transform: openGroup ? 'translateY(0)' : 'translateY(110%)',

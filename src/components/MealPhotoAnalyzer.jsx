@@ -88,7 +88,7 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 26, stiffness: 280 }}
-        style={{ width: '100%', maxWidth: 480, margin: '0 auto', background: 'var(--surface)', borderRadius: '24px 24px 0 0', padding: '20px 20px calc(28px + env(safe-area-inset-bottom))', maxHeight: '92vh', overflowY: 'auto' }}
+        style={{ width: '100%', maxWidth: 480, margin: '0 auto', background: 'var(--surface)', borderRadius: '24px 24px 0 0', padding: '20px 20px calc(28px + env(safe-area-inset-bottom))', maxHeight: '92dvh', overflowY: 'auto' }}
       >
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>

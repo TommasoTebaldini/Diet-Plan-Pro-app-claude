@@ -208,7 +208,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
   }
   const modalStyle = {
     background: 'white', borderRadius: 16, width: '100%', maxWidth: 420,
-    maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+    maxHeight: '85dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
     boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
   }
   const headerStyle = {

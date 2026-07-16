@@ -178,7 +178,7 @@ function MealFeedbackModal({ meal, user, onClose }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', padding: '0 0 calc(64px + env(safe-area-inset-bottom))' }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', padding: '20px 20px 24px', width: '100%', boxShadow: '0 -8px 32px rgba(0,0,0,0.2)' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', padding: '20px 20px 24px', width: '100%', boxShadow: '0 -8px 32px rgba(0,0,0,0.2)', maxHeight: '85dvh', overflowY: 'auto', boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div>
             <p style={{ fontSize: 15, fontWeight: 700 }}>💬 Feedback al dietista</p>

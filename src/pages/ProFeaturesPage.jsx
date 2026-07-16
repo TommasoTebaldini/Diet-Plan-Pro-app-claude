@@ -422,7 +422,7 @@ function FeatureSheet({ feature, onClose, onSubscribe }) {
           zIndex: 1011,
           background: 'var(--surface)',
           borderRadius: '24px 24px 0 0',
-          maxHeight: '88vh', overflowY: 'auto',
+          maxHeight: '88dvh', overflowY: 'auto',
           paddingBottom: 'calc(24px + env(safe-area-inset-bottom))',
         }}
       >

@@ -214,7 +214,7 @@ export default function DiabeteCalculator({ dati }) {
             <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 5 }}>
               <History size={13} /> Dosi registrate (su questo dispositivo)
             </p>
-            <button onClick={cancellaStorico} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
+            <button onClick={cancellaStorico} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '10px 4px', margin: '-10px -4px' }}>
               <Trash2 size={12} /> Cancella
             </button>
           </div>

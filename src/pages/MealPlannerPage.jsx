@@ -208,7 +208,7 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
           width: '100%',
           maxWidth: 420,
           boxShadow: 'var(--shadow-lg)',
-          maxHeight: '85vh',
+          maxHeight: '85dvh',
           overflowY: 'auto',
         }}
       >
