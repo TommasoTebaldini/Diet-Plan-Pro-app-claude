@@ -121,21 +121,25 @@ function DietTab({ user }) {
       setLoading(true)
       const allFoods = []
 
-      // Load clinical plans from piani table
-      const linkRes = await supabase.from('patient_dietitian').select('cartella_id').eq('patient_id', user.id).maybeSingle().then(r => r, () => ({ data: null }))
+      // Both lookups only depend on user.id, not on each other — fetch in parallel
+      // instead of one-after-another (was a serial round-trip waterfall).
+      const [linkRes, activeDietRes] = await Promise.all([
+        supabase.from('patient_dietitian').select('cartella_id').eq('patient_id', user.id).maybeSingle().then(r => r, () => ({ data: null })),
+        supabase.from('patient_diets').select('id').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
+      ])
       const cartellaId = linkRes?.data?.cartella_id ?? null
+      const activeDiet = activeDietRes?.data ?? null
+
+      // Load clinical plans from piani table
       if (cartellaId) {
         const { data: piani } = await supabase.from('piani').select('meals').eq('cartella_id', cartellaId).eq('visible_to_patient', true).order('saved_at', { ascending: false }).limit(1)
         if (piani?.[0]) allFoods.push(...extractFoodsFromPiano(piani[0]))
       }
 
       // Load active structured diet meals
-      if (allFoods.length === 0) {
-        const { data: activeDiet } = await supabase.from('patient_diets').select('id').eq('user_id', user.id).eq('is_active', true).maybeSingle()
-        if (activeDiet) {
-          const { data: meals } = await supabase.from('diet_meals').select('foods').eq('diet_id', activeDiet.id)
-          if (meals) allFoods.push(...extractFoodsFromDietMeals(meals))
-        }
+      if (allFoods.length === 0 && activeDiet) {
+        const { data: meals } = await supabase.from('diet_meals').select('foods').eq('diet_id', activeDiet.id)
+        if (meals) allFoods.push(...extractFoodsFromDietMeals(meals))
       }
 
       setFoods(deduplicateFoods(allFoods))
