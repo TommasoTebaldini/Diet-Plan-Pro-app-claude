@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users, ChefHat, Star, Flower2, X, Droplets, Brain, Award, ShoppingCart, Timer, Pill, Sparkles, ChevronRight } from 'lucide-react'
+import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users, ChefHat, Star, Flower2, X, Droplets, Brain, Award, ShoppingCart, Timer, Pill, Sparkles, ChevronRight, CalendarCheck, Trophy } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
@@ -140,6 +140,8 @@ export default function BottomNav() {
     { to: '/dietisti', icon: Users, label: t('nav.dietitians') },
     ...(hasSpecial ? [{ to: '/speciale', icon: Sparkles, label: 'Speciale' }] : []),
     { to: '/progressi', icon: TrendingUp, label: t('nav.progress') },
+    { to: '/settimana', icon: CalendarCheck, label: 'Settimana' },
+    { to: '/sfide', icon: Trophy, label: 'Sfide' },
     { to: '/attivita', icon: Activity, label: t('nav.activities') },
     { to: '/statistiche', icon: BarChart2, label: t('nav.report') },
     { to: '/benessere', icon: Heart, label: t('nav.wellness') },
@@ -162,7 +164,7 @@ export default function BottomNav() {
       { label: null, items: ['/'] },
       { label: t('nav.section_nutrition'), items: ['/dieta', '/macro', '/ricette', '/lista-spesa', '/digiuno'] },
       { label: t('nav.section_professionals'), items: ['/chat', '/documenti', '/dietisti', ...(hasSpecial ? ['/speciale'] : [])] },
-      { label: t('nav.section_monitoring'), items: ['/progressi', '/attivita', '/benessere', ...(showCycle ? ['/ciclo'] : []), '/farmaci', '/statistiche'] },
+      { label: t('nav.section_monitoring'), items: ['/progressi', '/settimana', '/sfide', '/attivita', '/benessere', ...(showCycle ? ['/ciclo'] : []), '/farmaci', '/statistiche'] },
       { label: null, items: PAYMENTS_ACTIVE ? ['/profilo', '/pro', '/abbonamento'] : ['/profilo', '/pro'] },
     ]
 
@@ -263,6 +265,8 @@ export default function BottomNav() {
       label: 'Monitoraggio', icon: TrendingUp, color: 'var(--orange)', bg: 'var(--icon-bg-orange)',
       items: [
         { to: '/progressi', icon: TrendingUp, label: t('nav.progress'), color: 'var(--orange)', bg: 'var(--icon-bg-orange)' },
+        { to: '/settimana', icon: CalendarCheck, label: 'Settimana', color: 'var(--blue)', bg: 'var(--icon-bg-blue)' },
+        { to: '/sfide', icon: Trophy, label: 'Sfide', color: '#D97706', bg: 'var(--icon-bg-amber)' },
         { to: '/attivita', icon: Activity, label: t('nav.activities'), color: 'var(--green-main)', bg: 'var(--icon-bg-green)' },
         { to: '/benessere', icon: Heart, label: t('nav.wellness'), color: '#DB2777', bg: 'var(--icon-bg-pink)' },
         ...(showCycle ? [{ to: '/ciclo', icon: Flower2, label: 'Ciclo', color: '#DB2777', bg: 'var(--icon-bg-pink)' }] : []),

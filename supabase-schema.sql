@@ -1714,3 +1714,87 @@ create policy "collaboratore gestisce disponibilita" on dietitian_availability
   for all using (dietitian_id = get_studio_owner(auth.uid()))
   with check (dietitian_id = get_studio_owner(auth.uid()));
 
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- RICONCILIAZIONE chat_messages — SPECCHIO della SEZIONE 30 di
+-- NutriPlan-Pro/supabase_setup.sql (tabella condivisa tra le due app: la
+-- policy va tenuta identica in entrambi i file, vale il "chi gira per primo
+-- vince" + DROP IF EXISTS). Il DB live aveva solo la convenzione di questa
+-- app (message_type/file_url/...); le colonne type/status/scheduled_at della
+-- chat dietista non esistevano. I messaggi programmati diventano visibili
+-- agli altri solo quando status='sent'.
+-- ═══════════════════════════════════════════════════════════════════════════
+
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'text';
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'sent';
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMPTZ;
+
+DROP POLICY IF EXISTS "chat_messages_own_or_linked" ON chat_messages;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='chat_messages_select_visible' AND tablename='chat_messages') THEN
+    CREATE POLICY "chat_messages_select_visible" ON chat_messages
+      FOR SELECT USING (
+        (
+          auth.uid() = patient_id
+          OR EXISTS (
+            SELECT 1 FROM patient_dietitian pd
+            WHERE pd.patient_id = chat_messages.patient_id
+              AND pd.dietitian_id = auth.uid()
+          )
+        )
+        AND (status = 'sent' OR sender_id = auth.uid())
+      );
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='chat_messages_insert_own_or_linked' AND tablename='chat_messages') THEN
+    CREATE POLICY "chat_messages_insert_own_or_linked" ON chat_messages
+      FOR INSERT WITH CHECK (
+        auth.uid() = patient_id
+        OR EXISTS (
+          SELECT 1 FROM patient_dietitian pd
+          WHERE pd.patient_id = chat_messages.patient_id
+            AND pd.dietitian_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='chat_messages_update_own_or_linked' AND tablename='chat_messages') THEN
+    CREATE POLICY "chat_messages_update_own_or_linked" ON chat_messages
+      FOR UPDATE USING (
+        auth.uid() = patient_id
+        OR EXISTS (
+          SELECT 1 FROM patient_dietitian pd
+          WHERE pd.patient_id = chat_messages.patient_id
+            AND pd.dietitian_id = auth.uid()
+        )
+      )
+      WITH CHECK (
+        auth.uid() = patient_id
+        OR EXISTS (
+          SELECT 1 FROM patient_dietitian pd
+          WHERE pd.patient_id = chat_messages.patient_id
+            AND pd.dietitian_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='chat_messages_delete_own_or_linked' AND tablename='chat_messages') THEN
+    CREATE POLICY "chat_messages_delete_own_or_linked" ON chat_messages
+      FOR DELETE USING (
+        auth.uid() = patient_id
+        OR EXISTS (
+          SELECT 1 FROM patient_dietitian pd
+          WHERE pd.patient_id = chat_messages.patient_id
+            AND pd.dietitian_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;

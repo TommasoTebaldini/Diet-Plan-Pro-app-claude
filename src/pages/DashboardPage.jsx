@@ -12,6 +12,7 @@ import { useT } from '../i18n'
 import { Utensils, Droplets, TrendingUp, Apple, Flame, Leaf, MessageCircle, FileText, BookOpen, User, ChevronRight, Activity, Scale, Calendar, Zap, Award, Heart, BarChart2, Star, Crown, Brain } from 'lucide-react'
 import StreakCalendar from '../components/StreakCalendar'
 import DailyTipsCard from '../components/DailyTipsCard'
+import DailyLessonCard from '../components/DailyLessonCard'
 import { useSubscription } from '../hooks/useSubscription'
 import OnboardingFlow from '../components/OnboardingFlow'
 import TutorialTooltip from '../components/TutorialTooltip'
@@ -538,6 +539,16 @@ export default function DashboardPage() {
           transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
         >
           <DailyTipsCard />
+        </motion.div>
+
+        {/* ── Lezione del giorno (percorso educativo quotidiano) ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <DailyLessonCard />
         </motion.div>
 
         {/* ── Feature 4: Streak Calendar ── */}

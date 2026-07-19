@@ -22,8 +22,26 @@ import { it } from 'date-fns/locale'
 const TABS_STATIC = [
   { key: 'weekly', emoji: '📊', label: '📊 Settimana' },
   { key: 'adherence', emoji: '✅', label: '✅ Aderenza' },
+  { key: 'micro', emoji: '🥕', label: '🥕 Micro' },
   { key: 'comparison', emoji: '⚖️', label: '⚖️ Confronto' },
   { key: 'report', emoji: '📄', label: '📄 Report PDF' },
+]
+
+// Micronutrienti: valori di riferimento giornalieri per adulti (LARN/EFSA,
+// arrotondati). `max: true` = soglia da NON superare (sodio, colesterolo),
+// semantica inversa rispetto ai fabbisogni. Il ferro e i folati variano per
+// sesso: risolti a runtime da profile.gender.
+const MICRO_META = [
+  { key: 'fiber_100g', label: 'Fibre', emoji: '🌾', unit: 'g', ref: { M: 25, F: 25 } },
+  { key: 'iron_100g', label: 'Ferro', emoji: '🩸', unit: 'mg', ref: { M: 10, F: 18 } },
+  { key: 'calcium_100g', label: 'Calcio', emoji: '🦴', unit: 'mg', ref: { M: 1000, F: 1000 } },
+  { key: 'magnesium_100g', label: 'Magnesio', emoji: '⚡', unit: 'mg', ref: { M: 240, F: 240 } },
+  { key: 'potassium_100g', label: 'Potassio', emoji: '🍌', unit: 'mg', ref: { M: 3900, F: 3900 } },
+  { key: 'zinc_100g', label: 'Zinco', emoji: '🛡️', unit: 'mg', ref: { M: 12, F: 9 } },
+  { key: 'folate_100g', label: 'Folati', emoji: '🥬', unit: 'µg', ref: { M: 400, F: 400 } },
+  { key: 'selenium_100g', label: 'Selenio', emoji: '🥜', unit: 'µg', ref: { M: 55, F: 55 } },
+  { key: 'sodium_100g', label: 'Sodio', emoji: '🧂', unit: 'mg', ref: { M: 2000, F: 2000 }, max: true },
+  { key: 'cholesterol_100g', label: 'Colesterolo', emoji: '🫀', unit: 'mg', ref: { M: 300, F: 300 }, max: true },
 ]
 
 const MEASURE_META = [
@@ -107,6 +125,7 @@ export default function StatisticsPage() {
   const [dietTarget, setDietTarget] = useState(null)
   const [mealsCount, setMealsCount] = useState(3)
   const [generatingPdf, setGeneratingPdf] = useState(false)
+  const [microData, setMicroData] = useState(null) // caricato lazy al primo ingresso nel tab Micro
   const [pdfMode, setPdfMode] = useState('weekly')
   const [monthStr, setMonthStr] = useState(format(new Date(), 'yyyy-MM'))
   const [generatingMonthlyPdf, setGeneratingMonthlyPdf] = useState(false)
@@ -132,6 +151,42 @@ export default function StatisticsPage() {
     if (!isPro && weekOffset > 0) { setWeekOffset(0); return }
     loadAll()
   }, [weekOffset, isPro])
+
+  // Micronutrienti: aggregati dal food_data dei log della settimana corrente.
+  // Query separata e lazy (solo quando si apre il tab): food_data è jsonb
+  // pesante e non serve agli altri tab.
+  useEffect(() => {
+    if (tab !== 'micro' || !user?.id) return
+    setMicroData(null)
+    const ws = isoDate(weekStart)
+    const we = isoDate(weekEnd)
+    supabase.from('food_logs')
+      .select('date,grams,food_data')
+      .eq('user_id', user.id).gte('date', ws).lte('date', we)
+      .neq('food_name', '__note__').limit(600)
+      .then(({ data }) => {
+        const rows = data || []
+        const totals = {}
+        const days = new Set()
+        let withMicro = 0
+        for (const r of rows) {
+          const fd = r.food_data
+          if (!fd || fd.isNote) continue
+          days.add(r.date)
+          const factor = (parseFloat(r.grams) || 0) / 100
+          let any = false
+          for (const m of MICRO_META) {
+            const v = parseFloat(fd[m.key])
+            if (isFinite(v) && v > 0) { totals[m.key] = (totals[m.key] || 0) + v * factor; any = true }
+          }
+          if (any) withMicro++
+        }
+        const nDays = Math.max(1, days.size)
+        const daily = {}
+        for (const m of MICRO_META) daily[m.key] = (totals[m.key] || 0) / nDays
+        setMicroData({ daily, nDays: days.size, nLogs: rows.length, withMicro })
+      })
+  }, [tab, user?.id, weekOffset]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadAll() {
     setLoading(true)
@@ -820,6 +875,51 @@ export default function StatisticsPage() {
               </div>
             </>
             </ProGate>
+          )}
+
+          {/* ── TAB: micronutrienti ── */}
+          {tab === 'micro' && (
+            <div className="card" style={{ padding: '18px 16px' }}>
+              <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>🥕 Micronutrienti — media giornaliera</p>
+              <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 14 }}>
+                Calcolata sui {microData?.nDays || 0} giorni con diario di questa settimana, confrontata coi valori di riferimento per adulti (LARN).
+              </p>
+              {microData === null ? (
+                <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Caricamento…</p>
+              ) : microData.nDays === 0 ? (
+                <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Nessun alimento registrato questa settimana: compila il diario per vedere i micronutrienti.</p>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {MICRO_META.map(m => {
+                      const val = microData.daily[m.key] || 0
+                      const ref = m.ref[profile?.gender === 'F' ? 'F' : 'M']
+                      const pct = Math.min(140, Math.round((val / ref) * 100))
+                      const color = m.max
+                        ? (pct <= 100 ? 'var(--green-main)' : pct <= 125 ? 'var(--orange)' : 'var(--red)')
+                        : (pct >= 90 ? 'var(--green-main)' : pct >= 60 ? 'var(--orange)' : 'var(--red)')
+                      const shown = val >= 100 ? Math.round(val) : Math.round(val * 10) / 10
+                      return (
+                        <div key={m.key}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                            <span style={{ fontSize: 12.5, fontWeight: 600 }}>{m.emoji} {m.label}</span>
+                            <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                              <b style={{ color, fontSize: 12.5 }}>{shown}</b> / {ref} {m.unit}{m.max ? ' max' : ''}
+                            </span>
+                          </div>
+                          <div style={{ height: 7, background: 'var(--border-light)', borderRadius: 4, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${Math.min(100, pct)}%`, background: color, borderRadius: 4, transition: 'width .5s' }} />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <p style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 14, lineHeight: 1.5 }}>
+                    ⚠️ Stima indicativa: molti prodotti confezionati non riportano i micronutrienti in etichetta, quindi i valori reali possono essere più alti di quelli mostrati. Per valutazioni cliniche fai riferimento al tuo dietista.
+                  </p>
+                </>
+              )}
+            </div>
           )}
 
           {/* ── TAB: comparison ── */}
