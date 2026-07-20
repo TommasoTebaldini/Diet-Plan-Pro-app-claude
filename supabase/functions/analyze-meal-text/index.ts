@@ -149,9 +149,10 @@ Deno.serve(async (req: Request) => {
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) return json({ error: 'Non autorizzato' }, 401)
 
+  // Migrazione chiavi: publishable key nuova se presente, altrimenti anon legacy.
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    Deno.env.get('SB_PUBLISHABLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     { global: { headers: { Authorization: authHeader } } },
   )
   const { data: { user }, error: authError } = await supabase.auth.getUser()

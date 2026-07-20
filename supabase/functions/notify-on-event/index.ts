@@ -35,9 +35,16 @@ function json(data: unknown, status = 200) {
   })
 }
 
+// Migrazione chiavi Supabase: usa la secret key nuova (custom secret
+// SB_SECRET_KEY) se impostata, altrimenti ricade sulla service_role legacy —
+// così la funzione resta valida prima e dopo la disattivazione delle legacy.
+// I Database Webhooks che chiamano questa funzione vanno aggiornati per
+// inviare la stessa secret key nell'header Authorization.
+const SERVICE_KEY = Deno.env.get('SB_SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+
 const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  SERVICE_KEY,
 )
 
 async function sendPushToUser(userId: string, title: string, body: string, url = '/', tag = 'nutriplan') {
@@ -84,9 +91,9 @@ Deno.serve(async (req: Request) => {
   // actually verified — anyone with the public function URL could POST an
   // arbitrary {table, record} and trigger a push notification impersonating
   // "il tuo dietista" to any patient_id (phishing).
-  const expected = `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''}`
+  const expected = `Bearer ${SERVICE_KEY}`
   const provided = req.headers.get('authorization') || ''
-  if (!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || provided !== expected) {
+  if (!SERVICE_KEY || provided !== expected) {
     return json({ error: 'unauthorized' }, 401)
   }
 
