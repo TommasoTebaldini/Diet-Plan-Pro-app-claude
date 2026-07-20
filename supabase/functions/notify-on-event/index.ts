@@ -35,12 +35,20 @@ function json(data: unknown, status = 200) {
   })
 }
 
-// Migrazione chiavi Supabase: usa la secret key nuova (custom secret
-// SB_SECRET_KEY) se impostata, altrimenti ricade sulla service_role legacy —
-// così la funzione resta valida prima e dopo la disattivazione delle legacy.
-// I Database Webhooks che chiamano questa funzione vanno aggiornati per
-// inviare la stessa secret key nell'header Authorization.
+// ── Migrazione chiavi Supabase ──────────────────────────────────────────────
+// ACCESSO AL DATABASE: usa la secret key nuova (SB_SECRET_KEY) se impostata,
+// altrimenti la service_role legacy. Questa DEVE essere valida, quindi dopo
+// aver disattivato le legacy va impostato SB_SECRET_KEY.
 const SERVICE_KEY = Deno.env.get('SB_SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+
+// AUTORIZZAZIONE DEL WEBHOOK: i Database Webhooks di Supabase inviano in
+// automatico la vecchia service_role nell'header Authorization e la UI non
+// permette di cambiarla. Quindi accettiamo come "parola d'ordine" del webhook
+// sia la secret key nuova SIA il token in WEBHOOK_TOKEN (da impostare = alla
+// vecchia service_role, quella che i webhook continuano a mandare). Dopo la
+// disattivazione delle legacy quel valore non ha più alcun potere sul DB:
+// serve solo come segreto condiviso per far scattare la notifica.
+const WEBHOOK_TOKEN = Deno.env.get('WEBHOOK_TOKEN') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
 const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
@@ -91,9 +99,10 @@ Deno.serve(async (req: Request) => {
   // actually verified — anyone with the public function URL could POST an
   // arbitrary {table, record} and trigger a push notification impersonating
   // "il tuo dietista" to any patient_id (phishing).
-  const expected = `Bearer ${SERVICE_KEY}`
+  // Accetta o la secret key nuova o il token del webhook (vecchia service_role).
+  const accepted = [SERVICE_KEY, WEBHOOK_TOKEN].filter(Boolean).map(k => `Bearer ${k}`)
   const provided = req.headers.get('authorization') || ''
-  if (!SERVICE_KEY || provided !== expected) {
+  if (!accepted.length || !accepted.includes(provided)) {
     return json({ error: 'unauthorized' }, 401)
   }
 
