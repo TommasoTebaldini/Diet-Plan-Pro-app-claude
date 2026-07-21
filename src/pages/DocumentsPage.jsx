@@ -934,6 +934,16 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
   const printImageUrl = doc.print_image_url || null
   const hasAttachment = !!doc.file_url
 
+  // Documenti di solo testo (privacy, GDPR, moduli, consigli): il contenuto vero
+  // è doc.content, il testo ESATTO scritto dal dietista. Vanno mostrati così
+  // com'è — non passati dentro il template strutturato (fallback "brutto") che
+  // li reimpagina. Il paziente deve leggere identicamente ciò che ha inviato il
+  // dietista.
+  const textContent = (doc.content && String(doc.content).trim()) ? String(doc.content) : ''
+  const TEXT_TYPES = ['privacy', 'gdpr', 'consent', 'document', 'advice', 'education', 'modulo']
+  const isTextDoc = !printImageUrl && !!textContent && TEXT_TYPES.includes(doc.type)
+  const docDateStr = doc.created_at ? new Date(doc.created_at).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' }) : ''
+
   // Portal su document.body: le pagine sono avvolte in PageTransition
   // (framer-motion, transform) che crea uno stacking context isolato — dentro,
   // nemmeno z-index 99999 supera il menu laterale (contesto radice). Il portal
@@ -979,6 +989,22 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
                 <Download size={16} />Scarica file allegato
               </a>
             )}
+          </div>
+        </div>
+      ) : isTextDoc ? (
+        <div style={{ flex: 1, overflow: 'auto', background: '#f1f5f9' }}>
+          <div style={{ maxWidth: 760, margin: '0 auto', padding: '24px 16px 48px' }}>
+            <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 6px 24px rgba(0,0,0,0.08)', padding: 'clamp(20px, 5vw, 40px)' }}>
+              <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', margin: 0 }}>{doc.title}</h1>
+              {docDateStr && <p style={{ fontSize: 12.5, color: '#94a3b8', margin: '4px 0 22px' }}>{docDateStr}</p>}
+              <div style={{ fontSize: 15, lineHeight: 1.75, color: '#1e293b', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{textContent}</div>
+              {doc.signed_at && (
+                <div style={{ marginTop: 26, padding: '12px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <CheckCircle2 size={16} color="#16a34a" />
+                  <span style={{ fontSize: 13, color: '#15803d', fontWeight: 600 }}>Firmato il {new Date(doc.signed_at).toLocaleDateString('it-IT')}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       ) : iframeHtml ? (
