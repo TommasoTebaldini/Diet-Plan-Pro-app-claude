@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import patientViewRaw from '../assets/patientViewHtml.js'
 let CONSIGLI_BASE = []
 import('../data/consigliBase.js').then(m => { CONSIGLI_BASE = m.CONSIGLI_BASE })
@@ -933,7 +934,11 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
   const printImageUrl = doc.print_image_url || null
   const hasAttachment = !!doc.file_url
 
-  return (
+  // Portal su document.body: le pagine sono avvolte in PageTransition
+  // (framer-motion, transform) che crea uno stacking context isolato — dentro,
+  // nemmeno z-index 99999 supera il menu laterale (contesto radice). Il portal
+  // fa uscire il visualizzatore da qualunque contenitore, così copre tutto.
+  return createPortal(
     <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', flexDirection: 'column', background: 'white' }}>
       {/* Header */}
       <div style={{ background: 'linear-gradient(160deg, #0d5c3a, #1a7f5a)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,.15)' }}>
@@ -1007,7 +1012,8 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
           </p>
         </div>
       )}
-    </div>
+    </div>,
+    document.body,
   )
 }
 
