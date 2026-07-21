@@ -1,15 +1,19 @@
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { jitsiUrl } from '../lib/videoCall'
 
 // z-index vicino al massimo int: la videochiamata deve stare SOPRA qualunque
-// altro overlay dell'app (menu, toast, tutorial, sheet arrivano fino a 99999),
-// altrimenti li vedi sopra il video e — peggio — il pulsante di chiusura
-// finisce coperto e i click cadono sull'iframe Jitsi (impossibile chiudere).
+// altro overlay dell'app (menu, toast, tutorial, sheet arrivano fino a 99999).
 const TOP = 2147483000
 
 export default function VideoCallModal({ roomName, displayName, onClose }) {
   if (!roomName) return null
-  return (
+  // Portal su document.body: le pagine sono avvolte in PageTransition
+  // (framer-motion, transform) che crea uno stacking context isolato — dentro
+  // di esso nemmeno z-index 2 miliardi supera il menu laterale, che vive nel
+  // contesto radice. Il portal fa uscire il video da qualunque contenitore, così
+  // copre davvero tutto (menu incluso) ed è sempre chiudibile.
+  return createPortal(
     <div style={{ position: 'fixed', inset: 0, zIndex: TOP, background: '#000' }}>
       {/* Barra superiore opaca col pulsante Chiudi: sempre visibile e cliccabile
           sopra la UI di Jitsi, mai coperta dall'iframe. */}
@@ -42,6 +46,7 @@ export default function VideoCallModal({ roomName, displayName, onClose }) {
         style={{ width: '100%', height: '100%', border: 'none' }}
         title="Videochiamata"
       />
-    </div>
+    </div>,
+    document.body,
   )
 }

@@ -43,6 +43,12 @@ export default function DailyTipsCard() {
       const cached = loadCache()
       if (cached) { setTips(cached); return }
     }
+    // La edge function daily-tips richiede il JWT: se la sessione non è ancora
+    // pronta, functions.invoke partirebbe senza header Authorization e il
+    // gateway Supabase risponde "Missing authorization header". Aspetta la
+    // sessione invece di fallire con un errore rumoroso in console.
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
     setLoading(true)
     setError('')
     setNoData(false)
