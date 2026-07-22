@@ -60,6 +60,7 @@ function LogForm({ onClose, onSaved, userWeight, userId }) {
     notes: '',
   })
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
 
   const meta = getActivityMeta(form.activity_type)
@@ -71,10 +72,11 @@ function LogForm({ onClose, onSaved, userWeight, userId }) {
   async function save() {
     if (!durationNum || durationNum <= 0) return
     setSaving(true)
+    setError('')
     const calories = estimatedCalories || calcCalories(meta.met, userWeight || 70, durationNum)
     const stepsVal = form.steps ? parseInt(form.steps, 10) : null
     try {
-      await supabase.from('activity_logs').insert({
+      const { error: insertError } = await supabase.from('activity_logs').insert({
         user_id: userId,
         date: today,
         activity_type: form.activity_type,
@@ -83,6 +85,10 @@ function LogForm({ onClose, onSaved, userWeight, userId }) {
         steps: stepsVal && stepsVal > 0 ? stepsVal : null,
         notes: form.notes || null,
       })
+      if (insertError) {
+        setError('Errore durante il salvataggio. Riprova.')
+        return
+      }
       onSaved()
       onClose()
     } finally {
@@ -147,6 +153,10 @@ function LogForm({ onClose, onSaved, userWeight, userId }) {
               <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Basato su MET {meta.met} × {userWeight} kg × {form.duration_minutes} min</p>
             </div>
           </div>
+        )}
+
+        {error && (
+          <div style={{ marginBottom: 12, background: 'var(--alert-error-bg)', border: '1.5px solid var(--alert-error-border)', borderRadius: 12, padding: '10px 14px', color: 'var(--alert-error-text)', fontSize: 13, fontWeight: 500 }}>{error}</div>
         )}
 
         <button className="btn btn-primary btn-full" onClick={save} disabled={saving || !durationNum || durationNum <= 0}>

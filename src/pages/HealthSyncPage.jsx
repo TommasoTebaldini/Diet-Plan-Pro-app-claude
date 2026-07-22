@@ -166,7 +166,12 @@ export default function HealthSyncPage() {
   async function saveManualWeight() {
     const kg = parseFloat(manualWeight)
     if (!kg || kg <= 0) return
-    await supabase.from('weight_logs').insert({ user_id: user.id, weight_kg: kg, date: today })
+    const { error } = await supabase.from('weight_logs').upsert({ user_id: user.id, weight_kg: kg, date: today }, { onConflict: 'user_id,date' })
+    if (error) {
+      setSyncMsg('Errore salvataggio peso')
+      setTimeout(() => setSyncMsg(''), 2500)
+      return
+    }
     setWeight(kg)
     setManualWeight('')
     setSyncMsg('Peso salvato!')

@@ -1,4 +1,5 @@
 ﻿import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { BrowserMultiFormatReader } from '@zxing/browser'
 import { NotFoundException } from '@zxing/library'
 import { X, Camera } from 'lucide-react'
@@ -40,7 +41,11 @@ export default function BarcodeScanner({ onDetected, onFound, onClose }) {
     }
   }, [])
 
-  return (
+  // Portal su document.body: le pagine sono avvolte in PageTransition
+  // (framer-motion, transform) che crea uno stacking context isolato — dentro
+  // di esso un position:fixed non copre davvero il menu laterale, che vive nel
+  // contesto radice (stesso fix già applicato a VideoCallModal/DocModal).
+  return createPortal(
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
       <button onClick={onClose} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <X size={20} />
@@ -60,6 +65,7 @@ export default function BarcodeScanner({ onDetected, onFound, onClose }) {
       )}
       <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 16 }}>Supporta EAN-13, QR code, UPC-A e altri formati</p>
       <style>{`@keyframes scanline { 0%,100%{top:30%} 50%{top:70%} }`}</style>
-    </div>
+    </div>,
+    document.body
   )
 }
