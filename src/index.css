@@ -1,43 +1,29 @@
 :root {
-  /* Basil family (was a brighter, more generic "medical mint" green — deepened
-     and desaturated toward fresh herb rather than clinical/fitness-app mint,
-     see the visual review artifact). Variable names kept as-is on purpose:
-     dozens of components already reference --green-*, renaming would touch
-     every one of them for no functional gain — only the values changed. */
-  --green-dark: #1f3a24;
-  --green-main: #2f5233;
-  --green-mid: #4a7043;
-  --green-light: #6b9159;
-  --green-pale: #e9f0e2;
-  --green-mist: #f2f5ed;
-  /* Saffron — the one warm accent, spent on a single number/moment per view
-     (today's kcal, a "new" badge), never on more than one element at once. */
-  --saffron: #c97f1f;
-  --saffron-soft: #f5e6c8;
-  --saffron-text: #8a5a0f;
-  /* Clay — secondary warm, used sparingly for decorative accents (e.g. the
-     recipe card's torn-edge marker), not a semantic/alert color. */
-  --clay: #a84b34;
-  --text-primary: #1c2620;
-  --text-secondary: #3d4a41;
-  --text-muted: #6b8578;
+  --green-dark: #0a4a2e;
+  --green-main: #157a4a;
+  --green-mid: #1e9e5f;
+  --green-light: #3dba7a;
+  --green-pale: #e6f5ee;
+  --green-mist: #f0faf5;
+  --text-primary: #0c1a12;
+  --text-secondary: #2d4a38;
+  --text-muted: #6b8f7a;
   --surface: #ffffff;
   --surface-2: #f7faf8;
   --surface-3: #eef5f1;
-  --border: #d7ddd2;
-  --border-light: #e4e8df;
+  --border: #c8e0d4;
+  --border-light: #dff0e7;
   --red: #dc4a4a;
   --orange: #e8882a;
   --blue: #2f7de8;
   --purple: #7c3aed;
-  --shadow-xs: 0 1px 2px rgba(28,38,32,0.06);
-  --shadow-sm: 0 2px 8px rgba(28,38,32,0.09);
-  --shadow-md: 0 4px 20px rgba(28,38,32,0.12);
-  --shadow-lg: 0 12px 48px rgba(28,38,32,0.16);
+  --shadow-xs: 0 1px 2px rgba(10,74,46,0.06);
+  --shadow-sm: 0 2px 8px rgba(10,74,46,0.09);
+  --shadow-md: 0 4px 20px rgba(10,74,46,0.12);
+  --shadow-lg: 0 12px 48px rgba(10,74,46,0.16);
   --r-sm: 10px; --r-md: 16px; --r-lg: 22px; --r-xl: 30px;
   --font-d: 'Fraunces', Georgia, serif;
   --font-b: 'DM Sans', system-ui, sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Consolas, monospace;
   --nav: 64px;
   /* ── Alert / semantic color tokens ── */
   --alert-error-bg: #fff0f0; --alert-error-border: #ffd4d4; --alert-error-text: #dc4a4a;
@@ -45,7 +31,7 @@
   --alert-info-bg: #eff6ff; --alert-info-border: #bfdbfe; --alert-info-text: #1d4ed8;
   --alert-success-bg: #f0fdf4; --alert-success-border: #bbf7d0; --alert-success-text: #166534;
   /* ── Tinted icon container backgrounds ── */
-  --icon-bg-green: #e9f0e2; --icon-bg-orange: #fff4e6; --icon-bg-blue: #eff6ff;
+  --icon-bg-green: #e6f5ee; --icon-bg-orange: #fff4e6; --icon-bg-blue: #eff6ff;
   --icon-bg-purple: #f5f3ff; --icon-bg-red: #fff0f0; --icon-bg-teal: #ccfbf1;
   --icon-bg-cyan: #ecfeff; --icon-bg-pink: #fdf2f8; --icon-bg-amber: #fff7ed;
   --icon-bg-gray: #f8fafc; --icon-bg-lime: #f0fdf4;
@@ -53,24 +39,20 @@
 
 /* ── Dark mode ── */
 html.dark {
-  --green-dark: #8fb37f;
-  --green-main: #8fb37f;
-  --green-mid: #a4c496;
-  --green-light: #b9d6ac;
-  --green-pale: #1c2a1a;
-  --green-mist: #162115;
-  --saffron: #e0a94a;
-  --saffron-soft: #4a3a1c;
-  --saffron-text: #f0d9ab;
-  --clay: #d97e63;
-  --text-primary: #eaf0e8;
-  --text-secondary: #b7c4ba;
-  --text-muted: #7f9a8b;
+  --green-dark: #3dba7a;
+  --green-main: #3dba7a;
+  --green-mid: #4ecf8b;
+  --green-light: #6dd9a0;
+  --green-pale: #0d2d1c;
+  --green-mist: #0a1f14;
+  --text-primary: #e8f5ee;
+  --text-secondary: #a8c8b8;
+  --text-muted: #6b9b7f;
   --surface: #111e17;
   --surface-2: #0d1a12;
   --surface-3: #162b1e;
-  --border: #33402f;
-  --border-light: #293327;
+  --border: #233d2c;
+  --border-light: #1a3025;
   --red: #f07070;
   --orange: #f0a060;
   --blue: #60a0f0;
@@ -85,7 +67,7 @@ html.dark {
   --alert-info-bg: #001230; --alert-info-border: #004080; --alert-info-text: #60a0f0;
   --alert-success-bg: #003d10; --alert-success-border: #006620; --alert-success-text: #60f090;
   /* ── Icon container backgrounds ── */
-  --icon-bg-green: #4a723326; --icon-bg-orange: #e8882a26; --icon-bg-blue: #2f7de826;
+  --icon-bg-green: #157a4a26; --icon-bg-orange: #e8882a26; --icon-bg-blue: #2f7de826;
   --icon-bg-purple: #7c3aed26; --icon-bg-red: #dc4a4a26; --icon-bg-teal: #0f766e26;
   --icon-bg-cyan: #0891b226; --icon-bg-pink: #ec489926; --icon-bg-amber: #f9731626;
   --icon-bg-gray: #64748b26; --icon-bg-lime: #16a34a26;
@@ -137,9 +119,9 @@ button,select{font-family:var(--font-b)}
 /* ── Buttons ── */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;font-family:var(--font-b);font-weight:500;cursor:pointer;border:none;transition:all .18s ease;white-space:nowrap;user-select:none;-webkit-tap-highlight-color:transparent;letter-spacing:-.01em}
 .btn:disabled{opacity:.5;cursor:not-allowed}
-.btn-primary{background:linear-gradient(135deg,var(--green-main),var(--green-mid));color:white;padding:13px 22px;border-radius:var(--r-md);font-size:15px;box-shadow:0 4px 16px rgba(47,82,51,.3),0 1px 3px rgba(47,82,51,.2)}
-.btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(47,82,51,.38)}
-.btn-primary:active:not(:disabled){transform:translateY(0);box-shadow:0 2px 8px rgba(47,82,51,.25)}
+.btn-primary{background:linear-gradient(135deg,var(--green-main),var(--green-mid));color:white;padding:13px 22px;border-radius:var(--r-md);font-size:15px;box-shadow:0 4px 16px rgba(21,122,74,.3),0 1px 3px rgba(21,122,74,.2)}
+.btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(21,122,74,.38)}
+.btn-primary:active:not(:disabled){transform:translateY(0);box-shadow:0 2px 8px rgba(21,122,74,.25)}
 .btn-secondary{background:var(--green-pale);color:var(--green-main);padding:11px 18px;border-radius:var(--r-md);font-size:14px;border:1.5px solid var(--border)}
 .btn-secondary:hover:not(:disabled){background:var(--border);border-color:var(--green-mid)}
 .btn-ghost{background:transparent;color:var(--text-secondary);padding:9px 14px;border-radius:var(--r-sm);font-size:14px}
@@ -148,10 +130,10 @@ button,select{font-family:var(--font-b)}
 .btn-full{width:100%}
 
 /* ── Cards ── */
-.card{background:var(--surface);border-radius:var(--r-lg);padding:16px;box-shadow:0 1px 3px rgba(28,38,32,.06),0 4px 12px rgba(28,38,32,.06);border:1px solid var(--border-light)}
+.card{background:var(--surface);border-radius:var(--r-lg);padding:16px;box-shadow:0 1px 3px rgba(10,74,46,.06),0 4px 12px rgba(10,74,46,.06);border:1px solid var(--border-light)}
 .card-flat{background:var(--surface);border-radius:var(--r-lg);padding:16px;border:1.5px solid var(--border-light)}
 /* Gradient card for hero/primary metrics */
-.card-hero{background:linear-gradient(135deg,var(--surface) 0%,var(--surface-2) 100%);border-radius:var(--r-lg);padding:16px;box-shadow:0 2px 12px rgba(28,38,32,.1),0 1px 3px rgba(28,38,32,.06);border:1px solid var(--border-light)}
+.card-hero{background:linear-gradient(135deg,var(--surface) 0%,var(--surface-2) 100%);border-radius:var(--r-lg);padding:16px;box-shadow:0 2px 12px rgba(10,74,46,.1),0 1px 3px rgba(10,74,46,.06);border:1px solid var(--border-light)}
 /* Section title label */
 .section-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;display:flex;align-items:center;gap:5px}
 /* Pill / chip */
@@ -161,40 +143,9 @@ button,select{font-family:var(--font-b)}
 .input-group{display:flex;flex-direction:column;gap:5px}
 .input-label{font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.04em}
 .input-field{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--r-md);font-family:var(--font-b);font-size:15px;color:var(--text-primary);background:var(--surface);outline:none;transition:border-color .15s,box-shadow .15s;-webkit-appearance:none}
-.input-field:focus{border-color:var(--green-main);box-shadow:0 0 0 3px rgba(47,82,51,.1)}
+.input-field:focus{border-color:var(--green-main);box-shadow:0 0 0 3px rgba(21,122,74,.1)}
 .input-field::placeholder{color:var(--text-muted)}
 select.input-field{cursor:pointer}
-
-/* ── Numeric data (macros, kcal, weight — anything that updates or lines up
-   in a column). Use wherever a number like this appears in the app instead
-   of leaving it on the body font, so digits don't shift width as they change. ── */
-.tabular{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
-
-/* ── Nutrition label ──
-   Real nutrition-facts panel instead of another gradient card + pill row —
-   see the visual review artifact. Sharp corners and a heavy top rule read as
-   "data", not "decoration"; the one saffron accent goes on .nutri-hero-num,
-   never on the row values below it. */
-.nutri-label{border:1.5px solid var(--text-primary);border-radius:2px;padding:14px 16px;background:var(--surface)}
-.nutri-label-title{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border-bottom:6px solid var(--text-primary);padding-bottom:6px;margin-bottom:8px;color:var(--text-primary)}
-.nutri-hero-num{font-family:var(--font-mono);font-size:26px;font-weight:700;color:var(--saffron);font-variant-numeric:tabular-nums}
-.nutri-hero-num small{font-family:var(--font-b);font-size:14px;color:var(--text-muted);font-weight:400}
-.nutri-bar{height:4px;background:var(--border-light);border-radius:2px;margin-top:12px;overflow:hidden}
-.nutri-bar > i{display:block;height:100%;background:var(--green-main);border-radius:2px;transition:width .6s cubic-bezier(.16,1,.3,1);font-style:normal}
-.nutri-row{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;padding:5px 0;border-bottom:1px solid var(--border-light);font-family:var(--font-mono);font-variant-numeric:tabular-nums;color:var(--text-primary)}
-.nutri-row:last-child{border-bottom:none}
-.nutri-row b{font-family:var(--font-b);font-weight:600;font-variant-numeric:normal}
-
-/* ── Recipe card ──
-   A torn-edge marker across the top, like a card pulled from a recipe box,
-   instead of another plain rounded corner — reused on every recipe card
-   (own/public/dietitian-shared) so the whole Recipes section reads as one
-   consistent object type. */
-.recipe-card-edge{position:relative}
-.recipe-card-edge::before{
-  content:"";position:absolute;top:0;left:18px;right:18px;height:3px;
-  background:repeating-linear-gradient(90deg,var(--clay) 0 8px, transparent 8px 14px);
-}
 
 /* ── Badges ── */
 .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:600;letter-spacing:.02em}
@@ -363,12 +314,12 @@ html.dark .icon-wrap{filter:brightness(1.8) saturate(0.7)}
 
 /* Btn-primary: hover lift su desktop */
 @media(hover:hover){
-  .btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 20px rgba(47,82,51,.42)}
+  .btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 20px rgba(21,122,74,.42)}
 }
 
 /* ── Micro-interaction: card lift on hover ── */
 @media(hover:hover){
-  .card:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(28,38,32,.12);transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s cubic-bezier(.16,1,.3,1)}
+  .card:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(10,74,46,.12);transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s cubic-bezier(.16,1,.3,1)}
 }
 
 /* ── Subtle press feedback on tappable elements ── */
@@ -395,19 +346,13 @@ html.dark .icon-wrap{filter:brightness(1.8) saturate(0.7)}
 }
 .animate-float{animation:floatBob 2.8s ease-in-out infinite}
 
-/* ── Pulse glow (call-to-action buttons) ──
-   Was an infinite 3s loop on EVERY primary button on every screen — with more
-   than one visible at once (common: a list of cards each with its own CTA)
-   that reads as background noise instead of emphasis, and never stops
-   animating on a page you leave open. Now plays once when the button first
-   appears, which still gives new primary actions a moment of attention
-   without looping forever. */
+/* ── Pulse glow (call-to-action buttons) ── */
 @keyframes pulseGlow{
-  0%{box-shadow:0 4px 16px rgba(47,82,51,.3)}
-  50%{box-shadow:0 4px 28px rgba(47,82,51,.55),0 0 0 4px rgba(47,82,51,.08)}
-  100%{box-shadow:0 4px 16px rgba(47,82,51,.3)}
+  0%,100%{box-shadow:0 4px 16px rgba(21,122,74,.3)}
+  50%{box-shadow:0 4px 28px rgba(21,122,74,.55),0 0 0 4px rgba(21,122,74,.08)}
 }
-.btn-primary:not(:disabled){animation:pulseGlow 1.4s ease-in-out 1}
+.btn-primary:not(:disabled){animation:pulseGlow 3s ease-in-out infinite}
+.btn-primary:not(:disabled):hover{animation:none}
 
 /* ── Gradient border animation ── */
 @keyframes borderRotate{to{--border-angle:360deg}}

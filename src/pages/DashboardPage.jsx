@@ -9,7 +9,7 @@ import { useAppSettings } from '../context/AppSettingsContext'
 import { supabase } from '../lib/supabase'
 import { fetchDietFromPiani } from '../lib/dietBridge'
 import { useT } from '../i18n'
-import { Utensils, Droplets, TrendingUp, Apple, Leaf, MessageCircle, FileText, BookOpen, User, ChevronRight, Activity, Scale, Calendar, Zap, Award, Heart, BarChart2, Star, Crown, Brain } from 'lucide-react'
+import { Utensils, Droplets, TrendingUp, Apple, Flame, Leaf, MessageCircle, FileText, BookOpen, User, ChevronRight, Activity, Scale, Calendar, Zap, Award, Heart, BarChart2, Star, Crown, Brain } from 'lucide-react'
 import StreakCalendar from '../components/StreakCalendar'
 import DailyTipsCard from '../components/DailyTipsCard'
 import DailyLessonCard from '../components/DailyLessonCard'
@@ -20,6 +20,27 @@ import { useFirstVisit } from '../hooks/useFirstVisit'
 
 const r1 = v => Math.round((+v || 0) * 10) / 10
 const r0 = v => Math.round(+v || 0)
+
+// Animated progress ring: starts at 0, transitions to target pct on mount
+function Ring({ pct, color, size = 60, strokeWidth = 7 }) {
+  const [display, setDisplay] = useState(0)
+  useEffect(() => {
+    const t = setTimeout(() => setDisplay(pct), 80)
+    return () => clearTimeout(t)
+  }, [pct])
+  const r = (size - strokeWidth) / 2
+  const circ = 2 * Math.PI * r
+  const offset = circ - Math.min(100, display) / 100 * circ
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,.15)" strokeWidth={strokeWidth} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color}
+        strokeWidth={strokeWidth} strokeLinecap="round"
+        strokeDasharray={circ} strokeDashoffset={offset}
+        style={{ transition: 'stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)' }} />
+    </svg>
+  )
+}
 
 // Meal types with time windows (startHour as decimal)
 const MEAL_ORDER = ['colazione', 'spuntino_mattina', 'pranzo', 'spuntino_pomeriggio', 'cena']
@@ -52,8 +73,21 @@ function getMotivationalMessage(kcalPct, waterPct, streak) {
   return '🎯 Ogni piccolo passo conta. Vai avanti!'
 }
 
+function StatPill({ label, val, target, color }) {
+  const pct = target ? Math.min(100, Math.round(val / target * 100)) : 0
+  return (
+    <div style={{ flex: 1, background: 'rgba(255,255,255,.1)', borderRadius: 14, padding: '10px 8px', textAlign: 'center', border: '1px solid rgba(255,255,255,.12)', backdropFilter: 'blur(8px)' }}>
+      <div style={{ height: 3, background: 'rgba(255,255,255,.2)', borderRadius: 2, marginBottom: 8, overflow: 'hidden' }}>
+        {target && <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 2, transition: 'width 1s ease' }} />}
+      </div>
+      <p style={{ color: 'white', fontSize: 14, fontWeight: 700, lineHeight: 1 }}>{val}{target ? `/${target}` : ''}</p>
+      <p style={{ color: 'rgba(255,255,255,.6)', fontSize: 10, marginTop: 3 }}>{label}</p>
+    </div>
+  )
+}
+
 const ACTIONS = [
-  { label: 'Dieta', icon: Utensils, to: '/dieta', color: 'var(--green-main)', bg: 'var(--icon-bg-green)' },
+  { label: 'Dieta', icon: Utensils, to: '/dieta', color: '#157a4a', bg: '#e6f5ee' },
   { label: 'Pasti', icon: Apple, to: '/macro', color: '#e8882a', bg: '#fff4e6' },
   { label: 'Acqua', icon: Droplets, to: '/acqua', color: '#2f7de8', bg: '#eff6ff' },
   { label: 'Attività', icon: Activity, to: '/attivita', color: '#f97316', bg: '#fff7ed' },
@@ -62,7 +96,7 @@ const ACTIONS = [
   { label: 'Report', icon: BarChart2, to: '/statistiche', color: '#0f766e', bg: '#f0fdfa' },
   { label: 'Chat', icon: MessageCircle, to: '/chat', color: '#dc4a4a', bg: '#fff0f0' },
   { label: 'Documenti', icon: FileText, to: '/documenti', color: '#0891b2', bg: '#ecfeff' },
-  { label: 'Alimenti', icon: BookOpen, to: '/alimenti', color: 'var(--green-main)', bg: 'var(--icon-bg-green)' },
+  { label: 'Alimenti', icon: BookOpen, to: '/alimenti', color: '#157a4a', bg: '#f0fdf4' },
   { label: 'Quiz', icon: Brain, to: '/quiz', color: '#7c3aed', bg: '#f5f3ff' },
   { label: 'Profilo', icon: User, to: '/profilo', color: '#64748b', bg: '#f8fafc' },
 ]
@@ -245,58 +279,76 @@ export default function DashboardPage() {
 
   return (
     <div className="page">
-      {/* ── Hero header ──
-          Replaced the gradient-hero + glassmorphism ring + 4-color pill row
-          (every nutrition tracker's default look) with a plain page top and a
-          real nutrition-label panel — see the visual review artifact. One
-          warm accent (saffron) on the number that matters, everything else
-          reads as data instead of decoration. */}
-      <div style={{ padding: 'calc(env(safe-area-inset-top) + 20px) 20px 20px', borderBottom: '1px solid var(--border-light)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-          <div>
-            <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 2 }}>{greet} 👋</p>
-            <h1 style={{ fontFamily: 'var(--font-d)', fontStyle: 'italic', fontSize: 28, color: 'var(--text-primary)', fontWeight: 400, lineHeight: 1.1 }}>{firstName}</h1>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {streak > 0 && (
-              <div style={{ height: 42, borderRadius: 100, background: 'var(--saffron-soft)', border: '1.5px solid var(--saffron)', display: 'flex', alignItems: 'center', gap: 5, padding: '0 12px' }}>
-                <Zap size={14} color="var(--saffron-text)" fill="var(--saffron-text)" />
-                <span className="tabular" style={{ color: 'var(--saffron-text)', fontSize: 13, fontWeight: 700 }}>{streak}d</span>
-              </div>
-            )}
-            {unreadChat > 0 && (
-              <Link to="/chat" style={{ width: 42, height: 42, borderRadius: '50%', background: '#dc4a4a', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', position: 'relative', boxShadow: '0 4px 12px rgba(220,74,74,.3)' }}>
-                <MessageCircle size={18} color="white" />
-                <span className="tabular" style={{ position: 'absolute', top: -2, right: -2, width: 18, height: 18, borderRadius: '50%', background: 'white', color: '#dc4a4a', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{unreadChat}</span>
-              </Link>
-            )}
-              <Link to="/profilo" style={{ width: 42, height: 42, borderRadius: '50%', background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', color: 'var(--green-dark)', fontWeight: 700, fontSize: 16, border: '1.5px solid var(--border)', position: 'relative' }}>
-              {firstName[0]?.toUpperCase()}
-              {isPro && (
-                <span style={{ position: 'absolute', bottom: -4, right: -4, width: 18, height: 18, borderRadius: '50%', background: 'linear-gradient(135deg, #FCD34D, #F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, border: '2px solid var(--surface)' }}>
-                  <Crown size={9} color="#7c2d12" />
-                </span>
+      {/* ── Hero header ── */}
+      <div style={{
+        background: 'linear-gradient(160deg, var(--green-dark) 0%, var(--green-main) 55%, var(--green-mid) 100%)',
+        padding: 'calc(env(safe-area-inset-top) + 20px) 20px 28px',
+        position: 'relative', overflow: 'hidden'
+      }}>
+        {/* Decorative circles */}
+        <div style={{ position: 'absolute', top: -40, right: -40, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,.05)' }} />
+        <div style={{ position: 'absolute', bottom: -20, left: -20, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,.04)' }} />
+
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <div>
+              <p style={{ color: 'rgba(255,255,255,.65)', fontSize: 12, marginBottom: 2 }}>{greet} 👋</p>
+              <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 28, color: 'white', fontWeight: 300, lineHeight: 1.1 }}>{firstName}</h1>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {streak > 0 && (
+                <div style={{ height: 42, borderRadius: 100, background: 'rgba(255,165,0,.25)', border: '1.5px solid rgba(255,165,0,.45)', display: 'flex', alignItems: 'center', gap: 5, padding: '0 12px' }}>
+                  <Zap size={14} color="#fbbf24" fill="#fbbf24" />
+                  <span style={{ color: '#fde68a', fontSize: 13, fontWeight: 700 }}>{streak}d</span>
+                </div>
               )}
-            </Link>
+              {unreadChat > 0 && (
+                <Link to="/chat" style={{ width: 42, height: 42, borderRadius: '50%', background: '#dc4a4a', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', position: 'relative', boxShadow: '0 4px 12px rgba(220,74,74,.4)' }}>
+                  <MessageCircle size={18} color="white" />
+                  <span style={{ position: 'absolute', top: -2, right: -2, width: 18, height: 18, borderRadius: '50%', background: 'white', color: '#dc4a4a', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{unreadChat}</span>
+                </Link>
+              )}
+                <Link to="/profilo" style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(255,255,255,.18)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', color: 'white', fontWeight: 700, fontSize: 16, border: '1.5px solid rgba(255,255,255,.25)', position: 'relative' }}>
+                {firstName[0]?.toUpperCase()}
+                {isPro && (
+                  <span style={{ position: 'absolute', bottom: -4, right: -4, width: 18, height: 18, borderRadius: '50%', background: 'linear-gradient(135deg, #FCD34D, #F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, border: '2px solid rgba(255,255,255,0.3)' }}>
+                    <Crown size={9} color="#7c2d12" />
+                  </span>
+                )}
+              </Link>
+            </div>
           </div>
-        </div>
 
-        {/* Nutrition label: today's calories + macros in one panel instead of
-            a ring plus four differently-colored pills for the same data. */}
-        <div className="nutri-label">
-          <div className="nutri-label-title">Valori di oggi</div>
-          <div className="nutri-hero-num">{r0(kcal)} <small>/ {kcalTarget} kcal</small></div>
-          <div className="nutri-bar"><i style={{ width: `${kcalPct}%` }} /></div>
-          <div style={{ height: 10 }} />
-          <div className="nutri-row"><b>Proteine</b><span>{r1(todayLog?.proteins)}{diet?.protein_target ? ` / ${diet.protein_target}` : ''} g</span></div>
-          <div className="nutri-row"><b>Carboidrati</b><span>{r1(todayLog?.carbs)}{diet?.carbs_target ? ` / ${diet.carbs_target}` : ''} g</span></div>
-          <div className="nutri-row"><b>Grassi</b><span>{r1(todayLog?.fats)}{diet?.fats_target ? ` / ${diet.fats_target}` : ''} g</span></div>
-          <div className="nutri-row"><b>Acqua</b><span>{r1(waterLog / 1000)} / 2.5 L</span></div>
-        </div>
+          {/* Calorie ring + stats */}
+          <div style={{ background: 'rgba(255,255,255,.1)', backdropFilter: 'blur(12px)', borderRadius: 20, padding: '16px 18px', border: '1px solid rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14 }}>
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <Ring pct={kcalPct} color="rgba(255,255,255,.9)" size={68} strokeWidth={7} />
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <Flame size={14} color="white" />
+                <span style={{ color: 'white', fontSize: 11, fontWeight: 700 }}>{kcalPct}%</span>
+              </div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ color: 'rgba(255,255,255,.7)', fontSize: 11, marginBottom: 2 }}>Calorie oggi</p>
+              <p style={{ color: 'white', fontSize: 22, fontWeight: 700, lineHeight: 1 }}>{r0(kcal)} <span style={{ fontSize: 13, opacity: .7, fontWeight: 400 }}>/ {kcalTarget} kcal</span></p>
+              <div style={{ marginTop: 8, height: 5, background: 'rgba(255,255,255,.2)', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${kcalPct}%`, background: 'white', borderRadius: 3, transition: 'width 1.2s ease' }} />
+              </div>
+            </div>
+          </div>
 
-        {/* Motivational message */}
-        <div style={{ marginTop: 12, background: 'var(--green-mist)', borderRadius: 12, padding: '10px 14px', border: '1px solid var(--border-light)' }}>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500 }}>{motivationalMsg}</p>
+          {/* Macro pills */}
+          <div style={{ display: 'flex', gap: 6 }}>
+            <StatPill label="Prot." val={`${r1(todayLog?.proteins)}g`} target={diet?.protein_target ? `${diet.protein_target}g` : null} color="#93c5fd" />
+            <StatPill label="Carbo" val={`${r1(todayLog?.carbs)}g`} target={diet?.carbs_target ? `${diet.carbs_target}g` : null} color="#fcd34d" />
+            <StatPill label="Grassi" val={`${r1(todayLog?.fats)}g`} target={diet?.fats_target ? `${diet.fats_target}g` : null} color="#fca5a5" />
+            <StatPill label="Acqua" val={`${r1(waterLog / 1000)}L`} target="2.5L" color="#7dd3fc" />
+          </div>
+
+          {/* Motivational message */}
+          <div style={{ marginTop: 12, background: 'rgba(255,255,255,.1)', borderRadius: 12, padding: '10px 14px', border: '1px solid rgba(255,255,255,.15)' }}>
+            <p style={{ color: 'rgba(255,255,255,.9)', fontSize: 13, fontWeight: 500 }}>{motivationalMsg}</p>
+          </div>
         </div>
       </div>
 

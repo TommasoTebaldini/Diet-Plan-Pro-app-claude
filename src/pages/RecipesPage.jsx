@@ -250,8 +250,8 @@ function RecipeCard({ r, isOwn, isDietitian, expandedId, setExpandedId, onSave, 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-      className="card recipe-card-edge" style={{ padding: 0, overflow: 'hidden' }}>
-      <button onClick={() => setExpandedId(isOpen ? null : r.id)} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '16px 14px 13px', display: 'flex', alignItems: 'flex-start', gap: 10, font: 'inherit', textAlign: 'left' }}>
+      className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <button onClick={() => setExpandedId(isOpen ? null : r.id)} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '13px 14px', display: 'flex', alignItems: 'flex-start', gap: 10, font: 'inherit', textAlign: 'left' }}>
         {r.photo_url ? (
           <img src={r.photo_url} alt="" loading="lazy" style={{ width: 40, height: 40, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
         ) : (
@@ -261,11 +261,11 @@ function RecipeCard({ r, isOwn, isDietitian, expandedId, setExpandedId, onSave, 
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginBottom: 3 }}>
-            <p style={{ fontFamily: 'var(--font-d)', fontStyle: 'italic', fontSize: 16, fontWeight: 500 }}>{r.nome}</p>
+            <p style={{ fontSize: 14, fontWeight: 700 }}>{r.nome}</p>
             {isDietitian && <span style={{ fontSize: 9, background: '#cffafe', color: '#0e7490', padding: '1px 6px', borderRadius: 100, fontWeight: 700, flexShrink: 0 }}>🩺 Dietista</span>}
             {!isDietitian && r.is_public && <span style={{ fontSize: 9, background: '#dbeafe', color: '#1d4ed8', padding: '1px 6px', borderRadius: 100, fontWeight: 700, flexShrink: 0 }}>🌐 Pubblica</span>}
           </div>
-          <p className="tabular" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+          <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
             🔥 {r.calorie_porzione || 0} kcal · {r.porzioni || 1} porz.{tt > 0 ? ` · ⏱ ${fmtTime(tt)}` : ''}
           </p>
         </div>
@@ -303,15 +303,12 @@ function RecipeCard({ r, isOwn, isDietitian, expandedId, setExpandedId, onSave, 
 
       {isOpen && (
         <div style={{ borderTop: '1px solid var(--border-light)', padding: '12px 14px 14px' }}>
-          {/* Macros — nutrition label instead of a row of same-color pills,
-              so a recipe with genuinely zero nutrition (e.g. not yet resolved)
-              stands out instead of blending into every other pill. */}
-          <div className="nutri-label" style={{ marginBottom: 12, padding: '10px 14px' }}>
-            <div className="nutri-label-title" style={{ fontSize: 10, borderBottomWidth: 4, marginBottom: 6 }}>Per porzione</div>
-            <div className="nutri-row"><b>Kcal</b><span>{r.calorie_porzione || 0}</span></div>
-            <div className="nutri-row"><b>Proteine</b><span>{r.proteine || 0} g</span></div>
-            <div className="nutri-row"><b>Carboidrati</b><span>{r.carboidrati || 0} g</span></div>
-            <div className="nutri-row"><b>Grassi</b><span>{r.grassi || 0} g</span></div>
+          {/* Macros */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+            {[`🔥 ${r.calorie_porzione} kcal`, `P:${r.proteine}g`, `C:${r.carboidrati}g`, `G:${r.grassi}g`].map(v => (
+              <span key={v} style={{ fontSize: 11, background: 'var(--surface-2)', padding: '2px 8px', borderRadius: 100, color: 'var(--text-secondary)' }}>{v}</span>
+            ))}
+            <span style={{ fontSize: 11, background: '#f1f5f9', padding: '2px 8px', borderRadius: 100, color: 'var(--text-muted)' }}>per porzione</span>
           </div>
 
           {/* Timing chips */}
@@ -328,7 +325,7 @@ function RecipeCard({ r, isOwn, isDietitian, expandedId, setExpandedId, onSave, 
           {safeArray(r.ingredienti).map((ing, i, arr) => (
             <div key={i} style={{ display: 'flex', gap: 8, padding: '5px 0', borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
               <p style={{ flex: 1, fontSize: 13 }}>{ing.food_name}</p>
-              <p className="tabular" style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0 }}>{ing.grams}g · {ing.kcal} kcal</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0 }}>{ing.grams}g · {ing.kcal} kcal</p>
             </div>
           ))}
 
@@ -564,14 +561,14 @@ function SharedRecipeCard({ sr, onSave, onMarkViewed }) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-      className="card recipe-card-edge" style={{ padding: 0, overflow: 'hidden', border: isNew ? '2px solid #0891b2' : undefined }}>
-      <button onClick={toggle} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '16px 14px 13px', display: 'flex', alignItems: 'flex-start', gap: 10, font: 'inherit', textAlign: 'left' }}>
+      className="card" style={{ padding: 0, overflow: 'hidden', border: isNew ? '2px solid #0891b2' : undefined }}>
+      <button onClick={toggle} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '13px 14px', display: 'flex', alignItems: 'flex-start', gap: 10, font: 'inherit', textAlign: 'left' }}>
         <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #0891b2, #0e7490)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>
           🩺
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginBottom: 3 }}>
-            <p style={{ fontFamily: 'var(--font-d)', fontStyle: 'italic', fontSize: 16, fontWeight: 500 }}>{rd.nome || 'Ricetta'}</p>
+            <p style={{ fontSize: 14, fontWeight: 700 }}>{rd.nome || 'Ricetta'}</p>
             {isNew && <span style={{ fontSize: 9, background: '#0891b2', color: 'white', padding: '1px 6px', borderRadius: 100, fontWeight: 700, flexShrink: 0 }}>NUOVA</span>}
           </div>
           <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>

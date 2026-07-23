@@ -126,7 +126,7 @@ export default function TutorialTooltip({ steps, onDone, pageKey }) {
             height: targetRect.height + 12,
             borderRadius: 10,
             border: '2.5px solid var(--green-main)',
-            boxShadow: '0 0 0 3px rgba(47,82,51,0.25)',
+            boxShadow: '0 0 0 3px rgba(21,122,74,0.25)',
             pointerEvents: 'none',
           }}
         />
