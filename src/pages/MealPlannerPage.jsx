@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { searchFoods } from '../lib/foodSearch'
+import { searchFoodsLocal, supplementWithOpenFoodFacts } from '../lib/foodSearch'
 import { ChevronLeft, ChevronRight, Plus, X, ShoppingCart, Calendar, Share2, Trash2, Check } from 'lucide-react'
 import { startOfWeek, addWeeks, subWeeks, addDays, format } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -102,6 +102,7 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
   const [portions, setPortions] = useState('1')
   const inputRef = useRef(null)
   const debounceRef = useRef(null)
+  const searchIdRef = useRef(0)
 
   useEffect(() => {
     if (inputRef.current) inputRef.current.focus()
@@ -114,11 +115,25 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
     if (!query.trim()) return
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
+      const searchId = ++searchIdRef.current
       setLoading(true)
       try {
         if (tab === 'alimento') {
-          const res = await searchFoods(query)
-          setResults(res.slice(0, 20))
+          // Two-phase search (same pattern as MacroTrackerPage/RecipesPage):
+          // local sources answer immediately instead of blocking every
+          // keystroke on the Open Food Facts network round trip. searchId
+          // guards against a slower, older search overwriting a newer one.
+          const trimmed = query.trim()
+          const local = await searchFoodsLocal(trimmed)
+          if (searchId !== searchIdRef.current) return
+          setResults(local.slice(0, 20))
+          setLoading(false)
+          if (trimmed.length >= 3) {
+            const supplemented = await supplementWithOpenFoodFacts(trimmed, local)
+            if (searchId !== searchIdRef.current) return
+            setResults(supplemented.slice(0, 20))
+          }
+          return
         } else {
           const { supabase: sb } = await import('../lib/supabase')
           const q = query.toLowerCase()

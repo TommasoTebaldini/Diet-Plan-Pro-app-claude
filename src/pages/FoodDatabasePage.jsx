@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { searchFoodsLocal, searchFoods, supplementWithOpenFoodFacts } from '../lib/foodSearch'
+import { searchFoodsLocal, supplementWithOpenFoodFacts } from '../lib/foodSearch'
 import { Search, Plus, X, BookOpen, Star, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import { useT } from '../i18n'
 
@@ -156,9 +156,18 @@ export default function FoodDatabasePage() {
   async function handleSearch(e) {
     e?.preventDefault()
     if (!query.trim()) return
+    const trimmed = query.trim()
     setSearching(true); setResults([])
-    const foods = await searchFoods(query.trim())
-    setResults(foods); setSearching(false)
+    // Same two-phase pattern as the IngredientSearch sub-component above:
+    // local sources answer immediately, Open Food Facts only fills the gap
+    // in the background instead of blocking every search on that network call.
+    const localFoods = await searchFoodsLocal(trimmed)
+    if (localFoods.length > 0) { setResults(localFoods); setSearching(false) }
+    if (trimmed.length >= 3 && localFoods.length < 8) {
+      const allFoods = await supplementWithOpenFoodFacts(trimmed, localFoods)
+      setResults(allFoods)
+    }
+    setSearching(false)
   }
 
   async function saveToFavorites(food) {

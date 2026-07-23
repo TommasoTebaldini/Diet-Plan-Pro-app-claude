@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { searchFoods, searchFoodsLocal } from '../lib/foodSearch'
+import { searchFoodsLocal, supplementWithOpenFoodFacts } from '../lib/foodSearch'
 import ProGate from '../components/ProGate'
 import { useSubscription } from '../hooks/useSubscription'
 import { Search, Plus, X, Trash2, ChevronDown, ChevronUp, Globe, Lock, Bookmark, Pencil, Heart, SlidersHorizontal, Camera } from 'lucide-react'
@@ -150,25 +150,41 @@ function IngredientSearch({ onAdd }) {
   const [busy, setBusy] = useState(false)
   const [pending, setPending] = useState(null)
   const [pendingGrams, setPendingGrams] = useState('100')
+  // Guards against a slower, older search overwriting a newer one's results.
+  const searchIdRef = useRef(0)
+
+  // Two-phase search (same pattern as MacroTrackerPage's food search): local
+  // sources answer in well under a second, so show those immediately instead
+  // of blocking on the Open Food Facts network round trip first — that used
+  // to mean this box showed nothing at all for several seconds on every
+  // ingredient lookup.
+  async function runSearch(trimmed) {
+    const searchId = ++searchIdRef.current
+    setBusy(true)
+    const local = await searchFoodsLocal(trimmed)
+    if (searchId !== searchIdRef.current) return
+    setRes(local)
+    setBusy(false)
+    if (trimmed.length >= 3) {
+      const supplemented = await supplementWithOpenFoodFacts(trimmed, local)
+      if (searchId !== searchIdRef.current) return
+      setRes(supplemented)
+    }
+  }
 
   useEffect(() => {
     const trimmed = q.trim()
     if (trimmed.length < 2) { setRes([]); return }
-    const timer = setTimeout(async () => {
-      setBusy(true)
-      setRes(await searchFoods(trimmed))
-      setBusy(false)
-    }, 350)
+    const timer = setTimeout(() => runSearch(trimmed), 350)
     return () => clearTimeout(timer)
   }, [q])
 
-  async function doSearch(e) {
+  function doSearch(e) {
     e?.preventDefault()
     const trimmed = q.trim()
     if (!trimmed || trimmed.length < 2) return
-    setBusy(true); setRes([])
-    setRes(await searchFoods(trimmed))
-    setBusy(false)
+    setRes([])
+    runSearch(trimmed)
   }
 
   function select(food) { setPending(food); setPendingGrams('100'); setRes([]) }

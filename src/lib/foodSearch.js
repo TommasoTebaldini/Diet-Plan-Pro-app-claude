@@ -1,11 +1,17 @@
 import { supabase } from './supabase'
 
 // ─── Shared food database (same as dietitian site: CREA + BDA + ONS + APROTEICI + FLAVIS + UPF) ──
+// Every keystroke used to re-run f.name.toLowerCase() over all ~3400 entries
+// twice (once in the filter, once again in the sort comparator) — this cache
+// computes it once when the module first loads the array, so every search
+// after the first is a lookup instead of a few thousand fresh string ops.
 let _allFoods = null
+let _allFoodsLower = null
 async function getAllFoods() {
   if (_allFoods) return _allFoods
   const mod = await import('../data/all-foods.js')
   _allFoods = mod.ALL_FOODS
+  _allFoodsLower = _allFoods.map(f => (f?.name || '').toLowerCase())
   return _allFoods
 }
 
@@ -14,17 +20,20 @@ async function searchAllFoods(query) {
   if (!q) return []
   const ALL_FOODS = await getAllFoods()
   const tokens = q.split(/\s+/)
-  const results = ALL_FOODS.filter(f => {
-    if (!f?.name) return false
-    const name = f.name.toLowerCase()
-    return tokens.every(t => name.includes(t))
-  })
-  results.sort((a, b) => {
-    const aStarts = (a.name || '').toLowerCase().startsWith(q) ? 0 : 1
-    const bStarts = (b.name || '').toLowerCase().startsWith(q) ? 0 : 1
+  const matches = []
+  for (let i = 0; i < ALL_FOODS.length; i++) {
+    const name = _allFoodsLower[i]
+    if (name && tokens.every(t => name.includes(t))) matches.push(i)
+  }
+  matches.sort((ia, ib) => {
+    const aStarts = _allFoodsLower[ia].startsWith(q) ? 0 : 1
+    const bStarts = _allFoodsLower[ib].startsWith(q) ? 0 : 1
     return aStarts - bStarts
   })
-  return results.map(f => ({ ...f, brand: `${f.src || 'CREA'} — ${f.category || 'Generico'}`, source: 'dietitian' }))
+  return matches.slice(0, 50).map(i => {
+    const f = ALL_FOODS[i]
+    return { ...f, brand: `${f.src || 'CREA'} — ${f.category || 'Generico'}`, source: 'dietitian' }
+  })
 }
 
 // ─── Foods added by the dietitian via database.html (shared via Supabase) ────
@@ -94,11 +103,22 @@ async function searchRecentFoods(query) {
   } catch { return [] }
 }
 
-// Foods from dietitian's diet meals (foods in prescribed diets)
+// Foods from dietitian's diet meals (foods in prescribed diets) — the same
+// 40 rows were re-fetched from Supabase on every keystroke regardless of the
+// query (there's no server-side filter to narrow it), so this caches the raw
+// rows once per session instead of a fresh network round trip per search.
+let _dietMealsCache = null
+async function _getDietMeals() {
+  if (_dietMealsCache) return _dietMealsCache
+  const { data } = await supabase
+    .from('diet_meals').select('foods').not('foods', 'is', null).limit(40)
+  _dietMealsCache = data || []
+  return _dietMealsCache
+}
+
 async function searchDietMealFoods(query) {
   try {
-    const { data } = await supabase
-      .from('diet_meals').select('foods').not('foods', 'is', null).limit(40)
+    const data = await _getDietMeals()
     if (!data?.length) return []
     const seen = new Set()
     const results = []
@@ -312,35 +332,6 @@ export async function supplementWithOpenFoodFacts(query, localItems) {
   const normalizedQuery = query.toLowerCase().trim()
   if (!normalizedQuery) return localItems
   const seen = new Set(localItems.map(f => (f?.name || '').toLowerCase().trim()).filter(Boolean))
-  const offItems = await searchOpenFoodFacts(normalizedQuery)
-  const extra = offItems.filter(food => {
-    if (!food || typeof food !== 'object') return false
-    const k = (food.name || '').toLowerCase().trim()
-    if (!k || seen.has(k)) return false
-    seen.add(k); return true
-  })
-  return [...localItems, ...extra].slice(0, 50)
-}
-
-export async function searchFoods(query) {
-  const normalizedQuery = query.toLowerCase().trim()
-  if (!normalizedQuery) return []
-
-  const [a, b, c, d, e, f] = await Promise.allSettled([
-    searchRecentFoods(normalizedQuery),
-    searchRicette(normalizedQuery),
-    searchDietMealFoods(normalizedQuery),
-    searchCustomMeals(normalizedQuery),
-    searchPublicFoods(normalizedQuery),
-    searchAllFoods(normalizedQuery),
-  ])
-  const seen = new Set()
-  const localItems = _dedup([a, b, c, d, e, f], seen)
-
-  if (normalizedQuery.length < 3) {
-    return localItems.slice(0, 50)
-  }
-
   const offItems = await searchOpenFoodFacts(normalizedQuery)
   const extra = offItems.filter(food => {
     if (!food || typeof food !== 'object') return false
