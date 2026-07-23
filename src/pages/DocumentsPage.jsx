@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import patientViewRaw from '../assets/patientViewHtml.js'
-let CONSIGLI_BASE = []
-import('../data/consigliBase.js').then(m => { CONSIGLI_BASE = m.CONSIGLI_BASE })
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
@@ -61,9 +59,28 @@ const TIPO_MAP = {
   document:  'documento',
 }
 
+// Lazy-loaded (296KB/94KB-gzip chunk) — only fetched when a consiglio-type document is actually involved
+let _consigliBaseCache = null
+async function getConsigliBase() {
+  if (_consigliBaseCache) return _consigliBaseCache
+  const m = await import('../data/consigliBase.js')
+  _consigliBaseCache = m.CONSIGLI_BASE
+  return _consigliBaseCache
+}
+
 // ─── Replica esatta di buildStampaHTML da NutriPlan-Pro/consigli.html ─────────
 // Genera l'HTML di stampa per un consiglio nutrizionale, identico al sito dietista.
-function buildConsiglioPrintHTML(doc) {
+// Versione async: carica CONSIGLI_BASE on-demand (usata dal flusso di stampa).
+async function buildConsiglioPrintHTML(doc) {
+  const dati = (doc.dati_raw && typeof doc.dati_raw === 'object') ? doc.dati_raw : {}
+  if (dati.stampa_html) return dati.stampa_html
+  const CONSIGLI_BASE = await getConsigliBase()
+  return buildConsiglioPrintHTMLSync(doc, CONSIGLI_BASE)
+}
+
+// Versione sync: usata nei percorsi di render (già dentro il ciclo di mappatura dei documenti),
+// dove CONSIGLI_BASE deve essere già stato caricato in stato React (vedi consigliBaseForRender).
+function buildConsiglioPrintHTMLSync(doc, CONSIGLI_BASE = []) {
   const dati = (doc.dati_raw && typeof doc.dati_raw === 'object') ? doc.dati_raw : {}
 
   // Se il dietista ha già salvato lo stampa_html, usalo direttamente
@@ -609,7 +626,7 @@ body{font-family:'DM Sans','Segoe UI',Arial,sans-serif;color:#1E293B;font-size:1
 }
 
 // ─── Master router: smista tutti i tipi di documento al renderer corretto ────
-function buildDocumentPrintHTML(doc) {
+async function buildDocumentPrintHTML(doc) {
   const dati = doc.dati_raw && typeof doc.dati_raw === 'object' ? doc.dati_raw : {}
 
   // 1. HTML di stampa pre-generato dal sito dietista (nuovo salvataggio)
@@ -618,7 +635,7 @@ function buildDocumentPrintHTML(doc) {
   const tipo = (doc.tipo || doc.type || '').toLowerCase().trim()
 
   // 2. Consiglio nutrizionale
-  if (tipo === 'consiglio' || tipo === 'advice') return buildConsiglioPrintHTML(doc)
+  if (tipo === 'consiglio' || tipo === 'advice') return await buildConsiglioPrintHTML(doc)
 
   // 3. Piano alimentare strutturato (tabella piani, giorni con items)
   if (doc.meals_data) {
@@ -685,7 +702,7 @@ const PATIENT_SPEC_SUBSECTIONS = {
 }
 
 // ─── Genera HTML per una singola sottosezione di un documento specialistico ───
-function buildSubsectionHTML(doc, sectionKey) {
+function buildSubsectionHTML(doc, sectionKey, consigliBase = []) {
   const dati  = doc.dati_raw || {}
   const tipo  = (doc.tipo || '').toLowerCase()
   const nome  = doc.title || doc.nota || tipo
@@ -816,7 +833,7 @@ body{font-family:'DM Sans','Segoe UI',Arial,sans-serif;color:#1E293B;font-size:1
     }
 
     case 'consigli_base':
-      return buildConsiglioPrintHTML(doc)
+      return buildConsiglioPrintHTMLSync(doc, consigliBase)
 
     case 'note_paziente': {
       const np = (doc.dati_raw || {}).note_paziente
@@ -827,7 +844,10 @@ body{font-family:'DM Sans','Segoe UI',Arial,sans-serif;color:#1E293B;font-size:1
     }
 
     default:
-      return buildDocumentPrintHTML(doc)
+      // Irraggiungibile in pratica: ogni sectionKey passata qui proviene da SUBSECTIONS,
+      // i cui valori sono tutti gestiti sopra. buildDocumentPrintHTML è async, quindi
+      // non va richiamato da questo percorso sincrono.
+      return null
   }
 }
 
@@ -892,15 +912,17 @@ function buildPatientViewHtml(doc, withPrint = false) {
 }
 
 // ─── Stampa: apre una nuova finestra con l'HTML del documento ─────────────────
-function handlePrint(doc) {
+async function handlePrint(doc) {
+  // window.open va chiamato subito, in modo sincrono, per non farlo bloccare dal popup blocker
+  const win = window.open('', '_blank')
+  if (!win) { alert('Abilita i popup per stampare il documento.'); return }
   try {
-    const html = buildDocumentPrintHTML(doc)
-    const win  = window.open('', '_blank')
-    if (!win) { alert('Abilita i popup per stampare il documento.'); return }
+    const html = await buildDocumentPrintHTML(doc)
     win.document.write(html)
     win.document.close()
   } catch (err) {
     console.error('[handlePrint]', err)
+    win.close()
   }
 }
 
@@ -916,17 +938,23 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
     setImgFailed(false)
     if (!doc || doc.file_url) return
 
-    try {
-      const html = buildDocumentPrintHTML(doc)
-      if (html) {
-        setIframeHtml(html)
-      } else {
-        setError('Documento non disponibile - manca stampa originale dal dietista')
+    let cancelled = false
+    ;(async () => {
+      try {
+        const html = await buildDocumentPrintHTML(doc)
+        if (cancelled) return
+        if (html) {
+          setIframeHtml(html)
+        } else {
+          setError('Documento non disponibile - manca stampa originale dal dietista')
+        }
+      } catch (err) {
+        if (cancelled) return
+        console.error('[DocModal] HTML generation error:', err)
+        setError(err.message)
       }
-    } catch (err) {
-      console.error('[DocModal] HTML generation error:', err)
-      setError(err.message)
-    }
+    })()
+    return () => { cancelled = true }
   }, [doc?.id])
 
   if (!doc) return null
@@ -1067,7 +1095,16 @@ export default function DocumentsPage() {
   )
   const [openFolders, setOpenFolders] = useState(() => new Set())
   const [reloadKey,   setReloadKey]   = useState(0)
+  const [consigliBaseForRender, setConsigliBaseForRender] = useState([])
   const reload = useCallback(() => { setLoading(true); setReloadKey(k => k + 1) }, [])
+
+  // Carica CONSIGLI_BASE (296KB) solo se compaiono sottosezioni "consigli_base" da renderizzare
+  useEffect(() => {
+    const needsConsigliBase = docs.some(d => (d.tipo || d.type || '').toLowerCase().trim() === 'consiglio')
+    if (needsConsigliBase && consigliBaseForRender.length === 0) {
+      getConsigliBase().then(setConsigliBaseForRender)
+    }
+  }, [docs, consigliBaseForRender.length])
 
   // Refresh docs when the user returns to this tab
   useEffect(() => {
@@ -1184,6 +1221,10 @@ export default function DocumentsPage() {
 
 
         if (cartellaId) {
+          // Carica CONSIGLI_BASE solo se serve davvero (almeno una nota di tipo consiglio)
+          const hasConsigli = (notes || []).some(n => (n.tipo || '').toLowerCase().trim() === 'consiglio')
+          const CONSIGLI_BASE = hasConsigli ? await getConsigliBase() : []
+
           // 2a. Note specialistiche
           for (const n of notes || []) {
             const tipo = (n.tipo || '').toLowerCase().trim()
@@ -1623,7 +1664,7 @@ export default function DocumentsPage() {
               // Per piano_alimentare usa stampa_html (output ESATTO dal sito dietista)
               const html = (sub.key === 'piano_alimentare' && doc.dati_raw?.stampa_html)
                 ? doc.dati_raw.stampa_html
-                : buildSubsectionHTML(doc, sub.key)
+                : buildSubsectionHTML(doc, sub.key, consigliBaseForRender)
               if (!html) return null
               const emoji = sub.label.match(/^\S+/)?.[0] || '📄'
               const labelText = sub.label.replace(/^\S+\s*/, '')

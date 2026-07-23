@@ -129,7 +129,7 @@ export default defineConfig({
         // (~2MB extra scaricati anche da chi non apre mai quelle pagine).
         // Restano comunque cacheati normalmente dall'HTTP cache del browser
         // al primo uso (/assets/* ha Cache-Control immutable in vercel.json).
-        globIgnores: ['**/all-foods*.js', '**/QuizPage-*.js', '**/BarcodeScanner-*.js', '**/jspdf*.js', '**/html2canvas*.js'],
+        globIgnores: ['**/all-foods*.js', '**/QuizPage-*.js', '**/BarcodeScanner-*.js', '**/jspdf*.js', '**/html2canvas*.js', '**/consigliBase-*.js'],
       }
     })
   ]
