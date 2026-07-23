@@ -225,8 +225,10 @@ export default function MenstrualCyclePage() {
   }
 
   async function deleteCycle(id) {
-    await supabase.from('menstrual_cycle').delete().eq('id', id)
+    const removed = cycles.find(c => c.id === id)
     setCycles(prev => prev.filter(c => c.id !== id))
+    const { error } = await supabase.from('menstrual_cycle').delete().eq('id', id)
+    if (error && removed) setCycles(prev => [...prev, removed])
   }
 
   async function saveNotes(cycleId) {

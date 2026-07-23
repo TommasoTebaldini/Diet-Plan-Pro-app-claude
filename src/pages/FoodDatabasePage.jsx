@@ -183,8 +183,10 @@ export default function FoodDatabasePage() {
   }
 
   async function removeFavorite(id) {
-    await supabase.from('custom_foods').delete().eq('id', id)
+    const removed = saved.find(x => x.id === id)
     setSaved(s => s.filter(x => x.id !== id))
+    const { error } = await supabase.from('custom_foods').delete().eq('id', id)
+    if (error && removed) setSaved(s => [...s, removed])
   }
 
   async function addCustomFood() {
@@ -231,8 +233,10 @@ export default function FoodDatabasePage() {
   }
 
   async function deleteMeal(id) {
-    await supabase.from('custom_meals').delete().eq('id', id)
+    const removed = meals.find(x => x.id === id)
     setMeals(m => m.filter(x => x.id !== id))
+    const { error } = await supabase.from('custom_meals').delete().eq('id', id)
+    if (error && removed) setMeals(m => [removed, ...m])
   }
 
   // ── Ricette ──
@@ -265,8 +269,10 @@ export default function FoodDatabasePage() {
   }
 
   async function deleteRicetta(id) {
-    await supabase.from('ricette').delete().eq('id', id)
+    const removed = ricette.find(x => x.id === id)
     setRicette(r => r.filter(x => x.id !== id))
+    const { error } = await supabase.from('ricette').delete().eq('id', id)
+    if (error && removed) setRicette(r => [removed, ...r])
   }
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))

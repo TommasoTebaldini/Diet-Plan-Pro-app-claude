@@ -51,17 +51,29 @@ export default function MedicationsPage() {
   }
 
   async function updateMedication(id, patch) {
+    const previous = meds
     const next = meds.map(m => m.id === id ? { ...m, ...patch } : m)
     setMeds(next)
     scheduleMedicationReminders(next.filter(m => m.active))
-    await supabase.from('medication_reminders').update(patch).eq('id', id)
+    const { error } = await supabase.from('medication_reminders').update(patch).eq('id', id)
+    if (error) {
+      setMeds(previous)
+      scheduleMedicationReminders(previous.filter(m => m.active))
+      alert('Errore durante il salvataggio. Riprova.')
+    }
   }
 
   async function deleteMedication(id) {
+    const previous = meds
     const next = meds.filter(m => m.id !== id)
     setMeds(next)
     scheduleMedicationReminders(next.filter(m => m.active))
-    await supabase.from('medication_reminders').delete().eq('id', id)
+    const { error } = await supabase.from('medication_reminders').delete().eq('id', id)
+    if (error) {
+      setMeds(previous)
+      scheduleMedicationReminders(previous.filter(m => m.active))
+      alert('Errore durante l\'eliminazione. Riprova.')
+    }
   }
 
   function addTimeSlot() { setTimes([...times, '12:00']) }

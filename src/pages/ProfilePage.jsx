@@ -80,14 +80,15 @@ function PersonalDataModal({ profile, user, onClose, onSaved }) {
       target_weight: form.target_weight ? parseFloat(form.target_weight) : null,
     }
     const { error } = await supabase.from('profiles').upsert(updates)
+    let weightError = null
     if (!error && currentWeight) {
       const today = new Date().toISOString().split('T')[0]
-      await supabase.from('weight_logs').upsert({
+      ;({ error: weightError } = await supabase.from('weight_logs').upsert({
         user_id: user.id, date: today, weight_kg: parseFloat(currentWeight),
-      }, { onConflict: 'user_id,date' })
+      }, { onConflict: 'user_id,date' }))
     }
     setSaving(false)
-    if (!error) { setSaved(true); setTimeout(() => { onSaved(); onClose() }, 900) }
+    if (!error && !weightError) { setSaved(true); setTimeout(() => { onSaved(); onClose() }, 900) }
   }
 
   const ACTIVITY = [

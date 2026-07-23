@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Camera, X, Check, AlertCircle, Loader2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
 import { analyzeMealPhoto, isMealAIAvailable } from '../lib/mealPhotoAI'
@@ -81,7 +82,7 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
     onClose()
   }
 
-  return (
+  return createPortal(
     <div style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-end', backdropFilter: 'blur(4px)' }}>
       <motion.div
         initial={{ y: '100%' }}
@@ -250,6 +251,7 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
           </motion.div>
         )}
       </motion.div>
-    </div>
+    </div>,
+    document.body
   )
 }

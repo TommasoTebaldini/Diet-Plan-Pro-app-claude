@@ -484,11 +484,17 @@ function PianoAlimentareContent({ piano }) {
       }
     }
     if (inserts.length) {
-      await supabase.from('food_logs').insert(inserts)
+      const { error: insertError } = await supabase.from('food_logs').insert(inserts)
+      if (insertError) {
+        setCopyState({ dayIdx: null, date: today, busy: false, doneIdx: null })
+        alert('Errore durante la copia del piano nel diario. Riprova.')
+        return
+      }
       const { data: allFoods } = await supabase.from('food_logs').select('kcal,proteins,carbs,fats').eq('user_id', user.id).eq('date', targetDate)
       if (allFoods) {
         const t = allFoods.reduce((a, r) => ({ kcal: a.kcal + (r.kcal || 0), proteins: a.proteins + (r.proteins || 0), carbs: a.carbs + (r.carbs || 0), fats: a.fats + (r.fats || 0) }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
-        await supabase.from('daily_logs').upsert({ user_id: user.id, date: targetDate, ...t }, { onConflict: 'user_id,date' })
+        const { error: dailyError } = await supabase.from('daily_logs').upsert({ user_id: user.id, date: targetDate, ...t }, { onConflict: 'user_id,date' })
+        if (dailyError) console.warn('daily_logs upsert failed:', dailyError.message)
       }
     }
     setCopyState({ dayIdx: null, date: today, busy: false, doneIdx: di })
@@ -971,16 +977,24 @@ export default function DietPage() {
       else next.add(mealId)
       return next
     })
+    // Supabase-js resolves {data,error} rather than throwing on RLS/constraint
+    // failures — a try/catch around these calls only ever catches genuine
+    // network/JS exceptions, never the common DB-level failure. Check the
+    // returned error explicitly so the rollback below actually fires.
+    let error
     try {
       if (isCompleted) {
-        await supabase.from('meal_completions').delete().eq('user_id', user.id).eq('diet_meal_id', mealId).eq('date', today)
+        ({ error } = await supabase.from('meal_completions').delete().eq('user_id', user.id).eq('diet_meal_id', mealId).eq('date', today))
       } else {
-        await supabase.from('meal_completions').upsert(
+        ({ error } = await supabase.from('meal_completions').upsert(
           { user_id: user.id, diet_meal_id: mealId, date: today },
           { onConflict: 'user_id,diet_meal_id,date' }
-        )
+        ))
       }
-    } catch {
+    } catch (e) {
+      error = e
+    }
+    if (error) {
       setCompletions(prev => {
         const next = new Set(prev)
         if (isCompleted) next.add(mealId)
@@ -1052,11 +1066,17 @@ export default function DietPage() {
     }
     if (inserts.length) {
       const { error } = await supabase.from('food_logs').insert(inserts)
-      if (error) console.error('copy error', error)
+      if (error) {
+        console.error('copy error', error)
+        setCopyDiet({ open: false, date: '', busy: false, done: false })
+        alert('Errore durante la copia del piano nel diario. Riprova.')
+        return
+      }
       const { data: allFoods } = await supabase.from('food_logs').select('kcal,proteins,carbs,fats').eq('user_id', user.id).eq('date', targetDate)
       if (allFoods) {
         const tot = allFoods.reduce((a, r) => ({ kcal: a.kcal + (r.kcal || 0), proteins: a.proteins + (r.proteins || 0), carbs: a.carbs + (r.carbs || 0), fats: a.fats + (r.fats || 0) }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
-        await supabase.from('daily_logs').upsert({ user_id: user.id, date: targetDate, ...tot }, { onConflict: 'user_id,date' })
+        const { error: dailyError } = await supabase.from('daily_logs').upsert({ user_id: user.id, date: targetDate, ...tot }, { onConflict: 'user_id,date' })
+        if (dailyError) console.warn('daily_logs upsert failed:', dailyError.message)
       }
     }
     setCopyDiet({ open: false, date: '', busy: false, done: true })

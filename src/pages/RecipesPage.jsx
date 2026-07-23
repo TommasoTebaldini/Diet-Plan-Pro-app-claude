@@ -755,7 +755,8 @@ export default function RecipesPage() {
   }
 
   async function deleteRecipe(id) {
-    await supabase.from('ricette').delete().eq('id', id)
+    const { error } = await supabase.from('ricette').delete().eq('id', id)
+    if (error) { showToast(t('recipes.error_delete')); return }
     setMyRecipes(r => r.filter(x => x.id !== id))
   }
 

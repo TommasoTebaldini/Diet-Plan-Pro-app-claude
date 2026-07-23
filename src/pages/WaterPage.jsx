@@ -133,8 +133,10 @@ export default function WaterPage() {
   }
 
   async function removeLog(id) {
-    await supabase.from('water_logs').delete().eq('id', id)
+    const removed = logs.find(x => x.id === id)
     setLogs(l => l.filter(x => x.id !== id))
+    const { error } = await supabase.from('water_logs').delete().eq('id', id)
+    if (error && removed) setLogs(l => [...l, removed])
   }
 
   async function toggleNotifications() {

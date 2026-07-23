@@ -701,7 +701,7 @@ export default function MacroTrackerPage() {
       kcal: a.kcal + (f.kcal || 0), proteins: a.proteins + (f.proteins || 0),
       carbs: a.carbs + (f.carbs || 0), fats: a.fats + (f.fats || 0),
     }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
-    const { data } = await supabase.from('custom_meals').insert({
+    const { data, error } = await supabase.from('custom_meals').insert({
       name: saveMealName.trim(),
       ingredients,
       peso_totale_g: mealFoods.reduce((s, f) => s + (f.grams || 0), 0),
@@ -714,6 +714,8 @@ export default function MacroTrackerPage() {
       setSavedMeals(m => [data, ...m])
       setShowSaveMealModal(false)
       setSaveMealName('')
+    } else if (error) {
+      alert('Errore durante il salvataggio del pasto. Riprova.')
     }
     setSavingMeal(false)
   }
@@ -813,7 +815,11 @@ export default function MacroTrackerPage() {
       kcal: a.kcal + (f.kcal || 0), proteins: a.proteins + (f.proteins || 0),
       carbs: a.carbs + (f.carbs || 0), fats: a.fats + (f.fats || 0),
     }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
-    await supabase.from('daily_logs').upsert({ user_id: user.id, date: forDate, ...t }, { onConflict: 'user_id,date' })
+    // Best-effort aggregate cache read by other pages (Dashboard/DietPage/
+    // Statistics/Wellness) — a failure here doesn't affect the food_logs the
+    // user just edited, but was previously completely invisible.
+    const { error } = await supabase.from('daily_logs').upsert({ user_id: user.id, date: forDate, ...t }, { onConflict: 'user_id,date' })
+    if (error) console.warn('recomputeDailyLog upsert failed:', error.message)
   }
 
   async function updateDailyLog() {
@@ -821,9 +827,18 @@ export default function MacroTrackerPage() {
   }
 
   async function removeFood(id) {
+    if (typeof id === 'string' && id.startsWith('pending_')) {
+      setLog(l => l.filter(x => x.id !== id))
+      return
+    }
+    const removed = log.find(x => x.id === id)
     setLog(l => l.filter(x => x.id !== id))
-    if (typeof id === 'string' && id.startsWith('pending_')) return
-    await supabase.from('food_logs').delete().eq('id', id)
+    const { error } = await supabase.from('food_logs').delete().eq('id', id)
+    if (error) {
+      if (removed) setLog(l => [...l, removed])
+      alert('Errore durante l\'eliminazione. Riprova.')
+      return
+    }
     await updateDailyLog()
   }
 

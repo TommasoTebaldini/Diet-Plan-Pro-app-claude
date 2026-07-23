@@ -425,6 +425,7 @@ function GroupThreadView({ group, user, onBack }) {
   const mediaRecorderRef = useRef(null)
   const audioChunksRef = useRef([])
   const recordingTimerRef = useRef(null)
+  const recordingSecondsRef = useRef(0)
 
   useEffect(() => {
     let cancelled = false
@@ -524,7 +525,11 @@ function GroupThreadView({ group, user, onBack }) {
       recorder.onstop = async () => {
         stream.getTracks().forEach(t => t.stop())
         const blob = new Blob(audioChunksRef.current, { type: mimeType })
-        const dur = recordingDuration
+        // recorder.onstop is assigned once here and never recreated, so closing
+        // over the recordingDuration state variable directly always reads its
+        // value from this exact moment (effectively stuck at 0) — read the ref
+        // the interval below keeps live instead.
+        const dur = recordingSecondsRef.current
         setIsRecording(false)
         setRecordingDuration(0)
         if (blob.size >= 100) await sendAudio(blob, dur, mimeType)
@@ -533,7 +538,11 @@ function GroupThreadView({ group, user, onBack }) {
       mediaRecorderRef.current = recorder
       setIsRecording(true)
       setRecordingDuration(0)
-      recordingTimerRef.current = setInterval(() => setRecordingDuration(d => d + 1), 1000)
+      recordingSecondsRef.current = 0
+      recordingTimerRef.current = setInterval(() => {
+        recordingSecondsRef.current += 1
+        setRecordingDuration(recordingSecondsRef.current)
+      }, 1000)
     } catch {
       alert('Impossibile accedere al microfono.')
     }
@@ -736,6 +745,7 @@ export default function ChatPage() {
   const mediaRecorderRef = useRef(null)
   const audioChunksRef = useRef([])
   const recordingTimerRef = useRef(null)
+  const recordingSecondsRef = useRef(0)
   const presenceIntervalRef = useRef(null)
   const dietitianIdRef = useRef(null)
   const dietitianRef = useRef(null)
@@ -1051,7 +1061,11 @@ export default function ChatPage() {
       recorder.onstop = async () => {
         stream.getTracks().forEach(t => t.stop())
         const blob = new Blob(audioChunksRef.current, { type: mimeType })
-        const dur = recordingDuration
+        // Same fix as the other chat view's startRecording(): onstop is
+        // assigned once and never recreated, so reading recordingDuration
+        // directly here always sees its value from this exact moment
+        // (effectively stuck at 0) — read the ref the interval keeps live.
+        const dur = recordingSecondsRef.current
         setIsRecording(false)
         setRecordingDuration(0)
         await sendAudio(blob, dur, mimeType)
@@ -1060,7 +1074,11 @@ export default function ChatPage() {
       mediaRecorderRef.current = recorder
       setIsRecording(true)
       setRecordingDuration(0)
-      recordingTimerRef.current = setInterval(() => setRecordingDuration(d => d + 1), 1000)
+      recordingSecondsRef.current = 0
+      recordingTimerRef.current = setInterval(() => {
+        recordingSecondsRef.current += 1
+        setRecordingDuration(recordingSecondsRef.current)
+      }, 1000)
     } catch {
       alert('Impossibile accedere al microfono.')
     }

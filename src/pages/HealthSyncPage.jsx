@@ -181,7 +181,12 @@ export default function HealthSyncPage() {
   async function saveManualSleep() {
     const h = parseFloat(manualSleep)
     if (!h || h <= 0) return
-    await supabase.from('daily_wellness').upsert({ user_id: user.id, date: today, sleep_hours: h }, { onConflict: 'user_id,date' })
+    const { error } = await supabase.from('daily_wellness').upsert({ user_id: user.id, date: today, sleep_hours: h }, { onConflict: 'user_id,date' })
+    if (error) {
+      setSyncMsg('Errore salvataggio sonno')
+      setTimeout(() => setSyncMsg(''), 2500)
+      return
+    }
     setSleep(h)
     setManualSleep('')
     setSyncMsg('Ore di sonno salvate!')

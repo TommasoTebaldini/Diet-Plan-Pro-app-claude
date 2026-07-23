@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mic, MicOff, X, Check, ChevronDown, ChevronUp, Sparkles, Send, Loader2 } from 'lucide-react'
 import { analyzeMealText } from '../lib/mealTextAI'
@@ -111,7 +112,7 @@ export default function MealTextAnalyzer({ onAddFoods, onClose }) {
     onClose()
   }
 
-  return (
+  return createPortal(
     <div style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-end', backdropFilter: 'blur(4px)' }}>
       <motion.div
         initial={{ y: '100%' }}
@@ -284,6 +285,7 @@ export default function MealTextAnalyzer({ onAddFoods, onClose }) {
           </motion.div>
         )}
       </motion.div>
-    </div>
+    </div>,
+    document.body
   )
 }
