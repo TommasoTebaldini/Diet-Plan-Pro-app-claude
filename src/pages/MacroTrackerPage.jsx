@@ -961,7 +961,7 @@ export default function MacroTrackerPage() {
 
           <div style={{ textAlign: 'center', flex: 1 }}>
             <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>Diario alimentare</p>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'white', fontWeight: 300, lineHeight: 1.2 }}>
+            <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 18, color: 'white', fontWeight: 300, lineHeight: 1.2 }}>
               {isToday ? 'Oggi · ' : ''}{displayDate.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}
             </h1>
           </div>

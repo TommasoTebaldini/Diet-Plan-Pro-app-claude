@@ -46,7 +46,7 @@ export default function RegisterPage() {
       <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
         <CheckCircle size={36} color="var(--green-main)" />
       </div>
-      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 300, marginBottom: 12 }}>{t('auth.register_success')}</h2>
+      <h2 style={{ fontFamily: 'var(--font-d)', fontSize: 26, fontWeight: 300, marginBottom: 12 }}>{t('auth.register_success')}</h2>
       <p style={{ color: 'var(--text-secondary)', marginBottom: 8 }}>{t('auth.register_check_email')}</p>
       {dietitianRef ? (
         <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '12px 16px', marginBottom: 24, textAlign: 'left' }}>
@@ -71,7 +71,7 @@ export default function RegisterPage() {
           <div style={{ width: 56, height: 56, borderRadius: 18, background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', border: '1px solid rgba(255,255,255,0.2)' }}>
             <Leaf size={28} color="white" />
           </div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 26, color: 'white', fontWeight: 300 }}>{t('auth.register')}</h1>
+          <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 26, color: 'white', fontWeight: 300 }}>{t('auth.register')}</h1>
           <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginTop: 6 }}>{t('auth.register_title')}</p>
         </div>
       </div>

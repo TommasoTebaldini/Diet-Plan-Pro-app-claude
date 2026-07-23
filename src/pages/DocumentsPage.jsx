@@ -1440,7 +1440,7 @@ export default function DocumentsPage() {
               </span>
             )}
           </div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'white', fontWeight: 300, marginBottom: 14 }}>{t('docs.title')}</h1>
+          <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300, marginBottom: 14 }}>{t('docs.title')}</h1>
 
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 10, WebkitOverflowScrolling: 'touch' }}>
             {types.map(t => (

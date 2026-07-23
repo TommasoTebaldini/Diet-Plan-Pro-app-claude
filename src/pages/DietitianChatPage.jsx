@@ -435,7 +435,7 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkP
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Users size={20} color="white" />
           <div>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'white', fontWeight: 400 }}>
+            <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 18, color: 'white', fontWeight: 400 }}>
               {t('dchat.title')}
             </h1>
             <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>{t('dchat.subtitle')}</p>

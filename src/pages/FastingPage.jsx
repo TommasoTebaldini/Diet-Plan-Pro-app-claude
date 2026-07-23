@@ -104,7 +104,7 @@ export default function FastingPage() {
             <Timer size={22} color="white" />
           </div>
           <div>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'white', fontWeight: 300 }}>Digiuno Intermittente</h1>
+            <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 22, color: 'white', fontWeight: 300 }}>Digiuno Intermittente</h1>
             {activeFast && (
               <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>
                 Protocollo {activeFast.protocol} · {isComplete ? '✅ Completato!' : 'In corso'}

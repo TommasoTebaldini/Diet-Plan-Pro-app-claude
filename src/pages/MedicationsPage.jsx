@@ -91,7 +91,7 @@ export default function MedicationsPage() {
             <Pill size={22} color="white" />
           </div>
           <div>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'white', fontWeight: 300 }}>Farmaci e Integratori</h1>
+            <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 22, color: 'white', fontWeight: 300 }}>Farmaci e Integratori</h1>
             <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>Promemoria per ogni assunzione</p>
           </div>
         </div>

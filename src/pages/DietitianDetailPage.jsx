@@ -407,7 +407,7 @@ export default function DietitianDetailPage() {
           <button onClick={() => navigate('/dietisti')} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}>
             <ArrowLeft size={18} />
           </button>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 19, color: 'white', fontWeight: 300 }}>Dietista</h1>
+          <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 19, color: 'white', fontWeight: 300 }}>Dietista</h1>
         </div>
         <div style={{ textAlign: 'center', padding: '60px 24px' }}>
           <p style={{ fontSize: 15, fontWeight: 500 }}>Profilo non disponibile</p>
@@ -440,7 +440,7 @@ export default function DietitianDetailPage() {
             </div>
           )}
           <div>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'white', fontWeight: 400 }}>{fullName}</h1>
+            <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 22, color: 'white', fontWeight: 400 }}>{fullName}</h1>
             {profile.titoli && <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, marginTop: 4 }}>{profile.titoli}</p>}
             {profile.citta && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 6 }}>

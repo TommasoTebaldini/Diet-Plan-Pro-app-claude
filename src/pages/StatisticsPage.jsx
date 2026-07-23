@@ -681,7 +681,7 @@ export default function StatisticsPage() {
       {/* header */}
       <div style={{ background: 'linear-gradient(160deg, var(--green-dark), var(--green-main))', padding: 'calc(env(safe-area-inset-top) + 20px) 24px 24px' }}>
         <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Analisi avanzata</p>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'white', fontWeight: 300 }}>{t('stats.title')}</h1>
+        <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300 }}>{t('stats.title')}</h1>
       </div>
 
       {/* tab bar */}

@@ -802,7 +802,7 @@ export default function RecipesPage() {
       <div style={{ background: 'linear-gradient(160deg, #b45309, #d97706)', padding: 'calc(env(safe-area-inset-top) + 18px) 16px 22px', flexShrink: 0 }}>
         <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, marginBottom: 4 }}>{t('recipes.cuisine')}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'white', fontWeight: 300, flex: 1 }}>{t('recipes.title')}</h1>
+          <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 22, color: 'white', fontWeight: 300, flex: 1 }}>{t('recipes.title')}</h1>
           <button onClick={() => {
             const next = !showCreate
             setShowCreate(next)

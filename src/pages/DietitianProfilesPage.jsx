@@ -264,7 +264,7 @@ export default function DietitianProfilesPage() {
               <Users size={20} color="white" />
             </div>
             <div>
-              <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'white', fontWeight: 300, lineHeight: 1 }}>
+              <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 22, color: 'white', fontWeight: 300, lineHeight: 1 }}>
                 {t('dietitian.title')}
               </h1>
             </div>

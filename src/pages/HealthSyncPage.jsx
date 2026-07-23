@@ -203,7 +203,7 @@ export default function HealthSyncPage() {
       {/* Header */}
       <div style={{ background: 'linear-gradient(160deg, #0f172a, #1e3a5f)', padding: 'calc(env(safe-area-inset-top) + 20px) 24px 24px' }}>
         <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, marginBottom: 4 }}>Integrazione salute</p>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'white', fontWeight: 300 }}>Health Sync</h1>
+        <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300 }}>Health Sync</h1>
         <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, marginTop: 4 }}>
           {os === 'ios' ? 'iPhone · iOS' : os === 'android' ? 'Android' : 'Web'}{pwa ? ' · PWA' : ''}
         </p>

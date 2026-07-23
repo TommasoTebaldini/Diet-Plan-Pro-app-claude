@@ -265,7 +265,7 @@ export default function SpecialPage() {
                 {active.emoji}
               </div>
               <div>
-                <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'white', fontWeight: 400, lineHeight: 1.2 }}>{active.emoji} {active.label}</h1>
+                <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 22, color: 'white', fontWeight: 400, lineHeight: 1.2 }}>{active.emoji} {active.label}</h1>
                 <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 }}>{active.description}</p>
               </div>
             </div>
@@ -273,7 +273,7 @@ export default function SpecialPage() {
         ) : (
           <>
             <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Attivato dal tuo dietista</p>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'white', fontWeight: 300, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300, display: 'flex', alignItems: 'center', gap: 8 }}>
               ✨ Speciale
             </h1>
           </>

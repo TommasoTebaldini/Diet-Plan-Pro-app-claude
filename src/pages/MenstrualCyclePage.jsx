@@ -345,7 +345,7 @@ export default function MenstrualCyclePage() {
       <div className="page">
         <div style={{ background: 'linear-gradient(160deg, #9d174d, #ec4899)', padding: 'calc(env(safe-area-inset-top) + 20px) 20px 24px' }}>
           <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Salute</p>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'white', fontWeight: 300 }}>Ciclo Mestruale</h1>
+          <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300 }}>Ciclo Mestruale</h1>
         </div>
         <div style={{ padding: 20 }}>
           <div className="card" style={{ padding: 20, textAlign: 'center' }}>
@@ -364,7 +364,7 @@ export default function MenstrualCyclePage() {
       <div className="page">
         <div style={{ background: 'linear-gradient(160deg, #9d174d, #ec4899)', padding: 'calc(env(safe-area-inset-top) + 20px) 20px 24px' }}>
           <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Salute</p>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'white', fontWeight: 300 }}>Ciclo Mestruale</h1>
+          <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300 }}>Ciclo Mestruale</h1>
         </div>
         <div style={{ padding: 20 }}>
           <div className="card" style={{ padding: 20 }}>
@@ -400,7 +400,7 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
       {/* Header */}
       <div style={{ background: 'linear-gradient(160deg, #9d174d, #ec4899)', padding: 'calc(env(safe-area-inset-top) + 20px) 20px 24px' }}>
         <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Salute femminile</p>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'white', fontWeight: 300, marginBottom: 16 }}>Ciclo Mestruale</h1>
+        <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300, marginBottom: 16 }}>Ciclo Mestruale</h1>
         {/* Stats */}
         <div style={{ display: 'flex', gap: 8 }}>
           {[

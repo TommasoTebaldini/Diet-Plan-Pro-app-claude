@@ -168,7 +168,7 @@ export default function WaterPage() {
           </button>
         </div>
         <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>{t('water.title')}</p>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, color: 'white', fontWeight: 300, marginBottom: 8 }}>
+        <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 28, color: 'white', fontWeight: 300, marginBottom: 8 }}>
           {total} <span style={{ fontSize: 16, opacity: 0.75 }}>ml</span>
         </h1>
         <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>{statusMsg}</p>

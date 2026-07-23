@@ -273,7 +273,7 @@ export default function FoodDatabasePage() {
     <div className="page">
       <div style={{ background: 'linear-gradient(160deg, var(--green-dark), var(--green-main))', padding: 'calc(env(safe-area-inset-top) + 18px) 16px 22px', flexShrink: 0 }}>
         <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, marginBottom: 4 }}>{t('food.archive')}</p>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'white', fontWeight: 300, marginBottom: 14 }}>{t('food.database_title')}</h1>
+        <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 22, color: 'white', fontWeight: 300, marginBottom: 14 }}>{t('food.database_title')}</h1>
         <div style={{ display: 'flex', gap: 7, overflowX: 'auto', paddingBottom: 2 }}>
           {TABS.map(([t, l]) => (
             <button key={t} onClick={() => setTab(t)} style={{ flexShrink: 0, padding: '7px 14px', borderRadius: 100, background: tab === t ? 'white' : 'rgba(255,255,255,0.15)', color: tab === t ? 'var(--green-main)' : 'white', border: 'none', font: 'inherit', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>

@@ -145,7 +145,7 @@ export default function DietitianProfilePage() {
           <ArrowLeft size={18} />
         </button>
         <div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 19, color: 'white', fontWeight: 300 }}>
+          <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 19, color: 'white', fontWeight: 300 }}>
             {t('dietitian.profile')}
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12 }}>
