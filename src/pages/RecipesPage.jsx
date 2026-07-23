@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { searchFoods } from '../lib/foodSearch'
+import { searchFoods, searchFoodsLocal } from '../lib/foodSearch'
 import ProGate from '../components/ProGate'
 import { useSubscription } from '../hooks/useSubscription'
 import { Search, Plus, X, Trash2, ChevronDown, ChevronUp, Globe, Lock, Bookmark, Pencil, Heart, SlidersHorizontal, Camera } from 'lucide-react'
@@ -38,6 +38,42 @@ function sumIngredients(ings) {
     (a, i) => ({ kcal: a.kcal + (i.kcal || 0), proteins: a.proteins + (i.proteins || 0), carbs: a.carbs + (i.carbs || 0), fats: a.fats + (i.fats || 0) }),
     { kcal: 0, proteins: 0, carbs: 0, fats: 0 }
   )
+}
+
+// Totals shared by the manual recipe form AND the "save a dietitian-shared
+// recipe" flow below, so both compute nutrition the exact same way.
+function computeRecipeTotals(ingredienti, porzioniRaw) {
+  const totals = sumIngredients(ingredienti)
+  const peso = ingredienti.reduce((s, i) => s + (parseFloat(i.grams) || 0), 0)
+  const porzioni = Math.max(1, parseInt(porzioniRaw) || 1)
+  const fibra = ingredienti.reduce((s, i) => s + (i.food_data?.fiber_100g || 0) * (i.grams || 0) / 100, 0)
+  return {
+    peso_totale_g: peso,
+    kcal_100g: peso > 0 ? Math.round(totals.kcal / peso * 100) : 0,
+    proteins_100g: peso > 0 ? Math.round(totals.proteins / peso * 1000) / 10 : 0,
+    carbs_100g: peso > 0 ? Math.round(totals.carbs / peso * 1000) / 10 : 0,
+    fats_100g: peso > 0 ? Math.round(totals.fats / peso * 1000) / 10 : 0,
+    calorie_porzione: Math.round(totals.kcal / porzioni),
+    proteine: Math.round(totals.proteins / porzioni * 10) / 10,
+    carboidrati: Math.round(totals.carbs / porzioni * 10) / 10,
+    grassi: Math.round(totals.fats / porzioni * 10) / 10,
+    fibra: Math.round(fibra * 10) / 10,
+  }
+}
+
+// A dietitian-shared recipe only carries {nome, qt} per ingredient (no
+// macros — see ricette.html's condividiRicetta in NutriPlan-Pro) — resolve
+// each ingredient against the local food database so "Salva nelle mie
+// ricette" ends up with real nutrition instead of hardcoded zeros.
+async function resolveSharedIngredient(nome, qt) {
+  const grams = parseFloat(qt) || 100
+  const name = (nome || '').trim()
+  if (!name) return { food_name: nome || '', grams, kcal: 0, proteins: 0, carbs: 0, fats: 0 }
+  const results = await searchFoodsLocal(name)
+  const lower = name.toLowerCase()
+  const food = results.find(f => (f.name || '').toLowerCase() === lower) || results[0]
+  if (!food) return { food_name: name, grams, kcal: 0, proteins: 0, carbs: 0, fats: 0 }
+  return { food_name: food.name, food_data: food, grams, ...calcMacros(food, grams) }
 }
 
 function totalTime(r) {
@@ -493,6 +529,7 @@ function applyFiltersAndSort(recipes, filters) {
 function SharedRecipeCard({ sr, onSave, onMarkViewed }) {
   const [open, setOpen] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
   const rd = sr.recipe_data || {}
   const ing = Array.isArray(rd.ingredienti) ? rd.ingredienti : []
   const isNew = !sr.viewed_at
@@ -548,8 +585,13 @@ function SharedRecipeCard({ sr, onSave, onMarkViewed }) {
               ✓ Salvata nelle tue ricette
             </div>
           ) : (
-            <button className="btn btn-full" onClick={() => { onSave(); setSaved(true) }} style={{ marginTop: 14, background: '#ecfeff', color: '#0e7490', border: '1.5px solid #a5f3fc', borderRadius: 10, padding: '10px 16px', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
-              + Salva nelle mie ricette
+            <button
+              className="btn btn-full"
+              disabled={saving}
+              onClick={async () => { setSaving(true); await onSave(); setSaving(false); setSaved(true) }}
+              style={{ marginTop: 14, background: '#ecfeff', color: '#0e7490', border: '1.5px solid #a5f3fc', borderRadius: 10, padding: '10px 16px', cursor: saving ? 'default' : 'pointer', fontWeight: 600, fontSize: 13, opacity: saving ? 0.7 : 1 }}
+            >
+              {saving ? 'Calcolo valori nutrizionali…' : '+ Salva nelle mie ricette'}
             </button>
           )}
         </div>
@@ -649,22 +691,10 @@ export default function RecipesPage() {
       }
     }
 
-    const totals = sumIngredients(form.ingredienti)
-    const peso = form.ingredienti.reduce((s, i) => s + (parseFloat(i.grams) || 0), 0)
     const porzioni = Math.max(1, parseInt(form.porzioni) || 1)
-    const fibra = form.ingredienti.reduce((s, i) => s + (i.food_data?.fiber_100g || 0) * (i.grams || 0) / 100, 0)
     const payload = {
       nome: form.nome, porzioni,
-      peso_totale_g: peso,
-      kcal_100g: peso > 0 ? Math.round(totals.kcal / peso * 100) : 0,
-      proteins_100g: peso > 0 ? Math.round(totals.proteins / peso * 1000) / 10 : 0,
-      carbs_100g: peso > 0 ? Math.round(totals.carbs / peso * 1000) / 10 : 0,
-      fats_100g: peso > 0 ? Math.round(totals.fats / peso * 1000) / 10 : 0,
-      calorie_porzione: Math.round(totals.kcal / porzioni),
-      proteine: Math.round(totals.proteins / porzioni * 10) / 10,
-      carboidrati: Math.round(totals.carbs / porzioni * 10) / 10,
-      grassi: Math.round(totals.fats / porzioni * 10) / 10,
-      fibra: Math.round(fibra * 10) / 10,
+      ...computeRecipeTotals(form.ingredienti, form.porzioni),
       ingredienti: form.ingredienti,
       fasi_preparazione: form.fasi,
       tempo_preparazione_min: parseInt(form.tempo_preparazione_min) || 0,
@@ -1041,21 +1071,22 @@ export default function RecipesPage() {
                   <SharedRecipeCard
                     key={sr.id}
                     sr={sr}
-                    onSave={() => {
+                    onSave={async () => {
                       const rd = sr.recipe_data || {}
-                      const ing = Array.isArray(rd.ingredienti) ? rd.ingredienti : []
+                      const rawIng = Array.isArray(rd.ingredienti) ? rd.ingredienti : []
+                      // The shared snapshot only has {nome, qt} per ingredient, no
+                      // macros (see condividiRicetta in NutriPlan-Pro/ricette.html) —
+                      // resolve each one against the food database instead of
+                      // saving it with hardcoded zero nutrition.
+                      const ingredienti = await Promise.all(
+                        rawIng.map(i => resolveSharedIngredient(i.nome || i.food_name, i.qt || i.grams))
+                      )
                       savePublicRecipe({
                         nome: rd.nome || 'Ricetta',
                         porzioni: rd.porzioni || 1,
-                        ingredienti: ing.map(i => ({
-                          food_name: i.nome || i.food_name || '',
-                          grams: parseFloat(i.qt || i.grams) || 0,
-                          kcal: 0, proteins: 0, carbs: 0, fats: 0,
-                        })),
+                        ingredienti,
+                        ...computeRecipeTotals(ingredienti, rd.porzioni || 1),
                         note: rd.note || '',
-                        peso_totale_g: 0, kcal_100g: 0, proteins_100g: 0,
-                        carbs_100g: 0, fats_100g: 0, calorie_porzione: 0,
-                        proteine: 0, carboidrati: 0, grassi: 0, fibra: 0,
                         fasi_preparazione: [],
                         is_public: false,
                       })
