@@ -997,33 +997,28 @@ export default function MacroTrackerPage() {
           </div>
         </div>
 
-        {/* Macro totals con barre di avanzamento */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+        {/* Nutrition label (dark variant for this gradient header) instead of
+            four differently-colored stat cells for what's really one piece
+            of information — today's totals. Only kcal gets the warm accent. */}
+        <div style={{ border: '1.5px solid rgba(255,255,255,.35)', borderRadius: 2, padding: '10px 14px', marginBottom: 12 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', borderBottom: '4px solid rgba(255,255,255,.5)', paddingBottom: 5, marginBottom: 7, color: 'white' }}>Totali di oggi</div>
           {[
-            { label: 'Kcal',   value: totals.kcal,                target: diet?.kcal_target,    color: '#fcd34d', unit: ''  },
-            { label: 'Prot.',  value: Math.round(totals.proteins), target: diet?.protein_target, color: '#93c5fd', unit: 'g' },
-            { label: 'Carbo',  value: Math.round(totals.carbs),    target: diet?.carbs_target,   color: '#fde68a', unit: 'g' },
-            { label: 'Grassi', value: Math.round(totals.fats),     target: diet?.fats_target,    color: '#fca5a5', unit: 'g' },
-          ].map((s, i) => {
-            const pct = s.target ? Math.min(100, Math.round(s.value / s.target * 100)) : 0
-            return (
-              <motion.div
-                key={s.label}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 12, padding: '9px 6px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.15)' }}
-              >
-                <div style={{ height: 3, background: 'rgba(255,255,255,.18)', borderRadius: 2, marginBottom: 7, overflow: 'hidden' }}>
-                  {s.target > 0 && <div style={{ height: '100%', width: `${pct}%`, background: s.color, borderRadius: 2, transition: 'width 1s ease' }} />}
-                </div>
-                <p style={{ color: 'white', fontSize: 12, fontWeight: 700, lineHeight: 1 }}>
-                  {s.value}{s.unit}{s.target ? <span style={{ color: 'rgba(255,255,255,.55)', fontWeight: 400, fontSize: 10 }}>/{s.target}</span> : ''}
-                </p>
-                <p style={{ color: 'rgba(255,255,255,.6)', fontSize: 10, marginTop: 3 }}>{s.label}</p>
-              </motion.div>
-            )
-          })}
+            { label: 'Kcal',   value: totals.kcal,                target: diet?.kcal_target,    unit: '',  hero: true },
+            { label: 'Prot.',  value: Math.round(totals.proteins), target: diet?.protein_target, unit: 'g' },
+            { label: 'Carbo',  value: Math.round(totals.carbs),    target: diet?.carbs_target,   unit: 'g' },
+            { label: 'Grassi', value: Math.round(totals.fats),     target: diet?.fats_target,    unit: 'g' },
+          ].map((s, i) => (
+            <div key={s.label} className="tabular" style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+              fontSize: s.hero ? 20 : 13, fontWeight: s.hero ? 700 : 400,
+              padding: s.hero ? '2px 0 6px' : '4px 0',
+              borderBottom: i < 3 ? '1px solid rgba(255,255,255,.18)' : 'none',
+              color: s.hero ? 'var(--saffron)' : 'rgba(255,255,255,.92)',
+            }}>
+              <span style={{ fontFamily: 'var(--font-b)', fontWeight: 600, color: s.hero ? 'white' : 'rgba(255,255,255,.7)', fontSize: s.hero ? 13 : 13 }}>{s.label}</span>
+              <span>{s.value}{s.unit}{s.target ? <span style={{ color: 'rgba(255,255,255,.55)', fontWeight: 400 }}> / {s.target}{s.unit}</span> : ''}</span>
+            </div>
+          ))}
         </div>
 
         {/* Micro row — Fibra, Calcio, Ferro */}

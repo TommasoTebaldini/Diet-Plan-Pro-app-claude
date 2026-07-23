@@ -172,7 +172,7 @@ export default function LoginPage() {
               background: 'linear-gradient(135deg, var(--green-main), var(--green-mid))',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 18px',
-              boxShadow: '0 8px 28px rgba(21,122,74,0.3)',
+              boxShadow: '0 8px 28px rgba(47,82,51,0.3)',
             }}
           >
             <Leaf size={32} color="white" />

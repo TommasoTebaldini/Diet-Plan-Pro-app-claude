@@ -654,7 +654,7 @@ function GroupThreadView({ group, user, onBack }) {
             </div>
             <button
               onClick={() => stopRecording(false)}
-              style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'var(--green-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(21,122,74,0.35)' }}
+              style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'var(--green-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(47,82,51,0.35)' }}
             >
               <Send size={17} color="white" style={{ marginLeft: 2 }} />
             </button>
@@ -1421,7 +1421,7 @@ export default function ChatPage() {
             </div>
             <button
               onClick={() => stopRecording(false)}
-              style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'var(--green-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(21,122,74,0.35)' }}
+              style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'var(--green-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(47,82,51,0.35)' }}
             >
               <Send size={17} color="white" style={{ marginLeft: 2 }} />
             </button>
