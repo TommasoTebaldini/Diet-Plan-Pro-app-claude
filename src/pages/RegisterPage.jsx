@@ -118,6 +118,13 @@ export default function RegisterPage() {
               <input type="password" className="input-field" placeholder={t('auth.confirm_password_placeholder')} value={form.confirm} onChange={set('confirm')} required />
             </div>
 
+            <p style={{ textAlign: 'center', fontSize: 11.5, color: 'var(--text-muted)', margin: '2px 0 4px' }}>
+              Registrandoti accetti i{' '}
+              <Link to="/termini" style={{ color: 'var(--text-muted)', textDecoration: 'underline' }}>Termini di Servizio</Link>
+              {' '}e l'{' '}
+              <Link to="/privacy" style={{ color: 'var(--text-muted)', textDecoration: 'underline' }}>Informativa Privacy</Link>.
+            </p>
+
             <button type="submit" className="btn btn-primary btn-full" disabled={loading} style={{ marginTop: 4 }}>
               {loading
                 ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

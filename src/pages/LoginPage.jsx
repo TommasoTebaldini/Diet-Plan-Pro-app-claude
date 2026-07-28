@@ -304,6 +304,12 @@ export default function LoginPage() {
             {t('auth.dietitian_link')}
           </a>
         </p>
+
+        <p style={{ textAlign: 'center', fontSize: 11.5, color: 'var(--text-muted)', marginTop: 10 }}>
+          <Link to="/privacy" style={{ color: 'var(--text-muted)', textDecoration: 'underline' }}>Privacy</Link>
+          {' · '}
+          <Link to="/termini" style={{ color: 'var(--text-muted)', textDecoration: 'underline' }}>Termini di Servizio</Link>
+        </p>
       </div>
 
       {/* Responsive styles injected once */}
