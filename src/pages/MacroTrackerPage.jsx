@@ -194,13 +194,28 @@ const ALLERGEN_RULES = [
 ]
 
 const GLUTEN_FREE_MARKERS = /senza glutine|gluten-?free|\(gf\)/i
+const VEGAN_MARKERS = /\bvegan[oae]?\b|plant-?based/i
+// Parole "di formato" (non ingrediente) che possono legittimamente essere fatte con un
+// cereale/legume senza glutine (es. "pasta di ceci", "farina di riso", "pane di mais") -
+// per queste NON basta trovare la parola da sola, va anche assente un qualificatore
+// esplicito di ingrediente senza glutine subito dopo ("di riso/mais/ceci/...").
+const GLUTEN_FREE_QUALIFIER = /\b(pane|pasta|farina|crackers|biscotti|pizza|focaccia|grissini|taralli|semola|semolino)\s+di\s+(riso|mais|grano saraceno|ceci|lenticchie|lupini|piselli|soia|mandorle|cocco|castagne|quinoa|canapa|amaranto|miglio|patate)/i
 
 function detectAllergens(food) {
   const text = ((food.name || '') + ' ' + (food.brand || '') + ' ' + (food.category || '')).toLowerCase()
-  const isGlutenFreeLabeled = GLUTEN_FREE_MARKERS.test(text)
+  const isVegan = VEGAN_MARKERS.test(text)
+  const isGlutenFreeLabeled = GLUTEN_FREE_MARKERS.test(text) || GLUTEN_FREE_QUALIFIER.test(text)
   return ALLERGEN_RULES.filter(rule => {
     if (rule.key === 'Glutine' && isGlutenFreeLabeled) return false
-    return rule.kw.some(k => text.includes(k))
+    if ((rule.key === 'Lattosio' || rule.key === 'Uova') && isVegan) return false
+    return rule.kw.some(k => {
+      // "grano" da solo non deve scattare per "grano saraceno" (grano saraceno non e' grano vero)
+      if (rule.key === 'Glutine' && k === 'grano' && /grano saraceno/.test(text) && !/\bgrano\b(?!\s+saraceno)/.test(text)) return false
+      // parole corte/generiche (es. "egg") vanno cercate come parola intera, non come
+      // sottostringa arbitraria (altrimenti "egg" scatta anche dentro "Reggiano")
+      if (k.length <= 3) return new RegExp(`\\b${k}\\b`, 'i').test(text)
+      return text.includes(k)
+    })
   })
 }
 
