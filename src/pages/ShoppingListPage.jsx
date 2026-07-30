@@ -37,7 +37,6 @@ function categorizeFood(name) {
   if (/olio|aceto|sale\b|pepe\b|spezie|erbe aromatiche|curcuma|origano|basilico|prezzemolo|aglio|cipolla|limone|maionese|senape|ketchup|tahini|miele|zucchero|stevia|soia sauce/.test(n)) return 'Condimenti e grassi'
   if (/acqua|succo|tè|the\b|caffè|bevanda|latte vegetale|avena drink|riso drink|kombucha|centrifugato/.test(n)) return 'Bevande'
   if (/mel[ae]|pera|banana|arancia|fragol|uva|kiwi|pesch|anguria|melone|pomodor|insalata|spinaci|zucchine|carote|broccoli|cavolfiore|peperone|melanzane|patatein|patate|funghi|frutta|verdura|lattuga|cetriolo|finocchio|asparagi|carciofi|rucola|valeriana|cavolo|cavol|sedano|radicchio|bietola|mais|avocado|mango|ananas|papaya|melograno|lamponi|more|mirtilli|ribes|rabarbaro|porro|scalogno/.test(n)) return 'Frutta e verdura'
-  if (/acqua|succo|tè|caffè/.test(n)) return 'Bevande'
   return 'Altro'
 }
 
