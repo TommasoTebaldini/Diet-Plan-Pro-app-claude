@@ -89,6 +89,20 @@ export default function HealthSyncPage() {
     if (native && hasHeartRatePermission()) refreshNativeHeartRate()
   }, [])
 
+  // Riusa la stessa riga (user_id,date) già scritta da WellnessPage per
+  // umore/energia/sonno — l'upsert imposta solo le colonne passate qui,
+  // senza toccare le altre (semantica standard di ON CONFLICT DO UPDATE).
+  // Così il dietista vede passi/FC insieme al resto in chat.html senza una
+  // tabella/endpoint dedicati.
+  async function syncWearablesToSupabase(stepsVal, hrVal) {
+    const payload = { user_id: user.id, date: today }
+    if (stepsVal != null) payload.steps = stepsVal
+    if (hrVal != null) payload.heart_rate_avg = hrVal
+    if (payload.steps == null && payload.heart_rate_avg == null) return
+    await supabase.from('daily_wellness').upsert(payload, { onConflict: 'user_id,date' }).select().maybeSingle()
+      .then(({ error }) => { if (error && error.code !== '42703') console.warn('sync wearables error:', error.message) })
+  }
+
   // HR from today's recorded workouts (Health Connect/HealthKit) — only
   // overrides the displayed value when a real reading is found, never clears
   // a manual entry the patient already typed in.
@@ -97,6 +111,7 @@ export default function HealthSyncPage() {
     if (bpm) {
       setHeartRate(bpm)
       localStorage.setItem('hr_' + today, String(bpm))
+      syncWearablesToSupabase(null, bpm)
     }
   }
 
@@ -113,6 +128,7 @@ export default function HealthSyncPage() {
       if (bpm) {
         setHeartRate(bpm)
         localStorage.setItem('hr_' + today, String(bpm))
+        syncWearablesToSupabase(null, bpm)
         setSyncMsg('Frequenza cardiaca sincronizzata da ' + (os === 'ios' ? 'Salute' : 'Health Connect') + '.')
       } else {
         setSyncMsg('Nessun allenamento con frequenza cardiaca registrato oggi — registra un allenamento in Salute/Health Connect, oppure inseriscila a mano qui sotto.')
@@ -141,10 +157,18 @@ export default function HealthSyncPage() {
       setSteps(n > 0 ? n : null)
     } catch { setSteps(null) }
     // Heart rate from localStorage
+    let hrVal = null
     try {
       const hr = localStorage.getItem('hr_' + today)
-      setHeartRate(hr ? parseInt(hr) : null)
+      hrVal = hr ? parseInt(hr) : null
+      setHeartRate(hrVal)
     } catch { setHeartRate(null) }
+
+    // Spinge verso il dietista anche i valori già noti da localStorage
+    // (non solo le nuove modifiche) — così compaiono in chat.html anche
+    // se il paziente non tocca nulla in questa sessione.
+    const stepsVal = (() => { try { const n = getTodaySteps(); return n > 0 ? n : null } catch { return null } })()
+    syncWearablesToSupabase(stepsVal, hrVal)
 
     setLoading(false)
   }
@@ -194,6 +218,7 @@ export default function HealthSyncPage() {
     if (!n || n <= 0) return
     setSteps(n)
     setTodaySteps(n)
+    syncWearablesToSupabase(n, null)
     setManualSteps('')
     setSyncMsg('Passi salvati!')
     setTimeout(() => setSyncMsg(''), 2500)
@@ -252,6 +277,7 @@ export default function HealthSyncPage() {
     if (!bpm || bpm <= 0) return
     setHeartRate(bpm)
     localStorage.setItem('hr_' + today, String(bpm))
+    syncWearablesToSupabase(null, bpm)
     setManualHR('')
     setSyncMsg('Frequenza cardiaca salvata!')
     setTimeout(() => setSyncMsg(''), 2500)
