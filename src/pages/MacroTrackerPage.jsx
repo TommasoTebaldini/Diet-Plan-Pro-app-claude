@@ -200,6 +200,21 @@ const VEGAN_MARKERS = /\bvegan[oae]?\b|plant-?based/i
 // per queste NON basta trovare la parola da sola, va anche assente un qualificatore
 // esplicito di ingrediente senza glutine subito dopo ("di riso/mais/ceci/...").
 const GLUTEN_FREE_QUALIFIER = /\b(pane|pasta|farina|crackers|biscotti|pizza|focaccia|grissini|taralli|semola|semolino)\s+di\s+(riso|mais|grano saraceno|ceci|lenticchie|lupini|piselli|soia|mandorle|cocco|castagne|quinoa|canapa|amaranto|miglio|patate)/i
+// Collisioni per sottostringa confermate scansionando tutto il database (2026-07-30): parole
+// come "grano"/"orzo"/"vino"/"tamari" compaiono per puro caso dentro il nome di alimenti non
+// correlati (es. "Melograno" contiene "grano" ma e' un frutto, "bovino" contiene "vino" ma e'
+// manzo). Non si irrigidisce il matching con un confine di parola generale perche' romperebbe
+// match legittimi su composti reali (es. "pane" deve continuare a scattare dentro
+// "Panettone", che contiene davvero glutine) - si esclude puntualmente solo la collisione nota.
+const KEYWORD_FALSE_POSITIVE_EXCLUSIONS = {
+  grano: /melograno|melagrana/i,
+  orzo: /scorzonera/i,
+  pane: /rapanello|daikon/i,
+  semola: /semolato/i,
+  farina: /farinata/i,
+  tamari: /tamarindo|tamarillo/i,
+  vino: /\bbovino\b|\bovino\b/i,
+}
 
 function detectAllergens(food) {
   const text = ((food.name || '') + ' ' + (food.brand || '') + ' ' + (food.category || '')).toLowerCase()
@@ -211,6 +226,7 @@ function detectAllergens(food) {
     return rule.kw.some(k => {
       // "grano" da solo non deve scattare per "grano saraceno" (grano saraceno non e' grano vero)
       if (rule.key === 'Glutine' && k === 'grano' && /grano saraceno/.test(text) && !/\bgrano\b(?!\s+saraceno)/.test(text)) return false
+      if (KEYWORD_FALSE_POSITIVE_EXCLUSIONS[k]?.test(text)) return false
       // parole corte/generiche (es. "egg") vanno cercate come parola intera, non come
       // sottostringa arbitraria (altrimenti "egg" scatta anche dentro "Reggiano")
       if (k.length <= 3) return new RegExp(`\\b${k}\\b`, 'i').test(text)
