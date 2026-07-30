@@ -94,6 +94,59 @@ export async function openHealthConnectInstall() {
   } catch { /* ignore */ }
 }
 
+const HR_PERM_KEY = 'nutriplan_hr_perm'
+
+export function hasHeartRatePermission() {
+  return isNativeApp() && localStorage.getItem(HR_PERM_KEY) === 'granted'
+}
+
+// Requests READ_HEART_RATE/READ_WORKOUTS separately from READ_STEPS: a user
+// may want step tracking without granting heart-rate access, and Health
+// Connect/HealthKit gate each permission independently.
+export async function requestHeartRatePermission() {
+  if (!isNativeApp()) return false
+  if (localStorage.getItem(HR_PERM_KEY) === 'granted') return true
+  try {
+    const { Health } = await import('capacitor-health')
+    const available = await isNativeHealthAvailable()
+    if (!available) return false
+    const res = await Health.requestHealthPermissions({ permissions: ['READ_HEART_RATE', 'READ_WORKOUTS'] })
+    const granted = Capacitor.getPlatform() === 'ios'
+      ? true
+      : !!res?.permissions?.find(p => p.READ_HEART_RATE)?.READ_HEART_RATE
+    if (granted) localStorage.setItem(HR_PERM_KEY, 'granted')
+    return granted
+  } catch {
+    return false
+  }
+}
+
+// The installed capacitor-health plugin has no standalone/continuous heart-rate
+// query — queryAggregated only supports steps/active-calories/mindfulness.
+// Heart rate is only available attached to recorded workouts (includeHeartRate),
+// so this reflects HR during today's tracked workouts, not resting/all-day HR.
+// A richer plugin (e.g. @capgo/capacitor-health) would allow true continuous
+// HR and sleep sync, but that's a native-dependency swap requiring a full
+// Android/iOS rebuild — out of scope here without a way to verify it locally.
+export async function getTodayHeartRateFromNativeHealth() {
+  if (!isNativeApp()) return null
+  try {
+    const { Health } = await import('capacitor-health')
+    const { workouts } = await Health.queryWorkouts({
+      startDate: startOfTodayISO(),
+      endDate: new Date().toISOString(),
+      includeHeartRate: true,
+      includeRoute: false,
+      includeSteps: false,
+    })
+    const samples = (workouts || []).flatMap(w => w.heartRate || [])
+    if (!samples.length) return null
+    return Math.round(samples.reduce((s, x) => s + x.bpm, 0) / samples.length)
+  } catch {
+    return null
+  }
+}
+
 // Requests the platform's motion/health permission. On iOS Safari (PWA) this
 // is the classic DeviceMotionEvent gesture-gated prompt; on a native app this
 // requests Health Connect/HealthKit's READ_STEPS permission instead.

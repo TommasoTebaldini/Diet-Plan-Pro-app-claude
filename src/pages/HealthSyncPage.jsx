@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { Activity, Heart, Scale, Moon, Footprints, CheckCircle, AlertCircle, Info, ExternalLink } from 'lucide-react'
-import { getTodaySteps, setTodaySteps, isPedometerSupported, hasMotionPermission, isNativeApp, isNativeHealthAvailable, openHealthConnectInstall } from '../lib/pedometer'
+import { getTodaySteps, setTodaySteps, isPedometerSupported, hasMotionPermission, isNativeApp, isNativeHealthAvailable, openHealthConnectInstall, hasHeartRatePermission, requestHeartRatePermission, getTodayHeartRateFromNativeHealth } from '../lib/pedometer'
 
 // ── Platform detection ────────────────────────────────────────────────────────
 
@@ -77,6 +77,7 @@ export default function HealthSyncPage() {
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
   const [healthAvailable, setHealthAvailable] = useState(null) // null = not checked yet (native only)
+  const [hrSyncing, setHrSyncing] = useState(false)
 
   const today = new Date().toISOString().split('T')[0]
   const native = isNativeApp()
@@ -84,7 +85,41 @@ export default function HealthSyncPage() {
   useEffect(() => {
     loadAppData()
     if (native) isNativeHealthAvailable().then(setHealthAvailable)
+    if (native && hasHeartRatePermission()) refreshNativeHeartRate()
   }, [])
+
+  // HR from today's recorded workouts (Health Connect/HealthKit) — only
+  // overrides the displayed value when a real reading is found, never clears
+  // a manual entry the patient already typed in.
+  async function refreshNativeHeartRate() {
+    const bpm = await getTodayHeartRateFromNativeHealth()
+    if (bpm) {
+      setHeartRate(bpm)
+      localStorage.setItem('hr_' + today, String(bpm))
+    }
+  }
+
+  async function syncHeartRate() {
+    setHrSyncing(true)
+    setSyncMsg('')
+    try {
+      const ok = await requestHeartRatePermission()
+      if (!ok) {
+        setSyncMsg('Permesso frequenza cardiaca negato — abilitalo da Impostazioni → Salute/Health Connect.')
+        return
+      }
+      const bpm = await getTodayHeartRateFromNativeHealth()
+      if (bpm) {
+        setHeartRate(bpm)
+        localStorage.setItem('hr_' + today, String(bpm))
+        setSyncMsg('Frequenza cardiaca sincronizzata da ' + (os === 'ios' ? 'Salute' : 'Health Connect') + '.')
+      } else {
+        setSyncMsg('Nessun allenamento con frequenza cardiaca registrato oggi — registra un allenamento in Salute/Health Connect, oppure inseriscila a mano qui sotto.')
+      }
+    } finally {
+      setHrSyncing(false)
+    }
+  }
 
   async function loadAppData() {
     setLoading(true)
@@ -258,17 +293,17 @@ export default function HealthSyncPage() {
           </div>
         </motion.div>
 
-        {os === 'ios' && (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card" style={{ padding: '14px 16px', background: '#fef9f0', border: '1.5px solid #fde68a' }}>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <span style={{ fontSize: 20, flexShrink: 0 }}>🍎</span>
-              <div>
-                <p style={{ fontSize: 14, fontWeight: 700, color: '#92400e', marginBottom: 4 }}>Frequenza cardiaca e sonno da Salute</p>
-                <p style={{ fontSize: 12, color: '#78350f', lineHeight: 1.5 }}>
-                  {native
-                    ? 'Per ora NutriPlan legge solo i passi da Salute. Frequenza cardiaca e sonno non sono ancora collegati — puoi comunque copiarli qui a mano.'
-                    : 'Questi dati vivono nell\'app Salute di iOS e nessun sito web può leggerli — servirebbe l\'app nativa. Puoi comunque copiarli qui a mano.'}
-                </p>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card" style={{ padding: '14px 16px', background: '#fef9f0', border: '1.5px solid #fde68a' }}>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <span style={{ fontSize: 20, flexShrink: 0 }}>{os === 'ios' ? '🍎' : '❤️'}</span>
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 700, color: '#92400e', marginBottom: 4 }}>Frequenza cardiaca e sonno</p>
+              <p style={{ fontSize: 12, color: '#78350f', lineHeight: 1.5 }}>
+                {native
+                  ? `La frequenza cardiaca si sincronizza da ${os === 'ios' ? 'Salute' : 'Health Connect'} quando registri un allenamento (pulsante qui sotto). Il sonno non è ancora collegato automaticamente — puoi comunque copiarlo qui a mano.`
+                  : `Questi dati vivono nell'app ${os === 'ios' ? 'Salute di iOS' : 'Google Health Connect'} e nessun sito web può leggerli — servirebbe l'app nativa. Puoi comunque copiarli qui a mano.`}
+              </p>
+              {os === 'ios' && (
                 <a
                   href="https://support.apple.com/it-it/guide/iphone/iph3ecf67d1/ios"
                   target="_blank"
@@ -277,10 +312,10 @@ export default function HealthSyncPage() {
                 >
                   <ExternalLink size={11} /> Come consultare Salute su iOS
                 </a>
-              </div>
+              )}
             </div>
-          </motion.div>
-        )}
+          </div>
+        </motion.div>
 
         {/* Data overview */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card" style={{ padding: '14px 16px' }}>
@@ -314,6 +349,16 @@ export default function HealthSyncPage() {
               </DataRow>
 
               <DataRow icon={Heart} label="Frequenza cardiaca" value={heartRate} unit="bpm" status={heartRate !== null ? 'connected' : 'manual'}>
+                {native && (
+                  <button
+                    onClick={syncHeartRate}
+                    disabled={hrSyncing}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1.5px solid #fca5a5', color: '#b91c1c', borderRadius: 8, padding: '5px 10px', cursor: hrSyncing ? 'default' : 'pointer', fontSize: 12, fontWeight: 600, marginTop: 6 }}
+                  >
+                    <Heart size={12} />
+                    {hrSyncing ? 'Sincronizzazione…' : hasHeartRatePermission() ? 'Aggiorna da allenamento' : `Sincronizza da ${os === 'ios' ? 'Salute' : 'Health Connect'}`}
+                  </button>
+                )}
                 <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                   <input type="number" placeholder="es. 72" value={manualHR} onChange={e => setManualHR(e.target.value)} onKeyDown={e => e.key === 'Enter' && saveManualHR()}
                     style={{ flex: 1, padding: '5px 9px', border: '1.5px solid var(--border)', borderRadius: 8, background: 'var(--surface-2)', fontSize: 13, outline: 'none', color: 'var(--text-primary)' }} />
