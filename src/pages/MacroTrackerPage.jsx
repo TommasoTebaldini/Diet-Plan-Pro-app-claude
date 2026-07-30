@@ -193,9 +193,15 @@ const ALLERGEN_RULES = [
   { key: 'Anidride solforosa e solfiti', icon: '🍷', col: '#7C3AED', bg: '#F5F3FF', kw: ['solfiti','vino','aceto di vino','prugne secche','uva passa','albicocche secche'] },
 ]
 
+const GLUTEN_FREE_MARKERS = /senza glutine|gluten-?free|\(gf\)/i
+
 function detectAllergens(food) {
   const text = ((food.name || '') + ' ' + (food.brand || '') + ' ' + (food.category || '')).toLowerCase()
-  return ALLERGEN_RULES.filter(rule => rule.kw.some(k => text.includes(k)))
+  const isGlutenFreeLabeled = GLUTEN_FREE_MARKERS.test(text)
+  return ALLERGEN_RULES.filter(rule => {
+    if (rule.key === 'Glutine' && isGlutenFreeLabeled) return false
+    return rule.kw.some(k => text.includes(k))
+  })
 }
 
 function conflictingAllergens(food, intolerances) {
