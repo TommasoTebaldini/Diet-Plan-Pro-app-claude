@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useT } from '../i18n'
-import { Search, MapPin, Phone, Mail, Globe, Users, X, ChevronRight, Crosshair, SlidersHorizontal, Star, Clock, Award } from 'lucide-react'
+import { Search, MapPin, Phone, Mail, Globe, Users, X, ChevronRight, Crosshair, SlidersHorizontal, Clock, Award } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { StarRating, fetchRatingSummaries } from '../components/DietitianReviews'
 
 function haversine(lat1, lon1, lat2, lon2) {
   const R = 6371
@@ -93,6 +94,12 @@ function DietitianCard({ profile, onClick, index }) {
               </p>
             )}
 
+            {profile._rating?.count > 0 && (
+              <div style={{ marginBottom: 5 }}>
+                <StarRating value={profile._rating.average} count={profile._rating.count} showValue size={12} />
+              </div>
+            )}
+
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: profile.descrizione ? 8 : 0 }}>
               {profile.citta && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
@@ -171,6 +178,11 @@ export default function DietitianProfilesPage() {
     const uniqueCities = [...new Set(list.map(p => p.citta).filter(Boolean))].sort()
     setCities(uniqueCities)
     setLoading(false)
+
+    const ratings = await fetchRatingSummaries(list.map(p => p.dietitian_id))
+    if (Object.keys(ratings).length) {
+      setProfiles(prev => prev.map(p => ({ ...p, _rating: ratings[p.dietitian_id] || null })))
+    }
   }
 
   async function detectMyLocation() {

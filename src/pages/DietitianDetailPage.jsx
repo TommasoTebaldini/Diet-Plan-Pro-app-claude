@@ -2,6 +2,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import DietitianReviewsSection from '../components/DietitianReviews'
 import {
   ArrowLeft, MapPin, Phone, Mail, Globe, Calendar, Briefcase,
   X, CheckCircle, ChevronLeft, ChevronRight, Clock, AlertCircle, XCircle
@@ -489,6 +490,8 @@ export default function DietitianDetailPage() {
             })}
           </div>
         )}
+
+        <DietitianReviewsSection dietitianId={profile.dietitian_id} />
 
         {/* Presentazione */}
         {profile.descrizione && (
