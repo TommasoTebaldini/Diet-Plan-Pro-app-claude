@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { Activity, Heart, Scale, Moon, Footprints, CheckCircle, AlertCircle, Info, ExternalLink } from 'lucide-react'
 import { getTodaySteps, setTodaySteps, isPedometerSupported, hasMotionPermission, isNativeApp, isNativeHealthAvailable, openHealthConnectInstall, hasHeartRatePermission, requestHeartRatePermission, getTodayHeartRateFromNativeHealth } from '../lib/pedometer'
+import { isBleScaleSupported, connectAndReadWeight } from '../lib/bleScale'
 
 // ── Platform detection ────────────────────────────────────────────────────────
 
@@ -198,6 +199,24 @@ export default function HealthSyncPage() {
     setTimeout(() => setSyncMsg(''), 2500)
   }
 
+  const [bleScaleConnecting, setBleScaleConnecting] = useState(false)
+
+  async function connectBleScale() {
+    setBleScaleConnecting(true)
+    setSyncMsg('')
+    try {
+      const kg = await connectAndReadWeight()
+      const { error } = await supabase.from('weight_logs').upsert({ user_id: user.id, weight_kg: kg, date: today }, { onConflict: 'user_id,date' })
+      if (error) throw error
+      setWeight(kg)
+      setSyncMsg(`Peso letto dalla bilancia: ${kg} kg`)
+    } catch (e) {
+      setSyncMsg(e?.message || 'Impossibile leggere la bilancia Bluetooth.')
+    } finally {
+      setBleScaleConnecting(false)
+    }
+  }
+
   async function saveManualWeight() {
     const kg = parseFloat(manualWeight)
     if (!kg || kg <= 0) return
@@ -369,6 +388,16 @@ export default function HealthSyncPage() {
               </DataRow>
 
               <DataRow icon={Scale} label="Peso" value={weight} unit="kg" status={weight !== null ? 'connected' : 'manual'}>
+                {isBleScaleSupported() && (
+                  <button
+                    onClick={connectBleScale}
+                    disabled={bleScaleConnecting}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1.5px solid var(--green-main)', color: 'var(--green-main)', borderRadius: 8, padding: '5px 10px', cursor: bleScaleConnecting ? 'default' : 'pointer', fontSize: 12, fontWeight: 600, marginTop: 6 }}
+                  >
+                    <Scale size={12} />
+                    {bleScaleConnecting ? 'Connessione…' : 'Connetti bilancia Bluetooth'}
+                  </button>
+                )}
                 <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                   <input type="number" step="0.1" placeholder="es. 70.5" value={manualWeight} onChange={e => setManualWeight(e.target.value)} onKeyDown={e => e.key === 'Enter' && saveManualWeight()}
                     style={{ flex: 1, padding: '5px 9px', border: '1.5px solid var(--border)', borderRadius: 8, background: 'var(--surface-2)', fontSize: 13, outline: 'none', color: 'var(--text-primary)' }} />
@@ -376,6 +405,9 @@ export default function HealthSyncPage() {
                     {weight !== null ? 'Aggiorna' : 'Salva'}
                   </button>
                 </div>
+                {isBleScaleSupported() && (
+                  <p style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 5 }}>Compatibile con bilance Bluetooth che usano il profilo standard "Weight Scale" — non tutte le bilance smart lo supportano (es. Xiaomi Mi Scale usa un protocollo proprietario non leggibile da qui).</p>
+                )}
               </DataRow>
 
               <DataRow icon={Moon} label="Ore di sonno" value={sleep} unit="ore" status={sleep !== null ? 'connected' : 'manual'}>
