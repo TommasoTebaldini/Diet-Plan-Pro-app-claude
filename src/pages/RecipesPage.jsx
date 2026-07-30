@@ -5,8 +5,9 @@ import { useAuth } from '../context/AuthContext'
 import { searchFoodsLocal, supplementWithOpenFoodFacts } from '../lib/foodSearch'
 import ProGate from '../components/ProGate'
 import { useSubscription } from '../hooks/useSubscription'
-import { Search, Plus, X, Trash2, ChevronDown, ChevronUp, Globe, Lock, Bookmark, Pencil, Heart, SlidersHorizontal, Camera } from 'lucide-react'
+import { Search, Plus, X, Trash2, ChevronDown, ChevronUp, Globe, Lock, Bookmark, Pencil, Heart, SlidersHorizontal, Camera, Link2 } from 'lucide-react'
 import { useT } from '../i18n'
+import { importRecipeFromUrl, importRecipeFromPhoto } from '../lib/recipeImport'
 
 const FREE_RECIPES_LIMIT = 5
 
@@ -646,6 +647,13 @@ export default function RecipesPage() {
   const [photoPreview, setPhotoPreview] = useState('')
   const photoInputRef = React.useRef(null)
 
+  // Import ricetta da URL/foto
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [importUrl, setImportUrl] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importError, setImportError] = useState('')
+  const importPhotoRef = React.useRef(null)
+
   // Filters (shared between mine + public tabs)
   const [myFilters, setMyFilters] = useState(EMPTY_FILTERS)
   const [pubFilters, setPubFilters] = useState(EMPTY_FILTERS)
@@ -786,6 +794,36 @@ export default function RecipesPage() {
     if (data) setMyRecipes(r => r.map(x => x.id === recipe.id ? data : x))
   }
 
+  // Import ricetta da URL/foto: risolve gli ingredienti estratti dall'AI
+  // (stesso schema {nome,qt} delle ricette condivise dal dietista) e precompila
+  // il form manuale invece di salvare direttamente — l'utente verifica/corregge
+  // sempre prima di premere "Salva", stessa logica già adottata per l'import
+  // referti lato dietista.
+  async function runRecipeImport(extractPromise) {
+    setImporting(true)
+    setImportError('')
+    try {
+      const extracted = await extractPromise
+      const ingredienti = await Promise.all(extracted.ingredienti.map(i => resolveSharedIngredient(i.nome, i.qt)))
+      setForm({
+        ...EMPTY_FORM,
+        nome: extracted.nome,
+        porzioni: String(extracted.porzioni),
+        ingredienti,
+        note: extracted.note || '',
+      })
+      setEditingRecipe(null)
+      setShowImportModal(false)
+      setImportUrl('')
+      setShowCreate(true)
+      setTab('mine')
+    } catch (e) {
+      setImportError(e.message || 'Errore importazione')
+    } finally {
+      setImporting(false)
+    }
+  }
+
   function addStep() {
     if (!newStep.trim()) return
     setForm(f => ({ ...f, fasi: [...f.fasi, newStep.trim()] }))
@@ -820,6 +858,11 @@ export default function RecipesPage() {
         <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, marginBottom: 4 }}>{t('recipes.cuisine')}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
           <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 22, color: 'white', fontWeight: 300, flex: 1 }}>{t('recipes.title')}</h1>
+          <button onClick={() => { setImportError(''); setImportUrl(''); setShowImportModal(true) }}
+            title="Importa da URL o foto"
+            style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.2)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0 }}>
+            <Link2 size={17} />
+          </button>
           <button onClick={() => {
             const next = !showCreate
             setShowCreate(next)
@@ -1127,6 +1170,81 @@ export default function RecipesPage() {
       {toast && (
         <div style={{ position: 'fixed', bottom: 90, left: '50%', transform: 'translateX(-50%)', background: '#1e293b', color: 'white', padding: '10px 20px', borderRadius: 100, fontSize: 13, fontWeight: 600, zIndex: 3000, boxShadow: '0 4px 20px rgba(0,0,0,0.3)', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
           {toast}
+        </div>
+      )}
+
+      {/* Import ricetta da URL/foto */}
+      {showImportModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.65)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+          <div className="animate-slideUp" style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', padding: 20, paddingBottom: 'calc(20px + env(safe-area-inset-bottom))', maxHeight: '90dvh', overflowY: 'auto', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700 }}>🔗 Importa ricetta</h3>
+              <button onClick={() => setShowImportModal(false)} disabled={importing} style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14, lineHeight: 1.5 }}>
+              Incolla il link di una pagina di ricette, oppure fotografa una pagina di ricettario o un appunto scritto a mano. L'AI estrae ingredienti e porzioni — potrai comunque rivedere e correggere tutto prima di salvare.
+            </p>
+
+            <div className="input-group" style={{ marginBottom: 10 }}>
+              <label className="input-label">Link ricetta</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  type="url"
+                  className="input-field"
+                  placeholder="https://…"
+                  value={importUrl}
+                  onChange={e => setImportUrl(e.target.value)}
+                  disabled={importing}
+                  style={{ flex: 1 }}
+                />
+                <button
+                  className="btn btn-primary"
+                  disabled={importing || !importUrl.trim()}
+                  onClick={() => runRecipeImport(importRecipeFromUrl(importUrl.trim()))}
+                >
+                  {importing ? '…' : 'Importa'}
+                </button>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '14px 0', color: 'var(--text-muted)', fontSize: 11 }}>
+              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+              oppure
+              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+            </div>
+
+            <input
+              ref={importPhotoRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={e => {
+                const f = e.target.files?.[0]
+                e.target.value = ''
+                if (f) runRecipeImport(importRecipeFromPhoto(f))
+              }}
+            />
+            <button
+              onClick={() => importPhotoRef.current?.click()}
+              disabled={importing}
+              className="btn btn-secondary btn-full"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+            >
+              <Camera size={16} /> Fotografa una ricetta
+            </button>
+
+            {importing && (
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 12, textAlign: 'center' }}>
+                Analisi in corso (10-20 sec)…
+              </p>
+            )}
+            {importError && (
+              <div className="alert-error" style={{ marginTop: 12, fontSize: 12.5, lineHeight: 1.5 }}>{importError}</div>
+            )}
+          </div>
         </div>
       )}
     </div>
