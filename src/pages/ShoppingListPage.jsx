@@ -28,15 +28,29 @@ const CATEGORY_ICONS = {
   'Altro': '🛒',
 }
 
+// Collisioni per sottostringa note (stessa scoperta/metodologia di detectAllergens() in
+// MacroTrackerPage.jsx - una parola-chiave compare per caso dentro un alimento non correlato).
+const CATEGORIZE_KEYWORD_EXCLUSIONS = {
+  grana: /melagrana|melograno|sgranat/i,
+  pane: /rapanello|daikon/i,
+  orzo: /scorzonera/i,
+  aglio: /taglio/i,
+  burro: /burro di (arachidi|mandorle|sesamo|cocco|anacardi)/i, // burro vegetale/di semi, non latticino
+}
+
+function matchesCategory(n, words) {
+  return words.some(w => !(CATEGORIZE_KEYWORD_EXCLUSIONS[w]?.test(n)) && new RegExp(w, 'i').test(n))
+}
+
 function categorizeFood(name) {
   const n = (name || '').toLowerCase()
-  if (/pollo|tacchino|manzo|maiale|agnello|coniglio|salmone|tonno|merluzzo|branzino|orata|gamberi|carne|pesce|bresaola|prosciutto|salame|vitello|fesa|petto|filetto|sgombro|acciughe|vongole|cozze/.test(n)) return 'Carne e pesce'
-  if (/latte|yogurt|formaggio|ricotta|parmigiano|mozzarella|grana|pecorino|scamorza|stracchino|burro|uov[ao]|kefir/.test(n)) return 'Latticini e uova'
-  if (/pasta|riso|pane|farro|orzo|quinoa|avena|cereali|fette biscottate|biscotti|crackers|farina|polenta|cous cous|bulgur|grissini/.test(n)) return 'Cereali e pasta'
-  if (/ceci|lenticchie|fagioli|piselli|soia|lupini|azuki|legumi/.test(n)) return 'Legumi'
-  if (/olio|aceto|sale\b|pepe\b|spezie|erbe aromatiche|curcuma|origano|basilico|prezzemolo|aglio|cipolla|limone|maionese|senape|ketchup|tahini|miele|zucchero|stevia|soia sauce/.test(n)) return 'Condimenti e grassi'
-  if (/acqua|succo|tè|the\b|caffè|bevanda|latte vegetale|avena drink|riso drink|kombucha|centrifugato/.test(n)) return 'Bevande'
-  if (/mel[ae]|pera|banana|arancia|fragol|uva|kiwi|pesch|anguria|melone|pomodor|insalata|spinaci|zucchine|carote|broccoli|cavolfiore|peperone|melanzane|patatein|patate|funghi|frutta|verdura|lattuga|cetriolo|finocchio|asparagi|carciofi|rucola|valeriana|cavolo|cavol|sedano|radicchio|bietola|mais|avocado|mango|ananas|papaya|melograno|lamponi|more|mirtilli|ribes|rabarbaro|porro|scalogno/.test(n)) return 'Frutta e verdura'
+  if (matchesCategory(n, ['pollo', 'tacchino', 'manzo', 'maiale', 'agnello', 'coniglio', 'salmone', 'tonno', 'merluzzo', 'branzino', 'orata', 'gamberi', 'carne', 'pesce', 'bresaola', 'prosciutto', 'salame', 'vitello', 'fesa', 'petto', 'filetto', 'sgombro', 'acciughe', 'vongole', 'cozze'])) return 'Carne e pesce'
+  if (matchesCategory(n, ['latte', 'yogurt', 'formaggio', 'ricotta', 'parmigiano', 'mozzarella', 'grana', 'pecorino', 'scamorza', 'stracchino', 'burro', 'uov[ao]', 'kefir'])) return 'Latticini e uova'
+  if (matchesCategory(n, ['pasta', 'riso', 'pane', 'farro', 'orzo', 'quinoa', 'avena', 'cereali', 'fette biscottate', 'biscotti', 'crackers', 'farina', 'polenta', 'cous cous', 'bulgur', 'grissini'])) return 'Cereali e pasta'
+  if (matchesCategory(n, ['ceci', 'lenticchie', 'fagioli', 'piselli', 'soia', 'lupini', 'azuki', 'legumi', 'edamame'])) return 'Legumi'
+  if (matchesCategory(n, ['olio', 'aceto', 'sale\\b', 'pepe\\b', 'spezie', 'erbe aromatiche', 'curcuma', 'origano', 'basilico', 'prezzemolo', 'aglio', 'cipolla', 'limone', 'maionese', 'senape', 'ketchup', 'tahini', 'miele', 'zucchero', 'stevia', 'soia sauce'])) return 'Condimenti e grassi'
+  if (matchesCategory(n, ['acqua', 'succo', 'tè', 'the\\b', 'caffè', 'bevanda', 'latte vegetale', 'avena drink', 'riso drink', 'kombucha', 'centrifugato'])) return 'Bevande'
+  if (matchesCategory(n, ['mel[ae]', 'pera', 'banana', 'arancia', 'fragol', 'uva', 'kiwi', 'pesch', 'anguria', 'melone', 'pomodor', 'insalata', 'spinaci', 'zucchine', 'carote', 'broccoli', 'cavolfiore', 'peperone', 'melanzane', 'patatein', 'patate', 'funghi', 'frutta', 'verdura', 'lattuga', 'cetriolo', 'finocchio', 'asparagi', 'carciofi', 'rucola', 'valeriana', 'cavolo', 'cavol', 'sedano', 'radicchio', 'bietola', 'mais', 'avocado', 'mango', 'ananas', 'papaya', 'melograno', 'lamponi', 'more', 'mirtilli', 'ribes', 'rabarbaro', 'porro', 'scalogno'])) return 'Frutta e verdura'
   return 'Altro'
 }
 

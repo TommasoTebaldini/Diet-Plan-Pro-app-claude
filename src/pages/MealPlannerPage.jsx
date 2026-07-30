@@ -19,13 +19,32 @@ const MEAL_TYPES = [
 ]
 
 // Food categories for shopping list grouping
+// Collisioni per sottostringa note (una parola-chiave compare per caso dentro il nome di un
+// alimento non correlato, es. "pesca" dentro "pescatrice", "orzo" dentro "scorzonera", "aglio"
+// dentro "taglio") - stessa scoperta/metodologia di detectAllergens() in questo file. Non
+// irrigidito con un confine di parola generale perche' romperebbe corrispondenze intenzionali
+// su parole composte (es. "riso" deve continuare a far scattare "Risotto").
+const CATEGORIZE_KEYWORD_EXCLUSIONS = {
+  pollo: /cipoll/i,
+  grana: /melagrana|melograno|sgranat/i,
+  aglio: /taglio/i,
+  pane: /rapanello|daikon/i,
+  orzo: /scorzonera/i,
+  mela: /melanzana|melagrana|melograno|melanosporum/i,
+  pesca: /pescatrice/i,
+}
+
+function matchesCategory(n, words) {
+  return words.some(w => !(CATEGORIZE_KEYWORD_EXCLUSIONS[w]?.test(n)) && n.includes(w))
+}
+
 function categorizeFood(name) {
   const n = (name || '').toLowerCase()
-  if (/pollo|manzo|pesce|tonno|salmone|carne|prosciutto|uov|tacchino|merluzzo|sgombro|gamberett|bresaola|salume|affettat/.test(n)) return 'Proteine'
-  if (/latte|yogurt|mozzarella|formaggio|ricotta|parmigian|pecorino|grana|brie|feta/.test(n)) return 'Latticini'
-  if (/spinac|insalat|lattug|broccol|carota|zucchina|peperon|pomodor|cetriolo|cipolla|aglio|cavolo|verza|sedano|finocc|melanzana|asparagi|fagiolini|piselli|funghi/.test(n)) return 'Verdure'
-  if (/pane|pasta|riso|farro|avena|cereale|farro|orzo|polenta|cracker|grissino|mais|quinoa|couscous|bulgur|fette biscott/.test(n)) return 'Cereali'
-  if (/mela|pera|banana|arancio|limone|fragola|uva|kiwi|ananas|mango|pesca|albicocca|cilieg|frutt/.test(n)) return 'Frutta'
+  if (matchesCategory(n, ['pollo', 'manzo', 'pesce', 'tonno', 'salmone', 'carne', 'prosciutto', 'uov', 'tacchino', 'merluzzo', 'sgombro', 'gamberett', 'bresaola', 'salume', 'affettat'])) return 'Proteine'
+  if (matchesCategory(n, ['latte', 'yogurt', 'mozzarella', 'formaggio', 'ricotta', 'parmigian', 'pecorino', 'grana', 'brie', 'feta'])) return 'Latticini'
+  if (matchesCategory(n, ['spinac', 'insalat', 'lattug', 'broccol', 'carota', 'zucchina', 'peperon', 'pomodor', 'cetriolo', 'cipolla', 'aglio', 'cavolo', 'verza', 'sedano', 'finocc', 'melanzana', 'asparagi', 'fagiolini', 'piselli', 'funghi'])) return 'Verdure'
+  if (matchesCategory(n, ['pane', 'pasta', 'riso', 'farro', 'avena', 'cereale', 'orzo', 'polenta', 'cracker', 'grissino', 'mais', 'quinoa', 'couscous', 'bulgur', 'fette biscott'])) return 'Cereali'
+  if (matchesCategory(n, ['mela', 'pera', 'banana', 'arancio', 'limone', 'fragola', 'uva', 'kiwi', 'ananas', 'mango', 'pesca', 'albicocca', 'cilieg', 'frutt'])) return 'Frutta'
   return 'Altro'
 }
 
