@@ -15,6 +15,7 @@ import ProGate from '../components/ProGate'
 import { useSubscription } from '../hooks/useSubscription'
 import MealDoseCalculator from '../components/MealDoseCalculator'
 import { fetchSpecialSections, fetchLatestWeight } from '../lib/specialSections'
+import { HAND_PORTIONS, estimateHandPortionGrams } from '../lib/portionEstimator'
 
 // Module-level flag: whether food_logs has is_favorite and unit columns
 let _foodLogsExtended = true
@@ -37,6 +38,42 @@ const UNIT_OPTIONS = [
 function gramsFromUnit(qty, unitKey) {
   const unit = UNIT_OPTIONS.find(u => u.key === unitKey) || UNIT_OPTIONS[0]
   return Math.round(parseFloat(qty || 1) * unit.factor)
+}
+
+// Modalità "fuori casa/ristorante": stima la porzione con le misure a mano
+// quando non è disponibile una bilancia. Collassata di default per non
+// affollare il flusso normale di aggiunta rapida.
+function HandPortionPicker({ category, onPick }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div style={{ marginBottom: 6 }}>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', padding: 0, color: 'var(--text-muted)', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}
+      >
+        🍽️ Fuori casa? Stima senza bilancia {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+      </button>
+      {open && (
+        <div style={{ marginTop: 6 }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {HAND_PORTIONS.map(h => (
+              <button
+                key={h.key}
+                type="button"
+                title={h.hint}
+                onClick={() => onPick(estimateHandPortionGrams(h.key, category))}
+                style={{ padding: '6px 10px', borderRadius: 9, background: 'var(--surface-2)', border: '1.5px solid var(--border)', cursor: 'pointer', fontSize: 12, color: 'var(--text-secondary)' }}
+              >
+                {h.label}
+              </button>
+            ))}
+          </div>
+          <p style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 5 }}>Stima approssimativa basata sul tipo di alimento — usa la bilancia quando disponibile.</p>
+        </div>
+      )}
+    </div>
+  )
 }
 
 // Local calendar date (not UTC) — toISOString() shifts to UTC and shows
@@ -1673,6 +1710,7 @@ export default function MacroTrackerPage() {
                               </div>
                             )
                           })()}
+                          <HandPortionPicker category={selected.category} onPick={g => { setSelectedUnit('g'); setGrams(String(g)) }} />
                           {/* Feature 6: Unit selector */}
                           <div className="input-group" style={{ marginBottom: 6 }}>
                             <label className="input-label">Unità di misura</label>
@@ -1937,6 +1975,7 @@ export default function MacroTrackerPage() {
               </div>
 
               <div style={{ marginBottom: 14 }}>
+                <HandPortionPicker category={fd.category} onPick={g => setPickerGrams(String(g))} />
                 <div className="input-group" style={{ marginBottom: 8 }}>
                   <label className="input-label">Quantità (g)</label>
                   <input
