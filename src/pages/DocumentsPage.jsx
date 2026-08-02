@@ -239,8 +239,11 @@ function buildPianoPrintHTML(doc, giorni) {
           <span style="font-size:13px">${_e(item.nome)}${misura}</span>
           ${item.qt ? `<span style="font-size:13px;font-weight:700;color:#0EA5E9;padding-left:12px">${_e(item.qt)} g</span>` : ''}
         </div>`]
-        ;(item.altPrint || []).forEach(a => {
-          r.push(`<div style="padding:5px 16px 5px 28px;background:#F0FDF4;border-bottom:1px solid #DCFCE7;font-size:11.5px;color:#15803D">↳ oppure: ${_e(a.nome)} — ${_e(a.qt)} g</div>`)
+        ;(item.altPrint || []).forEach(g => {
+          const items = Array.isArray(g?.items) ? g.items : [g]
+          const label = items.map(a => `${_e(a.nome)} — ${_e(a.qt)} g`).join(' + ')
+          const nota = g?.nota ? `<div style="font-size:10.5px;color:#15803D;font-style:italic;margin-top:2px">📝 ${_e(g.nota)}</div>` : ''
+          r.push(`<div style="padding:5px 16px 5px 28px;background:#F0FDF4;border-bottom:1px solid #DCFCE7;font-size:11.5px;color:#15803D">↳ oppure: ${label}${nota}</div>`)
         })
         return r
       })

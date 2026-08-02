@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { AuthProvider } from './context/AuthContext'
+import { installErrorLogger } from './lib/errorLogger'
 import './index.css'
 
 // NOTE: vite-plugin-pwa con registerType:'autoUpdate' gestisce già il reload
@@ -12,6 +13,8 @@ import './index.css'
 // Ricarica automaticamente la pagina quando un chunk lazy non si trova
 // (accade dopo un nuovo deploy mentre la pagina vecchia è ancora aperta)
 window.addEventListener('vite:preloadError', () => window.location.reload())
+
+installErrorLogger()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

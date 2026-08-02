@@ -1798,3 +1798,107 @@ DO $$ BEGIN
       );
   END IF;
 END $$;
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- schema_migrations + client_errors — stesse tabelle create in
+-- NutriPlan-Pro/supabase_setup.sql (progetto Supabase condiviso: chi dei due
+-- script gira per primo le crea, l'altro è un no-op). check_is_admin() è
+-- definita in supabase_setup.sql: qui non viene ridefinita, per lo stesso
+-- motivo per cui questo file non ricrea mai la tabella profiles (assume che
+-- supabase_setup.sql sia già stato eseguito almeno una volta sul progetto).
+-- ─────────────────────────────────────────────────────────────────────────
+
+create table if not exists schema_migrations (
+  id          text        primary key,
+  applied_at  timestamptz not null default now(),
+  note        text
+);
+
+alter table schema_migrations enable row level security;
+do $$ begin
+  if not exists (select 1 from pg_policies where policyname='schema_migrations_admin_only' and tablename='schema_migrations') then
+    create policy "schema_migrations_admin_only" on schema_migrations
+      for all using (check_is_admin()) with check (check_is_admin());
+  end if;
+end $$;
+
+create table if not exists client_errors (
+  id          uuid        primary key default gen_random_uuid(),
+  app         text        not null,               -- 'nutriplan-pro' | 'diet-plan-pro-app'
+  level       text        not null default 'error', -- 'error' | 'unhandledrejection'
+  message     text        not null,
+  stack       text,
+  page_url    text,
+  user_id     uuid        references auth.users(id) on delete set null,
+  user_email  text,
+  user_agent  text,
+  created_at  timestamptz not null default now()
+);
+create index if not exists idx_client_errors_created_at on client_errors (created_at desc);
+
+alter table client_errors enable row level security;
+do $$ begin
+  if not exists (select 1 from pg_policies where policyname='client_errors_insert_any' and tablename='client_errors') then
+    create policy "client_errors_insert_any" on client_errors
+      for insert with check (true);
+  end if;
+end $$;
+do $$ begin
+  if not exists (select 1 from pg_policies where policyname='client_errors_select_admin' and tablename='client_errors') then
+    create policy "client_errors_select_admin" on client_errors
+      for select using (check_is_admin());
+  end if;
+end $$;
+
+insert into schema_migrations (id, note) values
+  ('sezione_37_observability', 'schema_migrations + client_errors')
+on conflict (id) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- usage_counters + increment_usage_and_check() — stesse definizioni create
+-- in NutriPlan-Pro/supabase_setup.sql (progetto Supabase condiviso, vedi
+-- nota sopra su schema_migrations/client_errors). Quote mensili durature
+-- (sopravvivono a cold start, valgono 30 giorni) per AI/storage, per-utente:
+-- sia il rate limiter di NutriPlan-Pro (api/_rateLimit.js) sia quello di
+-- questa app (_shared/rateLimit.ts) sono esplicitamente per-istanza, non
+-- adatti a una quota mensile reale.
+-- ─────────────────────────────────────────────────────────────────────────
+
+create table if not exists usage_counters (
+  user_id     uuid        not null references auth.users(id) on delete cascade,
+  scope       text        not null,
+  period      text        not null,
+  count       bigint      not null default 0,
+  updated_at  timestamptz not null default now(),
+  primary key (user_id, scope, period)
+);
+
+alter table usage_counters enable row level security;
+do $$ begin
+  if not exists (select 1 from pg_policies where policyname='usage_counters_own_read' and tablename='usage_counters') then
+    create policy "usage_counters_own_read" on usage_counters
+      for select using (auth.uid() = user_id or check_is_admin());
+  end if;
+end $$;
+
+create or replace function increment_usage_and_check(p_user_id uuid, p_scope text, p_period text, p_max bigint)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare
+  new_count bigint;
+begin
+  if auth.uid() is not null and auth.uid() != p_user_id then
+    raise exception 'p_user_id deve coincidere con l''utente autenticato';
+  end if;
+  insert into usage_counters (user_id, scope, period, count, updated_at)
+  values (p_user_id, p_scope, p_period, 1, now())
+  on conflict (user_id, scope, period)
+  do update set count = usage_counters.count + 1, updated_at = now()
+  returning count into new_count;
+  return new_count <= p_max;
+end;
+$$;
+grant execute on function increment_usage_and_check(uuid, text, text, bigint) to authenticated;
+
+insert into schema_migrations (id, note) values
+  ('sezione_38_usage_counters', 'usage_counters + increment_usage_and_check() per quote mensili')
+on conflict (id) do nothing;

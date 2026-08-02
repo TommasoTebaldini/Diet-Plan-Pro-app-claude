@@ -11,6 +11,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { createRateLimiter } from '../_shared/rateLimit.ts'
+import { checkMonthlyQuota } from '../_shared/monthlyQuota.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -147,6 +148,10 @@ Deno.serve(async (req: Request) => {
   rateLimiter.prune()
   if (!rateLimiter.allow(user.id)) {
     return json({ error: 'Troppe richieste, riprova tra un minuto.' }, 429)
+  }
+  // Tetto mensile duraturo per utente (vedi _shared/monthlyQuota.ts).
+  if (!(await checkMonthlyQuota(supabase, user.id, 'ai_calls', 300))) {
+    return json({ error: 'Hai raggiunto il limite di richieste AI incluse per questo mese. Il conteggio si azzera a inizio mese.' }, 429)
   }
 
   const yest = yesterday()

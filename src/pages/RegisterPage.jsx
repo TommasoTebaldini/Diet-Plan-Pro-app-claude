@@ -13,6 +13,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [consent, setConsent] = useState(false)
   const { signUp } = useAuth()
   const navigate = useNavigate()
 
@@ -23,11 +24,13 @@ export default function RegisterPage() {
     setError('')
     if (form.password !== form.confirm) return setError(t('auth.error_passwords_mismatch'))
     if (form.password.length < 6) return setError(t('auth.error_password_short'))
+    if (!consent) return setError('Devi accettare Termini di Servizio e Informativa Privacy per registrarti.')
     setLoading(true)
     const { error } = await signUp(form.email, form.password, {
       full_name: `${form.name} ${form.surname}`,
       first_name: form.name,
       last_name: form.surname,
+      terms_accepted_at: new Date().toISOString(),
       ...(dietitianRef ? { dietitian_ref: dietitianRef } : {})
     })
     if (error) {
@@ -118,14 +121,17 @@ export default function RegisterPage() {
               <input type="password" className="input-field" placeholder={t('auth.confirm_password_placeholder')} value={form.confirm} onChange={set('confirm')} required />
             </div>
 
-            <p style={{ textAlign: 'center', fontSize: 11.5, color: 'var(--text-muted)', margin: '2px 0 4px' }}>
-              Registrandoti accetti i{' '}
-              <Link to="/termini" style={{ color: 'var(--text-muted)', textDecoration: 'underline' }}>Termini di Servizio</Link>
-              {' '}e l'{' '}
-              <Link to="/privacy" style={{ color: 'var(--text-muted)', textDecoration: 'underline' }}>Informativa Privacy</Link>.
-            </p>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, color: 'var(--text-secondary)', margin: '2px 0 4px', cursor: 'pointer', lineHeight: 1.4 }}>
+              <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} style={{ marginTop: 2, flexShrink: 0 }} />
+              <span>
+                Dichiaro di aver letto e di accettare i{' '}
+                <Link to="/termini" target="_blank" style={{ color: 'var(--green-main)', fontWeight: 600 }}>Termini di Servizio</Link>
+                {' '}e l'{' '}
+                <Link to="/privacy" target="_blank" style={{ color: 'var(--green-main)', fontWeight: 600 }}>Informativa Privacy</Link>.
+              </span>
+            </label>
 
-            <button type="submit" className="btn btn-primary btn-full" disabled={loading} style={{ marginTop: 4 }}>
+            <button type="submit" className="btn btn-primary btn-full" disabled={loading || !consent} style={{ marginTop: 4 }}>
               {loading
                 ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />

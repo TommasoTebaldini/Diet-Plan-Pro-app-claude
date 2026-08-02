@@ -170,8 +170,13 @@ function renderPiano(dati, meta) {
             el('td',{class:'food-qty'},(food.qt||food.quantita||food.quantity||'')+(food.misura||food.unita||food.unit||'g'))
           )]
           if (food.altPrint?.length) {
+            const altLabel = food.altPrint.map(g => {
+              const gItems = Array.isArray(g?.items) ? g.items : [g]
+              const label = gItems.map(a=>`${a.nome} ${a.qt||''}g`).join(' + ')
+              return g?.nota ? `${label} (${g.nota})` : label
+            }).join(' / ')
             rows.push(el('tr',{class:'alt-row'},
-              el('td',{colspan:'2'},'Alt: '+food.altPrint.map(a=>`${a.nome} ${a.qt||''}g`).join(' / '))
+              el('td',{colspan:'2'},'Alt: '+altLabel)
             ))
           }
           return rows

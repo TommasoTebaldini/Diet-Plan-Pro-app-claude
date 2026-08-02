@@ -84,24 +84,33 @@ function DailyNutritionSummary({ meals, diet }) {
 }
 
 function FoodItem({ food, overrideKey, override, onOverride }) {
-  // Normalize: dietitian panel stores alternatives in `altPrint` ({nome,qt,misura}); standard format uses `substitutes` ({name,quantity,unit})
+  // Normalize: dietitian panel stores alternatives as `altPrint` groups — each group bundles
+  // one or more foods printed as a single substitution (es. biscotti -> fette+marmellata+burro)
+  // plus an optional note; legacy plans store a flat {nome,qt} entry (no .items) for a 1-food
+  // group. The standard `substitutes` format ({name,quantity,unit}) is always single-food.
   const subs = food.substitutes?.length
-    ? food.substitutes
-    : (food.altPrint || []).map(a => ({ name: a.nome || a.name || '', quantity: a.qt || a.quantita || a.quantity || '', unit: a.misura || a.unit || 'g' }))
+    ? food.substitutes.map(s => ({ name: s.name, qtyLabel: `${s.quantity}${s.unit || 'g'}`, parts: [{ name: s.name, quantity: s.quantity, unit: s.unit || 'g' }], nota: '' }))
+    : (food.altPrint || []).map(g => {
+        const items = Array.isArray(g?.items) ? g.items : [g]
+        const parts = items.map(a => ({ name: a.nome || a.name || '', quantity: a.qt || a.quantita || a.quantity || '', unit: a.misura || a.unit || 'g' }))
+        return { name: parts.map(p => p.name).join(' + '), qtyLabel: parts.map(p => `${p.quantity}${p.unit || 'g'}`).join(' + '), parts, nota: g?.nota || '' }
+      })
   const hasSubs = subs.length > 0
   const selectedSubIdx = override?.subIdx ?? null
   const customGrams = override?.grams ?? ''
 
   const activeSub = selectedSubIdx != null ? subs[selectedSubIdx] : null
+  const isSingleSub = activeSub && activeSub.parts.length === 1
   const displayName = activeSub ? activeSub.name : (food.name || food.nome || '')
-  const displayQty = activeSub ? (customGrams || activeSub.quantity) : food.quantity
-  const displayUnit = activeSub ? (activeSub.unit || 'g') : (food.unit || 'g')
+  const displayQtyLabel = activeSub
+    ? (isSingleSub ? `${customGrams || activeSub.parts[0].quantity} ${activeSub.parts[0].unit || 'g'}` : activeSub.qtyLabel)
+    : `${food.quantity} ${food.unit || 'g'}`
 
   function selectSub(i) {
     if (!onOverride || !overrideKey) return
     if (i === selectedSubIdx) { onOverride(overrideKey, null); return }
     const sub = subs[i]
-    onOverride(overrideKey, { subIdx: i, grams: String(sub.quantity || '') })
+    onOverride(overrideKey, sub.parts.length === 1 ? { subIdx: i, grams: String(sub.parts[0].quantity || '') } : { subIdx: i })
   }
 
   return (
@@ -114,7 +123,7 @@ function FoodItem({ food, overrideKey, override, onOverride }) {
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {activeSub && onOverride && (
+          {activeSub && isSingleSub && onOverride && (
             <input
               type="number"
               value={customGrams}
@@ -124,10 +133,13 @@ function FoodItem({ food, overrideKey, override, onOverride }) {
             />
           )}
           <span style={{ fontSize: 13, color: activeSub ? 'white' : 'var(--green-main)', fontWeight: 700, flexShrink: 0, background: activeSub ? 'var(--green-main)' : 'var(--green-pale)', padding: '2px 9px', borderRadius: 100, fontFamily: 'var(--font-b)' }}>
-            {displayQty} {displayUnit}
+            {displayQtyLabel}
           </span>
         </div>
       </div>
+      {activeSub?.nota && (
+        <p style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic', marginTop: 4 }}>📝 {activeSub.nota}</p>
+      )}
       {hasSubs && onOverride && (
         <div style={{ marginTop: 6, display: 'flex', gap: 5, flexWrap: 'wrap' }}>
           <button
@@ -140,7 +152,7 @@ function FoodItem({ food, overrideKey, override, onOverride }) {
               onClick={() => selectSub(i)}
               style={{ padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none', background: selectedSubIdx === i ? 'var(--green-main)' : 'var(--surface-3)', color: selectedSubIdx === i ? 'white' : 'var(--text-secondary)' }}
             >
-              {sub.name} · {sub.quantity}{sub.unit || 'g'}
+              {sub.name} · {sub.qtyLabel}
             </button>
           ))}
         </div>
@@ -462,25 +474,43 @@ function PianoAlimentareContent({ piano }) {
         if (food.isRicetta) continue
         const altKey = `${di}_${mi}_${fi}`
         const selAltIdx = selectedAlts[altKey] ?? null
-        const alt = selAltIdx != null ? (food.altPrint || [])[selAltIdx] : null
-        const nome = alt ? (alt.nome || alt.name || food.nome || food.name || food.alimento || '') : (food.nome || food.name || food.alimento || '')
-        if (!nome) continue
-        const qt = alt
-          ? (parseFloat(alt.qt || alt.quantita || alt.quantity || food.qt || food.quantita || food.quantity || food.grams || 100) || 0)
-          : (parseFloat(food.qt || food.quantita || food.quantity || food.grammi || food.grams || 100) || 0)
+        const altGroup = selAltIdx != null ? (food.altPrint || [])[selAltIdx] : null
+        // A substitution group can bundle several foods (es. biscotti -> fette+marmellata+burro);
+        // legacy plans store a flat {nome,qt} entry directly (no .items) — treat it as a 1-food group.
+        const altItems = altGroup ? (Array.isArray(altGroup.items) ? altGroup.items : [altGroup]) : null
         const k = food.kcal_100g || 0
         const p = food.proteins_100g || 0
         const c = food.carbs_100g || 0
         const f = food.fats_100g || 0
-        inserts.push({
-          user_id: user.id, date: targetDate, meal_type: mealType,
-          food_name: nome, grams: qt,
-          kcal: k ? Math.round(k * qt / 100) : null,
-          proteins: p ? Math.round(p * qt / 100 * 10) / 10 : null,
-          carbs: c ? Math.round(c * qt / 100 * 10) / 10 : null,
-          fats: f ? Math.round(f * qt / 100 * 10) / 10 : null,
-          food_data: { source: 'diet_plan', plan_nome: piano.nome || '', alt_used: alt ? nome : null },
-        })
+        if (altItems && altItems.length) {
+          altItems.forEach(alt => {
+            const nome = alt.nome || alt.name || ''
+            if (!nome) return
+            const qt = parseFloat(alt.qt || alt.quantita || alt.quantity || 100) || 0
+            inserts.push({
+              user_id: user.id, date: targetDate, meal_type: mealType,
+              food_name: nome, grams: qt,
+              kcal: k ? Math.round(k * qt / 100) : null,
+              proteins: p ? Math.round(p * qt / 100 * 10) / 10 : null,
+              carbs: c ? Math.round(c * qt / 100 * 10) / 10 : null,
+              fats: f ? Math.round(f * qt / 100 * 10) / 10 : null,
+              food_data: { source: 'diet_plan', plan_nome: piano.nome || '', alt_used: nome },
+            })
+          })
+        } else {
+          const nome = food.nome || food.name || food.alimento || ''
+          if (!nome) continue
+          const qt = parseFloat(food.qt || food.quantita || food.quantity || food.grammi || food.grams || 100) || 0
+          inserts.push({
+            user_id: user.id, date: targetDate, meal_type: mealType,
+            food_name: nome, grams: qt,
+            kcal: k ? Math.round(k * qt / 100) : null,
+            proteins: p ? Math.round(p * qt / 100 * 10) / 10 : null,
+            carbs: c ? Math.round(c * qt / 100 * 10) / 10 : null,
+            fats: f ? Math.round(f * qt / 100 * 10) / 10 : null,
+            food_data: { source: 'diet_plan', plan_nome: piano.nome || '', alt_used: null },
+          })
+        }
       }
     }
     if (inserts.length) {
@@ -704,17 +734,25 @@ function PianoAlimentareContent({ piano }) {
                             const { food, fi } = block
                             const altKey = `${di}_${mi}_${fi}`
                             const selAltIdx = selectedAlts[altKey] ?? null
-                            const alts = food.altPrint || []
+                            // A substitution group can bundle several foods (es. biscotti -> fette+marmellata+burro);
+                            // legacy plans store a flat {nome,qt} entry directly (no .items) — treat it as a 1-food group.
+                            const alts = (food.altPrint || []).map(g => {
+                              const items = Array.isArray(g?.items) ? g.items : [g]
+                              const parts = items.map(a => ({ name: a.nome || a.name || '', qty: a.qt || a.quantita || a.quantity || '', unit: a.misura || a.unit || 'g' }))
+                              return { name: parts.map(pt => pt.name).join(' + '), qtyLabel: parts.map(pt => `${pt.qty}${pt.unit}`).join(' + '), parts, nota: g?.nota || '' }
+                            })
                             const selectedAlt = selAltIdx != null ? alts[selAltIdx] : null
+                            const isSingleAlt = selectedAlt && selectedAlt.parts.length === 1
 
                             const nome = food.nome || food.name || food.alimento || ''
                             if (!nome) return null
                             const origQt = parseFloat(food.qt || food.quantita || food.quantity || food.grammi || food.grams || 0) || 0
                             const origUnit = food.misura || food.unita || food.unit || 'g'
 
-                            const displayNome = selectedAlt ? (selectedAlt.nome || selectedAlt.name || nome) : nome
-                            const displayQt = selectedAlt ? (parseFloat(selectedAlt.qt || selectedAlt.quantita || selectedAlt.quantity || origQt) || origQt) : origQt
-                            const displayUnit = selectedAlt ? (selectedAlt.misura || 'g') : origUnit
+                            const displayNome = selectedAlt ? selectedAlt.name : nome
+                            const displayQt = selectedAlt ? (isSingleAlt ? (parseFloat(selectedAlt.parts[0].qty) || origQt) : null) : origQt
+                            const displayUnit = selectedAlt ? (isSingleAlt ? (selectedAlt.parts[0].unit || 'g') : '') : origUnit
+                            const displayQtLabel = selectedAlt && !isSingleAlt ? selectedAlt.qtyLabel : `${displayQt || ''}${displayUnit}`
 
                             const kcalItem   = food.kcal_100g     && displayQt ? Math.round(food.kcal_100g * displayQt / 100) : null
                             const protItem   = food.proteins_100g && displayQt ? Math.round(food.proteins_100g * displayQt / 100 * 10) / 10 : null
@@ -730,7 +768,7 @@ function PianoAlimentareContent({ piano }) {
                                   <p style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--text-primary)', flex: 1, lineHeight: 1.3 }}>{displayNome}</p>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                                     <span style={{ fontSize: 13, fontWeight: 800, color: 'white', background: selectedAlt ? 'var(--green-dark)' : 'var(--green-main)', padding: '2px 10px', borderRadius: 20 }}>
-                                      {displayQt || ''}{displayUnit}
+                                      {displayQtLabel}
                                     </span>
                                   </div>
                                 </div>
@@ -762,10 +800,13 @@ function PianoAlimentareContent({ piano }) {
                                         onClick={() => setSelectedAlts(s => ({ ...s, [altKey]: selAltIdx === ai ? null : ai }))}
                                         style={{ fontSize: 11, fontWeight: 600, background: selAltIdx === ai ? 'var(--green-main)' : 'var(--surface-2)', color: selAltIdx === ai ? 'white' : 'var(--green-dark)', padding: '3px 10px', borderRadius: 20, border: selAltIdx === ai ? '1.5px solid var(--green-main)' : '1.5px solid var(--border-light)', whiteSpace: 'nowrap', cursor: 'pointer' }}
                                       >
-                                        ⇄ {a.nome || a.name} {a.qt || a.quantita || a.quantity}{a.misura || 'g'}
+                                        ⇄ {a.name} {a.qtyLabel}
                                       </button>
                                     ))}
                                   </div>
+                                )}
+                                {selectedAlt?.nota && (
+                                  <p style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic', marginTop: 4 }}>📝 {selectedAlt.nota}</p>
                                 )}
                               </div>
                             )
