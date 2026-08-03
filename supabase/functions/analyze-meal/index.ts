@@ -5,6 +5,9 @@
 // Setup:
 //   supabase secrets set GEMINI_API_KEY=<tua_chiave_gemini>
 //   (opzionale) supabase secrets set ANTHROPIC_API_KEY=<tua_chiave_claude>
+//   (opzionale, arricchimento RAG) supabase secrets set NUTRIPLAN_API_URL=<url pubblico di NutriPlan-Pro, es. https://nutriplan-pro.vercel.app>
+//     Senza questa var l'endpoint funziona comunque normalmente, solo senza
+//     i flag di conflitto con le patologie del paziente.
 //
 // Deploy:
 //   supabase functions deploy analyze-meal
@@ -150,6 +153,62 @@ async function callClaude(imageBase64: string, mediaType: string) {
   return data.content?.[0]?.text || ''
 }
 
+// Arricchimento RAG (best-effort, mai bloccante): interroga NutriPlan-Pro
+// (stesso progetto Supabase, quindi il JWT del paziente è valido anche lì)
+// per sapere se qualche patologia collegata a questo paziente ha alimenti
+// da evitare che corrispondono a quelli appena rilevati nella foto. Se
+// NUTRIPLAN_API_URL non è configurato, o una qualunque chiamata fallisce,
+// l'arricchimento viene semplicemente saltato — la foto-analisi resta
+// funzionante anche senza questa parte (fail-open, stesso stile del resto
+// del progetto).
+function foodConflictsWithNo(foodName: string, noPhrases: string[]): string | null {
+  const name = (foodName || '').toLowerCase()
+  if (!name) return null
+  for (const phrase of noPhrases) {
+    const items = String(phrase).toLowerCase().split(/[,;]/).map(s => s.trim()).filter(Boolean)
+    for (const item of items) {
+      const key = item.split(/[\s(]/)[0]
+      if (key.length > 3 && (name.includes(key) || key.includes(name))) return item
+    }
+  }
+  return null
+}
+
+async function fetchPatientTags(supabase: ReturnType<typeof createClient>, patientId: string): Promise<string[]> {
+  try {
+    const { data: link } = await supabase.from('patient_dietitian').select('cartella_id').eq('patient_id', patientId).maybeSingle()
+    if (!link?.cartella_id) return []
+    const { data: cart } = await supabase.from('cartelle').select('tags').eq('id', link.cartella_id).maybeSingle()
+    return Array.isArray(cart?.tags) ? cart!.tags as string[] : []
+  } catch {
+    return []
+  }
+}
+
+async function checkFoodConflicts(authHeader: string, tags: string[], foodNames: string[]): Promise<Record<number, string>> {
+  const baseUrl = Deno.env.get('NUTRIPLAN_API_URL')
+  if (!baseUrl || !tags.length) return {}
+  try {
+    const res = await fetch(`${baseUrl.replace(/\/$/, '')}/api/gemini`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+      body: JSON.stringify({ mode: 'rag-search', tags, query: '' }),
+    })
+    if (!res.ok) return {}
+    const rag = await res.json() as { guidelines?: { no?: string[] }[] }
+    const noPhrases = (rag.guidelines || []).flatMap(g => g.no || [])
+    if (!noPhrases.length) return {}
+    const conflicts: Record<number, string> = {}
+    foodNames.forEach((name, i) => {
+      const reason = foodConflictsWithNo(name, noPhrases)
+      if (reason) conflicts[i] = reason
+    })
+    return conflicts
+  } catch {
+    return {}
+  }
+}
+
 function parseResponse(text: string) {
   const match = text.match(/\{[\s\S]*\}/)
   if (!match) throw new Error('Risposta AI non valida')
@@ -236,7 +295,10 @@ Deno.serve(async (req: Request) => {
   if (!text!) return json({ error: lastError || 'Errore AI' }, 500)
 
   try {
-    return json(parseResponse(text))
+    const parsed = parseResponse(text)
+    const tags = await fetchPatientTags(supabase, user.id)
+    const conflicts = await checkFoodConflicts(authHeader, tags, parsed.foods.map(f => f.name))
+    return json({ ...parsed, conflicts })
   } catch (e) {
     return json({ error: (e as Error).message }, 500)
   }

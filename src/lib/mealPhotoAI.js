@@ -52,5 +52,9 @@ export async function analyzeMealPhoto(file) {
     foods: data.foods,
     description: data.description || '',
     confidence: data.confidence || 'media',
+    // Mappa {indice: motivo} — alimenti da limitare in base alle patologie del
+    // paziente (arricchimento RAG best-effort, vedi analyze-meal/index.ts).
+    // Assente/vuota se NUTRIPLAN_API_URL non è configurato server-side.
+    conflicts: data.conflicts || {},
   }
 }
