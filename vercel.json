@@ -5,7 +5,8 @@
   "framework": null,
   "functions": {
     "api/off-proxy.js": { "maxDuration": 10 },
-    "api/fetch-page.js": { "maxDuration": 15 }
+    "api/fetch-page.js": { "maxDuration": 15 },
+    "api/food-swap.js": { "maxDuration": 15 }
   },
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/:path*" },

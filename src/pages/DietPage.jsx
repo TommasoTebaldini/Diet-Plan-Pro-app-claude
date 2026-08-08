@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { Clock, ChevronDown, ChevronUp, Flame, Leaf, FileText, CheckCircle2, Circle, History, RefreshCw, TrendingUp, Calendar, Download, ClipboardList, ImageOff, ClipboardCopy, Check, MessageSquare, X, Send } from 'lucide-react'
+import { Clock, ChevronDown, ChevronUp, Flame, Leaf, FileText, CheckCircle2, Circle, History, RefreshCw, TrendingUp, Calendar, Download, ClipboardList, ImageOff, ClipboardCopy, Check, MessageSquare, X, Send, Sparkles, Loader2, AlertCircle } from 'lucide-react'
 import { useT } from '../i18n'
+import { searchFoodsLocal } from '../lib/foodSearch'
 
 const r1 = v => Math.round((+v || 0) * 10) / 10
 const r0 = v => Math.round(+v || 0)
@@ -88,13 +89,67 @@ function FoodItem({ food, overrideKey, override, onOverride }) {
   // one or more foods printed as a single substitution (es. biscotti -> fette+marmellata+burro)
   // plus an optional note; legacy plans store a flat {nome,qt} entry (no .items) for a 1-food
   // group. The standard `substitutes` format ({name,quantity,unit}) is always single-food.
-  const subs = food.substitutes?.length
+  const dietSubs = food.substitutes?.length
     ? food.substitutes.map(s => ({ name: s.name, qtyLabel: `${s.quantity}${s.unit || 'g'}`, parts: [{ name: s.name, quantity: s.quantity, unit: s.unit || 'g' }], nota: '' }))
     : (food.altPrint || []).map(g => {
         const items = Array.isArray(g?.items) ? g.items : [g]
         const parts = items.map(a => ({ name: a.nome || a.name || '', quantity: a.qt || a.quantita || a.quantity || '', unit: a.misura || a.unit || 'g' }))
         return { name: parts.map(p => p.name).join(' + '), qtyLabel: parts.map(p => `${p.quantity}${p.unit || 'g'}`).join(' + '), parts, nota: g?.nota || '' }
       })
+
+  // Smart-Swap: alternative generate on-demand dall'AI (oltre a quelle fisse
+  // decise dal dietista), quando il paziente non ha l'alimento a disposizione.
+  const [aiSubs, setAiSubs] = useState([])
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState('')
+
+  async function fetchAiSwap() {
+    setAiLoading(true)
+    setAiError('')
+    try {
+      const foodName = food.name || food.nome || ''
+      const qty = Number(food.quantity) || null
+      let macros = {}
+      if (foodName && qty) {
+        try {
+          const matches = await searchFoodsLocal(foodName)
+          const m = matches?.[0]
+          if (m && Number.isFinite(m.kcal_100g)) {
+            macros = {
+              kcal: Math.round((m.kcal_100g || 0) * qty / 100),
+              proteins: Math.round((m.proteins_100g || 0) * qty / 100 * 10) / 10,
+              carbs: Math.round((m.carbs_100g || 0) * qty / 100 * 10) / 10,
+              fats: Math.round((m.fats_100g || 0) * qty / 100 * 10) / 10,
+            }
+          }
+        } catch { /* prosegue senza macro di riferimento */ }
+      }
+
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Sessione scaduta')
+
+      const res = await fetch('/api/food-swap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ name: foodName, quantity: qty, unit: food.unit || 'g', ...macros }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+
+      setAiSubs((data.alternatives || []).map(a => ({
+        name: a.name,
+        qtyLabel: `${a.quantity}${a.unit || 'g'}`,
+        parts: [{ name: a.name, quantity: a.quantity, unit: a.unit || 'g' }],
+        nota: a.note || '',
+        ai: true,
+      })))
+    } catch (e) {
+      setAiError(e.message || 'Errore nella generazione delle alternative')
+    }
+    setAiLoading(false)
+  }
+
+  const subs = [...dietSubs, ...aiSubs]
   const hasSubs = subs.length > 0
   const selectedSubIdx = override?.subIdx ?? null
   const customGrams = override?.grams ?? ''
@@ -152,9 +207,39 @@ function FoodItem({ food, overrideKey, override, onOverride }) {
               onClick={() => selectSub(i)}
               style={{ padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none', background: selectedSubIdx === i ? 'var(--green-main)' : 'var(--surface-3)', color: selectedSubIdx === i ? 'white' : 'var(--text-secondary)' }}
             >
-              {sub.name} · {sub.qtyLabel}
+              {sub.ai && '✨ '}{sub.name} · {sub.qtyLabel}
             </button>
           ))}
+        </div>
+      )}
+      {onOverride && (
+        <div style={{ marginTop: 6 }}>
+          {aiLoading ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text-muted)' }}>
+              <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} style={{ display: 'flex' }}>
+                <Loader2 size={12} />
+              </motion.div> Generazione alternative...
+            </span>
+          ) : aiSubs.length > 0 ? (
+            <button
+              onClick={fetchAiSwap}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: '1px dashed var(--border)', background: 'none', color: 'var(--text-muted)' }}
+            >
+              <RefreshCw size={11} /> Rigenera alternative AI
+            </button>
+          ) : (
+            <button
+              onClick={fetchAiSwap}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none', background: 'var(--green-pale)', color: 'var(--green-main)' }}
+            >
+              <Sparkles size={11} /> Non ho questo alimento — sostituisci con AI
+            </button>
+          )}
+          {aiError && (
+            <p style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#e05a5a', marginTop: 4 }}>
+              <AlertCircle size={12} /> {aiError}
+            </p>
+          )}
         </div>
       )}
     </div>
