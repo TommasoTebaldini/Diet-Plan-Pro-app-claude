@@ -50,6 +50,7 @@ const SpecialPage          = lazy(() => import('./pages/SpecialPage'))
 const WeeklyReportPage     = lazy(() => import('./pages/WeeklyReportPage'))
 const ChallengesPage       = lazy(() => import('./pages/ChallengesPage'))
 const CoachAiPage          = lazy(() => import('./pages/CoachAiPage'))
+const PaymentsPage         = lazy(() => import('./pages/PaymentsPage'))
 const PrivacyPage          = lazy(() => import('./pages/PrivacyPage'))
 const TermsPage            = lazy(() => import('./pages/TermsPage'))
 
@@ -167,6 +168,7 @@ function AnimatedRoutes() {
         <Route path="/ricette" element={<PatientRoute><PageTransition><RecipesPage /></PageTransition></PatientRoute>} />
         <Route path="/chat" element={<PatientRoute><ChatPage /></PatientRoute>} />
         <Route path="/coach-ai" element={<PatientRoute><CoachAiPage /></PatientRoute>} />
+        <Route path="/pagamenti" element={<PatientRoute><PageTransition><PaymentsPage /></PageTransition></PatientRoute>} />
         <Route path="/documenti" element={<PatientRoute><PageTransition><DocumentsPage /></PageTransition></PatientRoute>} />
         <Route path="/progressi" element={<PatientRoute><PageTransition><ProgressPage /></PageTransition></PatientRoute>} />
         <Route path="/attivita" element={<PatientRoute><PageTransition><ActivityPage /></PageTransition></PatientRoute>} />
