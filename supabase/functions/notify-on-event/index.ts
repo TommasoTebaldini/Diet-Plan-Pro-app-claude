@@ -15,6 +15,9 @@
 //   supabase secrets set VAPID_PUBLIC_KEY=<chiave>
 //   supabase secrets set VAPID_PRIVATE_KEY=<chiave>
 //   supabase secrets set VAPID_CONTACT_EMAIL=app@nutriplan.it
+//   supabase secrets set RESEND_API_KEY=<chiave>   (opzionale — stessa chiave già
+//     usata da NutriPlan-Pro/api/send-reset.js e cron.js su Vercel; senza,
+//     la funzione continua a inviare solo push, nessuna email)
 //   supabase functions deploy notify-on-event
 //
 // Genera chiavi VAPID:
@@ -91,6 +94,60 @@ async function sendPushToUser(userId: string, title: string, body: string, url =
   }
 }
 
+// Email di notifica nuovo messaggio — canale aggiuntivo al push, per i
+// pazienti che non hanno (o non vedono in tempo) le notifiche push attive.
+// Best-effort: se RESEND_API_KEY non è configurata come secret, viene
+// semplicemente saltata, il push resta il canale primario invariato.
+function chatMessageEmailHtml(preview: string) {
+  return `<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#F0FDF4;font-family:Arial,Helvetica,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F0FDF4;padding:40px 16px">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px">
+        <tr><td bgcolor="#0F766E" style="background-color:#0F766E;border-radius:16px 16px 0 0;padding:32px 40px;text-align:center">
+          <div style="font-size:28px;font-weight:800;color:#ffffff;letter-spacing:-0.5px">🥗 DietPlan Pro</div>
+        </td></tr>
+        <tr><td style="background:#ffffff;padding:40px;border-left:1px solid #D1FAE5;border-right:1px solid #D1FAE5;text-align:center">
+          <h1 style="margin:0 0 8px;font-size:22px;color:#064E3B;font-weight:700">💬 Nuovo messaggio</h1>
+          <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.6">Il tuo dietista ti ha scritto:</p>
+          <p style="margin:0 0 24px;font-size:14px;color:#374151;background:#F8FAFC;border-radius:8px;padding:14px 18px;font-style:italic">${preview || 'Hai un nuovo messaggio'}</p>
+          <p style="margin:0;font-size:12px;color:#94A3B8">Apri l'app per rispondere.</p>
+        </td></tr>
+        <tr><td style="background:#F8FAFC;border-radius:0 0 16px 16px;padding:20px 40px;text-align:center;border:1px solid #D1FAE5;border-top:none">
+          <p style="margin:0;font-size:11px;color:#94A3B8">DietPlan Pro</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+}
+
+async function sendChatMessageEmail(userId: string, preview: string) {
+  const resendKey = Deno.env.get('RESEND_API_KEY')
+  if (!resendKey) return
+
+  const { data: profile } = await supabaseAdmin.from('profiles').select('email').eq('id', userId).maybeSingle()
+  if (!profile?.email) return
+
+  try {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: 'DietPlan Pro <gestione@app.dietplan-pro.com>',
+        to: profile.email,
+        subject: 'Nuovo messaggio dal tuo dietista',
+        html: chatMessageEmailHtml(preview),
+      }),
+    })
+  } catch (e) {
+    console.error('[notify] Chat email failed:', (e as Error).message)
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
@@ -146,6 +203,7 @@ Deno.serve(async (req: Request) => {
           '/chat',
           'chat-msg',
         )
+        await sendChatMessageEmail(patient_id, preview)
       }
     }
   }
