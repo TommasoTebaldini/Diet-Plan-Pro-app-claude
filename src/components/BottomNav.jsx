@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users, ChefHat, Star, Flower2, X, Droplets, Brain, Award, ShoppingCart, Timer, Pill, Sparkles, ChevronRight, CalendarCheck, Trophy } from 'lucide-react'
+import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users, ChefHat, Star, Flower2, X, Droplets, Brain, Award, ShoppingCart, Timer, Pill, Sparkles, ChevronRight, CalendarCheck, Trophy, Bot } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
@@ -136,6 +136,7 @@ export default function BottomNav() {
     { to: '/lista-spesa', icon: ShoppingCart, label: 'Lista spesa' },
     { to: '/digiuno', icon: Timer, label: 'Digiuno IF' },
     { to: '/chat', icon: MessageCircle, label: t('nav.chat'), badge: unreadChat },
+    { to: '/coach-ai', icon: Bot, label: 'Coach AI' },
     { to: '/documenti', icon: FileText, label: t('nav.documents'), badge: newDocs },
     { to: '/dietisti', icon: Users, label: t('nav.dietitians') },
     ...(hasSpecial ? [{ to: '/speciale', icon: Sparkles, label: 'Speciale' }] : []),
@@ -163,7 +164,7 @@ export default function BottomNav() {
     const DESKTOP_SECTIONS = [
       { label: null, items: ['/'] },
       { label: t('nav.section_nutrition'), items: ['/dieta', '/macro', '/ricette', '/lista-spesa', '/digiuno'] },
-      { label: t('nav.section_professionals'), items: ['/chat', '/documenti', '/dietisti', ...(hasSpecial ? ['/speciale'] : [])] },
+      { label: t('nav.section_professionals'), items: ['/chat', '/coach-ai', '/documenti', '/dietisti', ...(hasSpecial ? ['/speciale'] : [])] },
       { label: t('nav.section_monitoring'), items: ['/progressi', '/settimana', '/sfide', '/attivita', '/benessere', ...(showCycle ? ['/ciclo'] : []), '/farmaci', '/statistiche'] },
       { label: null, items: PAYMENTS_ACTIVE ? ['/profilo', '/pro', '/abbonamento'] : ['/profilo', '/pro'] },
     ]
@@ -256,6 +257,7 @@ export default function BottomNav() {
       label: 'Professionisti', icon: Users, color: 'var(--blue)', bg: 'var(--icon-bg-blue)',
       items: [
         { to: '/chat', icon: MessageCircle, label: t('nav.chat'), badge: unreadChat, color: 'var(--blue)', bg: 'var(--icon-bg-blue)' },
+        { to: '/coach-ai', icon: Bot, label: 'Coach AI', color: '#7C3AED', bg: 'var(--icon-bg-purple)' },
         { to: '/documenti', icon: FileText, label: t('nav.documents'), badge: newDocs, color: 'var(--text-secondary)', bg: 'var(--icon-bg-gray)' },
         { to: '/dietisti', icon: Users, label: t('nav.dietitians'), color: 'var(--green-main)', bg: 'var(--icon-bg-green)' },
         ...(hasSpecial ? [{ to: '/speciale', icon: Sparkles, label: 'Speciale', color: 'var(--purple)', bg: 'var(--icon-bg-purple)' }] : []),
