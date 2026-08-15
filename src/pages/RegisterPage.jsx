@@ -23,7 +23,7 @@ export default function RegisterPage() {
     e.preventDefault()
     setError('')
     if (form.password !== form.confirm) return setError(t('auth.error_passwords_mismatch'))
-    if (form.password.length < 6) return setError(t('auth.error_password_short'))
+    if (form.password.length < 8) return setError(t('auth.error_password_short'))
     if (!consent) return setError('Devi accettare Termini di Servizio e Informativa Privacy per registrarti.')
     setLoading(true)
     const { error } = await signUp(form.email, form.password, {

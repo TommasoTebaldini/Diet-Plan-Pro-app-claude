@@ -301,7 +301,7 @@ function SecurityModal({ onClose }) {
 
   async function changePassword() {
     if (form.newPass !== form.confirm) return setStatus('error'), setMsg('Le password non coincidono')
-    if (form.newPass.length < 6) return setStatus('error'), setMsg('La password deve avere almeno 6 caratteri')
+    if (form.newPass.length < 8) return setStatus('error'), setMsg('La password deve avere almeno 8 caratteri')
     setLoading(true)
     const { error } = await supabase.auth.updateUser({ password: form.newPass })
     setLoading(false)
@@ -313,7 +313,7 @@ function SecurityModal({ onClose }) {
     <Modal title="Privacy e sicurezza" onClose={onClose}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-          Cambia la password del tuo account. Usa una password di almeno 6 caratteri.
+          Cambia la password del tuo account. Usa una password di almeno 8 caratteri.
         </p>
         {status && (
           <div style={{ padding: '12px 14px', borderRadius: 10, background: status === 'success' ? 'var(--green-pale)' : 'rgba(220,74,74,0.08)', color: status === 'success' ? 'var(--green-dark)' : 'var(--red)', fontSize: 14 }}>

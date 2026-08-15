@@ -53,7 +53,8 @@ export default function TermsPage() {
 
       <hr style={S.hr} />
       <h2 style={S.h2}>5. Abbonamento (se previsto dal tuo piano)</h2>
-      <p style={S.p}>Alcune funzionalità avanzate dell'App possono richiedere un abbonamento a pagamento, con le condizioni di prezzo e recesso indicate al momento della sottoscrizione. I pagamenti sono elaborati da Stripe; NutriPlan non memorizza i dati completi della tua carta.</p>
+      <p style={S.p}>Alcune funzionalità avanzate dell'App possono richiedere un abbonamento a pagamento, con le condizioni di prezzo indicate al momento della sottoscrizione. I pagamenti sono elaborati da Stripe; NutriPlan non memorizza i dati completi della tua carta.</p>
+      <p style={S.p}>Se sei un consumatore (persona fisica che sottoscrive l'abbonamento per uso personale, non professionale), hai diritto di recedere dal contratto entro <strong>14 giorni</strong> dalla sottoscrizione senza fornire motivazione, ai sensi del Codice del Consumo (D.Lgs. 206/2005, artt. 52 ss.). Se richiedi espressamente di iniziare a usare le funzionalità a pagamento prima della scadenza dei 14 giorni, riconosci che il diritto di recesso si estingue una volta che il servizio digitale è stato interamente fornito, oppure — per contenuti/servizi forniti progressivamente — si riduce proporzionalmente alla parte di servizio già goduta. Per esercitare il recesso, contatta l'indirizzo indicato nell'Informativa Privacy.</p>
 
       <hr style={S.hr} />
       <h2 style={S.h2}>6. Proprietà intellettuale</h2>
