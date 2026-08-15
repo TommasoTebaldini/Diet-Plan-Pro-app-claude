@@ -1,8 +1,9 @@
 import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Camera, X, Check, AlertCircle, Loader2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
+import { Camera, X, Check, AlertCircle, Loader2, ChevronDown, ChevronUp, Sparkles, ShieldCheck } from 'lucide-react'
 import { analyzeMealPhoto, isMealAIAvailable } from '../lib/mealPhotoAI'
+import { useAuth } from '../context/AuthContext'
 
 function calcMacros(food) {
   const f = food.grams / 100
@@ -17,7 +18,9 @@ function calcMacros(food) {
 const CONFIDENCE_COLOR = { alta: '#16a34a', media: '#d97706', bassa: '#dc2626' }
 
 export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
-  const [phase, setPhase] = useState('idle') // idle | analyzing | results | error
+  const { profile, recordAiPhotoConsent } = useAuth()
+  const [phase, setPhase] = useState(profile?.ai_photo_consent_at ? 'idle' : 'consent') // consent | idle | analyzing | results | error
+  const [consenting, setConsenting] = useState(false)
   const [preview, setPreview] = useState(null)
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
@@ -25,6 +28,14 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
   const [expanded, setExpanded] = useState(true)
   const [grams, setGrams] = useState({})
   const inputRef = useRef()
+
+  async function handleAcceptConsent() {
+    setConsenting(true)
+    const { error: consentError } = await recordAiPhotoConsent()
+    setConsenting(false)
+    if (consentError) { setError(consentError.message || 'Errore salvataggio consenso'); setPhase('error'); return }
+    setPhase('idle')
+  }
 
   async function handleFile(file) {
     if (!file) return
@@ -109,6 +120,38 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
 
         {/* Server setup hint — shown only on specific error */}
 
+        {/* Consent: mostrata una sola volta, prima del primo utilizzo mai */}
+        {phase === 'consent' && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ padding: '4px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(124,58,237,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <ShieldCheck size={20} color="#7c3aed" />
+              </div>
+              <p style={{ fontSize: 14, fontWeight: 700 }}>Prima di continuare</p>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12 }}>
+              Questa funzione invia la foto del tuo pasto a <strong>Google Gemini</strong> (un servizio AI esterno) per riconoscere automaticamente gli alimenti. La foto viene analizzata al momento e non è associata alla tua identità dal fornitore AI.
+            </p>
+            <ul style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.7, margin: '0 0 16px', paddingLeft: 18 }}>
+              <li>È una funzione facoltativa: puoi continuare a registrare i pasti manualmente senza usarla.</li>
+              <li>Il tuo dietista tratta i tuoi dati come Titolare; NutriPlan/Diet-Plan agisce come Responsabile del trattamento.</li>
+              <li>Puoi leggere i dettagli completi nell'<a href="/privacy" target="_blank" style={{ color: '#7c3aed', fontWeight: 600 }}>Informativa Privacy</a>.</li>
+            </ul>
+            {error && phase === 'consent' && <div className="alert-error" style={{ marginBottom: 12, fontSize: 12.5 }}>{error}</div>}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={onClose} className="btn btn-secondary" style={{ flex: 1 }}>Non ora</button>
+              <button
+                onClick={handleAcceptConsent}
+                disabled={consenting}
+                className="btn"
+                style={{ flex: 2, background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: 'white', borderRadius: 14, padding: '13px 20px', fontSize: 14, fontWeight: 600, border: 'none', cursor: consenting ? 'default' : 'pointer', opacity: consenting ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+              >
+                {consenting ? <Loader2 size={15} className="spin" /> : <Check size={15} />} Accetto, continua
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Idle: show capture button */}
         {phase === 'idle' && (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={{ textAlign: 'center', padding: '30px 0' }}>
@@ -164,7 +207,7 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
                 4. Deploy: <code>supabase functions deploy analyze-meal</code>
               </div>
             ) : null}
-            <button onClick={() => setPhase('idle')} className="btn btn-secondary btn-full">Riprova</button>
+            <button onClick={() => setPhase(profile?.ai_photo_consent_at ? 'idle' : 'consent')} className="btn btn-secondary btn-full">Riprova</button>
           </motion.div>
         )}
 

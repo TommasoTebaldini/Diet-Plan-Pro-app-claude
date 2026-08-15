@@ -30,7 +30,7 @@ export default function RegisterPage() {
       full_name: `${form.name} ${form.surname}`,
       first_name: form.name,
       last_name: form.surname,
-      terms_accepted_at: new Date().toISOString(),
+      termsAccepted: consent,
       ...(dietitianRef ? { dietitian_ref: dietitianRef } : {})
     })
     if (error) {
