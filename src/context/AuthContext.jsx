@@ -59,7 +59,7 @@ export function AuthProvider({ children }) {
       setProfile(cached)
       setLoading(false)
       // Background refresh (don't block render)
-      supabase.from('profiles').select('id,email,role,full_name,first_name,last_name,avatar_url,target_weight,height_cm,birth_date,gender,activity_level,intolerances,food_preferences,last_seen_at,ai_photo_consent_at').eq('id', userId).single().then(({ data, error }) => {
+      supabase.from('profiles').select('id,email,role,full_name,first_name,last_name,avatar_url,target_weight,height_cm,birth_date,gender,activity_level,intolerances,food_preferences,last_seen_at,ai_photo_consent_at,coach_ai_consent_at').eq('id', userId).single().then(({ data, error }) => {
         if (!error && data) { setProfile(data); writeProfileCache(userId, data) }
       })
       return
@@ -68,7 +68,7 @@ export function AuthProvider({ children }) {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id,email,role,full_name,first_name,last_name,avatar_url,target_weight,height_cm,birth_date,gender,activity_level,intolerances,food_preferences,last_seen_at,ai_photo_consent_at')
+        .select('id,email,role,full_name,first_name,last_name,avatar_url,target_weight,height_cm,birth_date,gender,activity_level,intolerances,food_preferences,last_seen_at,ai_photo_consent_at,coach_ai_consent_at')
         .eq('id', userId)
         .single()
       if (!error && data) { setProfile(data); writeProfileCache(userId, data) }
@@ -166,6 +166,21 @@ export function AuthProvider({ children }) {
     return { error }
   }, [user])
 
+  // Consenso esplicito per il Coach AI conversazionale (Groq/Llama) —
+  // distinto dal consenso foto pasto (fornitore diverso, funzione diversa).
+  // Richiesto prima del primo utilizzo, vedi CoachAiPage.jsx.
+  const recordCoachAiConsent = useCallback(async () => {
+    if (!user) return { error: new Error('Utente non autenticato') }
+    const now = new Date().toISOString()
+    const { error } = await supabase.from('profiles').update({ coach_ai_consent_at: now }).eq('id', user.id)
+    if (!error) {
+      setProfile(p => (p ? { ...p, coach_ai_consent_at: now } : p))
+      const cached = readProfileCache(user.id)
+      if (cached) writeProfileCache(user.id, { ...cached, coach_ai_consent_at: now })
+    }
+    return { error }
+  }, [user])
+
   const signOut = useCallback(async () => {
     clearProfileCache()
     await supabase.auth.signOut()
@@ -175,8 +190,8 @@ export function AuthProvider({ children }) {
 
   const value = useMemo(() => ({
     user, profile, loading, isDietitian,
-    signIn, signUp, signOut, refreshProfile, recordAiPhotoConsent,
-  }), [user, profile, loading, isDietitian, signIn, signUp, signOut, refreshProfile, recordAiPhotoConsent])
+    signIn, signUp, signOut, refreshProfile, recordAiPhotoConsent, recordCoachAiConsent,
+  }), [user, profile, loading, isDietitian, signIn, signUp, signOut, refreshProfile, recordAiPhotoConsent, recordCoachAiConsent])
 
   return (
     <AuthContext.Provider value={value}>

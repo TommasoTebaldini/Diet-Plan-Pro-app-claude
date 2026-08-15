@@ -8,12 +8,59 @@
 // Env richiesta: SUPABASE_URL, SUPABASE_ANON_KEY, GEMINI_API_KEY (Groq —
 // stessa chiave già usata da food-swap.js e da NutriPlan-Pro/api/claude.js).
 
+// Funzione disattivata in attesa di una decisione esplicita su rischi/
+// benefici (vedi sessione del 2026-08-15) — tenuta a bandiera unica invece
+// che rimossa, stesso pattern di PAYMENTS_ACTIVE in useSubscription.js. Va
+// tenuta manualmente allineata con COACH_AI_ENABLED in
+// src/lib/coachAiConfig.js (repo separati, nessun modo di condividerla).
+const COACH_AI_ENABLED = false;
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
 const MAX_TOKENS = 700;
 const MAX_HISTORY_MESSAGES = 12; // ultimi N turni inviati al modello, limita costo/contesto
 const MAX_MESSAGE_LEN = 2000;
+
+// Tag DCA/disturbi alimentari (dal vocabolario suggerito in pazienti.html,
+// PAZ_COMMON_TAGS) — se presenti sulla cartella del paziente, il Coach AI
+// non genera MAI una risposta libera: un'AI generica che risponde a domande
+// su restrizione calorica/alimentazione a una persona con un disturbo
+// alimentare è un rischio noto, non mitigabile con un semplice prompt più
+// cauto. Match esatto per tag corti (BED/ARFID sono troppo ambigui per un
+// controllo "contains"), match a sottostringa solo per le frasi lunghe che
+// un dietista potrebbe scrivere a mano invece di usare il chip suggerito.
+const DCA_EXACT_TAGS = new Set(['anoressia', 'bulimia', 'bed', 'arfid', 'ortoressia']);
+const DCA_SUBSTRINGS = ['disturbo alimentare', 'disturbi alimentari', 'disturbo del comportamento alimentare'];
+function hasDcaTag(tags) {
+  return (tags || []).some(t => {
+    const norm = String(t).trim().toLowerCase();
+    return DCA_EXACT_TAGS.has(norm) || DCA_SUBSTRINGS.some(s => norm.includes(s));
+  });
+}
+const DCA_SAFE_REPLY = 'Per il tipo di percorso che stai seguendo con il tuo dietista, preferisco non rispondere in autonomia a domande su alimentazione e peso — è un ambito in cui una risposta generica può fare più male che bene. Scrivi direttamente al tuo dietista in chat: è la persona giusta per questo.';
+
+// Scrive un turno (utente o assistente) su coach_ai_messages con il token
+// dell'utente stesso — mai service role, stessa regola già seguita da
+// fetchPatientTags. Best-effort: un fallimento di scrittura non deve mai
+// impedire la risposta all'utente, solo essere loggato lato server.
+async function logMessage(token, patientId, role, content, blocked = false) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/coach_ai_messages`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({ patient_id: patientId, role, content: content.slice(0, 4000), blocked }),
+    });
+  } catch (err) {
+    console.error('coach-ai: log message failed', err);
+  }
+}
 
 // Conversazionale: più permissivo del singolo tasto "sostituisci" di food-swap.
 const _rl = new Map();
@@ -98,6 +145,11 @@ export default async function handler(req, res) {
   if (!user?.id) {
     return res.status(401).json({ error: 'Non autorizzato: sessione non valida.' });
   }
+
+  if (!COACH_AI_ENABLED) {
+    return res.status(503).json({ error: 'Il Coach AI è temporaneamente disattivato. Per domande su alimentazione o dubbi, scrivi al tuo dietista in chat.' });
+  }
+
   if (!rateLimit(user.id)) {
     return res.status(429).json({ error: 'Troppe richieste. Aspetta un minuto prima di continuare la conversazione.' });
   }
@@ -121,7 +173,19 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'L\'ultimo messaggio deve essere dell\'utente.' });
   }
 
+  const lastUserMessage = history[history.length - 1].content;
+
   const tags = await fetchPatientTags(token, user.id);
+
+  // Blocco totale per pazienti con tag DCA/disturbi alimentari — mai
+  // generare una risposta libera, mai chiamare il modello. Vedi commento
+  // in testa al file per il razionale.
+  if (hasDcaTag(tags)) {
+    await logMessage(token, user.id, 'user', lastUserMessage);
+    await logMessage(token, user.id, 'assistant', DCA_SAFE_REPLY, true);
+    return res.status(200).json({ reply: DCA_SAFE_REPLY });
+  }
+
   const exclusionLine = tags.length
     ? `Il paziente ha le seguenti allergie/intolleranze/condizioni registrate dal suo dietista (codici interni, interpretali per il loro significato clinico): ${tags.join(', ')}. Tienile sempre presenti nei tuoi consigli, non suggerire mai alimenti in conflitto con una di queste.`
     : `Nessuna allergia/intolleranza registrata per questo paziente.`;
@@ -159,6 +223,9 @@ Regole importanti:
     if (!reply) {
       return res.status(502).json({ error: 'Risposta AI vuota. Riprova.' });
     }
+
+    await logMessage(token, user.id, 'user', lastUserMessage);
+    await logMessage(token, user.id, 'assistant', reply);
 
     return res.status(200).json({ reply });
   } catch (err) {
