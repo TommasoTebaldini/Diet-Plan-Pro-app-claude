@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { useSubscription, PAYMENTS_ACTIVE, FREE_FEATURES, PRO_FEATURES } from '../hooks/useSubscription'
 import {
   ArrowLeft, Star, Check, X, Crown, CreditCard,
-  ChevronDown, ChevronUp, Lock, Zap,
+  ChevronDown, ChevronUp, Lock, Zap, ShieldCheck,
 } from 'lucide-react'
 
 // ─── FAQ ──────────────────────────────────────────────────────────────────────
@@ -16,7 +16,7 @@ const FAQS = [
   },
   {
     q: 'Posso disdire in qualsiasi momento?',
-    a: 'Sì, puoi cancellare l\'abbonamento quando vuoi dal portale Stripe (pulsante "Gestisci abbonamento"). L\'accesso Pro rimane attivo fino alla fine del periodo già pagato.',
+    a: 'Sì, puoi cancellare l\'abbonamento quando vuoi dal portale Stripe (pulsante "Gestisci abbonamento"). L\'accesso Pro rimane attivo fino alla fine del periodo già pagato. Hai inoltre diritto di recesso entro 14 giorni dalla sottoscrizione ai sensi del Codice del Consumo, indipendentemente dalla cancellazione ordinaria.',
   },
   {
     q: 'I miei dati sono al sicuro?',
@@ -357,6 +357,28 @@ export default function SubscriptionPage() {
               <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{f}</span>
             </div>
           ))}
+        </div>
+
+        {/* Garanzia / diritto di recesso */}
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 12,
+          background: 'var(--green-pale)', border: '1px solid var(--green-main)',
+          borderRadius: 14, padding: '14px 16px', marginBottom: 24,
+        }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 10, flexShrink: 0,
+            background: 'var(--green-main)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <ShieldCheck size={17} color="white" />
+          </div>
+          <div>
+            <p style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>
+              Nessun rischio: recesso garantito entro 14 giorni
+            </p>
+            <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              Se sottoscrivi l'abbonamento hai comunque diritto di recesso entro 14 giorni ai sensi del Codice del Consumo — oltre alla prova gratuita di 7 giorni senza carta. Puoi disdire in qualsiasi momento dal portale Stripe.
+            </p>
+          </div>
         </div>
 
         {/* FAQ */}
