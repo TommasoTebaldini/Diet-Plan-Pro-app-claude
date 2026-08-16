@@ -13,6 +13,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { createRateLimiter } from '../_shared/rateLimit.ts'
 import { checkMonthlyQuota } from '../_shared/monthlyQuota.ts'
+import { logServerError } from '../_shared/errorLog.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -200,11 +201,15 @@ Deno.serve(async (req: Request) => {
   for (const call of providers) {
     try { result = await call(); break } catch (e) { lastError = (e as Error).message }
   }
-  if (!result) return json({ error: lastError || 'Errore AI' }, 500)
+  if (!result) {
+    await logServerError('extract-recipe', lastError || 'Errore AI: tutti i provider hanno fallito').catch(() => {})
+    return json({ error: lastError || 'Errore AI' }, 500)
+  }
 
   try {
     return json(parseResponse(result))
   } catch (e) {
+    await logServerError('extract-recipe', e).catch(() => {})
     return json({ error: (e as Error).message }, 500)
   }
 })

@@ -1,5 +1,7 @@
 // Serverless proxy for Open Food Facts — avoids CORS on the browser side
 
+import { withErrorLogging, logServerError } from './_errorLog.js';
+
 // In-process response cache — survives across warm invocations of the same Lambda instance
 const _cache = new Map(); // key → { data, exp }
 
@@ -18,7 +20,7 @@ function setCached(key, data, ttlMs) {
   _cache.set(key, { data, exp: Date.now() + ttlMs });
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
   if (req.method === 'OPTIONS') return res.status(200).end()
@@ -144,6 +146,9 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ products: [], _errors: errors })
   } catch (e) {
+    await logServerError('off-proxy', e, req).catch(() => {})
     return res.status(200).json({ error: e.message || 'proxy error', products: [] })
   }
 }
+
+export default withErrorLogging('off-proxy', handler);

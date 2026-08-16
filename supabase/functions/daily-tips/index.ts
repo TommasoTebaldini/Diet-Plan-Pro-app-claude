@@ -12,6 +12,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { createRateLimiter } from '../_shared/rateLimit.ts'
 import { checkMonthlyQuota } from '../_shared/monthlyQuota.ts'
+import { logServerError } from '../_shared/errorLog.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -209,9 +210,11 @@ Deno.serve(async (req: Request) => {
   } catch {
     if (hasGroq && hasGemini) {
       try { text = await callGroq(prompt) } catch (e2) {
+        await logServerError('daily-tips', e2).catch(() => {})
         return json({ error: (e2 as Error).message }, 500)
       }
     } else {
+      await logServerError('daily-tips', 'Errore AI: unico provider disponibile ha fallito').catch(() => {})
       return json({ error: 'Errore AI' }, 500)
     }
   }
@@ -219,7 +222,8 @@ Deno.serve(async (req: Request) => {
   try {
     const tips = parseResponse(text)
     return json({ tips, date: yest })
-  } catch {
+  } catch (e) {
+    await logServerError('daily-tips', e).catch(() => {})
     return json({ error: 'Parsing risposta AI fallito' }, 500)
   }
 })

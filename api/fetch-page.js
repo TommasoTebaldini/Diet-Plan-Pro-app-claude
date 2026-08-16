@@ -4,10 +4,16 @@
 // di NutriPlan-Pro/api/fetch-page.js (repo gemella, stesso progetto Supabase).
 
 import dns from 'node:dns';
+import { withErrorLogging, logServerError } from './_errorLog.js';
 const dnsLookup = dns.promises.lookup;
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+// Fallback ai nomi VITE_-prefixed: il progetto Vercel di questo repo ha solo
+// VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY configurate (per il bundle client),
+// non le versioni "server" senza prefisso — senza questo fallback la verifica
+// del token utente falliva sempre silenziosamente (SUPABASE_URL/ANON_KEY
+// undefined → verifySupabaseToken ritorna sempre null → 401).
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
 // Rate limiter in-memoria per istanza — vedi api/send-push.js per lo stesso
 // pattern già in uso in questo repo. Non serve la variante distribuita
@@ -67,7 +73,7 @@ async function verifySupabaseToken(token) {
   return user;
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -129,6 +135,9 @@ export default async function handler(req, res) {
     if (err.name === 'AbortError') {
       return res.status(408).json({ error: 'Timeout: la pagina ha impiegato troppo a rispondere' });
     }
+    await logServerError('fetch-page', err, req).catch(() => {});
     return res.status(500).json({ error: 'Errore fetch: ' + err.message });
   }
 }
+
+export default withErrorLogging('fetch-page', handler);

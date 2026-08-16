@@ -10,8 +10,15 @@
 // Env richiesta: SUPABASE_URL, SUPABASE_ANON_KEY, GEMINI_API_KEY (Groq —
 // stessa chiave gratuita già usata da NutriPlan-Pro/api/claude.js).
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+import { withErrorLogging, logServerError } from './_errorLog.js';
+
+// Fallback ai nomi VITE_-prefixed: il progetto Vercel di questo repo ha solo
+// VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY configurate (per il bundle client),
+// non le versioni "server" senza prefisso — senza questo fallback la verifica
+// del token utente falliva sempre silenziosamente (SUPABASE_URL/ANON_KEY
+// undefined → verifySupabaseToken ritorna sempre null → 401).
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
 const MAX_TOKENS = 900;
 
@@ -85,12 +92,60 @@ async function fetchPatientTags(token, userId) {
   }
 }
 
+// Contesto reale sull'utente oltre alle sole allergie: obiettivo dichiarato
+// in onboarding (profiles.nutrition_goal, SEZIONE 54) + un riassunto fattuale
+// degli ultimi 14 giorni di food_logs/weight_logs. Stesso schema di accesso
+// di fetchPatientTags (token utente, mai service role), best-effort: un
+// fallimento qui non deve mai bloccare la generazione delle alternative.
+async function fetchRecentTrends(token, userId) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+  const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` };
+  try {
+    const since = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+    const [logsRes, weightRes, profileRes] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/food_logs?user_id=eq.${userId}&date=gte.${since}&select=date,kcal,proteins,carbs,fats`, { headers }),
+      fetch(`${SUPABASE_URL}/rest/v1/weight_logs?user_id=eq.${userId}&date=gte.${since}&select=date,weight_kg,weight&order=date.asc`, { headers }),
+      fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=nutrition_goal`, { headers }),
+    ]);
+    const logs = logsRes.ok ? await logsRes.json() : [];
+    const weights = weightRes.ok ? await weightRes.json() : [];
+    const profiles = profileRes.ok ? await profileRes.json() : [];
+    const goal = profiles?.[0]?.nutrition_goal || null;
+
+    const daysWithLog = new Set((logs || []).map(l => l.date)).size;
+    let avgLine = 'Nessuno storico di log disponibile ancora.';
+    if (logs.length) {
+      const totals = logs.reduce((a, l) => ({
+        kcal: a.kcal + (+l.kcal || 0), prot: a.prot + (+l.proteins || 0),
+        carbs: a.carbs + (+l.carbs || 0), fats: a.fats + (+l.fats || 0),
+      }), { kcal: 0, prot: 0, carbs: 0, fats: 0 });
+      const n = Math.max(1, daysWithLog);
+      avgLine = `Negli ultimi 14 giorni ha registrato pasti in ${daysWithLog}/14 giorni, con una media di ~${Math.round(totals.kcal / n)} kcal, ${Math.round(totals.prot / n)}g proteine, ${Math.round(totals.carbs / n)}g carboidrati, ${Math.round(totals.fats / n)}g grassi nei giorni in cui ha registrato.`;
+    }
+
+    let weightLine = '';
+    const wRows = (weights || []).map(w => +(w.weight_kg ?? w.weight)).filter(Number.isFinite);
+    if (wRows.length >= 2) {
+      const delta = wRows[wRows.length - 1] - wRows[0];
+      const dir = delta < -0.3 ? 'in calo' : delta > 0.3 ? 'in aumento' : 'stabile';
+      weightLine = ` Il peso nello stesso periodo è ${dir} (${delta > 0 ? '+' : ''}${delta.toFixed(1)}kg).`;
+    }
+
+    const GOAL_LABELS = { lose: 'perdere peso', maintain: 'mantenere il peso', gain: 'aumentare la massa' };
+    const goalLine = goal && GOAL_LABELS[goal] ? `Obiettivo dichiarato dal paziente: ${GOAL_LABELS[goal]}.` : '';
+
+    return [goalLine, avgLine + weightLine].filter(Boolean).join(' ');
+  } catch {
+    return null;
+  }
+}
+
 function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   setCorsHeaders(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -123,6 +178,7 @@ export default async function handler(req, res) {
   const hasMacros = [kcal, proteins, carbs, fats].some(v => Number.isFinite(+v));
 
   const tags = await fetchPatientTags(token, user.id);
+  const trendsLine = (await fetchRecentTrends(token, user.id)) || 'Nessuno storico di log disponibile ancora.';
 
   const macroLine = hasMacros
     ? `Valori nutrizionali dell'alimento originale a questa porzione — le alternative devono avvicinarsi il più possibile a questi valori (tolleranza ±15% circa): ${Number.isFinite(+kcal) ? Math.round(+kcal) + ' kcal, ' : ''}${Number.isFinite(+proteins) ? Math.round(+proteins) + 'g proteine, ' : ''}${Number.isFinite(+carbs) ? Math.round(+carbs) + 'g carboidrati, ' : ''}${Number.isFinite(+fats) ? Math.round(+fats) + 'g grassi' : ''}.`
@@ -137,6 +193,7 @@ export default async function handler(req, res) {
 Alimento da sostituire: "${safeName}"${safeQuantity ? ` (${safeQuantity}${safeUnit})` : ''}.
 ${macroLine}
 ${exclusionLine}
+Contesto sulle abitudini recenti del paziente (usalo per proporre alternative realistiche rispetto a ciò che mangia di solito, non ripeterlo nella risposta): ${trendsLine}
 
 Rispondi SOLO con un oggetto JSON valido (nessun testo fuori dal JSON), in questo formato esatto:
 {"alternatives":[{"name":"nome alimento in italiano","quantity":123,"unit":"g","note":"perché è una buona alternativa, in una riga breve"}]}
@@ -184,6 +241,9 @@ Esattamente 3 alternative, concrete e facilmente reperibili al supermercato o al
     return res.status(200).json({ alternatives, excludedTags: tags });
   } catch (err) {
     console.error('food-swap error:', err);
+    await logServerError('food-swap', err, req).catch(() => {});
     return res.status(500).json({ error: 'Errore server: ' + err.message });
   }
 }
+
+export default withErrorLogging('food-swap', handler);

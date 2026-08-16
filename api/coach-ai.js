@@ -8,6 +8,8 @@
 // Env richiesta: SUPABASE_URL, SUPABASE_ANON_KEY, GEMINI_API_KEY (Groq —
 // stessa chiave già usata da food-swap.js e da NutriPlan-Pro/api/claude.js).
 
+import { withErrorLogging, logServerError } from './_errorLog.js';
+
 // Funzione disattivata in attesa di una decisione esplicita su rischi/
 // benefici (vedi sessione del 2026-08-15) — tenuta a bandiera unica invece
 // che rimossa, stesso pattern di PAYMENTS_ACTIVE in useSubscription.js. Va
@@ -15,8 +17,13 @@
 // src/lib/coachAiConfig.js (repo separati, nessun modo di condividerla).
 const COACH_AI_ENABLED = false;
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+// Fallback ai nomi VITE_-prefixed: il progetto Vercel di questo repo ha solo
+// VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY configurate (per il bundle client),
+// non le versioni "server" senza prefisso — senza questo fallback la verifica
+// del token utente falliva sempre silenziosamente (SUPABASE_URL/ANON_KEY
+// undefined → verifySupabaseToken ritorna sempre null → 401).
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
 const MAX_TOKENS = 700;
 const MAX_HISTORY_MESSAGES = 12; // ultimi N turni inviati al modello, limita costo/contesto
@@ -126,12 +133,60 @@ async function fetchPatientTags(token, userId) {
   }
 }
 
+// Contesto reale sull'utente oltre alle sole allergie: obiettivo dichiarato
+// in onboarding (profiles.nutrition_goal, SEZIONE 54) + un riassunto fattuale
+// degli ultimi 14 giorni di food_logs/weight_logs. Stesso schema di accesso
+// di fetchPatientTags (token utente, mai service role), best-effort: un
+// fallimento qui non deve mai bloccare la risposta del Coach AI.
+async function fetchRecentTrends(token, userId) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+  const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` };
+  try {
+    const since = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+    const [logsRes, weightRes, profileRes] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/food_logs?user_id=eq.${userId}&date=gte.${since}&select=date,kcal,proteins,carbs,fats`, { headers }),
+      fetch(`${SUPABASE_URL}/rest/v1/weight_logs?user_id=eq.${userId}&date=gte.${since}&select=date,weight_kg,weight&order=date.asc`, { headers }),
+      fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=nutrition_goal`, { headers }),
+    ]);
+    const logs = logsRes.ok ? await logsRes.json() : [];
+    const weights = weightRes.ok ? await weightRes.json() : [];
+    const profiles = profileRes.ok ? await profileRes.json() : [];
+    const goal = profiles?.[0]?.nutrition_goal || null;
+
+    const daysWithLog = new Set((logs || []).map(l => l.date)).size;
+    let avgLine = 'Nessuno storico di log disponibile ancora.';
+    if (logs.length) {
+      const totals = logs.reduce((a, l) => ({
+        kcal: a.kcal + (+l.kcal || 0), prot: a.prot + (+l.proteins || 0),
+        carbs: a.carbs + (+l.carbs || 0), fats: a.fats + (+l.fats || 0),
+      }), { kcal: 0, prot: 0, carbs: 0, fats: 0 });
+      const n = Math.max(1, daysWithLog);
+      avgLine = `Negli ultimi 14 giorni ha registrato pasti in ${daysWithLog}/14 giorni, con una media di ~${Math.round(totals.kcal / n)} kcal, ${Math.round(totals.prot / n)}g proteine, ${Math.round(totals.carbs / n)}g carboidrati, ${Math.round(totals.fats / n)}g grassi nei giorni in cui ha registrato.`;
+    }
+
+    let weightLine = '';
+    const wRows = (weights || []).map(w => +(w.weight_kg ?? w.weight)).filter(Number.isFinite);
+    if (wRows.length >= 2) {
+      const delta = wRows[wRows.length - 1] - wRows[0];
+      const dir = delta < -0.3 ? 'in calo' : delta > 0.3 ? 'in aumento' : 'stabile';
+      weightLine = ` Il peso nello stesso periodo è ${dir} (${delta > 0 ? '+' : ''}${delta.toFixed(1)}kg).`;
+    }
+
+    const GOAL_LABELS = { lose: 'perdere peso', maintain: 'mantenere il peso', gain: 'aumentare la massa' };
+    const goalLine = goal && GOAL_LABELS[goal] ? `Obiettivo dichiarato dal paziente: ${GOAL_LABELS[goal]}.` : '';
+
+    return [goalLine, avgLine + weightLine].filter(Boolean).join(' ');
+  } catch {
+    return null;
+  }
+}
+
 function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   setCorsHeaders(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -190,9 +245,13 @@ export default async function handler(req, res) {
     ? `Il paziente ha le seguenti allergie/intolleranze/condizioni registrate dal suo dietista (codici interni, interpretali per il loro significato clinico): ${tags.join(', ')}. Tienile sempre presenti nei tuoi consigli, non suggerire mai alimenti in conflitto con una di queste.`
     : `Nessuna allergia/intolleranza registrata per questo paziente.`;
 
+  const trendsLine = (await fetchRecentTrends(token, user.id)) || 'Nessuno storico di log disponibile ancora.';
+
   const system = `Sei il Coach AI di DietPlan Pro, un assistente nutrizionale amichevole e competente all'interno dell'app. Rispondi in italiano a domande libere su alimentazione, abitudini alimentari, idratazione, integrazione, gestione del peso — in modo pratico, chiaro e basato su evidenze scientifiche aggiornate.
 
 ${exclusionLine}
+
+Contesto sulle abitudini recenti del paziente (usalo per personalizzare i consigli, non ripeterlo meccanicamente all'utente): ${trendsLine}
 
 Regole importanti:
 - NON sei un medico e non fai diagnosi: per sintomi, dubbi clinici, terapie farmacologiche o condizioni patologiche specifiche, invita sempre a contattare il proprio dietista o medico tramite la chat dell'app, invece di dare un parere clinico definitivo.
@@ -230,6 +289,9 @@ Regole importanti:
     return res.status(200).json({ reply });
   } catch (err) {
     console.error('coach-ai error:', err);
+    await logServerError('coach-ai', err, req).catch(() => {});
     return res.status(500).json({ error: 'Errore server: ' + err.message });
   }
 }
+
+export default withErrorLogging('coach-ai', handler);

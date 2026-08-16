@@ -15,6 +15,7 @@
 import { timingSafeEqual } from 'crypto'
 import webpush from 'web-push'
 import { createClient } from '@supabase/supabase-js'
+import { withErrorLogging, logServerError } from './_errorLog.js'
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
@@ -73,7 +74,7 @@ function isDuplicate(userId, title, body, tag) {
   return false
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
   if (!isAuthorized(req)) return res.status(401).json({ error: 'Unauthorized' })
 
@@ -109,6 +110,9 @@ export default async function handler(req, res) {
     res.status(200).json({ sent: true })
   } catch (e) {
     console.error('[send-push] Error:', e.message)
+    await logServerError('send-push', e, req).catch(() => {})
     res.status(500).json({ error: e.message })
   }
 }
+
+export default withErrorLogging('send-push', handler);
