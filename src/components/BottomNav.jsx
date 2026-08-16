@@ -134,8 +134,10 @@ export default function BottomNav() {
     { to: '/dieta', icon: Utensils, label: t('nav.diet') },
     { to: '/macro', icon: BookOpen, label: t('nav.diary') },
     { to: '/ricette', icon: ChefHat, label: t('nav.recipes'), badge: newShared },
+    { to: '/acqua', icon: Droplets, label: 'Acqua' },
     { to: '/lista-spesa', icon: ShoppingCart, label: 'Lista spesa' },
     { to: '/digiuno', icon: Timer, label: 'Digiuno IF' },
+    { to: '/alimenti', icon: BookOpen, label: 'Alimenti' },
     { to: '/chat', icon: MessageCircle, label: t('nav.chat'), badge: unreadChat },
     ...(COACH_AI_ENABLED ? [{ to: '/coach-ai', icon: Bot, label: 'Coach AI' }] : []),
     { to: '/pagamenti', icon: CreditCard, label: 'Pagamenti' },
@@ -151,6 +153,8 @@ export default function BottomNav() {
     ...(showCycle ? [{ to: '/ciclo', icon: Flower2, label: 'Ciclo' }] : []),
     { to: '/farmaci', icon: Pill, label: 'Farmaci' },
     { to: '/profilo', icon: User, label: t('nav.profile') },
+    { to: '/quiz', icon: Brain, label: 'Quiz' },
+    { to: '/badge', icon: Award, label: 'Badge' },
     { to: '/pro', icon: Star, label: isPro ? '⭐ Pro' : '🔓 Pro' },
     ...(PAYMENTS_ACTIVE ? [{ to: '/abbonamento', icon: Star, label: 'Abbonamento' }] : []),
   ]
@@ -165,10 +169,10 @@ export default function BottomNav() {
     const tabMap = Object.fromEntries(TABS.map(t => [t.to, t]))
     const DESKTOP_SECTIONS = [
       { label: null, items: ['/'] },
-      { label: t('nav.section_nutrition'), items: ['/dieta', '/macro', '/ricette', '/lista-spesa', '/digiuno'] },
+      { label: t('nav.section_nutrition'), items: ['/dieta', '/macro', '/ricette', '/acqua', '/lista-spesa', '/digiuno', '/alimenti'] },
       { label: t('nav.section_professionals'), items: ['/chat', ...(COACH_AI_ENABLED ? ['/coach-ai'] : []), '/pagamenti', '/documenti', '/dietisti', ...(hasSpecial ? ['/speciale'] : [])] },
       { label: t('nav.section_monitoring'), items: ['/progressi', '/settimana', '/sfide', '/attivita', '/benessere', ...(showCycle ? ['/ciclo'] : []), '/farmaci', '/statistiche'] },
-      { label: null, items: PAYMENTS_ACTIVE ? ['/profilo', '/pro', '/abbonamento'] : ['/profilo', '/pro'] },
+      { label: null, items: PAYMENTS_ACTIVE ? ['/profilo', '/quiz', '/badge', '/pro', '/abbonamento'] : ['/profilo', '/quiz', '/badge', '/pro'] },
     ]
 
     return (

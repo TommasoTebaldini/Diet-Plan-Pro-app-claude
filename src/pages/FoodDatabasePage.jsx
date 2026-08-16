@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { searchFoodsLocal, supplementWithOpenFoodFacts } from '../lib/foodSearch'
+import { searchFoodsLocal, supplementWithOpenFoodFacts, browseFoods } from '../lib/foodSearch'
 import { Search, Plus, X, BookOpen, Star, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import { useT } from '../i18n'
 
@@ -107,6 +107,7 @@ export default function FoodDatabasePage() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [searching, setSearching] = useState(false)
+  const [browsed, setBrowsed] = useState([])
   // ── Saved / Favorites tab ──
   const [saved, setSaved] = useState([])
   const [recentFoods, setRecentFoods] = useState([])
@@ -151,6 +152,9 @@ export default function FoodDatabasePage() {
         }
         setRecentFoods([...seen.values()].sort((a, b) => b.count - a.count).slice(0, 8))
       })
+    // Elenco "sfoglia" per la tab di ricerca prima che l'utente digiti nulla —
+    // altrimenti la pagina che dovrebbe contenere il database sembra vuota.
+    browseFoods(60).then(setBrowsed)
   }, [])
 
   async function handleSearch(e) {
@@ -318,15 +322,20 @@ export default function FoodDatabasePage() {
               </div>
             )}
 
-            {results.length === 0 && !searching && (
+            {results.length === 0 && !searching && !query.trim() && browsed.length > 0 && (
+              <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginTop: 2 }}>
+                {t('food.browse_label')} <span style={{ fontWeight: 400 }}>({t('food.browse_hint')})</span>
+              </p>
+            )}
+
+            {results.length === 0 && !searching && query.trim() && (
               <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
                 <BookOpen size={36} style={{ marginBottom: 10, opacity: 0.25 }} />
-                <p style={{ fontSize: 14, fontWeight: 500 }}>{t('food.search_any')}</p>
-                <p style={{ fontSize: 12, marginTop: 4, lineHeight: 1.6 }}>{t('food.search_desc')}</p>
+                <p style={{ fontSize: 14, fontWeight: 500 }}>{t('food.no_results')}</p>
               </div>
             )}
 
-            {results.map((f, i) => {
+            {(query.trim() ? results : browsed).map((f, i) => {
               const isSaved = saved.some(s => s.name === f.name)
               return (
                 <motion.div key={`${f.id}_${i}`}
