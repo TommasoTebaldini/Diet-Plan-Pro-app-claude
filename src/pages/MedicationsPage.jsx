@@ -175,9 +175,9 @@ export default function MedicationsPage() {
               {meds.map(med => (
                 <div key={med.id} className="card" style={{ padding: 16, opacity: med.active ? 1 : 0.55 }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: med.times?.length ? 10 : 0 }}>
-                    <div>
-                      <p style={{ fontSize: 14, fontWeight: 700 }}>{med.name}</p>
-                      {med.dosage && <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{med.dosage}</p>}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{med.name}</p>
+                      {med.dosage && <p style={{ fontSize: 12, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{med.dosage}</p>}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                       <button

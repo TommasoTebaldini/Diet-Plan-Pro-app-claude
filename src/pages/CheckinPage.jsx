@@ -243,7 +243,7 @@ export default function CheckinPage() {
   if (loading) {
     return (
       <PageTransition>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60dvh' }}>
           <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid var(--border-light)', borderTopColor: 'var(--green-main)', animation: 'spin 0.8s linear infinite' }} />
         </div>
       </PageTransition>
@@ -253,7 +253,7 @@ export default function CheckinPage() {
   if (alreadyDone) {
     return (
       <PageTransition>
-        <div style={{ padding: '24px 16px', textAlign: 'center', minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
+        <div className="page" style={{ padding: '24px 16px', textAlign: 'center', minHeight: '60dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
           <div style={{ fontSize: '64px' }}>✅</div>
           <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
             Check-in già completato
@@ -269,7 +269,7 @@ export default function CheckinPage() {
   if (submitted) {
     return (
       <PageTransition>
-        <div style={{ padding: '40px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+        <div className="page" style={{ padding: '40px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
@@ -324,7 +324,7 @@ export default function CheckinPage() {
 
   return (
     <PageTransition>
-      <div style={{ padding: '0 0 calc(var(--nav) + 32px)', background: 'var(--surface-2)', minHeight: '100vh' }}>
+      <div className="page" style={{ padding: '0 0 calc(var(--nav) + 32px)', background: 'var(--surface-2)', minHeight: '100dvh' }}>
 
         {/* Header */}
         <div style={{

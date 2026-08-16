@@ -212,7 +212,7 @@ export default function DietitianReviewsSection({ dietitianId }) {
             </span>
             <StarRating value={r.rating} size={12} />
           </div>
-          {r.comment && <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{r.comment}</p>}
+          {r.comment && <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, overflowWrap: 'anywhere' }}>{r.comment}</p>}
           <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
             {new Date(r.created_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
           </p>

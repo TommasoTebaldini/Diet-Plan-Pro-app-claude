@@ -246,7 +246,7 @@ export default function DietitianProfilePage() {
         {/* Personal info */}
         <div className="card" style={{ padding: 16 }}>
           <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Informazioni personali</p>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <Field label="Nome *" icon={User}>
               <input className="input-field" value={form.nome} onChange={set('nome')} placeholder="es. Marco" />
             </Field>

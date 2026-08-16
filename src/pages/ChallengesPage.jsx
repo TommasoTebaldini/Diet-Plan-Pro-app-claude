@@ -96,7 +96,7 @@ export default function ChallengesPage() {
   const allDone = total > 0 && completed === total
 
   return (
-    <div className="page-container" style={{ padding: 16, paddingBottom: 90 }}>
+    <div className="page" style={{ paddingTop: 16, paddingLeft: 16, paddingRight: 16 }}>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 2 }}>🏆 Sfide della settimana</h1>
         <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 16 }}>

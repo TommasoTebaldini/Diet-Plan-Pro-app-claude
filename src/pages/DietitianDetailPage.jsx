@@ -338,10 +338,13 @@ export default function DietitianDetailPage() {
   const [myAppointments, setMyAppointments] = useState([])
   const [cancelling, setCancelling] = useState(null) // id being cancelled
   const [sidebarW, setSidebarW] = useState(0)
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 1024)
 
   useEffect(() => {
     const update = () => {
-      if (window.innerWidth >= 1024) {
+      const desktop = window.innerWidth >= 1024
+      setIsDesktop(desktop)
+      if (desktop) {
         setSidebarW(localStorage.getItem('sidebar_open') !== 'false' ? 220 : 0)
       } else setSidebarW(0)
     }
@@ -470,7 +473,7 @@ export default function DietitianDetailPage() {
                       {d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
                     </p>
                     <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                      ore {getLocalTimeHHMM(appt.appointment_date)} Â· {appt.duration_minutes || 60} min
+                      ore {getLocalTimeHHMM(appt.appointment_date)} · {appt.duration_minutes || 60} min
                     </p>
                   </div>
                   {canC ? (
@@ -550,12 +553,15 @@ export default function DietitianDetailPage() {
         )}
       </div>
 
-      {/* Fixed bottom CTA — respects desktop sidebar */}
+      {/* Fixed bottom CTA — respects desktop sidebar; on mobile sits above the
+          bottom nav bar (z-index 999 in BottomNav.jsx) instead of z-index-
+          competing with it, same pattern as .chat-input-bar in index.css —
+          otherwise the button renders hidden underneath the nav bar. */}
       <div style={{
-        position: 'fixed', bottom: 0,
+        position: 'fixed', bottom: isDesktop ? 0 : 'calc(64px + env(safe-area-inset-bottom))',
         left: sidebarW, right: 0,
         padding: '12px 14px',
-        paddingBottom: 'calc(12px + env(safe-area-inset-bottom))',
+        paddingBottom: isDesktop ? 'calc(12px + env(safe-area-inset-bottom))' : '12px',
         background: 'rgba(var(--surface-rgb, 255,255,255), 0.97)',
         backgroundColor: 'var(--surface)',
         backdropFilter: 'blur(12px)',

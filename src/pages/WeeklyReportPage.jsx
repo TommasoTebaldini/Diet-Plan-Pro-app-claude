@@ -117,14 +117,14 @@ export default function WeeklyReportPage() {
   useEffect(() => { load() }, [load])
 
   if (!data) {
-    return <div className="page-container" style={{ padding: 16 }}><p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Caricamento…</p></div>
+    return <div className="page" style={{ padding: 16 }}><p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Caricamento…</p></div>
   }
 
   const maxBar = Math.max(1, ...data.bars.map(b => b.kcal))
   const giorniLbl = ['L', 'M', 'M', 'G', 'V', 'S', 'D']
 
   return (
-    <div className="page-container" style={{ padding: 16, paddingBottom: 90 }}>
+    <div className="page" style={{ padding: 16 }}>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 2 }}>📅 La tua settimana</h1>
         <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 16 }}>Ultimi 7 giorni a confronto con la settimana precedente.</p>

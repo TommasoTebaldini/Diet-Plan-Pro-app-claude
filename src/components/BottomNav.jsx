@@ -8,6 +8,7 @@ import { useT } from '../i18n'
 import { PAYMENTS_ACTIVE, useSubscription } from '../hooks/useSubscription'
 import { fetchEnabledSpecialties } from '../lib/specialSections'
 import { COACH_AI_ENABLED } from '../lib/coachAiConfig'
+import { useIsDesktop } from '../hooks/useIsDesktop'
 
 const DOCS_EPOCH = '1970-01-01T00:00:00Z'
 const HAS_SPECIAL_CACHE_KEY = 'has_special_cache'
@@ -17,17 +18,6 @@ const badgeStyle = {
   borderRadius: '50%', background: '#0891b2', color: 'white',
   fontSize: 9, fontWeight: 700, display: 'flex',
   alignItems: 'center', justifyContent: 'center', border: '2px solid white',
-}
-
-function useIsDesktop() {
-  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 1024)
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)')
-    const handler = (e) => setIsDesktop(e.matches)
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
-  }, [])
-  return isDesktop
 }
 
 export default function BottomNav() {

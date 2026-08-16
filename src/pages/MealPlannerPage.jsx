@@ -6,6 +6,7 @@ import { searchFoodsLocal, supplementWithOpenFoodFacts } from '../lib/foodSearch
 import { ChevronLeft, ChevronRight, Plus, X, ShoppingCart, Calendar, Share2, Trash2, Check } from 'lucide-react'
 import { startOfWeek, addWeeks, subWeeks, addDays, format } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { useIsDesktop } from '../hooks/useIsDesktop'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -635,12 +636,103 @@ function GridCell({ dayIndex, mealType, items, onAdd, onRemove }) {
   )
 }
 
+// ─── Mobile: day strip + single-day plan ───────────────────────────────────────
+// La griglia 7 giorni × 5 pasti sotto ha senso solo da tablet in su: su
+// telefono era comunque presente ma solo come tabella di 900px scorrevole
+// orizzontalmente, non un vero layout mobile-first. Qui si sceglie un giorno
+// dalla striscia e si vedono solo i suoi pasti, impilati verticalmente.
+
+function DayStrip({ weekStart, selectedDay, onSelect, items }) {
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
+  return (
+    <div style={{ display: 'flex', gap: 6, overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 2 }}>
+      {DAYS_SHORT.map((day, di) => {
+        const date = addDays(weekStart, di)
+        const isToday = format(date, 'yyyy-MM-dd') === todayStr
+        const active = di === selectedDay
+        const dayTotal = items
+          .filter(i => i.day_of_week === di)
+          .reduce((sum, i) => sum + calcMacros(i.food_data, i.grams).kcal, 0)
+        return (
+          <button
+            key={day}
+            onClick={() => onSelect(di)}
+            style={{
+              flex: '0 0 auto', minWidth: 50, padding: '8px 4px 7px', borderRadius: 12,
+              border: active ? '2px solid var(--green-main)' : '1.5px solid var(--border-light)',
+              background: active ? 'var(--green-pale)' : 'var(--surface)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{ fontSize: 11, fontWeight: 700, color: active || isToday ? 'var(--green-main)' : 'var(--text-secondary)' }}>
+              {day}
+            </span>
+            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{format(date, 'd')}</span>
+            <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--green-main)', minHeight: 11 }}>
+              {dayTotal > 0 ? `${dayTotal}` : ''}
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function MobileDayPlan({ dayIndex, items, onAdd, onRemove }) {
+  const dayItems = items.filter(i => i.day_of_week === dayIndex)
+  const dayTotal = dayItems.reduce((sum, i) => sum + calcMacros(i.food_data, i.grams).kcal, 0)
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
+      {dayTotal > 0 && (
+        <div style={{ textAlign: 'center', fontSize: 13, fontWeight: 700, color: 'var(--green-main)' }}>
+          {dayTotal} kcal totali in giornata
+        </div>
+      )}
+      {MEAL_TYPES.map(meal => {
+        const mealItems = dayItems.filter(i => i.meal_type === meal.key)
+        return (
+          <div key={meal.key} className="card" style={{ padding: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <span style={{ fontSize: 17 }}>{meal.icon}</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{meal.label}</span>
+            </div>
+            {mealItems.map(item => (
+              <MealItem key={item.id} item={item} onRemove={onRemove} />
+            ))}
+            <button
+              onClick={() => onAdd(dayIndex, meal.key)}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: '100%', padding: '9px 0', borderRadius: 8,
+                border: '1px dashed var(--border)', background: 'none',
+                color: 'var(--text-muted)', cursor: 'pointer',
+                fontSize: 13, gap: 5, marginTop: mealItems.length ? 4 : 0,
+              }}
+            >
+              <Plus size={13} /> Aggiungi
+            </button>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function MealPlannerPage() {
   const { user } = useAuth()
+  const isDesktop = useIsDesktop()
   const [weekOffset, setWeekOffset] = useState(0)
   const [activeTab, setActiveTab] = useState('piano')
+  // Giorno selezionato nella vista mobile — di default il giorno della
+  // settimana corrente (Lun=0..Dom=6), qualunque settimana si stia sfogliando.
+  const [selectedDay, setSelectedDay] = useState(() => {
+    const jsDay = new Date().getDay() // 0=Dom..6=Sab
+    return jsDay === 0 ? 6 : jsDay - 1
+  })
   const [items, setItems] = useState([])
   const [planId, setPlanId] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -848,6 +940,13 @@ export default function MealPlannerPage() {
             Caricamento piano...
           </div>
         ) : activeTab === 'piano' ? (
+          !isDesktop ? (
+            <>
+              {/* Mobile: striscia giorni + pasti del giorno selezionato, impilati */}
+              <DayStrip weekStart={weekStart} selectedDay={selectedDay} onSelect={setSelectedDay} items={items} />
+              <MobileDayPlan dayIndex={selectedDay} items={items} onAdd={openModal} onRemove={handleRemoveItem} />
+            </>
+          ) : (
           <>
             {/* Desktop/Tablet grid */}
             <div style={{ overflowX: 'auto', borderRadius: 12, border: '1px solid var(--border-light)', background: 'var(--surface)' }}>
@@ -960,6 +1059,7 @@ export default function MealPlannerPage() {
               </div>
             </div>
           </>
+          )
         ) : (
           <ShoppingListTab items={items} userId={user?.id} weekStart={weekStartStr} />
         )}

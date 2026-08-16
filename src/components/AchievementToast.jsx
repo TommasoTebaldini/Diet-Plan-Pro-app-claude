@@ -17,10 +17,10 @@ export default function AchievementToast({ achievement, onDismiss }) {
 
   return (
     <div
+      className="achievement-toast"
       onClick={() => { setVisible(false); setTimeout(onDismiss, 300) }}
       style={{
         position: 'fixed',
-        bottom: 'calc(var(--nav) + 16px)',
         right: '16px',
         zIndex: 9999,
         background: 'var(--surface)',
@@ -54,7 +54,11 @@ export default function AchievementToast({ achievement, onDismiss }) {
 
       {/* Progress bar via CSS animation */}
       <div style={{ position: 'absolute', bottom: 0, left: 0, height: 3, background: 'linear-gradient(90deg, #1a7f5a, #3dba7a)', borderRadius: '0 0 0 var(--r-lg)', animation: visible ? `_toast-shrink ${AUTO_DISMISS_MS}ms linear forwards` : 'none', width: '100%' }} />
-      <style>{`@keyframes _toast-shrink { from { width: 100% } to { width: 0% } }`}</style>
+      <style>{`
+        @keyframes _toast-shrink { from { width: 100% } to { width: 0% } }
+        .achievement-toast { bottom: calc(var(--nav) + 16px); }
+        @media (min-width: 1024px) { .achievement-toast { bottom: 16px; } }
+      `}</style>
     </div>
   )
 }

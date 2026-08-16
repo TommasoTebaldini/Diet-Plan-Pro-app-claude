@@ -113,7 +113,7 @@ export default function MealTextAnalyzer({ onAddFoods, onClose }) {
   }
 
   return createPortal(
-    <div style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-end', backdropFilter: 'blur(4px)' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-end', backdropFilter: 'blur(4px)' }}>
       <motion.div
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
