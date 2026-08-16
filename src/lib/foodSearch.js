@@ -15,31 +15,22 @@ async function getAllFoods() {
   return _allFoods
 }
 
-// Elenco di partenza per la pagina "Alimenti" (nessuna query digitata ancora):
-// un campione stabile del DB curato, distribuito tra le categorie (il file
-// sorgente è raggruppato per categoria, quindi i primi N sarebbero quasi
-// tutti "Cereali") — round-robin tra le categorie così la pagina mostra
-// davvero un assaggio del database, non solo pasta. La ricerca vera resta
-// quella sopra, questo è solo per "sfogliare" prima di digitare.
-export async function browseFoods(limit = 60) {
+// Elenco per la pagina "Alimenti": l'intero database CREA+BDA (stesso usato
+// sul sito dietisti), in ordine alfabetico — non un campione. Le altre fonti
+// del DB combinato (ONS/APROTEICI/FLAVIS/UPF/EXTRA) restano comunque
+// trovabili con la ricerca vera e propria sopra, semplicemente non fanno
+// parte di questo elenco "da sfogliare": CREA+BDA da sole sono già ~2100
+// voci, la pagina le pagina lato client (vedi FoodDatabasePage) invece di
+// montarle tutte nel DOM in un colpo solo.
+export async function browseFoods() {
   const ALL_FOODS = await getAllFoods()
-  const byCategory = new Map()
-  for (const f of ALL_FOODS) {
-    const cat = f.category || 'Generico'
-    if (!byCategory.has(cat)) byCategory.set(cat, [])
-    byCategory.get(cat).push(f)
-  }
-  const buckets = [...byCategory.values()]
-  const sample = []
-  for (let i = 0; sample.length < limit && buckets.some(b => i < b.length); i++) {
-    for (const bucket of buckets) {
-      if (i < bucket.length) sample.push(bucket[i])
-      if (sample.length >= limit) break
-    }
-  }
-  return sample.map(f => ({
-    ...f, brand: `${f.src || 'CREA'} — ${f.category || 'Generico'}`, source: 'dietitian',
-  }))
+  return ALL_FOODS
+    .filter(f => f.src === 'CREA' || f.src === 'BDA')
+    .slice()
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it'))
+    .map(f => ({
+      ...f, brand: `${f.src} — ${f.category || 'Generico'}`, source: 'dietitian',
+    }))
 }
 
 async function searchAllFoods(query) {

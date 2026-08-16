@@ -8,6 +8,10 @@ import { useT } from '../i18n'
 
 const r1 = v => Math.round((+v || 0) * 10) / 10
 const r0 = v => Math.round(+v || 0)
+// L'elenco "sfoglia" (intero DB CREA+BDA, ~2100 voci) è impaginato lato
+// client invece di montare tutto nel DOM in un colpo solo — 50 alla volta,
+// con un pulsante "mostra altri" che ne aggiunge altri 50.
+const BROWSE_PAGE_SIZE = 50
 
 function calcMacros(food, grams) {
   const f = (parseFloat(grams) || 100) / 100
@@ -108,6 +112,7 @@ export default function FoodDatabasePage() {
   const [results, setResults] = useState([])
   const [searching, setSearching] = useState(false)
   const [browsed, setBrowsed] = useState([])
+  const [browseCount, setBrowseCount] = useState(BROWSE_PAGE_SIZE)
   // ── Saved / Favorites tab ──
   const [saved, setSaved] = useState([])
   const [recentFoods, setRecentFoods] = useState([])
@@ -324,7 +329,7 @@ export default function FoodDatabasePage() {
 
             {results.length === 0 && !searching && !query.trim() && browsed.length > 0 && (
               <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginTop: 2 }}>
-                {t('food.browse_label')} <span style={{ fontWeight: 400 }}>({t('food.browse_hint')})</span>
+                {t('food.browse_label')} <span style={{ fontWeight: 400 }}>· {browsed.length} {t('food.browse_count_suffix')} · {t('food.browse_hint')}</span>
               </p>
             )}
 
@@ -335,13 +340,13 @@ export default function FoodDatabasePage() {
               </div>
             )}
 
-            {(query.trim() ? results : browsed).map((f, i) => {
+            {(query.trim() ? results : browsed.slice(0, browseCount)).map((f, i) => {
               const isSaved = saved.some(s => s.name === f.name)
               return (
                 <motion.div key={`${f.id}_${i}`}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04, duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ delay: Math.min(i, BROWSE_PAGE_SIZE) * 0.02, duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
                   className="card" style={{ padding: '12px 14px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 4 }}>
@@ -363,6 +368,16 @@ export default function FoodDatabasePage() {
                 </motion.div>
               )
             })}
+
+            {!query.trim() && browseCount < browsed.length && (
+              <button
+                className="btn btn-secondary"
+                onClick={() => setBrowseCount(c => c + BROWSE_PAGE_SIZE)}
+                style={{ alignSelf: 'center', marginTop: 4 }}
+              >
+                {t('food.load_more')} ({browsed.length - browseCount})
+              </button>
+            )}
           </>
         )}
 
