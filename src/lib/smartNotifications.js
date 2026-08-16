@@ -79,6 +79,68 @@ export async function checkMealAndNotify(userId) {
 }
 
 /**
+ * Call on app focus (visibility change), same trigger as checkMealAndNotify.
+ * Warns the user in the evening if they have an active food-logging streak
+ * of 3+ consecutive days and haven't logged anything yet today — losing a
+ * multi-day streak is a much stronger reason to open the app than the
+ * generic meal reminder above.
+ * @param {string} userId  Supabase user id
+ */
+export async function checkStreakAtRiskAndNotify(userId) {
+  const now = new Date()
+  const hour = now.getHours()
+  if (hour < 20) return // non ancora sera: non è ancora "a rischio"
+
+  const todayStr = now.toISOString().split('T')[0]
+  const lastKey = `smart_notif_streak_risk_${todayStr}`
+  if (localStorage.getItem(lastKey)) return
+
+  try {
+    const { supabase } = await import('./supabase')
+
+    // Oggi ha già un log? Se sì, lo streak non è a rischio.
+    const { count: todayCount } = await supabase
+      .from('food_logs')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('date', todayStr)
+    if (todayCount > 0) return
+
+    // Date distinte con almeno un log negli ultimi 40 giorni, per calcolare
+    // lo streak consecutivo che termina ieri (oggi è escluso apposta: è
+    // proprio il giorno ancora da salvare).
+    const since = new Date(now)
+    since.setDate(since.getDate() - 40)
+    const { data: logs } = await supabase
+      .from('food_logs')
+      .select('date')
+      .eq('user_id', userId)
+      .gte('date', since.toISOString().split('T')[0])
+      .lt('date', todayStr)
+
+    const dates = new Set((logs || []).map(l => l.date))
+    let streak = 0
+    const cursor = new Date(now)
+    cursor.setDate(cursor.getDate() - 1) // ieri
+    while (dates.has(cursor.toISOString().split('T')[0])) {
+      streak++
+      cursor.setDate(cursor.getDate() - 1)
+    }
+
+    if (streak < 3) return // non vale la pena avvisare per 1-2 giorni
+
+    showNotification(
+      '🔥 Streak a rischio!',
+      `Hai un streak di ${streak} giorni consecutivi: registra un pasto prima di mezzanotte per non perderlo.`,
+      'streak-risk',
+    )
+    localStorage.setItem(lastKey, '1')
+  } catch {
+    // Fail silently
+  }
+}
+
+/**
  * Weekly summary — call on Sunday evening or on Monday morning.
  * @param {string} userId  Supabase user id
  */

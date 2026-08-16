@@ -256,6 +256,35 @@ export function AchievementsProvider({ children }) {
     return earned[key] ? { earned: true, earned_at: earned[key] } : { earned: false }
   }, [earned])
 
+  // app_streak_7 / logins_30: nessuna tabella nel DB traccia già le aperture
+  // giornaliere dell'app, e aggiungerne una richiederebbe una migration che
+  // non possiamo eseguire da qui (connessione Supabase di sessione in sola
+  // lettura) — teniamo lo storico degli ultimi 30 accessi in localStorage,
+  // per-dispositivo: non perfetto (un utente multi-dispositivo può risultare
+  // sotto-contato), ma sufficiente per un badge di engagement, non un dato
+  // clinico. Un solo giorno per data, deduplicato.
+  useEffect(() => {
+    if (!user) return
+    const KEY = 'login_dates'
+    const today = new Date().toISOString().split('T')[0]
+    let dates
+    try { dates = JSON.parse(localStorage.getItem(KEY) || '[]') } catch { dates = [] }
+    if (!dates.includes(today)) {
+      dates.push(today)
+      dates = dates.slice(-30)
+      localStorage.setItem(KEY, JSON.stringify(dates))
+    }
+    const dateSet = new Set(dates)
+    const toKey = d => d.toISOString().split('T')[0]
+    let cur = new Date()
+    if (!dateSet.has(toKey(cur))) cur.setDate(cur.getDate() - 1)
+    let streak = 0
+    while (dateSet.has(toKey(cur))) { streak++; cur.setDate(cur.getDate() - 1) }
+    if (streak >= 7) checkAndAward('app_streak_7')
+    if (dates.length >= 30) checkAndAward('logins_30')
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al cambio utente/mount, non ad ogni render
+  }, [user])
+
   return (
     <AchievementsContext.Provider value={{
       achievements: ALL_ACHIEVEMENTS,

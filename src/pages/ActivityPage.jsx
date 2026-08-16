@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useAchievements } from '../context/AchievementsContext'
 import { useT } from '../i18n'
 import ProGate from '../components/ProGate'
 import { useSubscription } from '../hooks/useSubscription'
@@ -101,7 +102,7 @@ function LogForm({ onClose, onSaved, userWeight, userId }) {
       <div style={{ width: '100%', maxWidth: 480, margin: '0 auto', background: 'var(--surface)', borderRadius: '24px 24px 0 0', padding: '20px 20px calc(24px + env(safe-area-inset-bottom))', maxHeight: '90dvh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <h3 style={{ fontSize: 17, fontWeight: 700 }}>Registra attività</h3>
-          <button onClick={onClose} style={{ background: 'var(--surface-3)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <button onClick={onClose} aria-label="Chiudi" style={{ background: 'var(--surface-3)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <X size={16} color="var(--text-muted)" />
           </button>
         </div>
@@ -170,6 +171,7 @@ function LogForm({ onClose, onSaved, userWeight, userId }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function ActivityPage() {
   const { profile, user } = useAuth()
+  const { checkAndAward } = useAchievements()
   const { isPro } = useSubscription()
   const t = useT()
   const today = new Date().toISOString().split('T')[0]
@@ -284,6 +286,14 @@ export default function ActivityPage() {
   const todaySteps = totalSteps
   const stepPct = Math.min(100, Math.round((todaySteps / stepGoal) * 100))
 
+  // Badge "10.000 passi": reagisce al totale calcolato (pedometro live +
+  // log manuali), non a un singolo salvataggio — coerente col fatto che
+  // totalSteps può crescere sia da un log manuale sia dal pedometro in
+  // background (vedi effetto di sync qui sopra).
+  useEffect(() => {
+    if (todaySteps >= 10000) checkAndAward('steps_10000').catch(() => {})
+  }, [todaySteps])
+
   async function deleteLog(id) {
     await supabase.from('activity_logs').delete().eq('id', id)
     setLogs(l => l.filter(x => x.id !== id))
@@ -383,6 +393,7 @@ export default function ActivityPage() {
   function reloadToday() {
     supabase.from('activity_logs').select('id,activity_type,duration_minutes,calories_burned,steps,notes,date,created_at').eq('user_id', user.id).eq('date', today).order('created_at')
       .then(({ data }) => { if (data) setLogs(data) })
+    checkAndAward('first_activity').catch(() => {})
   }
 
   // Weekly stats
@@ -551,7 +562,7 @@ export default function ActivityPage() {
                   inputMode="numeric"
                   min="500"
                 />
-                <button onClick={handleSaveGoal} style={{ background: 'var(--green-main)', border: 'none', borderRadius: 8, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <button onClick={handleSaveGoal} aria-label="Salva obiettivo passi" style={{ background: 'var(--green-main)', border: 'none', borderRadius: 8, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                   <Check size={14} color="white" />
                 </button>
               </div>
@@ -614,10 +625,10 @@ export default function ActivityPage() {
                   setActivityGoals(next)
                   try { localStorage.setItem('nutriplan_activity_goals', JSON.stringify(next)) } catch {}
                   setEditingGoals(false)
-                }} style={{ background: '#f97316', border: 'none', borderRadius: 8, minWidth: 44, minHeight: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                }} aria-label="Salva obiettivi" style={{ background: '#f97316', border: 'none', borderRadius: 8, minWidth: 44, minHeight: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                   <Check size={14} color="white" />
                 </button>
-                <button onClick={() => setEditingGoals(false)} style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 8, minWidth: 44, minHeight: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <button onClick={() => setEditingGoals(false)} aria-label="Annulla" style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 8, minWidth: 44, minHeight: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                   <X size={14} color="var(--text-muted)" />
                 </button>
               </div>
@@ -705,7 +716,7 @@ export default function ActivityPage() {
                         </p>
                         {l.notes && <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{l.notes}</p>}
                       </div>
-                      <button onClick={() => deleteLog(l.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 12, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <button onClick={() => deleteLog(l.id)} aria-label="Elimina attività" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 12, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Trash2 size={15} />
                       </button>
                     </div>

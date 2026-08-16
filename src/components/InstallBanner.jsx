@@ -71,7 +71,7 @@ export default function InstallBanner() {
           {t('install.install_btn')}
         </button>
       )}
-      <button onClick={dismiss} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}>
+      <button onClick={dismiss} aria-label="Chiudi banner installazione" style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}>
         <X size={18} />
       </button>
 

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useAchievements } from '../context/AchievementsContext'
+import { checkWellnessAchievements } from '../lib/achievementTriggers'
 import { useT } from '../i18n'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -124,6 +126,7 @@ let _wellnessHasExtended = true
 
 export default function WellnessPage() {
   const { user } = useAuth()
+  const { checkAndAward } = useAchievements()
   const t = useT()
   const today = new Date().toISOString().split('T')[0]
 
@@ -290,6 +293,7 @@ export default function WellnessPage() {
       setSaved(true)
       setShowForm(false)
       setTimeout(() => setSaved(false), 3000)
+      checkWellnessAchievements(supabase, user.id, checkAndAward).catch(() => {})
       await loadData()
     } catch (err) {
       console.error('Wellness unexpected error:', err)
@@ -525,6 +529,7 @@ export default function WellnessPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <button
                     onClick={() => setSleepHours(h => Math.max(0, (h ?? 7) - 0.5))}
+                    aria-label="Diminuisci ore di sonno"
                     style={{
                       width: 44, height: 44, borderRadius: 10, border: '1.5px solid var(--border)',
                       background: 'var(--surface-2)', cursor: 'pointer', fontSize: 18, fontWeight: 600,
@@ -540,6 +545,7 @@ export default function WellnessPage() {
                   </span>
                   <button
                     onClick={() => setSleepHours(h => Math.min(24, (h ?? 7) + 0.5))}
+                    aria-label="Aumenta ore di sonno"
                     style={{
                       width: 44, height: 44, borderRadius: 10, border: '1.5px solid var(--border)',
                       background: 'var(--surface-2)', cursor: 'pointer', fontSize: 18, fontWeight: 600,

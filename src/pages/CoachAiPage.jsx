@@ -208,6 +208,7 @@ export default function CoachAiPage() {
           <button
             type="submit"
             disabled={!canSend}
+            aria-label="Invia messaggio"
             style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: canSend ? '#7C3AED' : 'var(--border)', border: 'none', cursor: canSend ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <Send size={17} color="white" style={{ marginLeft: 2 }} />

@@ -281,7 +281,7 @@ function MealFeedbackModal({ meal, user, onClose }) {
             <p style={{ fontSize: 15, fontWeight: 700 }}>💬 Feedback al dietista</p>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Pasto: {mealLabel}</p>
           </div>
-          <button onClick={onClose} style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <button onClick={onClose} aria-label="Chiudi" style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <X size={16} color="var(--text-muted)" />
           </button>
         </div>

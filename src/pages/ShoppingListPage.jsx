@@ -507,7 +507,7 @@ function ListsTab({ user }) {
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{activeList.name}</span>
-                <button onClick={() => { setEditingName(activeList.id); setEditNameText(activeList.name) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
+                <button onClick={() => { setEditingName(activeList.id); setEditNameText(activeList.name) }} aria-label="Rinomina lista" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
                   <Edit2 size={13} />
                 </button>
               </div>
@@ -566,7 +566,7 @@ function ListsTab({ user }) {
                     >
                       {item.name}
                     </span>
-                    <button onClick={() => deleteItem(activeList.id, item.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4, display: 'flex', alignItems: 'center' }}>
+                    <button onClick={() => deleteItem(activeList.id, item.id)} aria-label="Rimuovi elemento" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4, display: 'flex', alignItems: 'center' }}>
                       <X size={14} />
                     </button>
                   </div>

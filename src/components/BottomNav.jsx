@@ -174,7 +174,7 @@ export default function BottomNav() {
     return (
       <>
         {!sidebarOpen && (
-          <button onClick={toggleSidebar} style={{
+          <button onClick={toggleSidebar} aria-label="Espandi menu laterale" style={{
             position: 'fixed', top: '50%', transform: 'translateY(-50%)', left: 0, zIndex: 1001,
             width: 22, height: 48, borderRadius: '0 8px 8px 0',
             border: '1px solid var(--border-light)', borderLeft: 'none',
@@ -197,7 +197,7 @@ export default function BottomNav() {
               <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.1, whiteSpace: 'nowrap' }}>Diet Plan</p>
               <p style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Dashboard</p>
             </div>
-            <button onClick={toggleSidebar} style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid var(--border-light)', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, color: 'var(--text-muted)', fontSize: 13, fontWeight: 700 }}>←</button>
+            <button onClick={toggleSidebar} aria-label="Comprimi menu laterale" style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid var(--border-light)', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, color: 'var(--text-muted)', fontSize: 13, fontWeight: 700 }}>←</button>
           </div>
 
           <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '10px 8px', minWidth: 220 }}>

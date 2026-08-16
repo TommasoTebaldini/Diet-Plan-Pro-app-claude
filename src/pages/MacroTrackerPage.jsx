@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { fetchDietFromPiani } from '../lib/dietBridge'
 import { useAuth } from '../context/AuthContext'
+import { useAchievements } from '../context/AchievementsContext'
+import { checkFoodLogAchievements } from '../lib/achievementTriggers'
 import { useT } from '../i18n'
 import { searchFoodsLocal, supplementWithOpenFoodFacts, searchByBarcode } from '../lib/foodSearch'
 import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle, Pencil, Check, Lock, Camera, Mic, Star, BookmarkPlus, ClipboardCopy, WifiOff } from 'lucide-react'
@@ -282,6 +284,7 @@ function conflictingAllergens(food, intolerances) {
 
 export default function MacroTrackerPage() {
   const { user, profile } = useAuth()
+  const { checkAndAward } = useAchievements()
   const { isPro } = useSubscription()
   const t = useT()
   const MEALS = MEALS_STATIC.map(m => ({
@@ -898,6 +901,10 @@ export default function MacroTrackerPage() {
 
   async function updateDailyLog() {
     await recomputeDailyLog(date)
+    // Best-effort: non deve mai bloccare/rallentare il salvataggio del pasto.
+    // Chiamata sia su add che su remove (checkAndAward è già idempotente per
+    // chiave già ottenuta) — vedi src/lib/achievementTriggers.js.
+    checkFoodLogAchievements(supabase, user.id, checkAndAward).catch(() => {})
   }
 
   async function removeFood(id) {
@@ -1059,6 +1066,7 @@ export default function MacroTrackerPage() {
             <button
               onClick={() => setShowPhotoAnalyzer(true)}
               title="Analizza foto pasto con AI"
+              aria-label="Analizza foto pasto con AI"
               style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}
             >
               <Camera size={18} />
@@ -1066,6 +1074,7 @@ export default function MacroTrackerPage() {
             <button
               onClick={() => setShowTextAnalyzer(true)}
               title="Racconta a voce o per iscritto cosa hai mangiato"
+              aria-label="Racconta a voce o per iscritto cosa hai mangiato"
               style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}
             >
               <Mic size={18} />
@@ -1073,6 +1082,7 @@ export default function MacroTrackerPage() {
             <button
               onClick={() => setShowScanner(true)}
               title="Scansiona codice a barre"
+              aria-label="Scansiona codice a barre"
               style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}
             >
               {scanningBarcode
@@ -1080,7 +1090,7 @@ export default function MacroTrackerPage() {
                 : <ScanLine size={18} />
               }
             </button>
-            <button onClick={() => changeDate(1)} title="Pianifica un giorno futuro" style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}>
+            <button onClick={() => changeDate(1)} title="Pianifica un giorno futuro" aria-label="Pianifica un giorno futuro" style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}>
               <ChevronRight size={18} />
             </button>
           </div>
@@ -1333,10 +1343,10 @@ export default function MacroTrackerPage() {
                           style={{ background: 'none', border: 'none', cursor: 'pointer', color: f.is_favorite ? '#f59e0b' : 'var(--text-muted)', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Star size={13} fill={f.is_favorite ? '#f59e0b' : 'none'} />
                         </button>
-                        <button onClick={() => { setEditingFood(f.id); setEditGrams(String(f.grams || 100)) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <button onClick={() => { setEditingFood(f.id); setEditGrams(String(f.grams || 100)) }} aria-label={`Modifica quantità di ${f.nome || 'alimento'}`} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Pencil size={13} />
                         </button>
-                        <button onClick={() => removeFood(f.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <button onClick={() => removeFood(f.id)} aria-label={`Rimuovi ${f.nome || 'alimento'} dal diario`} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -1353,7 +1363,7 @@ export default function MacroTrackerPage() {
                           <button onClick={() => updateFoodGrams(f)} disabled={editSaving} style={{ background: 'var(--green-main)', border: 'none', borderRadius: 8, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
                             {editSaving ? <span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'block' }} /> : <Check size={14} color="white" />}
                           </button>
-                          <button onClick={() => setEditingFood(null)} style={{ background: 'var(--surface-3)', border: 'none', borderRadius: 8, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                          <button onClick={() => setEditingFood(null)} aria-label="Annulla modifica" style={{ background: 'var(--surface-3)', border: 'none', borderRadius: 8, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
                             <X size={14} color="var(--text-muted)" />
                           </button>
                         </div>
@@ -1405,7 +1415,7 @@ export default function MacroTrackerPage() {
                       <div key={n.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 6, padding: '7px 10px', background: '#fffbeb', borderRadius: 8, border: '1px dashed #fde68a' }}>
                         <span style={{ fontSize: 15, lineHeight: 1.4 }}>📝</span>
                         <p style={{ flex: 1, fontSize: 12.5, color: '#78350f', lineHeight: 1.5, margin: 0 }}>{noteText}</p>
-                        <button onClick={() => removeFood(n.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b45309', padding: '2px 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <button onClick={() => removeFood(n.id)} aria-label="Rimuovi nota" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b45309', padding: '2px 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Trash2 size={12} />
                         </button>
                       </div>
@@ -1634,7 +1644,7 @@ export default function MacroTrackerPage() {
                                   <span style={{ fontSize: 10, color: 'var(--green-dark)', opacity: 0.7 }}>per {grams || 100}g</span>
                                 </div>
                               </div>
-                              <button onClick={() => { setSelected(null); setQuery('') }} style={{ background: 'rgba(0,0,0,.08)', border: 'none', cursor: 'pointer', width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--green-dark)' }}><X size={13} /></button>
+                              <button onClick={() => { setSelected(null); setQuery('') }} aria-label="Deseleziona alimento" style={{ background: 'rgba(0,0,0,.08)', border: 'none', cursor: 'pointer', width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--green-dark)' }}><X size={13} /></button>
                             </div>
                             {/* Macro grid */}
                             {preview && (
@@ -1871,7 +1881,7 @@ export default function MacroTrackerPage() {
           <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 20, width: '100%', maxWidth: 400, maxHeight: '85dvh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h3 style={{ fontSize: 16, fontWeight: 700 }}>Salva pasto come modello</h3>
-              <button onClick={() => { setShowSaveMealModal(false); setSaveMealName('') }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+              <button onClick={() => { setShowSaveMealModal(false); setSaveMealName('') }} aria-label="Chiudi" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
             </div>
             <div className="input-group" style={{ marginBottom: 14 }}>
               <label className="input-label">Nome del pasto</label>
@@ -1901,7 +1911,7 @@ export default function MacroTrackerPage() {
           <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 20, width: '100%', maxWidth: 400, maxHeight: '85dvh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h3 style={{ fontSize: 16, fontWeight: 700 }}>Copia giornata alimentare</h3>
-              <button onClick={() => { setShowCopyModal(false); setCopyTargetDate('') }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+              <button onClick={() => { setShowCopyModal(false); setCopyTargetDate('') }} aria-label="Chiudi" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
             </div>
             {copyDone !== null ? (
               <div style={{ textAlign: 'center', padding: '20px 0' }}>
@@ -1952,7 +1962,7 @@ export default function MacroTrackerPage() {
             <div className="animate-slideUp" style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', padding: 20, paddingBottom: 'calc(20px + env(safe-area-inset-bottom))', maxHeight: '90dvh', overflowY: 'auto', boxSizing: 'border-box' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                 <h3 style={{ fontSize: 16, fontWeight: 700 }}>Aggiungi alimento</h3>
-                <button onClick={() => setRecentFoodPicker(null)} style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <button onClick={() => setRecentFoodPicker(null)} aria-label="Chiudi" style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                   <X size={16} />
                 </button>
               </div>
@@ -2018,7 +2028,7 @@ export default function MacroTrackerPage() {
             <div className="animate-slideUp" style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', padding: 20, paddingBottom: 'calc(20px + env(safe-area-inset-bottom))', maxHeight: '90dvh', overflowY: 'auto', boxSizing: 'border-box' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                 <h3 style={{ fontSize: 16, fontWeight: 700 }}>🛒 Alimento trovato</h3>
-                <button onClick={() => setBarcodeFoodModal(null)} style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <button onClick={() => setBarcodeFoodModal(null)} aria-label="Chiudi" style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                   <X size={16} />
                 </button>
               </div>

@@ -21,6 +21,36 @@ import { useFirstVisit } from '../hooks/useFirstVisit'
 const r1 = v => Math.round((+v || 0) * 10) / 10
 const r0 = v => Math.round(+v || 0)
 
+// Testo di framing basato sull'obiettivo scelto in onboarding (profiles.nutrition_goal) —
+// prima raccolto e mai più letto da nessuna parte, ora dà contesto al target calorico.
+const GOAL_LABELS = {
+  lose: 'perdere peso',
+  maintain: 'mantenere il peso',
+  gain: 'aumentare la massa muscolare',
+}
+
+// Aderenza settimanale al piano del dietista: % di giorni (ultimi 7, oggi escluso se
+// ancora in corso) in cui le kcal registrate rientrano in una banda ragionevole (±15%)
+// del target prescritto da NutriPlan-Pro. Un giorno senza alcuna registrazione conta
+// come non allineato: non loggare è comunque una deviazione dal piano.
+const ADHERENCE_BAND = 0.15
+function computeAdherence(dailyRows, kcalTarget, todayStr) {
+  if (!kcalTarget) return null
+  const byDate = new Map(dailyRows.map(r => [r.date, r.kcal]))
+  const days = []
+  for (let i = 1; i <= 7; i++) {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    days.push(d.toISOString().split('T')[0])
+  }
+  let aligned = 0
+  days.forEach(d => {
+    const kcal = byDate.get(d)
+    if (kcal != null && Math.abs(kcal - kcalTarget) <= kcalTarget * ADHERENCE_BAND) aligned++
+  })
+  return Math.round((aligned / days.length) * 100)
+}
+
 // Animated progress ring: starts at 0, transitions to target pct on mount
 function Ring({ pct, color, size = 60, strokeWidth = 7 }) {
   const [display, setDisplay] = useState(0)
@@ -157,6 +187,7 @@ export default function DashboardPage() {
   const [weight, setWeight] = useState(null)
   const [unreadChat, setUnreadChat] = useState(0)
   const [streak, setStreak] = useState(0)
+  const [adherence, setAdherence] = useState(null)
   const [nextMealInfo, setNextMealInfo] = useState(null)
   const [appointment, setAppointment] = useState(null)
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('onboarding_done'))
@@ -187,8 +218,11 @@ export default function DashboardPage() {
       const sixtyAgo = new Date(now)
       sixtyAgo.setDate(sixtyAgo.getDate() - 60)
 
+      const sevenAgo = new Date(now)
+      sevenAgo.setDate(sevenAgo.getDate() - 7)
+
       // Single parallel batch — everything at once, no waterfalls
-      const [log, water, activeDiet, w, chat, streakRes, apptRes] = await Promise.allSettled([
+      const [log, water, activeDiet, w, chat, streakRes, apptRes, weekRes] = await Promise.allSettled([
         supabase.from('daily_logs').select('kcal,proteins,carbs,fats').eq('user_id', user.id).eq('date', today).maybeSingle(),
         supabase.from('water_logs').select('amount_ml').eq('user_id', user.id).eq('date', today),
         supabase.from('patient_diets').select('id,name,kcal_target,protein_target,carbs_target,fats_target,notes').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
@@ -196,6 +230,7 @@ export default function DashboardPage() {
         supabase.from('chat_messages').select('id', { count: 'exact' }).eq('patient_id', user.id).eq('sender_role', 'dietitian').is('read_at', null),
         supabase.from('daily_logs').select('date').eq('user_id', user.id).gte('date', sixtyAgo.toISOString().split('T')[0]).order('date', { ascending: false }),
         supabase.from('appointments').select('id,appointment_date,title,notes').eq('patient_id', user.id).gte('appointment_date', now.toISOString()).order('appointment_date').limit(1).maybeSingle(),
+        supabase.from('daily_logs').select('date,kcal').eq('user_id', user.id).gte('date', sevenAgo.toISOString().split('T')[0]),
       ])
 
       if (log.value?.data) setTodayLog(log.value.data)
@@ -221,6 +256,13 @@ export default function DashboardPage() {
         if (synth) currentDiet = synth
       }
       setDiet(currentDiet)
+
+      // Aderenza settimanale al piano — solo se abbiamo un target kcal reale
+      // (piano prescritto dal dietista, non un default generico).
+      if (currentDiet?.kcal_target) {
+        const weekRows = weekRes.value?.data || []
+        setAdherence(computeAdherence(weekRows, currentDiet.kcal_target, today))
+      }
 
       // Streak calculation
       const streakRows = streakRes.value?.data
@@ -353,6 +395,39 @@ export default function DashboardPage() {
       </div>
 
       <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* ── Aderenza al piano del dietista — il metro che nessun tracker
+             consumer generico (MyFitnessPal/Cronometer/Yazio) può offrire,
+             perché non ha un professionista reale dietro i target. Mostrato
+             solo quando abbiamo un target kcal prescritto, non il default. ── */}
+        {diet?.kcal_target && adherence !== null && (
+          <motion.div
+            className="card"
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}
+          >
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <Ring
+                pct={adherence}
+                color={adherence >= 70 ? 'var(--green-main)' : adherence >= 40 ? '#f59e0b' : '#dc4a4a'}
+                size={56}
+                strokeWidth={6}
+              />
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)' }}>{adherence}%</span>
+              </div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 2 }}>Aderenza al piano</p>
+              <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3 }}>
+                {adherence}% allineato al piano del tuo dietista questa settimana
+              </p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Giorni con kcal entro ±15% dal target prescritto (ultimi 7 giorni)</p>
+            </div>
+          </motion.div>
+        )}
+
         {/* Quick actions 4x2 */}
         <div data-tutorial="quick-actions">
           <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12 }}>Accesso rapido</p>
@@ -439,6 +514,11 @@ export default function DashboardPage() {
             <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Piano attivo</p>
             <p style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.3 }}>{diet?.name || 'Nessun piano'}</p>
             {diet && <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{diet.kcal_target} kcal</p>}
+            {diet && profile?.nutrition_goal && GOAL_LABELS[profile.nutrition_goal] && (
+              <p style={{ fontSize: 10, color: 'var(--green-main)', marginTop: 3, fontWeight: 600 }}>
+                In linea con il tuo obiettivo: {GOAL_LABELS[profile.nutrition_goal]}
+              </p>
+            )}
           </motion.div>
         </div>
 
@@ -598,6 +678,7 @@ export default function DashboardPage() {
                 <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>🧠 Quiz del giorno</span>
                 <button
                   onClick={() => setShowQuiz(false)}
+                  aria-label="Chiudi quiz"
                   style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--surface-2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1 }}
                 >✕</button>
               </div>

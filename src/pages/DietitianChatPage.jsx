@@ -246,7 +246,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
               {step === 1 ? 'Collega paziente' : 'Seleziona cartella'}
             </span>
           </div>
-          <button onClick={onClose} style={{
+          <button onClick={onClose} aria-label="Chiudi" style={{
             background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8,
             width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer',
@@ -753,6 +753,7 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
               <button
                 onClick={onStartCall}
                 title="Avvia videochiamata"
+                aria-label="Avvia videochiamata"
                 style={{ background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer', padding: 9, minWidth: 40, minHeight: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
               >
                 <Video size={17} color="white" />
@@ -873,7 +874,7 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
                   style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontFamily: 'var(--font-body)', fontSize: 15, color: 'var(--text-primary)', resize: 'none', maxHeight: 100, lineHeight: 1.5 }}
                 />
               </div>
-              <button type="submit" disabled={!text.trim() || sending} style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: text.trim() ? 'var(--green-main)' : 'var(--border)', border: 'none', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.15s', boxShadow: text.trim() ? '0 2px 8px rgba(26,127,90,0.3)' : 'none' }}>
+              <button type="submit" disabled={!text.trim() || sending} aria-label="Invia messaggio" style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: text.trim() ? 'var(--green-main)' : 'var(--border)', border: 'none', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.15s', boxShadow: text.trim() ? '0 2px 8px rgba(26,127,90,0.3)' : 'none' }}>
                 <Send size={17} color="white" style={{ marginLeft: 2 }} />
               </button>
             </form>

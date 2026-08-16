@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { useAppSettings } from '../context/AppSettingsContext'
+import { useAchievements } from '../context/AchievementsContext'
+import { checkWeightAchievements } from '../lib/achievementTriggers'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useT } from '../i18n'
@@ -42,7 +44,7 @@ function Modal({ title, onClose, children }) {
   return (
     <div className="modal-fullscreen" style={{ position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', flexDirection: 'column', background: 'var(--surface)' }}>
       <div style={{ background: 'linear-gradient(160deg, var(--green-dark), var(--green-main))', padding: 'calc(env(safe-area-inset-top) + 14px) 18px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0 }}>
+        <button onClick={onClose} aria-label="Chiudi" style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0 }}>
           <X size={18} />
         </button>
         <h2 style={{ color: 'white', fontSize: 17, fontWeight: 600 }}>{title}</h2>
@@ -56,6 +58,7 @@ function Modal({ title, onClose, children }) {
 
 // ─── Personal data modal ──────────────────────────────────────────────────────
 function PersonalDataModal({ profile, user, onClose, onSaved }) {
+  const { checkAndAward } = useAchievements()
   const [form, setForm] = useState({
     first_name: profile?.first_name || '',
     last_name: profile?.last_name || '',
@@ -88,7 +91,13 @@ function PersonalDataModal({ profile, user, onClose, onSaved }) {
       }, { onConflict: 'user_id,date' }))
     }
     setSaving(false)
-    if (!error && !weightError) { setSaved(true); setTimeout(() => { onSaved(); onClose() }, 900) }
+    if (!error && !weightError) {
+      setSaved(true)
+      if (currentWeight) checkWeightAchievements(supabase, user.id, checkAndAward, parseFloat(currentWeight)).catch(() => {})
+      const coreFilled = form.first_name && form.last_name && form.birth_date && form.gender && form.height_cm && form.activity_level
+      if (coreFilled) checkAndAward('profile_complete').catch(() => {})
+      setTimeout(() => { onSaved(); onClose() }, 900)
+    }
   }
 
   const ACTIVITY = [
@@ -104,23 +113,23 @@ function PersonalDataModal({ profile, user, onClose, onSaved }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div className="input-group">
-            <label className="input-label">Nome</label>
-            <input className="input-field" value={form.first_name} onChange={set('first_name')} placeholder="Mario" />
+            <label className="input-label" htmlFor="pd-first-name">Nome</label>
+            <input id="pd-first-name" className="input-field" value={form.first_name} onChange={set('first_name')} placeholder="Mario" />
           </div>
           <div className="input-group">
-            <label className="input-label">Cognome</label>
-            <input className="input-field" value={form.last_name} onChange={set('last_name')} placeholder="Rossi" />
+            <label className="input-label" htmlFor="pd-last-name">Cognome</label>
+            <input id="pd-last-name" className="input-field" value={form.last_name} onChange={set('last_name')} placeholder="Rossi" />
           </div>
         </div>
         <div className="input-group">
-          <label className="input-label">Data di nascita</label>
-          <input type="date" className="input-field" value={form.birth_date} onChange={set('birth_date')} />
+          <label className="input-label" htmlFor="pd-birth-date">Data di nascita</label>
+          <input id="pd-birth-date" type="date" className="input-field" value={form.birth_date} onChange={set('birth_date')} />
         </div>
         <div className="input-group">
           <label className="input-label">Sesso</label>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div role="group" aria-label="Sesso" style={{ display: 'flex', gap: 10 }}>
             {['M', 'F'].map(g => (
-              <button key={g} onClick={() => setForm(f => ({ ...f, gender: g }))} style={{ flex: 1, padding: '11px', borderRadius: 12, background: form.gender === g ? 'var(--green-main)' : 'var(--surface-2)', color: form.gender === g ? 'white' : 'var(--text-secondary)', border: `1.5px solid ${form.gender === g ? 'transparent' : 'var(--border)'}`, font: 'inherit', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
+              <button key={g} onClick={() => setForm(f => ({ ...f, gender: g }))} aria-pressed={form.gender === g} style={{ flex: 1, padding: '11px', borderRadius: 12, background: form.gender === g ? 'var(--green-main)' : 'var(--surface-2)', color: form.gender === g ? 'white' : 'var(--text-secondary)', border: `1.5px solid ${form.gender === g ? 'transparent' : 'var(--border)'}`, font: 'inherit', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
                 {g === 'M' ? '♂ Maschio' : '♀ Femmina'}
               </button>
             ))}
@@ -128,21 +137,21 @@ function PersonalDataModal({ profile, user, onClose, onSaved }) {
         </div>
         <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div className="input-group">
-            <label className="input-label">Altezza (cm)</label>
-            <input type="number" className="input-field" value={form.height_cm} onChange={set('height_cm')} placeholder="170" inputMode="decimal" />
+            <label className="input-label" htmlFor="pd-height">Altezza (cm)</label>
+            <input id="pd-height" type="number" className="input-field" value={form.height_cm} onChange={set('height_cm')} placeholder="170" inputMode="decimal" />
           </div>
           <div className="input-group">
-            <label className="input-label">Peso attuale (kg)</label>
-            <input type="number" className="input-field" value={currentWeight} onChange={e => setCurrentWeight(e.target.value)} placeholder="es. 72" inputMode="decimal" step="0.1" />
+            <label className="input-label" htmlFor="pd-current-weight">Peso attuale (kg)</label>
+            <input id="pd-current-weight" type="number" className="input-field" value={currentWeight} onChange={e => setCurrentWeight(e.target.value)} placeholder="es. 72" inputMode="decimal" step="0.1" />
           </div>
         </div>
         <div className="input-group">
-          <label className="input-label">Peso obiettivo (kg)</label>
-          <input type="number" className="input-field" value={form.target_weight} onChange={set('target_weight')} placeholder="70" inputMode="decimal" step="0.1" />
+          <label className="input-label" htmlFor="pd-target-weight">Peso obiettivo (kg)</label>
+          <input id="pd-target-weight" type="number" className="input-field" value={form.target_weight} onChange={set('target_weight')} placeholder="70" inputMode="decimal" step="0.1" />
         </div>
         <div className="input-group">
-          <label className="input-label">Livello attività fisica</label>
-          <select className="input-field" value={form.activity_level} onChange={set('activity_level')}>
+          <label className="input-label" htmlFor="pd-activity-level">Livello attività fisica</label>
+          <select id="pd-activity-level" className="input-field" value={form.activity_level} onChange={set('activity_level')}>
             <option value="">Seleziona…</option>
             {ACTIVITY.map(a => <option key={a.val} value={a.val}>{a.label}</option>)}
           </select>
@@ -326,7 +335,7 @@ function SecurityModal({ onClose }) {
             <div style={{ position: 'relative' }}>
               <input type={show ? 'text' : 'password'} className="input-field" value={form[k]} onChange={set(k)} placeholder="••••••••" style={{ paddingRight: 44 }} />
               {i === 0 && (
-                <button type="button" onClick={() => setShow(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
+                <button type="button" onClick={() => setShow(v => !v)} aria-label={show ? 'Nascondi password' : 'Mostra password'} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
                   {show ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               )}
@@ -342,9 +351,9 @@ function SecurityModal({ onClose }) {
 }
 
 // ─── Notifications modal ──────────────────────────────────────────────────────
-function Toggle({ on, onClick }) {
+function Toggle({ on, onClick, label }) {
   return (
-    <button onClick={onClick} style={{
+    <button onClick={onClick} role="switch" aria-checked={on} aria-label={label} style={{
       width: 48, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer',
       background: on ? 'var(--green-main)' : 'var(--border)',
       transition: 'background 0.2s', position: 'relative', flexShrink: 0,
@@ -474,7 +483,7 @@ function NotificationsModal({ user, onClose }) {
               <p style={{ fontSize: 14, fontWeight: 500 }}>{item.label}</p>
               <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{item.desc}</p>
             </div>
-            <Toggle on={prefs[item.key]} onClick={() => update({ [item.key]: !prefs[item.key] })} />
+            <Toggle on={prefs[item.key]} onClick={() => update({ [item.key]: !prefs[item.key] })} label={item.label} />
           </div>
         ))}
       </div>
@@ -487,7 +496,7 @@ function NotificationsModal({ user, onClose }) {
             <p style={{ fontSize: 14, fontWeight: 500 }}>Promemoria pasti</p>
             <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Notifica per ogni pasto configurato</p>
           </div>
-          <Toggle on={prefs.mealReminder} onClick={() => update({ mealReminder: !prefs.mealReminder })} />
+          <Toggle on={prefs.mealReminder} onClick={() => update({ mealReminder: !prefs.mealReminder })} label="Promemoria pasti" />
         </div>
         {prefs.mealReminder && (
           <div style={{ padding: '10px 0 4px' }}>
@@ -522,7 +531,7 @@ function NotificationsModal({ user, onClose }) {
                       labels.splice(i, 1)
                       update({ mealLabels: labels })
                       removeMealTime(i)
-                    }} style={{ background: '#fff0f0', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)', cursor: 'pointer', flexShrink: 0 }}>
+                    }} aria-label={`Rimuovi ${placeholder}`} style={{ background: '#fff0f0', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)', cursor: 'pointer', flexShrink: 0 }}>
                       <Trash2 size={15} />
                     </button>
                   )}
@@ -546,7 +555,7 @@ function NotificationsModal({ user, onClose }) {
             <p style={{ fontSize: 14, fontWeight: 500 }}>Promemoria acqua</p>
             <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Ricordami di bere durante la giornata</p>
           </div>
-          <Toggle on={prefs.waterReminder} onClick={() => update({ waterReminder: !prefs.waterReminder })} />
+          <Toggle on={prefs.waterReminder} onClick={() => update({ waterReminder: !prefs.waterReminder })} label="Promemoria idratazione" />
         </div>
         {prefs.waterReminder && (
           <div style={{ padding: '10px 0 4px' }}>
@@ -572,7 +581,7 @@ function NotificationsModal({ user, onClose }) {
             <p style={{ fontSize: 14, fontWeight: 500 }}>Promemoria settimanale</p>
             <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Ricordami di pesarmi una volta a settimana</p>
           </div>
-          <Toggle on={prefs.weighReminder} onClick={() => update({ weighReminder: !prefs.weighReminder })} />
+          <Toggle on={prefs.weighReminder} onClick={() => update({ weighReminder: !prefs.weighReminder })} label="Promemoria pesata settimanale" />
         </div>
         {prefs.weighReminder && (
           <div className="form-grid-2" style={{ padding: '10px 0 4px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -602,7 +611,7 @@ function NotificationsModal({ user, onClose }) {
             <p style={{ fontSize: 14, fontWeight: 500 }}>Promemoria visita</p>
             <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Avvisami 1 ora prima dell'appuntamento</p>
           </div>
-          <Toggle on={prefs.appointmentReminder} onClick={() => update({ appointmentReminder: !prefs.appointmentReminder })} />
+          <Toggle on={prefs.appointmentReminder} onClick={() => update({ appointmentReminder: !prefs.appointmentReminder })} label="Promemoria appuntamenti" />
         </div>
         {prefs.appointmentReminder && (
           <div className="form-grid-2" style={{ padding: '10px 0 4px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -647,7 +656,7 @@ function AppearanceModal({ onClose }) {
             <p style={{ fontSize: 14, fontWeight: 500 }}>Modalità scura</p>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Riduci l'affaticamento degli occhi</p>
           </div>
-          <button onClick={() => update({ darkMode: !settings.darkMode })} style={{
+          <button onClick={() => update({ darkMode: !settings.darkMode })} role="switch" aria-checked={settings.darkMode} aria-label="Modalità scura" style={{
             width: 48, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer',
             background: settings.darkMode ? 'var(--green-main)' : 'var(--border)',
             transition: 'background 0.2s', position: 'relative', flexShrink: 0
@@ -670,7 +679,7 @@ function AppearanceModal({ onClose }) {
             <p style={{ fontSize: 14, fontWeight: 500 }}>Alto contrasto</p>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Migliora la leggibilità del testo</p>
           </div>
-          <button onClick={() => update({ highContrast: !settings.highContrast })} style={{
+          <button onClick={() => update({ highContrast: !settings.highContrast })} role="switch" aria-checked={settings.highContrast} aria-label="Alto contrasto" style={{
             width: 48, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer',
             background: settings.highContrast ? 'var(--green-main)' : 'var(--border)',
             transition: 'background 0.2s', position: 'relative', flexShrink: 0
@@ -1120,7 +1129,7 @@ export default function ProfilePage() {
                 firstName[0]?.toUpperCase()
               )}
             </div>
-            <button onClick={() => fileInputRef.current?.click()} style={{ position: 'absolute', bottom: 0, right: 0, width: 26, height: 26, borderRadius: '50%', background: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.25)' }}>
+            <button onClick={() => fileInputRef.current?.click()} aria-label="Cambia foto profilo" style={{ position: 'absolute', bottom: 0, right: 0, width: 26, height: 26, borderRadius: '50%', background: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.25)' }}>
               <Camera size={13} color="var(--green-dark)" />
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarChange} />
@@ -1245,7 +1254,7 @@ export default function ProfilePage() {
                   const next = { ...notifPrefs, [item.key]: !notifPrefs[item.key] }
                   setNotifPrefs(next)
                   try { localStorage.setItem('nutriplan_notif_prefs', JSON.stringify(next)) } catch {}
-                }} style={{
+                }} role="switch" aria-checked={notifPrefs[item.key]} aria-label={item.label.replace(/^[^\w]+/, '').trim()} style={{
                   width: 44, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer',
                   background: notifPrefs[item.key] ? 'var(--green-main)' : 'var(--border)',
                   transition: 'background 0.2s', position: 'relative', flexShrink: 0,

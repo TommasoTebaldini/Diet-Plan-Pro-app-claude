@@ -166,7 +166,7 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
             <h2 style={{ fontSize: 17, fontWeight: 700 }}>Prenota un colloquio</h2>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>con {dietitianName}</p>
           </div>
-          <button onClick={onClose} style={{ ...btnNav, borderRadius: '50%', width: 32, height: 32 }}>
+          <button onClick={onClose} aria-label="Chiudi" style={{ ...btnNav, borderRadius: '50%', width: 32, height: 32 }}>
             <X size={16} />
           </button>
         </div>

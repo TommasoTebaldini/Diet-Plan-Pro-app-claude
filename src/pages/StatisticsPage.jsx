@@ -24,8 +24,37 @@ const TABS_STATIC = [
   { key: 'adherence', emoji: '✅', label: '✅ Aderenza' },
   { key: 'micro', emoji: '🥕', label: '🥕 Micro' },
   { key: 'comparison', emoji: '⚖️', label: '⚖️ Confronto' },
+  { key: 'insights', emoji: '🔎', label: '🔎 Insight' },
   { key: 'report', emoji: '📄', label: '📄 Report PDF' },
 ]
+
+// Soglia minima di giorni con entrambi i valori disponibili prima di mostrare
+// un insight — sotto questa soglia la differenza tra bucket è più rumore che
+// segnale, meglio non mostrare nulla che mostrare un confronto fuorviante.
+const MIN_INSIGHT_DAYS = 10
+
+// Divide le righe in due gruppi in base alla mediana di `field`, poi
+// confronta la media di `compareField` tra i due gruppi. Nessuna libreria
+// statistica: solo bucket sopra/sotto mediana e media semplice, per restare
+// leggibile e trasparente (non un claim di causalità).
+function medianSplitInsight(rows, field, compareField) {
+  const valid = rows.filter(r => isFinite(r[field]) && isFinite(r[compareField]))
+  if (valid.length < MIN_INSIGHT_DAYS) return null
+  const sorted = [...valid].sort((a, b) => a[field] - b[field])
+  const mid = Math.floor(sorted.length / 2)
+  const median = sorted.length % 2 ? sorted[mid][field] : (sorted[mid - 1][field] + sorted[mid][field]) / 2
+  const below = valid.filter(r => r[field] < median)
+  const above = valid.filter(r => r[field] >= median)
+  if (below.length < 3 || above.length < 3) return null
+  return {
+    n: valid.length,
+    median,
+    belowAvg: avg(below.map(r => r[compareField])),
+    aboveAvg: avg(above.map(r => r[compareField])),
+    belowN: below.length,
+    aboveN: above.length,
+  }
+}
 
 // Micronutrienti: valori di riferimento giornalieri per adulti (LARN/EFSA,
 // arrotondati). `max: true` = soglia da NON superare (sodio, colesterolo),
@@ -126,6 +155,7 @@ export default function StatisticsPage() {
   const [mealsCount, setMealsCount] = useState(3)
   const [generatingPdf, setGeneratingPdf] = useState(false)
   const [microData, setMicroData] = useState(null) // caricato lazy al primo ingresso nel tab Micro
+  const [insightsData, setInsightsData] = useState(null) // caricato lazy al primo ingresso nel tab Insight
   const [pdfMode, setPdfMode] = useState('weekly')
   const [monthStr, setMonthStr] = useState(format(new Date(), 'yyyy-MM'))
   const [generatingMonthlyPdf, setGeneratingMonthlyPdf] = useState(false)
@@ -187,6 +217,33 @@ export default function StatisticsPage() {
         setMicroData({ daily, nDays: days.size, nLogs: rows.length, withMicro })
       })
   }, [tab, user?.id, weekOffset]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Insight di correlazione: finestra fissa di 30 giorni (indipendente dal
+  // navigatore settimanale sopra), caricata lazy solo quando si apre il tab
+  // — stesso pattern del tab Micro. Unisce daily_logs (proteine) e
+  // daily_wellness (umore/energia/sonno) per data.
+  useEffect(() => {
+    if (tab !== 'insights' || !user?.id || insightsData) return
+    const since = isoDate(subDays(new Date(), 30))
+    Promise.all([
+      supabase.from('daily_logs').select('date,proteins').eq('user_id', user.id).gte('date', since),
+      supabase.from('daily_wellness').select('date,mood,energy,sleep_hours').eq('user_id', user.id).gte('date', since),
+    ]).then(([macroRes, wellnessRes]) => {
+      const macroByDate = {}
+      for (const m of macroRes.data || []) macroByDate[m.date] = m.proteins
+      const rows = (wellnessRes.data || []).map(w => ({
+        date: w.date,
+        proteins: macroByDate[w.date] != null ? parseFloat(macroByDate[w.date]) : null,
+        mood: w.mood != null ? parseFloat(w.mood) : null,
+        energy: w.energy != null ? parseFloat(w.energy) : null,
+        sleepHours: w.sleep_hours != null ? parseFloat(w.sleep_hours) : null,
+      }))
+      setInsightsData({
+        proteinEnergy: medianSplitInsight(rows, 'proteins', 'energy'),
+        sleepMood: medianSplitInsight(rows, 'sleepHours', 'mood'),
+      })
+    })
+  }, [tab, user?.id, insightsData])
 
   async function loadAll() {
     setLoading(true)
@@ -710,7 +767,7 @@ export default function StatisticsPage() {
 
           {/* week navigator */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface)', borderRadius: 14, padding: '10px 16px', border: '1px solid var(--border-light)' }}>
-            <button onClick={() => isPro && setWeekOffset(v => v + 1)} disabled={!isPro} style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', cursor: isPro ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', opacity: isPro ? 1 : 0.5 }}>
+            <button onClick={() => isPro && setWeekOffset(v => v + 1)} disabled={!isPro} aria-label="Settimana precedente" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', cursor: isPro ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', opacity: isPro ? 1 : 0.5 }}>
               {isPro ? <ChevronLeft size={16} color="var(--text-secondary)" /> : <Lock size={14} color="var(--text-muted)" />}
             </button>
             <div style={{ textAlign: 'center' }}>
@@ -718,7 +775,7 @@ export default function StatisticsPage() {
               {weekOffset === 0 && <p style={{ fontSize: 11, color: 'var(--green-main)' }}>Settimana corrente</p>}
               {weekOffset > 0 && <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{weekOffset} {weekOffset === 1 ? 'settimana' : 'settimane'} fa</p>}
             </div>
-            <button onClick={() => setWeekOffset(v => Math.max(0, v - 1))} disabled={weekOffset === 0} style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', cursor: weekOffset === 0 ? 'default' : 'pointer', opacity: weekOffset === 0 ? 0.4 : 1, display: 'flex', alignItems: 'center' }}>
+            <button onClick={() => setWeekOffset(v => Math.max(0, v - 1))} disabled={weekOffset === 0} aria-label="Settimana successiva" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', cursor: weekOffset === 0 ? 'default' : 'pointer', opacity: weekOffset === 0 ? 0.4 : 1, display: 'flex', alignItems: 'center' }}>
               <ChevronRight size={16} color="var(--text-secondary)" />
             </button>
           </div>
@@ -1030,6 +1087,59 @@ export default function StatisticsPage() {
                     <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-secondary)' }}>{prevAvg.water ? `${Math.round(prevAvg.water)}` : '–'} <span style={{ fontSize: 13 }}>ml/die</span></p>
                   </div>
                 </div>
+              </div>
+            </>
+            </ProGate>
+          )}
+
+          {/* ── TAB: insight di correlazione ── */}
+          {tab === 'insights' && (
+            <ProGate feature="Insight personalizzati" teaser="Scopri correlazioni tra alimentazione, sonno e benessere nei tuoi dati">
+            <>
+              <div className="card" style={{ padding: '18px 16px' }}>
+                <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>🔎 Insight sui tuoi dati</p>
+                <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 14 }}>
+                  Calcolati sugli ultimi 30 giorni, confrontando i giorni con valori sopra e sotto la tua media. Sono correlazioni osservate nei tuoi dati, non un parere clinico: per qualunque dubbio parlane con il tuo dietista.
+                </p>
+
+                {insightsData === null ? (
+                  <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Caricamento…</p>
+                ) : !insightsData.proteinEnergy && !insightsData.sleepMood ? (
+                  <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                    Serve più storico per questa analisi: continua a registrare diario alimentare e check-in di benessere, gli insight compariranno qui appena ci sono abbastanza giorni di dati.
+                  </p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    {insightsData.proteinEnergy && (() => {
+                      const r = insightsData.proteinEnergy
+                      const diff = round1(r.aboveAvg - r.belowAvg)
+                      return (
+                        <div style={{ background: 'var(--surface-2)', borderRadius: 12, padding: '14px 16px' }}>
+                          <p style={{ fontSize: 13, lineHeight: 1.6 }}>
+                            💪 Nei giorni con <b>più proteine</b> ({round1(r.median)}g o più, {r.aboveN} giorni) il tuo livello di energia registrato è in media <b>{round1(r.aboveAvg)}/10</b>, contro <b>{round1(r.belowAvg)}/10</b> nei giorni con meno proteine ({r.belowN} giorni)
+                            {Math.abs(diff) >= 0.3
+                              ? diff > 0 ? ' — una differenza a favore dei giorni ad alto apporto proteico.' : ' — una differenza a favore dei giorni a basso apporto proteico.'
+                              : ' — differenza minima, per ora nessun pattern chiaro.'}
+                          </p>
+                        </div>
+                      )
+                    })()}
+                    {insightsData.sleepMood && (() => {
+                      const r = insightsData.sleepMood
+                      const diff = round1(r.aboveAvg - r.belowAvg)
+                      return (
+                        <div style={{ background: 'var(--surface-2)', borderRadius: 12, padding: '14px 16px' }}>
+                          <p style={{ fontSize: 13, lineHeight: 1.6 }}>
+                            😴 Nei giorni in cui hai dormito <b>{round1(r.median)}+ ore</b> ({r.aboveN} giorni) il tuo umore registrato è in media <b>{round1(r.aboveAvg)}/10</b>, contro <b>{round1(r.belowAvg)}/10</b> nei giorni con meno sonno ({r.belowN} giorni)
+                            {Math.abs(diff) >= 0.3
+                              ? diff > 0 ? ' — dormire di più sembra accompagnarsi a un umore migliore, nei tuoi dati.' : ' — dormire di meno sembra accompagnarsi a un umore migliore, nei tuoi dati (verifica se ci sono altri fattori).'
+                              : ' — differenza minima, per ora nessun pattern chiaro.'}
+                          </p>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
               </div>
             </>
             </ProGate>

@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Utensils, Droplets, Bell, CheckCircle, Target, User, X } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
+import { useAchievements } from '../context/AchievementsContext'
+import { supabase } from '../lib/supabase'
 
 const STEPS = [
   {
@@ -77,6 +80,8 @@ const GOALS = [
 ]
 
 export default function OnboardingFlow({ onComplete }) {
+  const { user, refreshProfile } = useAuth()
+  const { checkAndAward } = useAchievements()
   const [step, setStep] = useState(0)
   const [selectedGoal, setSelectedGoal] = useState('')
   const [notifStatus, setNotifStatus] = useState(null) // null | 'granted' | 'denied'
@@ -87,6 +92,16 @@ export default function OnboardingFlow({ onComplete }) {
   function handleNext() {
     if (current.isGoal && selectedGoal) {
       localStorage.setItem('onboarding_goal', selectedGoal)
+      // Persistenza server-side (profiles.nutrition_goal): prima restava solo
+      // in localStorage e non veniva mai letta da nessuna parte — best-effort,
+      // non deve mai bloccare l'avanzamento dell'onboarding.
+      if (user) {
+        supabase.from('profiles').update({ nutrition_goal: selectedGoal }).eq('id', user.id)
+          .then(({ error }) => {
+            if (error) console.error('Salvataggio obiettivo onboarding fallito:', error)
+            else refreshProfile()
+          })
+      }
     }
     if (current.isNotification && notifStatus === null) {
       // Try to request permission, then advance
@@ -110,6 +125,7 @@ export default function OnboardingFlow({ onComplete }) {
 
   function handleComplete() {
     localStorage.setItem('onboarding_done', '1')
+    checkAndAward('onboarding_complete').catch(() => {})
     onComplete()
   }
 

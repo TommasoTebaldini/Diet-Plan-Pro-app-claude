@@ -257,6 +257,7 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
           </div>
           <button
             onClick={onClose}
+            aria-label="Chiudi"
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}
           >
             <X size={20} />

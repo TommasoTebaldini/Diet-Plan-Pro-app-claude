@@ -365,7 +365,7 @@ export default function DietitianProfilesPage() {
               <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--green-dark)', display: 'flex', alignItems: 'center', gap: 5 }}>
                 <Crosshair size={13} /> Vicini a me
               </p>
-              <button onClick={toggleNearMode} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2 }}>
+              <button onClick={toggleNearMode} aria-label="Disattiva modalità Vicini a me" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2 }}>
                 <X size={14} />
               </button>
             </div>

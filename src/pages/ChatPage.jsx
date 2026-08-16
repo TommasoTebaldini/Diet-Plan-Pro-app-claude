@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useAchievements } from '../context/AchievementsContext'
 import { useT } from '../i18n'
 import {
   Send, CheckCheck, Check, MessageCircle,
@@ -175,6 +176,7 @@ function AudioPlayer({ src, isMe }) {
       />
       <button
         onClick={toggle}
+        aria-label={playing ? 'Pausa messaggio vocale' : 'Riproduci messaggio vocale'}
         style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', cursor: 'pointer', background: isMe ? 'rgba(255,255,255,0.25)' : 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
       >
         {playing
@@ -292,7 +294,7 @@ function SignatureModal({ doc, onClose, onSigned }) {
               <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{doc.title || 'Informativa privacy'}</p>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <button onClick={onClose} aria-label="Chiudi" style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <X size={16} />
           </button>
         </div>
@@ -415,6 +417,7 @@ function ChatListView({ dietitianName, dietitianOnline, dietitianPreview, dietit
 }
 
 function GroupThreadView({ group, user, onBack }) {
+  const { checkAndAward } = useAchievements()
   const [messages, setMessages] = useState([])
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
@@ -507,6 +510,7 @@ function GroupThreadView({ group, user, onBack }) {
     const { data, error } = await supabase.from('chat_group_messages').insert({ group_id: group.id, sender_id: user.id, content, type: 'text', status: 'sent' }).select().single()
     if (data) {
       setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
+      checkAndAward('first_dietitian_message').catch(() => {})
     } else if (error) {
       setMessages(prev => prev.filter(m => m.id !== optimistic.id))
       setText(content)
@@ -593,7 +597,7 @@ function GroupThreadView({ group, user, onBack }) {
   return (
     <div className="chat-fullscreen">
       <div style={{ background: `linear-gradient(160deg, ${group.color || '#157A4A'}, ${group.color || '#1a9f60'})`, padding: 'calc(env(safe-area-inset-top) + 14px) 16px 16px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-        <button onClick={onBack} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+        <button onClick={onBack} aria-label="Torna indietro" style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
           <ArrowLeft size={17} color="white" />
         </button>
         <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>👥</div>
@@ -654,6 +658,7 @@ function GroupThreadView({ group, user, onBack }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 4px' }}>
             <button
               onClick={() => stopRecording(true)}
+              aria-label="Annulla registrazione vocale"
               style={{ width: 38, height: 38, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#fff0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
             >
               <X size={16} color="var(--red)" />
@@ -665,6 +670,7 @@ function GroupThreadView({ group, user, onBack }) {
             </div>
             <button
               onClick={() => stopRecording(false)}
+              aria-label="Invia messaggio vocale"
               style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'var(--green-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(21,122,74,0.35)' }}
             >
               <Send size={17} color="white" style={{ marginLeft: 2 }} />
@@ -682,7 +688,7 @@ function GroupThreadView({ group, user, onBack }) {
               />
             </div>
             {canSendText ? (
-              <button type="submit" style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: 'var(--green-main)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(26,127,90,0.3)' }}>
+              <button type="submit" aria-label="Invia messaggio" style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: 'var(--green-main)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(26,127,90,0.3)' }}>
                 <Send size={17} color="white" style={{ marginLeft: 2 }} />
               </button>
             ) : (
@@ -691,6 +697,7 @@ function GroupThreadView({ group, user, onBack }) {
                 onMouseDown={startRecording}
                 onTouchStart={e => { e.preventDefault(); startRecording() }}
                 disabled={sending}
+                aria-label="Registra messaggio vocale"
                 style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: sending ? 'var(--border)' : 'var(--surface-3)', border: 'none', cursor: sending ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: sending ? 0.5 : 1 }}
               >
                 <Mic size={19} color="var(--text-muted)" />
@@ -708,6 +715,7 @@ function GroupThreadView({ group, user, onBack }) {
 
 export default function ChatPage() {
   const { user } = useAuth()
+  const { checkAndAward } = useAchievements()
   const t = useT()
 
   const [messages, setMessages] = useState([])
@@ -983,6 +991,7 @@ export default function ChatPage() {
     }).select().single()
     if (data) {
       setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
+      checkAndAward('first_dietitian_message').catch(() => {})
     } else if (error) {
       setMessages(prev => prev.filter(m => m.id !== optimistic.id))
       setText(content)
@@ -1227,6 +1236,7 @@ export default function ChatPage() {
         {groups.length > 0 && (
           <button
             onClick={() => setActiveThread('list')}
+            aria-label="Torna alla lista chat"
             style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
           >
             <ArrowLeft size={17} color="white" />
@@ -1257,6 +1267,7 @@ export default function ChatPage() {
           <button
             onClick={startVideoCall}
             title="Avvia videochiamata"
+            aria-label="Avvia videochiamata"
             style={{ background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <Video size={18} color="white" />
@@ -1267,6 +1278,7 @@ export default function ChatPage() {
           <button
             onClick={requestNotifications}
             title={notifPermission === 'granted' ? 'Notifiche attive' : 'Attiva notifiche'}
+            aria-label={notifPermission === 'granted' ? 'Notifiche attive' : 'Attiva notifiche'}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: notifPermission === 'granted' ? 1 : 0.55 }}
           >
             {notifPermission === 'granted'
@@ -1428,6 +1440,7 @@ export default function ChatPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 4px' }}>
             <button
               onClick={() => stopRecording(true)}
+              aria-label="Annulla registrazione vocale"
               style={{ width: 38, height: 38, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#fff0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
             >
               <X size={16} color="var(--red)" />
@@ -1441,6 +1454,7 @@ export default function ChatPage() {
             </div>
             <button
               onClick={() => stopRecording(false)}
+              aria-label="Invia messaggio vocale"
               style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'var(--green-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(21,122,74,0.35)' }}
             >
               <Send size={17} color="white" style={{ marginLeft: 2 }} />
@@ -1454,6 +1468,7 @@ export default function ChatPage() {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={sending}
+              aria-label="Allega foto"
               style={{ width: 38, height: 38, borderRadius: '50%', border: 'none', cursor: sending ? 'default' : 'pointer', background: 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: sending ? 0.5 : 1 }}
             >
               <ImagePlus size={18} color="var(--text-muted)" />
@@ -1474,6 +1489,7 @@ export default function ChatPage() {
             {canSendText ? (
               <button
                 type="submit"
+                aria-label="Invia messaggio"
                 style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: 'var(--green-main)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(26,127,90,0.3)' }}
               >
                 <Send size={17} color="white" style={{ marginLeft: 2 }} />
@@ -1484,6 +1500,7 @@ export default function ChatPage() {
                 onMouseDown={startRecording}
                 onTouchStart={e => { e.preventDefault(); startRecording() }}
                 disabled={sending}
+                aria-label="Registra messaggio vocale"
                 style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: sending ? 'var(--border)' : 'var(--surface-3)', border: 'none', cursor: sending ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: sending ? 0.5 : 1 }}
               >
                 <Mic size={19} color="var(--text-muted)" />

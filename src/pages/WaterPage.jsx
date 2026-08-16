@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useAchievements } from '../context/AchievementsContext'
+import { checkWaterAchievements } from '../lib/achievementTriggers'
 import { useT } from '../i18n'
 import { Droplets, Plus, Trash2, Bell, BellOff, BarChart2, List, WifiOff } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
@@ -50,6 +52,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export default function WaterPage() {
   const { profile, user } = useAuth()
+  const { checkAndAward } = useAchievements()
   const t = useT()
   const today = useMemo(() => new Date().toISOString().split('T')[0], [])
   const [latestWeight, setLatestWeight] = useState(null)
@@ -121,6 +124,7 @@ export default function WaterPage() {
       if (!offline) {
         const newTotal = updated.reduce((s, w) => s + w.amount_ml, 0)
         checkWaterAndNotify(newTotal, target)
+        checkWaterAchievements(supabase, user.id, checkAndAward, target).catch(() => {})
       }
       return updated
     })
@@ -164,7 +168,7 @@ export default function WaterPage() {
       {/* Header */}
       <div style={{ background: 'linear-gradient(160deg, #1e40af 0%, #3b82f6 100%)', padding: 'calc(env(safe-area-inset-top) + 20px) 24px 28px', textAlign: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-          <button onClick={toggleNotifications} title={notifEnabled ? 'Disattiva promemoria' : 'Attiva promemoria'} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, padding: '10px 14px', cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, minHeight: 44 }}>
+          <button onClick={toggleNotifications} title={notifEnabled ? 'Disattiva promemoria' : 'Attiva promemoria'} aria-label={notifEnabled ? 'Disattiva promemoria' : 'Attiva promemoria'} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, padding: '10px 14px', cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, minHeight: 44 }}>
             {notifEnabled ? <Bell size={15} /> : <BellOff size={15} />}
             {notifEnabled ? 'ON' : 'OFF'}
           </button>
@@ -277,7 +281,7 @@ export default function WaterPage() {
               inputMode="numeric"
               min="1"
             />
-            <button className="btn btn-primary" onClick={() => { const v = parseInt(custom, 10); if (v > 0) addWater(v) }} disabled={!custom || parseInt(custom, 10) <= 0 || loading} style={{ padding: '0 16px' }}>
+            <button className="btn btn-primary" onClick={() => { const v = parseInt(custom, 10); if (v > 0) addWater(v) }} disabled={!custom || parseInt(custom, 10) <= 0 || loading} aria-label="Aggiungi quantità personalizzata" style={{ padding: '0 16px' }}>
               <Plus size={18} />
             </button>
           </div>
@@ -316,7 +320,7 @@ export default function WaterPage() {
                       <p style={{ fontSize: 14, fontWeight: 500 }}>{l.amount_ml} ml</p>
                       <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(l.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
-                    <button onClick={() => removeLog(l.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 12, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <button onClick={() => removeLog(l.id)} aria-label="Rimuovi registrazione acqua" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 12, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Trash2 size={15} />
                     </button>
                   </div>

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useAchievements } from '../context/AchievementsContext'
+import { checkWeightAchievements } from '../lib/achievementTriggers'
 import { Activity, Heart, Scale, Moon, Footprints, CheckCircle, AlertCircle, Info, ExternalLink } from 'lucide-react'
 import { getTodaySteps, setTodaySteps, isPedometerSupported, hasMotionPermission, isNativeApp, isNativeHealthAvailable, openHealthConnectInstall, hasHeartRatePermission, requestHeartRatePermission, getTodayHeartRateFromNativeHealth } from '../lib/pedometer'
 import { isBleScaleSupported, connectAndReadWeight } from '../lib/bleScale'
@@ -67,6 +69,7 @@ function DataRow({ icon: Icon, label, value, unit, status, children }) {
 
 export default function HealthSyncPage() {
   const { user } = useAuth()
+  const { checkAndAward } = useAchievements()
   const os = getOS()
   const pwa = isStandalone()
 
@@ -234,6 +237,7 @@ export default function HealthSyncPage() {
       const { error } = await supabase.from('weight_logs').upsert({ user_id: user.id, weight_kg: kg, date: today }, { onConflict: 'user_id,date' })
       if (error) throw error
       setWeight(kg)
+      checkWeightAchievements(supabase, user.id, checkAndAward, kg).catch(() => {})
       setSyncMsg(`Peso letto dalla bilancia: ${kg} kg`)
     } catch (e) {
       setSyncMsg(e?.message || 'Impossibile leggere la bilancia Bluetooth.')
@@ -252,6 +256,7 @@ export default function HealthSyncPage() {
       return
     }
     setWeight(kg)
+    checkWeightAchievements(supabase, user.id, checkAndAward, kg).catch(() => {})
     setManualWeight('')
     setSyncMsg('Peso salvato!')
     setTimeout(() => setSyncMsg(''), 2500)

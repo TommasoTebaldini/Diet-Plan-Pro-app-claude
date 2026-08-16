@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { loadPrefs, initScheduledNotifications, showNotification, scheduleMedicationReminders } from '../lib/notifications'
-import { checkMealAndNotify } from '../lib/smartNotifications'
+import { checkMealAndNotify, checkStreakAtRiskAndNotify } from '../lib/smartNotifications'
 
 const NotificationContext = createContext({})
 
@@ -89,6 +89,7 @@ export function NotificationProvider({ children, user }) {
     function handleVisibility() {
       if (!document.hidden && prefsRef.current.mealReminder !== false) {
         checkMealAndNotify(user.id)
+        checkStreakAtRiskAndNotify(user.id)
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)

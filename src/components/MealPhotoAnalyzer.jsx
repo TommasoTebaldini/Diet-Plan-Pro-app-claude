@@ -113,7 +113,7 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
               <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>AI riconosce gli alimenti automaticamente</p>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'var(--surface-3)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <button onClick={onClose} aria-label="Chiudi" style={{ background: 'var(--surface-3)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <X size={16} color="var(--text-muted)" />
           </button>
         </div>

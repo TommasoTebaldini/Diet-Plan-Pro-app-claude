@@ -1515,7 +1515,7 @@ export default function DocumentsPage() {
                 </button>
               ))}
             </div>
-            <button onClick={reload}
+            <button onClick={reload} aria-label="Ricarica documenti"
               style={{ flexShrink: 0, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}>
               <RefreshCw size={15} />
             </button>

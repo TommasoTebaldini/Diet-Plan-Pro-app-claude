@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useAchievements } from '../context/AchievementsContext'
 import { searchFoodsLocal, supplementWithOpenFoodFacts } from '../lib/foodSearch'
 import ProGate from '../components/ProGate'
 import { useSubscription } from '../hooks/useSubscription'
@@ -209,7 +210,7 @@ function IngredientSearch({ onAdd }) {
                 <input type="number" className="input-field" value={pendingGrams} onChange={e => setPendingGrams(e.target.value)} min={1} inputMode="decimal" autoFocus />
               </div>
               <button type="submit" className="btn btn-primary" style={{ flexShrink: 0, height: 42 }}>{t('common.add')}</button>
-              <button type="button" onClick={() => setPending(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)', height: 42, display: 'flex', alignItems: 'center' }}>
+              <button type="button" onClick={() => setPending(null)} aria-label="Annulla" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)', height: 42, display: 'flex', alignItems: 'center' }}>
                 <X size={15} />
               </button>
             </div>
@@ -219,7 +220,7 @@ function IngredientSearch({ onAdd }) {
       ) : (
         <form onSubmit={doSearch} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
           <input type="text" className="input-field" placeholder={t('recipes.search_ingredient')} value={q} onChange={e => setQ(e.target.value)} style={{ flex: 1 }} autoComplete="off" />
-          <button type="submit" className="btn btn-primary" style={{ padding: '0 14px', flexShrink: 0 }} disabled={busy || q.trim().length < 2}>
+          <button type="submit" className="btn btn-primary" aria-label="Cerca alimento" style={{ padding: '0 14px', flexShrink: 0 }} disabled={busy || q.trim().length < 2}>
             {busy
               ? <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'block' }} />
               : <Search size={14} />}
@@ -273,28 +274,28 @@ function RecipeCard({ r, isOwn, isDietitian, expandedId, setExpandedId, onSave, 
         <div style={{ display: 'flex', gap: 2, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
           {/* Dietitian tab: favourite toggle only */}
           {isDietitian && (
-            <button onClick={() => onToggleFav(r.id)} title={isFav ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', color: isFav ? '#e11d48' : 'var(--text-muted)' }}>
+            <button onClick={() => onToggleFav(r.id)} title={isFav ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'} aria-label={isFav ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', color: isFav ? '#e11d48' : 'var(--text-muted)' }}>
               <Heart size={15} fill={isFav ? '#e11d48' : 'none'} />
             </button>
           )}
           {/* Own recipe controls */}
           {isOwn && (
-            <button onClick={() => onTogglePublic(r)} title={r.is_public ? 'Rendi privata' : 'Pubblica'} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', color: r.is_public ? '#1d4ed8' : 'var(--text-muted)' }}>
+            <button onClick={() => onTogglePublic(r)} title={r.is_public ? 'Rendi privata' : 'Pubblica'} aria-label={r.is_public ? 'Rendi privata' : 'Pubblica'} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', color: r.is_public ? '#1d4ed8' : 'var(--text-muted)' }}>
               {r.is_public ? <Globe size={15} /> : <Lock size={15} />}
             </button>
           )}
           {!isOwn && !isDietitian && (
-            <button onClick={() => onSave(r)} title="Salva nelle mie ricette" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green-main)' }}>
+            <button onClick={() => onSave(r)} title="Salva nelle mie ricette" aria-label="Salva nelle mie ricette" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green-main)' }}>
               <Bookmark size={15} />
             </button>
           )}
           {isOwn && (
-            <button onClick={() => onEdit(r)} title="Modifica ricetta" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+            <button onClick={() => onEdit(r)} title="Modifica ricetta" aria-label="Modifica ricetta" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
               <Pencil size={15} />
             </button>
           )}
           {isOwn && (
-            <button onClick={() => onDelete(r.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+            <button onClick={() => onDelete(r.id)} aria-label="Elimina ricetta" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
               <Trash2 size={15} />
             </button>
           )}
@@ -390,7 +391,7 @@ function AdvancedFilters({ filters, onChange, onReset }) {
             style={{ paddingLeft: 32, flex: 1 }}
           />
           {filters.search && (
-            <button onClick={() => onChange({ ...filters, search: '' })} style={{ position: 'absolute', right: 8, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2 }}>
+            <button onClick={() => onChange({ ...filters, search: '' })} aria-label="Cancella ricerca" style={{ position: 'absolute', right: 8, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2 }}>
               <X size={13} />
             </button>
           )}
@@ -626,6 +627,7 @@ const EMPTY_FORM = {
 
 export default function RecipesPage() {
   const { user } = useAuth()
+  const { checkAndAward } = useAchievements()
   const { isPro } = useSubscription()
   const t = useT()
   const [tab, setTab] = useState('mine')
@@ -749,6 +751,8 @@ export default function RecipesPage() {
         setForm(EMPTY_FORM); setNewStep(''); setPhotoFile(null); setPhotoPreview('')
         setShowCreate(false)
         showToast(t('recipes.saved'))
+        checkAndAward('first_recipe').catch(() => {})
+        if (myRecipes.length + 1 >= 5) checkAndAward('chef_novizio').catch(() => {})
       }
     }
   }
@@ -860,6 +864,7 @@ export default function RecipesPage() {
           <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 22, color: 'white', fontWeight: 300, flex: 1 }}>{t('recipes.title')}</h1>
           <button onClick={() => { setImportError(''); setImportUrl(''); setShowImportModal(true) }}
             title="Importa da URL o foto"
+            aria-label="Importa da URL o foto"
             style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.2)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0 }}>
             <Link2 size={17} />
           </button>
@@ -869,6 +874,7 @@ export default function RecipesPage() {
             if (!next) { setEditingRecipe(null); setForm(EMPTY_FORM); setNewStep(''); setPhotoFile(null); setPhotoPreview('') }
             setTab('mine')
           }}
+            aria-label={showCreate ? 'Chiudi creazione ricetta' : 'Nuova ricetta'}
             style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.2)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0 }}>
             {showCreate ? <X size={18} /> : <Plus size={18} />}
           </button>
@@ -897,28 +903,28 @@ export default function RecipesPage() {
             {/* Nome + porzioni */}
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10, marginBottom: 12 }}>
               <div className="input-group" style={{ gridColumn: '1 / -1' }}>
-                <label className="input-label">{t('recipes.name_label')}</label>
-                <input className="input-field" value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} placeholder="es. Pasta al pomodoro" />
+                <label className="input-label" htmlFor="rc-nome">{t('recipes.name_label')}</label>
+                <input id="rc-nome" className="input-field" value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} placeholder="es. Pasta al pomodoro" />
               </div>
               <div className="input-group">
-                <label className="input-label">{t('recipes.portions')}</label>
-                <input type="number" className="input-field" value={form.porzioni} onChange={e => setForm(f => ({ ...f, porzioni: e.target.value }))} min={1} inputMode="numeric" />
+                <label className="input-label" htmlFor="rc-porzioni">{t('recipes.portions')}</label>
+                <input id="rc-porzioni" type="number" className="input-field" value={form.porzioni} onChange={e => setForm(f => ({ ...f, porzioni: e.target.value }))} min={1} inputMode="numeric" />
               </div>
             </div>
 
             {/* Tempi */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 8, marginBottom: 14 }}>
               <div className="input-group">
-                <label className="input-label">⏱ Prep (min)</label>
-                <input type="number" className="input-field" value={form.tempo_preparazione_min} onChange={e => setForm(f => ({ ...f, tempo_preparazione_min: e.target.value }))} min={0} inputMode="numeric" placeholder="0" />
+                <label className="input-label" htmlFor="rc-prep">⏱ Prep (min)</label>
+                <input id="rc-prep" type="number" className="input-field" value={form.tempo_preparazione_min} onChange={e => setForm(f => ({ ...f, tempo_preparazione_min: e.target.value }))} min={0} inputMode="numeric" placeholder="0" />
               </div>
               <div className="input-group">
-                <label className="input-label">🔥 Cottura</label>
-                <input type="number" className="input-field" value={form.tempo_cottura_min} onChange={e => setForm(f => ({ ...f, tempo_cottura_min: e.target.value }))} min={0} inputMode="numeric" placeholder="0" />
+                <label className="input-label" htmlFor="rc-cottura">🔥 Cottura</label>
+                <input id="rc-cottura" type="number" className="input-field" value={form.tempo_cottura_min} onChange={e => setForm(f => ({ ...f, tempo_cottura_min: e.target.value }))} min={0} inputMode="numeric" placeholder="0" />
               </div>
               <div className="input-group">
-                <label className="input-label">❄️ Riposo</label>
-                <input type="number" className="input-field" value={form.tempo_raffreddamento_min} onChange={e => setForm(f => ({ ...f, tempo_raffreddamento_min: e.target.value }))} min={0} inputMode="numeric" placeholder="0" />
+                <label className="input-label" htmlFor="rc-riposo">❄️ Riposo</label>
+                <input id="rc-riposo" type="number" className="input-field" value={form.tempo_raffreddamento_min} onChange={e => setForm(f => ({ ...f, tempo_raffreddamento_min: e.target.value }))} min={0} inputMode="numeric" placeholder="0" />
               </div>
             </div>
 
@@ -933,7 +939,7 @@ export default function RecipesPage() {
                       <p style={{ fontSize: 13, fontWeight: 500 }}>{ing.food_name}</p>
                       <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{ing.grams}g · {ing.kcal} kcal</p>
                     </div>
-                    <button onClick={() => setForm(f => ({ ...f, ingredienti: f.ingredienti.filter((_, i) => i !== idx) }))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
+                    <button onClick={() => setForm(f => ({ ...f, ingredienti: f.ingredienti.filter((_, i) => i !== idx) }))} aria-label={`Rimuovi ${ing.food_name}`} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
                       <X size={14} />
                     </button>
                   </div>
@@ -953,17 +959,17 @@ export default function RecipesPage() {
                   {idx + 1}
                 </div>
                 <p style={{ flex: 1, fontSize: 13, lineHeight: 1.4, color: 'var(--text-primary)' }}>{step}</p>
-                <button onClick={() => setForm(f => ({ ...f, fasi: f.fasi.filter((_, i) => i !== idx) }))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4, flexShrink: 0 }}>
+                <button onClick={() => setForm(f => ({ ...f, fasi: f.fasi.filter((_, i) => i !== idx) }))} aria-label={`Rimuovi fase ${idx + 1}`} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4, flexShrink: 0 }}>
                   <X size={14} />
                 </button>
               </div>
             ))}
             <div style={{ display: 'flex', gap: 8, marginTop: 8, marginBottom: 14 }}>
-              <input className="input-field" value={newStep} onChange={e => setNewStep(e.target.value)}
+              <input className="input-field" aria-label="Descrivi una fase" value={newStep} onChange={e => setNewStep(e.target.value)}
                 placeholder="Descrivi una fase…"
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addStep() } }}
                 style={{ flex: 1 }} />
-              <button className="btn btn-primary" onClick={addStep} style={{ padding: '0 14px', flexShrink: 0 }} disabled={!newStep.trim()}>
+              <button className="btn btn-primary" onClick={addStep} aria-label="Aggiungi fase" style={{ padding: '0 14px', flexShrink: 0 }} disabled={!newStep.trim()}>
                 <Plus size={14} />
               </button>
             </div>
@@ -989,6 +995,7 @@ export default function RecipesPage() {
                   <img src={photoPreview || form.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   <button
                     onClick={() => { setPhotoFile(null); setPhotoPreview(''); setForm(f => ({ ...f, photo_url: '' })) }}
+                    aria-label="Rimuovi foto"
                     style={{ position: 'absolute', top: 6, right: 6, width: 28, height: 28, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}
                   >
                     <X size={14} />
@@ -1007,8 +1014,8 @@ export default function RecipesPage() {
 
             {/* Note */}
             <div className="input-group" style={{ marginBottom: 14 }}>
-              <label className="input-label">{t('recipes.notes')}</label>
-              <textarea className="input-field" rows={2} value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Varianti, consigli, sostituzioni…" style={{ resize: 'vertical' }} />
+              <label className="input-label" htmlFor="rc-note">{t('recipes.notes')}</label>
+              <textarea id="rc-note" className="input-field" rows={2} value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Varianti, consigli, sostituzioni…" style={{ resize: 'vertical' }} />
             </div>
 
             {/* Toggle pubblico */}
@@ -1082,7 +1089,7 @@ export default function RecipesPage() {
             {/* Legacy search box kept for UX continuity — synced into filters */}
             <div style={{ display: 'flex', gap: 8 }}>
               <input className="input-field" placeholder="Cerca ricette pubbliche…" value={pubQuery} onChange={e => setPubQuery(e.target.value)} style={{ flex: 1 }} />
-              {pubQuery && <button onClick={() => setPubQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '0 8px' }}><X size={16} /></button>}
+              {pubQuery && <button onClick={() => setPubQuery('')} aria-label="Cancella ricerca" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '0 8px' }}><X size={16} /></button>}
             </div>
             {loadingPublic
               ? <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 13 }}>{t('common.loading')}</div>
@@ -1179,7 +1186,7 @@ export default function RecipesPage() {
           <div className="animate-slideUp" style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', padding: 20, paddingBottom: 'calc(20px + env(safe-area-inset-bottom))', maxHeight: '90dvh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <h3 style={{ fontSize: 16, fontWeight: 700 }}>🔗 Importa ricetta</h3>
-              <button onClick={() => setShowImportModal(false)} disabled={importing} style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+              <button onClick={() => setShowImportModal(false)} disabled={importing} aria-label="Chiudi" style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                 <X size={16} />
               </button>
             </div>

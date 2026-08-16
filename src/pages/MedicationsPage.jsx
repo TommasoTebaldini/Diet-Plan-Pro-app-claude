@@ -136,7 +136,7 @@ export default function MedicationsPage() {
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
               <input type="time" value={t} onChange={e => updateTimeSlot(i, e.target.value)} style={{ ...inputStyle, flex: 1 }} />
               {times.length > 1 && (
-                <button onClick={() => removeTimeSlot(i)} style={{ background: '#fff0f0', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)', cursor: 'pointer', flexShrink: 0 }}>
+                <button onClick={() => removeTimeSlot(i)} aria-label="Rimuovi orario" style={{ background: '#fff0f0', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)', cursor: 'pointer', flexShrink: 0 }}>
                   <Trash2 size={15} />
                 </button>
               )}
@@ -186,7 +186,7 @@ export default function MedicationsPage() {
                       >
                         {med.active ? 'Attivo' : 'In pausa'}
                       </button>
-                      <button onClick={() => deleteMedication(med.id)} style={{ background: '#fff0f0', border: 'none', borderRadius: 8, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)', cursor: 'pointer' }}>
+                      <button onClick={() => deleteMedication(med.id)} aria-label="Elimina farmaco" style={{ background: '#fff0f0', border: 'none', borderRadius: 8, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)', cursor: 'pointer' }}>
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -195,7 +195,7 @@ export default function MedicationsPage() {
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                       <input type="time" value={t} onChange={e => updateMedTime(med, i, e.target.value)} style={{ ...inputStyle, flex: 1, padding: '6px 10px' }} />
                       {med.times.length > 1 && (
-                        <button onClick={() => removeMedTime(med, i)} style={{ background: '#fff0f0', border: 'none', borderRadius: 8, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)', cursor: 'pointer', flexShrink: 0 }}>
+                        <button onClick={() => removeMedTime(med, i)} aria-label="Rimuovi orario" style={{ background: '#fff0f0', border: 'none', borderRadius: 8, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)', cursor: 'pointer', flexShrink: 0 }}>
                           <Trash2 size={13} />
                         </button>
                       )}

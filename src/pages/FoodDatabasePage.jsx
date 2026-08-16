@@ -70,7 +70,7 @@ function IngredientSearch({ onAdd }) {
                 <input type="number" className="input-field" value={pendingGrams} onChange={e => setPendingGrams(e.target.value)} min={1} inputMode="decimal" autoFocus />
               </div>
               <button type="submit" className="btn btn-primary" style={{ flexShrink: 0, height: 42 }}>{t('common.add')}</button>
-              <button type="button" onClick={() => setPending(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)', height: 42, display: 'flex', alignItems: 'center' }}>
+              <button type="button" onClick={() => setPending(null)} aria-label="Annulla" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)', height: 42, display: 'flex', alignItems: 'center' }}>
                 <X size={15} />
               </button>
             </div>
@@ -449,7 +449,7 @@ export default function FoodDatabasePage() {
                     ))}
                   </div>
                 </div>
-                <button onClick={() => removeFavorite(f.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 6, flexShrink: 0 }}>
+                <button onClick={() => removeFavorite(f.id)} aria-label="Rimuovi dai preferiti" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 6, flexShrink: 0 }}>
                   <Trash2 size={16} />
                 </button>
               </div>
@@ -481,7 +481,7 @@ export default function FoodDatabasePage() {
                           <p style={{ fontSize: 13, fontWeight: 500 }}>{ing.food_name}</p>
                           <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{ing.grams}g · {ing.kcal} kcal</p>
                         </div>
-                        <button onClick={() => setMealForm(f => ({ ...f, ingredients: f.ingredients.filter((_, i) => i !== idx) }))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
+                        <button onClick={() => setMealForm(f => ({ ...f, ingredients: f.ingredients.filter((_, i) => i !== idx) }))} aria-label="Rimuovi ingrediente" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
                           <X size={14} />
                         </button>
                       </div>
@@ -516,7 +516,7 @@ export default function FoodDatabasePage() {
                       <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{m.kcal_total} kcal · {Math.round(m.peso_totale_g)}g · {(m.ingredients || []).length} ingredienti</p>
                     </div>
                     {isOpen ? <ChevronUp size={15} color="var(--text-muted)" /> : <ChevronDown size={15} color="var(--text-muted)" />}
-                    <button onClick={e => { e.stopPropagation(); deleteMeal(m.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)', flexShrink: 0 }}>
+                    <button onClick={e => { e.stopPropagation(); deleteMeal(m.id) }} aria-label="Elimina pasto" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)', flexShrink: 0 }}>
                       <Trash2 size={15} />
                     </button>
                   </button>
@@ -571,7 +571,7 @@ export default function FoodDatabasePage() {
                           <p style={{ fontSize: 13, fontWeight: 500 }}>{ing.food_name}</p>
                           <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{ing.grams}g · {ing.kcal} kcal</p>
                         </div>
-                        <button onClick={() => setRecForm(f => ({ ...f, ingredienti: f.ingredienti.filter((_, i) => i !== idx) }))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
+                        <button onClick={() => setRecForm(f => ({ ...f, ingredienti: f.ingredienti.filter((_, i) => i !== idx) }))} aria-label="Rimuovi ingrediente" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
                           <X size={14} />
                         </button>
                       </div>
@@ -618,7 +618,7 @@ export default function FoodDatabasePage() {
                       <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.calorie_porzione} kcal/porz · {r.porzioni} porzioni · {(r.ingredienti || []).length} ingredienti</p>
                     </div>
                     {isOpen ? <ChevronUp size={15} color="var(--text-muted)" /> : <ChevronDown size={15} color="var(--text-muted)" />}
-                    <button onClick={e => { e.stopPropagation(); deleteRicetta(r.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)', flexShrink: 0 }}>
+                    <button onClick={e => { e.stopPropagation(); deleteRicetta(r.id) }} aria-label="Elimina ricetta" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)', flexShrink: 0 }}>
                       <Trash2 size={15} />
                     </button>
                   </button>
