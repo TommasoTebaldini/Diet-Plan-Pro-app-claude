@@ -7,7 +7,7 @@ const QuizPage = lazy(() => import('./QuizPage'))
 import { useAuth } from '../context/AuthContext'
 import { useAppSettings } from '../context/AppSettingsContext'
 import { supabase } from '../lib/supabase'
-import { fetchDietFromPiani } from '../lib/dietBridge'
+import { fetchDietFromPiani, fetchWaterTarget } from '../lib/dietBridge'
 import { useT } from '../i18n'
 import { Utensils, Droplets, TrendingUp, Apple, Flame, Leaf, MessageCircle, FileText, BookOpen, User, ChevronRight, Activity, Scale, Calendar, Zap, Award, Heart, BarChart2, Star, Crown, Brain } from 'lucide-react'
 import StreakCalendar from '../components/StreakCalendar'
@@ -183,6 +183,7 @@ export default function DashboardPage() {
   const dark = settings.darkMode
   const [todayLog, setTodayLog] = useState(null)
   const [waterLog, setWaterLog] = useState(0)
+  const [waterTarget, setWaterTarget] = useState(2500)
   const [diet, setDiet] = useState(null)
   const [weight, setWeight] = useState(null)
   const [unreadChat, setUnreadChat] = useState(0)
@@ -222,7 +223,7 @@ export default function DashboardPage() {
       sevenAgo.setDate(sevenAgo.getDate() - 7)
 
       // Single parallel batch — everything at once, no waterfalls
-      const [log, water, activeDiet, w, chat, streakRes, apptRes, weekRes] = await Promise.allSettled([
+      const [log, water, activeDiet, w, chat, streakRes, apptRes, weekRes, waterTargetRes] = await Promise.allSettled([
         supabase.from('daily_logs').select('kcal,proteins,carbs,fats').eq('user_id', user.id).eq('date', today).maybeSingle(),
         supabase.from('water_logs').select('amount_ml').eq('user_id', user.id).eq('date', today),
         supabase.from('patient_diets').select('id,name,kcal_target,protein_target,carbs_target,fats_target,notes').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
@@ -231,12 +232,16 @@ export default function DashboardPage() {
         supabase.from('daily_logs').select('date').eq('user_id', user.id).gte('date', sixtyAgo.toISOString().split('T')[0]).order('date', { ascending: false }),
         supabase.from('appointments').select('id,appointment_date,title,notes').eq('patient_id', user.id).gte('appointment_date', now.toISOString()).order('appointment_date').limit(1).maybeSingle(),
         supabase.from('daily_logs').select('date,kcal').eq('user_id', user.id).gte('date', sevenAgo.toISOString().split('T')[0]),
+        fetchWaterTarget(user.id),
       ])
 
       if (log.value?.data) setTodayLog(log.value.data)
       if (water.value?.data) setWaterLog(water.value.data.reduce((s, w) => s + w.amount_ml, 0))
       if (w.value?.data) setWeight(w.value.data.weight_kg)
       if (chat.value?.count) setUnreadChat(chat.value.count)
+      // Fabbisogno idrico prescritto dal dietista, se impostato — altrimenti
+      // resta il default 2500 (stato iniziale, vedi useState sopra).
+      if (waterTargetRes.value) setWaterTarget(waterTargetRes.value)
 
       let currentDiet = activeDiet.value?.data ?? null
       // Fallback 1: prova senza filtro is_active
@@ -306,7 +311,6 @@ export default function DashboardPage() {
   const kcal = todayLog?.kcal || 0
   const kcalTarget = diet?.kcal_target || 2000
   const kcalPct = Math.min(100, Math.round(kcal / kcalTarget * 100))
-  const waterTarget = 2500
   const waterPct = Math.min(100, Math.round(waterLog / waterTarget * 100))
   const motivationalMsg = getMotivationalMessage(kcalPct, waterPct, streak)
 
@@ -384,7 +388,7 @@ export default function DashboardPage() {
             <StatPill label="Prot." val={`${r1(todayLog?.proteins)}g`} target={diet?.protein_target ? `${diet.protein_target}g` : null} color="#93c5fd" />
             <StatPill label="Carbo" val={`${r1(todayLog?.carbs)}g`} target={diet?.carbs_target ? `${diet.carbs_target}g` : null} color="#fcd34d" />
             <StatPill label="Grassi" val={`${r1(todayLog?.fats)}g`} target={diet?.fats_target ? `${diet.fats_target}g` : null} color="#fca5a5" />
-            <StatPill label="Acqua" val={`${r1(waterLog / 1000)}L`} target="2.5L" color="#7dd3fc" />
+            <StatPill label="Acqua" val={`${r1(waterLog / 1000)}L`} target={`${r1(waterTarget / 1000)}L`} color="#7dd3fc" />
           </div>
 
           {/* Motivational message */}

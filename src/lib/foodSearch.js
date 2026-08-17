@@ -43,10 +43,17 @@ async function searchAllFoods(query) {
     const name = _allFoodsLower[i]
     if (name && tokens.every(t => name.includes(t))) matches.push(i)
   }
+  // CREA+BDA prima delle altre fonti interne (ONS/APROTEICI/FLAVIS/UPF/EXTRA,
+  // meno curate/meno standard) — la corrispondenza "inizia con" resta il
+  // criterio primario, la fonte è solo lo spareggio tra pari.
+  const isCreaBda = f => f.src === 'CREA' || f.src === 'BDA'
   matches.sort((ia, ib) => {
     const aStarts = _allFoodsLower[ia].startsWith(q) ? 0 : 1
     const bStarts = _allFoodsLower[ib].startsWith(q) ? 0 : 1
-    return aStarts - bStarts
+    if (aStarts !== bStarts) return aStarts - bStarts
+    const aCrea = isCreaBda(ALL_FOODS[ia]) ? 0 : 1
+    const bCrea = isCreaBda(ALL_FOODS[ib]) ? 0 : 1
+    return aCrea - bCrea
   })
   return matches.slice(0, 50).map(i => {
     const f = ALL_FOODS[i]
@@ -310,6 +317,30 @@ export async function searchOpenFoodFacts(query) {
   } catch (e) { console.warn('[OFF proxy] failed:', e.message) }
 
   return []
+}
+
+// Etichetta/colori del badge sorgente mostrato accanto a un risultato —
+// unica fonte di verità condivisa tra FoodDatabasePage e MacroTrackerPage
+// (prima duplicata e disallineata: la mappa in FoodDatabasePage riconosceva
+// solo 'custom_meal'/'recipe'/'custom' e faceva cadere tutto il resto —
+// inclusi i risultati CREA/BDA, source:'dietitian' — sull'etichetta "OFF"
+// di default, mostrando ogni alimento del database curato come se fosse
+// Open Food Facts).
+const SOURCE_BADGES = {
+  dietitian:   ['DB', 'var(--icon-bg-green)', 'var(--green-dark)'],
+  recent:      ['Recente', 'var(--icon-bg-orange)', 'var(--alert-warning-text)'],
+  diet:        ['Piano', 'var(--green-pale)', 'var(--green-main)'],
+  recipe:      ['Ricetta', 'var(--icon-bg-orange)', 'var(--alert-warning-text)'],
+  custom_meal: ['Pasto', 'var(--icon-bg-green)', 'var(--green-dark)'],
+  custom:      ['Personale', 'var(--icon-bg-purple)', '#7c3aed'],
+  openfoodfacts: ['OFF', 'var(--surface-3)', 'var(--text-muted)'],
+}
+export function sourceBadge(source, brand) {
+  if (source === 'public') {
+    const label = brand && brand.includes(' — ') ? brand.split(' — ')[0] : 'DB'
+    return [label, 'var(--icon-bg-green)', 'var(--green-dark)']
+  }
+  return SOURCE_BADGES[source] || SOURCE_BADGES.openfoodfacts
 }
 
 function _dedup(results, seen) {

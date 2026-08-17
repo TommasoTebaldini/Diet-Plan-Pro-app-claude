@@ -109,3 +109,48 @@ export async function fetchDietFromPiani(patientId) {
     fats_target:    macros.fats_target    ?? null,
   }
 }
+
+// ── Fabbisogno idrico prescritto dal dietista ────────────────────────────────
+// Il campo "Acqua (mL/die)" in valutazione.html (NutriPlan-Pro) è un input
+// testo libero (placeholder "Es. 1500 mL", ma nessun vincolo di formato) —
+// salvato dentro schede_valutazione.dati_extra.acqua come stringa, non un
+// numero pulito. Va interpretato lato client, non basta un semplice parseInt.
+function _parseWaterMl(raw) {
+  if (!raw) return null
+  const s = String(raw).toLowerCase().replace(',', '.')
+  const m = s.match(/(\d+(?:\.\d+)?)/)
+  if (!m) return null
+  const n = parseFloat(m[1])
+  if (!n) return null
+  // Nessun fabbisogno idrico realistico è sotto i 15 — un valore così basso è
+  // quasi certamente in litri ("1.5L", "2 litri"), non in mL.
+  return Math.round(n < 15 ? n * 1000 : n)
+}
+
+/**
+ * Restituisce il fabbisogno idrico prescritto dal dietista in mL, o null se
+ * non è mai stato impostato/non è interpretabile — il chiamante deve avere
+ * comunque un fallback (formula generica sul peso, o un default fisso).
+ */
+export async function fetchWaterTarget(patientId) {
+  const { data: link } = await supabase
+    .from('patient_dietitian')
+    .select('cartella_id')
+    .eq('patient_id', patientId)
+    .maybeSingle()
+  if (!link?.cartella_id) return null
+
+  const { data: scheda } = await supabase
+    .from('schede_valutazione')
+    .select('dati_extra')
+    .eq('cartella_id', link.cartella_id)
+    .order('saved_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  let extra = scheda?.dati_extra
+  if (typeof extra === 'string') {
+    try { extra = JSON.parse(extra) } catch { extra = null }
+  }
+  return _parseWaterMl(extra?.acqua)
+}

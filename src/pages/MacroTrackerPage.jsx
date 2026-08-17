@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext'
 import { useAchievements } from '../context/AchievementsContext'
 import { checkFoodLogAchievements } from '../lib/achievementTriggers'
 import { useT } from '../i18n'
-import { searchFoodsLocal, supplementWithOpenFoodFacts, searchByBarcode } from '../lib/foodSearch'
+import { searchFoodsLocal, supplementWithOpenFoodFacts, searchByBarcode, sourceBadge } from '../lib/foodSearch'
 import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle, Pencil, Check, Lock, Camera, Mic, Star, BookmarkPlus, ClipboardCopy, WifiOff } from 'lucide-react'
 import { safeWrite } from '../lib/offlineDB'
 const BarcodeScanner   = lazy(() => import('../components/BarcodeScanner'))
@@ -1549,10 +1549,7 @@ export default function MacroTrackerPage() {
                                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
                                   <p style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.3, flex: 1 }}>{f.name}</p>
                                   {(() => {
-                                    const badges = { recent: ['Recente', 'var(--icon-bg-orange)', 'var(--alert-warning-text)'], diet: ['Piano', 'var(--green-pale)', 'var(--green-main)'], recipe: ['Ricetta', 'var(--icon-bg-orange)', 'var(--alert-warning-text)'], custom_meal: ['Pasto', 'var(--icon-bg-green)', 'var(--green-dark)'], openfoodfacts: ['OFF', 'var(--surface-3)', 'var(--text-muted)'], dietitian: ['CREA', 'var(--icon-bg-green)', 'var(--green-dark)'] }
-                                    const [label, bg, color] = f.source === 'public'
-                                      ? [f.brand && f.brand.includes(' — ') ? f.brand.split(' — ')[0] : 'DB', 'var(--icon-bg-green)', 'var(--green-dark)']
-                                      : (badges[f.source] || badges.openfoodfacts)
+                                    const [label, bg, color] = sourceBadge(f.source, f.brand)
                                     return <span style={{ fontSize: 9, background: bg, color, padding: '2px 6px', borderRadius: 100, fontWeight: 700, flexShrink: 0 }}>{label}</span>
                                   })()}
                                 </div>

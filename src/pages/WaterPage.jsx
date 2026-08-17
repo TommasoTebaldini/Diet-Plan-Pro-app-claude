@@ -12,6 +12,7 @@ import { it } from 'date-fns/locale'
 import { checkWaterAndNotify } from '../lib/smartNotifications'
 import { loadPrefs, savePrefs, initScheduledNotifications, requestPermission } from '../lib/notifications'
 import { safeWrite } from '../lib/offlineDB'
+import { fetchWaterTarget } from '../lib/dietBridge'
 
 // Quick-add presets: label, icon, ml
 const QUICK_PRESETS = [
@@ -56,7 +57,16 @@ export default function WaterPage() {
   const t = useT()
   const today = useMemo(() => new Date().toISOString().split('T')[0], [])
   const [latestWeight, setLatestWeight] = useState(null)
-  const target = calcTarget({ ...profile, weight_kg: latestWeight })
+  // Il fabbisogno prescritto dal dietista (schede_valutazione) ha sempre la
+  // precedenza sulla formula generica basata sul peso — è un valore clinico
+  // deciso da un professionista, non va sovrascritto da un calcolo standard.
+  const [prescribedTarget, setPrescribedTarget] = useState(null)
+  const target = prescribedTarget || calcTarget({ ...profile, weight_kg: latestWeight })
+
+  useEffect(() => {
+    if (!user?.id) return
+    fetchWaterTarget(user.id).then(setPrescribedTarget).catch(() => {})
+  }, [user?.id])
 
   const [logs, setLogs] = useState([])
   const [weekData, setWeekData] = useState([])
@@ -231,6 +241,10 @@ export default function WaterPage() {
               <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>obiettivo (ml)</p>
             </div>
           </div>
+
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: 6 }}>
+            {prescribedTarget ? '👨‍⚕️ Obiettivo indicato dal tuo dietista' : 'Stima in base al tuo peso — chiedi al dietista un obiettivo personalizzato'}
+          </p>
 
           {profile?.activity_level && (
             <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 10 }}>

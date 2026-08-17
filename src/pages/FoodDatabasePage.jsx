@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { searchFoodsLocal, supplementWithOpenFoodFacts, browseFoods } from '../lib/foodSearch'
+import { searchFoodsLocal, supplementWithOpenFoodFacts, browseFoods, sourceBadge } from '../lib/foodSearch'
 import { Search, Plus, X, BookOpen, Star, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import { useT } from '../i18n'
 
@@ -351,9 +351,10 @@ export default function FoodDatabasePage() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 4 }}>
                       <p style={{ fontSize: 14, fontWeight: 600, flex: 1, lineHeight: 1.3 }}>{f.name}</p>
-                      <span style={{ fontSize: 9, background: f.source === 'database' ? 'var(--green-pale)' : '#f1f5f9', color: f.source === 'database' ? 'var(--green-main)' : 'var(--text-muted)', padding: '2px 6px', borderRadius: 100, fontWeight: 700, flexShrink: 0 }}>
-                        {f.source === 'database' ? 'DB' : f.source === 'custom_meal' ? '🍽️' : f.source === 'recipe' ? '🍳' : 'OFF'}
-                      </span>
+                      {(() => {
+                        const [label, bg, color] = sourceBadge(f.source, f.brand)
+                        return <span style={{ fontSize: 9, background: bg, color, padding: '2px 6px', borderRadius: 100, fontWeight: 700, flexShrink: 0 }}>{label}</span>
+                      })()}
                     </div>
                     {f.brand && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>{f.brand}</p>}
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -462,9 +463,10 @@ export default function FoodDatabasePage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                     <p style={{ fontSize: 14, fontWeight: 600 }}>{f.name}</p>
-                    <span style={{ fontSize: 9, background: f.source === 'custom' ? '#f5f3ff' : f.source === 'database' ? 'var(--green-pale)' : '#f1f5f9', color: f.source === 'custom' ? '#7c3aed' : f.source === 'database' ? 'var(--green-main)' : 'var(--text-muted)', padding: '2px 5px', borderRadius: 100, fontWeight: 700 }}>
-                      {f.source === 'custom' ? '✏️' : f.source === 'database' ? 'DB' : 'OFF'}
-                    </span>
+                    {(() => {
+                      const [label, bg, color] = sourceBadge(f.source, f.brand)
+                      return <span style={{ fontSize: 9, background: bg, color, padding: '2px 5px', borderRadius: 100, fontWeight: 700 }}>{label}</span>
+                    })()}
                   </div>
                   {f.brand && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 5 }}>{f.brand}</p>}
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
