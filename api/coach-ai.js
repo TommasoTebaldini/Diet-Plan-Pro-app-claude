@@ -34,11 +34,20 @@ const MAX_MESSAGE_LEN = 2000;
 // non genera MAI una risposta libera: un'AI generica che risponde a domande
 // su restrizione calorica/alimentazione a una persona con un disturbo
 // alimentare è un rischio noto, non mitigabile con un semplice prompt più
-// cauto. Match esatto per tag corti (BED/ARFID sono troppo ambigui per un
-// controllo "contains"), match a sottostringa solo per le frasi lunghe che
-// un dietista potrebbe scrivere a mano invece di usare il chip suggerito.
-const DCA_EXACT_TAGS = new Set(['anoressia', 'bulimia', 'bed', 'arfid', 'ortoressia']);
-const DCA_SUBSTRINGS = ['disturbo alimentare', 'disturbi alimentari', 'disturbo del comportamento alimentare'];
+// cauto. I chip suggeriti sono parole nude ("Anoressia","Bulimia","BED",
+// "ARFID","Ortoressia") ma il dietista può anche scrivere un tag a mano —
+// match a sottostringa per i termini lunghi abbastanza da non rischiare
+// falsi positivi (anoressia/bulimia/ortoressia coprono anche varianti
+// cliniche plausibili come "anoressia nervosa", non solo la parola nuda).
+// BED/ARFID restano a match esatto: sigle di 3-5 lettere, troppo ambigue
+// per un controllo "contains" (rischio di falso positivo su parole non
+// correlate) — coperte comunque dalle frasi lunghe esplicite sotto.
+const DCA_EXACT_TAGS = new Set(['bed', 'arfid']);
+const DCA_SUBSTRINGS = [
+  'anoressia', 'bulimia', 'ortoressia',
+  'disturbo alimentare', 'disturbi alimentari', 'disturbo del comportamento alimentare',
+  'disturbo evitante restrittivo', 'binge eating', 'alimentazione incontrollata',
+];
 function hasDcaTag(tags) {
   return (tags || []).some(t => {
     const norm = String(t).trim().toLowerCase();

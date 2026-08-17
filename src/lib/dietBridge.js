@@ -124,7 +124,14 @@ function _parseWaterMl(raw) {
   if (!n) return null
   // Nessun fabbisogno idrico realistico è sotto i 15 — un valore così basso è
   // quasi certamente in litri ("1.5L", "2 litri"), non in mL.
-  return Math.round(n < 15 ? n * 1000 : n)
+  const ml = Math.round(n < 15 ? n * 1000 : n)
+  // Limite di plausibilità: campo testo libero, nessun vincolo di formato lato
+  // dietista — se scrivesse per errore una formula ("35ml/kg" invece del
+  // valore già calcolato) il primo numero trovato ("35") darebbe un obiettivo
+  // assurdo mostrato così al paziente. Fuori da un range fisiologico
+  // ragionevole, meglio ignorare il valore e lasciare che il chiamante
+  // ricada sulla stima generica, piuttosto che mostrare un numero sbagliato.
+  return (ml >= 500 && ml <= 6000) ? ml : null
 }
 
 /**
