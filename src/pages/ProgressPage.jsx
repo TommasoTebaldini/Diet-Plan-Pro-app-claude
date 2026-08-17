@@ -6,8 +6,15 @@ import { useT } from '../i18n'
 import ProGate from '../components/ProGate'
 import { useSubscription } from '../hooks/useSubscription'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts'
-import { TrendingDown, TrendingUp, Minus, Target, Plus, Scale, Activity, Camera, WifiOff } from 'lucide-react'
+import { TrendingDown, TrendingUp, Minus, Target, Plus, Scale, Activity, Camera, WifiOff, Ruler } from 'lucide-react'
 import { safeWrite } from '../lib/offlineDB'
+
+const MEASURE_META = [
+  { key: 'waist_cm', label: 'Girovita', short: 'Vita', bg: 'var(--icon-bg-green)', fg: 'var(--green-main)' },
+  { key: 'hips_cm', label: 'Fianchi', short: 'Fianchi', bg: 'var(--icon-bg-blue)', fg: 'var(--blue)' },
+  { key: 'arm_cm', label: 'Braccia', short: 'Braccio', bg: 'var(--icon-bg-purple)', fg: 'var(--purple)' },
+  { key: 'thigh_cm', label: 'Cosce', short: 'Coscia', bg: 'var(--icon-bg-orange)', fg: 'var(--orange)' },
+]
 
 const MOOD_OPTIONS = [
   { value: 1, emoji: '😞', label: 'Pessimo' },
@@ -57,16 +64,28 @@ export default function ProgressPage() {
   const [photoError, setPhotoError] = useState('')
   const [lightboxUrl, setLightboxUrl] = useState(null)
 
+  // ── Misure corporee (auto-misurate dal paziente) ────────────────
+  const [bodyMeasurements, setBodyMeasurements] = useState([])
+  const [measureDate, setMeasureDate] = useState(new Date().toISOString().split('T')[0])
+  const [waist, setWaist] = useState('')
+  const [hips, setHips] = useState('')
+  const [arms, setArms] = useState('')
+  const [thighs, setThighs] = useState('')
+  const [savingMeasure, setSavingMeasure] = useState(false)
+  const [measureMsg, setMeasureMsg] = useState('')
+
   useEffect(() => { loadData() }, [])
 
   async function loadData() {
-    const [weightsRes, wellnessRes, linkRes, photosRes] = await Promise.all([
+    const [weightsRes, wellnessRes, linkRes, photosRes, measuresRes] = await Promise.all([
       supabase.from('weight_logs').select('id,date,weight_kg').eq('user_id', user.id).order('date', { ascending: true }).limit(730),
       supabase.from('daily_wellness').select('*').eq('user_id', user.id).eq('date', today).maybeSingle(),
       supabase.from('patient_dietitian').select('cartella_id').eq('patient_id', user.id).maybeSingle(),
       supabase.from('progress_photos').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
+      supabase.from('body_measurements').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(10),
     ])
     setWeights(weightsRes.data || [])
+    if (!measuresRes.error && measuresRes.data) setBodyMeasurements(measuresRes.data)
     const photoList = photosRes.data || []
     setPhotos(photoList)
     loadSignedUrls(photoList)
@@ -86,6 +105,51 @@ export default function ProgressPage() {
       ])
       setSchede(schedeRes.data || [])
       setBiaData(biaRes.data || [])
+    }
+  }
+
+  async function loadBodyMeasurements() {
+    const { data, error } = await supabase
+      .from('body_measurements')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('date', { ascending: false })
+      .limit(10)
+    if (!error && data) setBodyMeasurements(data)
+  }
+
+  async function saveMeasure() {
+    if (!waist && !hips && !arms && !thighs) {
+      setMeasureMsg('Inserisci almeno una misura.')
+      return
+    }
+    setSavingMeasure(true)
+    setMeasureMsg('')
+    try {
+      const { error } = await supabase.from('body_measurements').upsert({
+        user_id: user.id,
+        date: measureDate,
+        waist_cm: parseFloat(waist) || null,
+        hips_cm: parseFloat(hips) || null,
+        arm_cm: parseFloat(arms) || null,
+        thigh_cm: parseFloat(thighs) || null,
+      }, { onConflict: 'user_id,date' })
+      if (error) {
+        if (error.code === '42P01' || String(error.message).includes('does not exist')) {
+          setMeasureMsg('Funzione disponibile dopo aggiornamento database.')
+        } else {
+          setMeasureMsg('Errore: ' + error.message)
+        }
+      } else {
+        setMeasureMsg('✅ Misure salvate!')
+        setWaist(''); setHips(''); setArms(''); setThighs('')
+        await loadBodyMeasurements()
+        setTimeout(() => setMeasureMsg(''), 2500)
+      }
+    } catch {
+      setMeasureMsg('Funzione disponibile dopo aggiornamento database.')
+    } finally {
+      setSavingMeasure(false)
     }
   }
 
@@ -475,6 +539,87 @@ export default function ProgressPage() {
         {/* ── Circonferenze e Pliche ── */}
         {activeTab === 'circonferenze' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* ── Le tue misure (auto-misurate) ── */}
+            <div className="card" style={{ padding: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--icon-bg-green)', color: 'var(--green-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Ruler size={15} />
+                </div>
+                <h3 style={{ fontSize: 15, fontWeight: 700 }}>Le tue misure</h3>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                {[
+                  { m: MEASURE_META[0], val: waist, set: setWaist, ph: '78' },
+                  { m: MEASURE_META[1], val: hips, set: setHips, ph: '95' },
+                  { m: MEASURE_META[2], val: arms, set: setArms, ph: '30' },
+                  { m: MEASURE_META[3], val: thighs, set: setThighs, ph: '55' },
+                ].map(({ m, val, set, ph }) => (
+                  <div key={m.key}>
+                    <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: m.fg, flexShrink: 0 }} />
+                      {m.label} (cm)
+                    </label>
+                    <input type="number" className="input-field" placeholder={`es. ${ph}`} value={val} onChange={e => set(e.target.value)} inputMode="decimal" step="0.1" />
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginBottom: 10 }}>
+                <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Data</label>
+                <input type="date" className="input-field" value={measureDate} onChange={e => setMeasureDate(e.target.value)} max={new Date().toISOString().split('T')[0]} />
+              </div>
+              <button className="btn btn-primary btn-full" onClick={saveMeasure} disabled={savingMeasure}>
+                {savingMeasure ? 'Salvataggio...' : 'Salva misure'}
+              </button>
+              {measureMsg && (
+                <p style={{ fontSize: 13, marginTop: 8, color: measureMsg.includes('✅') ? 'var(--green-main)' : 'var(--red)' }}>
+                  {measureMsg}
+                </p>
+              )}
+
+              {/* Trend girovita/fianchi */}
+              {bodyMeasurements.filter(m => m.waist_cm).length > 1 && (
+                <div style={{ marginTop: 20 }}>
+                  <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Trend girovita{bodyMeasurements.some(m => m.hips_cm) ? ' e fianchi' : ''}</h4>
+                  <ResponsiveContainer width="100%" height={120}>
+                    <LineChart data={[...bodyMeasurements].filter(m => m.waist_cm).reverse()} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
+                      <XAxis dataKey="date" tick={{ fontSize: 9, fill: 'var(--text-muted)' }} tickFormatter={d => d ? d.slice(5) : ''} />
+                      <YAxis tick={{ fontSize: 9, fill: 'var(--text-muted)' }} domain={['dataMin - 2', 'dataMax + 2']} />
+                      <Tooltip formatter={(v, n) => [v + ' cm', n]} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                      <Line type="monotone" dataKey="waist_cm" name="Girovita" stroke="var(--green-main)" dot={{ r: 3 }} strokeWidth={2} />
+                      {bodyMeasurements.some(m => m.hips_cm) && (
+                        <Line type="monotone" dataKey="hips_cm" name="Fianchi" stroke="var(--blue)" dot={{ r: 3 }} strokeWidth={2} connectNulls />
+                      )}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* Storico */}
+              {bodyMeasurements.length > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Ultime misure</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {bodyMeasurements.map((m, i) => (
+                      <div key={m.id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 10, fontSize: 12, flexWrap: 'wrap', gap: 6 }}>
+                        <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{m.date}</span>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          {MEASURE_META.map(meta => m[meta.key] ? (
+                            <span key={meta.key} style={{ fontSize: 11, background: meta.bg, color: meta.fg, borderRadius: 100, padding: '2px 8px', fontWeight: 500 }}>
+                              {meta.short} {m[meta.key]}
+                            </span>
+                          ) : null)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Misure rilevate dal dietista ── */}
             {!cartellaId ? (
               <div className="card" style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)' }}>
                 <p style={{ fontSize: 28, marginBottom: 8 }}>📏</p>
@@ -499,7 +644,7 @@ export default function ProgressPage() {
                   }
                   return (
                     <div className="card" style={{ padding: 16 }}>
-                      <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Ultime misure · {new Date(last.saved_at).toLocaleDateString('it-IT')}</h3>
+                      <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Rilevate dal dietista · {new Date(last.saved_at).toLocaleDateString('it-IT')}</h3>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: 8 }}>
                         {[
                           { key: 'vita', label: 'Vita', unit: 'cm', icon: '📐' },

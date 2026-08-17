@@ -29,7 +29,7 @@ export async function browseFoods() {
     .slice()
     .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it'))
     .map(f => ({
-      ...f, brand: `${f.src} — ${f.category || 'Generico'}`, source: 'dietitian',
+      ...f, brand: `${f.src} — ${f.category || 'Generico'}`, source: 'public',
     }))
 }
 
@@ -57,7 +57,7 @@ async function searchAllFoods(query) {
   })
   return matches.slice(0, 50).map(i => {
     const f = ALL_FOODS[i]
-    return { ...f, brand: `${f.src || 'CREA'} — ${f.category || 'Generico'}`, source: 'dietitian' }
+    return { ...f, brand: `${f.src || 'CREA'} — ${f.category || 'Generico'}`, source: 'public' }
   })
 }
 
@@ -323,11 +323,16 @@ export async function searchOpenFoodFacts(query) {
 // unica fonte di verità condivisa tra FoodDatabasePage e MacroTrackerPage
 // (prima duplicata e disallineata: la mappa in FoodDatabasePage riconosceva
 // solo 'custom_meal'/'recipe'/'custom' e faceva cadere tutto il resto —
-// inclusi i risultati CREA/BDA, source:'dietitian' — sull'etichetta "OFF"
-// di default, mostrando ogni alimento del database curato come se fosse
-// Open Food Facts).
+// inclusi i risultati CREA/BDA — sull'etichetta "OFF" di default, mostrando
+// ogni alimento del database curato come se fosse Open Food Facts).
+//
+// I risultati CREA/BDA/ONS/APROTEICI/FLAVIS/UPF (browseFoods/searchAllFoods
+// qui sopra) usano source:'public' apposta: sourceBadge() li intercetta nel
+// ramo dedicato sotto ed estrae l'etichetta reale (CREA, BDA, ...) dal
+// prefisso già presente in "brand", invece di un generico "DB" — prima
+// venivano taggati source:'dietitian', che li appiattiva tutti sulla stessa
+// etichetta "DB" indipendentemente dalla fonte vera.
 const SOURCE_BADGES = {
-  dietitian:   ['DB', 'var(--icon-bg-green)', 'var(--green-dark)'],
   recent:      ['Recente', 'var(--icon-bg-orange)', 'var(--alert-warning-text)'],
   diet:        ['Piano', 'var(--green-pale)', 'var(--green-main)'],
   recipe:      ['Ricetta', 'var(--icon-bg-orange)', 'var(--alert-warning-text)'],

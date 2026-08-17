@@ -6,14 +6,14 @@ import { useT } from '../i18n'
 import ProGate from '../components/ProGate'
 import { useSubscription } from '../hooks/useSubscription'
 import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine, Cell, RadialBarChart,
   RadialBar, Legend,
 } from 'recharts'
 import {
   BarChart2, TrendingUp, TrendingDown, Minus, FileText,
   Download, Droplets, Scale, Flame, ChevronLeft, ChevronRight,
-  Check, X as XIcon, Lock, Ruler,
+  Check, X as XIcon, Lock,
 } from 'lucide-react'
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, parseISO, addWeeks, subWeeks } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -71,13 +71,6 @@ const MICRO_META = [
   { key: 'selenium_100g', label: 'Selenio', emoji: '🥜', unit: 'µg', ref: { M: 55, F: 55 } },
   { key: 'sodium_100g', label: 'Sodio', emoji: '🧂', unit: 'mg', ref: { M: 2000, F: 2000 }, max: true },
   { key: 'cholesterol_100g', label: 'Colesterolo', emoji: '🫀', unit: 'mg', ref: { M: 300, F: 300 }, max: true },
-]
-
-const MEASURE_META = [
-  { key: 'waist_cm', label: 'Girovita', short: 'Vita', bg: 'var(--icon-bg-green)', fg: 'var(--green-main)' },
-  { key: 'hips_cm', label: 'Fianchi', short: 'Fianchi', bg: 'var(--icon-bg-blue)', fg: 'var(--blue)' },
-  { key: 'arm_cm', label: 'Braccia', short: 'Braccio', bg: 'var(--icon-bg-purple)', fg: 'var(--purple)' },
-  { key: 'thigh_cm', label: 'Cosce', short: 'Coscia', bg: 'var(--icon-bg-orange)', fg: 'var(--orange)' },
 ]
 
 const MEAL_TYPES = ['colazione', 'spuntino_mattina', 'pranzo', 'spuntino_pomeriggio', 'cena']
@@ -159,16 +152,6 @@ export default function StatisticsPage() {
   const [pdfMode, setPdfMode] = useState('weekly')
   const [monthStr, setMonthStr] = useState(format(new Date(), 'yyyy-MM'))
   const [generatingMonthlyPdf, setGeneratingMonthlyPdf] = useState(false)
-
-  // ── Body measurements ─────────────────────────────────────────
-  const [bodyMeasurements, setBodyMeasurements] = useState([])
-  const [measureDate, setMeasureDate] = useState(new Date().toISOString().split('T')[0])
-  const [waist, setWaist] = useState('')
-  const [hips, setHips] = useState('')
-  const [arms, setArms] = useState('')
-  const [thighs, setThighs] = useState('')
-  const [savingMeasure, setSavingMeasure] = useState(false)
-  const [measureMsg, setMeasureMsg] = useState('')
 
   const { today, weekStart, weekEnd, prevWeekStart, prevWeekEnd } = useMemo(() => {
     const d = new Date()
@@ -310,58 +293,6 @@ export default function StatisticsPage() {
     })
     setAdherenceData(adh)
     setLoading(false)
-  }
-
-  // Body measurements
-  useEffect(() => {
-    if (user?.id) loadBodyMeasurements()
-  }, [user?.id])
-
-  async function loadBodyMeasurements() {
-    try {
-      const { data, error } = await supabase
-        .from('body_measurements')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('date', { ascending: false })
-        .limit(10)
-      if (!error && data) setBodyMeasurements(data)
-    } catch {}
-  }
-
-  async function saveMeasure() {
-    if (!waist && !hips && !arms && !thighs) {
-      setMeasureMsg('Inserisci almeno una misura.')
-      return
-    }
-    setSavingMeasure(true)
-    setMeasureMsg('')
-    try {
-      const { error } = await supabase.from('body_measurements').upsert({
-        user_id: user.id,
-        date: measureDate,
-        waist_cm: parseFloat(waist) || null,
-        hips_cm: parseFloat(hips) || null,
-        arm_cm: parseFloat(arms) || null,
-        thigh_cm: parseFloat(thighs) || null,
-      }, { onConflict: 'user_id,date' })
-      if (error) {
-        if (error.code === '42P01' || String(error.message).includes('does not exist')) {
-          setMeasureMsg('Funzione disponibile dopo aggiornamento database.')
-        } else {
-          setMeasureMsg('Errore: ' + error.message)
-        }
-      } else {
-        setMeasureMsg('✅ Misure salvate!')
-        setWaist(''); setHips(''); setArms(''); setThighs('')
-        await loadBodyMeasurements()
-        setTimeout(() => setMeasureMsg(''), 2500)
-      }
-    } catch {
-      setMeasureMsg('Funzione disponibile dopo aggiornamento database.')
-    } finally {
-      setSavingMeasure(false)
-    }
   }
 
   // ── computed weekly stats ──────────────────────────────────────
@@ -1285,87 +1216,6 @@ export default function StatisticsPage() {
             </>
             </ProGate>
           )}
-
-
-          {/* Body measurements section */}
-          <div className="card" style={{ padding: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--icon-bg-green)', color: 'var(--green-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Ruler size={15} />
-              </div>
-              <h3 style={{ fontSize: 15, fontWeight: 700 }}>Misure Corporee</h3>
-            </div>
-
-            {/* Form */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-              {[
-                { m: MEASURE_META[0], val: waist, set: setWaist, ph: '78' },
-                { m: MEASURE_META[1], val: hips, set: setHips, ph: '95' },
-                { m: MEASURE_META[2], val: arms, set: setArms, ph: '30' },
-                { m: MEASURE_META[3], val: thighs, set: setThighs, ph: '55' },
-              ].map(({ m, val, set, ph }) => (
-                <div key={m.key}>
-                  <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: m.fg, flexShrink: 0 }} />
-                    {m.label} (cm)
-                  </label>
-                  <input type="number" className="input-field" placeholder={`es. ${ph}`} value={val} onChange={e => set(e.target.value)} inputMode="decimal" step="0.1" />
-                </div>
-              ))}
-            </div>
-            <div style={{ marginBottom: 10 }}>
-              <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Data</label>
-              <input type="date" className="input-field" value={measureDate} onChange={e => setMeasureDate(e.target.value)} max={new Date().toISOString().split('T')[0]} />
-            </div>
-            <button className="btn btn-primary btn-full" onClick={saveMeasure} disabled={savingMeasure}>
-              {savingMeasure ? 'Salvataggio...' : 'Salva misure'}
-            </button>
-            {measureMsg && (
-              <p style={{ fontSize: 13, marginTop: 8, color: measureMsg.includes('✅') ? 'var(--green-main)' : 'var(--red)' }}>
-                {measureMsg}
-              </p>
-            )}
-
-            {/* Waist / hips trend chart */}
-            {bodyMeasurements.filter(m => m.waist_cm).length > 1 && (
-              <div style={{ marginTop: 20 }}>
-                <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Trend girovita{bodyMeasurements.some(m => m.hips_cm) ? ' e fianchi' : ''}</h4>
-                <ResponsiveContainer width="100%" height={120}>
-                  <LineChart data={[...bodyMeasurements].filter(m => m.waist_cm).reverse()} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
-                    <XAxis dataKey="date" tick={{ fontSize: 9, fill: 'var(--text-muted)' }} tickFormatter={d => d ? d.slice(5) : ''} />
-                    <YAxis tick={{ fontSize: 9, fill: 'var(--text-muted)' }} domain={['dataMin - 2', 'dataMax + 2']} />
-                    <Tooltip formatter={(v, n) => [v + ' cm', n]} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
-                    <Line type="monotone" dataKey="waist_cm" name="Girovita" stroke="var(--green-main)" dot={{ r: 3 }} strokeWidth={2} />
-                    {bodyMeasurements.some(m => m.hips_cm) && (
-                      <Line type="monotone" dataKey="hips_cm" name="Fianchi" stroke="var(--blue)" dot={{ r: 3 }} strokeWidth={2} connectNulls />
-                    )}
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-
-            {/* History table */}
-            {bodyMeasurements.length > 0 && (
-              <div style={{ marginTop: 16 }}>
-                <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Ultime misure</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {bodyMeasurements.map((m, i) => (
-                    <div key={m.id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 10, fontSize: 12, flexWrap: 'wrap', gap: 6 }}>
-                      <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{m.date}</span>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {MEASURE_META.map(meta => m[meta.key] ? (
-                          <span key={meta.key} style={{ fontSize: 11, background: meta.bg, color: meta.fg, borderRadius: 100, padding: '2px 8px', fontWeight: 500 }}>
-                            {meta.short} {m[meta.key]}
-                          </span>
-                        ) : null)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
 
         </div>
       )}
