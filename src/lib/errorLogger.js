@@ -10,7 +10,11 @@ const MAX_PER_SESSION = 20 // evita di floodare la tabella in caso di errore rip
 let sent = 0
 const seen = new Set()
 
-async function logClientError(level, message, stack) {
+// Esportata anche a parte (oltre ai listener automatici sotto) così
+// l'ErrorBoundary React in App.jsx può riusare la stessa logica di
+// dedup/cap-per-sessione invece di duplicarla — un errore catturato da
+// componentDidCatch è comunque un errore client, stessa tabella.
+export async function logClientError(level, message, stack) {
   if (sent >= MAX_PER_SESSION) return
   const key = `${level}|${message || ''}`.slice(0, 300)
   if (seen.has(key)) return

@@ -12,6 +12,7 @@ import OfflineBar from './components/OfflineBar'
 import PageTransition from './components/PageTransition'
 import { useT } from './i18n'
 import { getPedometer, isPedometerSupported, hasMotionPermission } from './lib/pedometer'
+import { logClientError } from './lib/errorLogger'
 
 const CURRENT_YEAR = new Date().getFullYear()
 
@@ -57,14 +58,26 @@ const TermsPage            = lazy(() => import('./pages/TermsPage'))
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null } }
   static getDerivedStateFromError(error) { return { error } }
+  componentDidCatch(error, info) {
+    // Prima questi crash sparivano nel nulla: l'utente vedeva "Riprova",
+    // nessuno lo sapeva mai. Stessa tabella/dedup del logger client-side
+    // (window.onerror), livello distinto per riconoscerli in Admin.
+    logClientError('react-error-boundary', error?.message, (error?.stack || '') + '\n' + (info?.componentStack || '')).catch(() => {})
+  }
   render() {
     if (this.state.error) {
       return (
         <div style={{ padding: '2rem', textAlign: 'center' }}>
-          <p style={{ color: '#DC2626', marginBottom: '1rem' }}>Si è verificato un errore imprevisto.</p>
-          <button onClick={() => this.setState({ error: null })} style={{ padding: '0.5rem 1.5rem', borderRadius: '8px', border: 'none', background: '#1a7f5a', color: '#fff', cursor: 'pointer' }}>
-            Riprova
-          </button>
+          <p style={{ color: '#DC2626', marginBottom: '4px', fontWeight: 600 }}>Si è verificato un errore imprevisto in questa pagina.</p>
+          <p style={{ color: 'var(--text-muted, #64748b)', fontSize: 13, marginBottom: '1rem' }}>Il resto dell'app funziona normalmente — è stato segnalato automaticamente.</p>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+            <button onClick={() => this.setState({ error: null })} style={{ padding: '0.5rem 1.5rem', borderRadius: '8px', border: 'none', background: '#1a7f5a', color: '#fff', cursor: 'pointer' }}>
+              Riprova
+            </button>
+            <a href="/" style={{ padding: '0.5rem 1.5rem', borderRadius: '8px', border: '1.5px solid var(--border, #e2e8f0)', color: 'var(--text-primary, #1e293b)', textDecoration: 'none', display: 'inline-block' }}>
+              Torna alla Home
+            </a>
+          </div>
         </div>
       )
     }
@@ -202,6 +215,7 @@ function AnimatedRoutes() {
 function AppInner() {
   const { user, isDietitian, refreshProfile } = useAuth()
   const t = useT()
+  const location = useLocation()
 
   async function handleReconnect() {
     if (user) await refreshProfile()
@@ -217,7 +231,11 @@ function AppInner() {
       <InstallBanner />
       {user && !isDietitian && <BottomNav />}
       <div className={user && !isDietitian ? 'app-content' : 'app-content-public'}>
-        <ErrorBoundary>
+        {/* key sulla pathname: un crash su una pagina si resetta da solo
+            navigando altrove, invece di dover per forza premere "Riprova"
+            (che prima restava a schermo anche dopo un cambio pagina riuscito,
+            visto che lo stato dell'errore non veniva mai ripulito da solo). */}
+        <ErrorBoundary key={location.pathname}>
           <Suspense fallback={<PageSkeleton />}>
             <AnimatedRoutes />
           </Suspense>
