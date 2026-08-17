@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { computeDayStreak } from '../lib/achievementTriggers'
 
 function getColor(count) {
   if (!count || count === 0) return '#EBEDF0'
@@ -74,18 +75,7 @@ export default function StreakCalendar() {
     )
   }
 
-  const streakCount = (() => {
-    let count = 0
-    for (let i = 83; i >= 0; i--) {
-      const d = new Date(today)
-      d.setDate(d.getDate() - i)
-      const ds = d.toISOString().split('T')[0]
-      if (!dayCounts[ds] && count === 0 && i > 0) continue
-      if (dayCounts[ds]) count++
-      else if (count > 0) break
-    }
-    return count
-  })()
+  const streakCount = computeDayStreak(new Set(Object.keys(dayCounts)))
 
   return (
     <div style={{ overflowX: 'auto', textAlign: 'center' }}>

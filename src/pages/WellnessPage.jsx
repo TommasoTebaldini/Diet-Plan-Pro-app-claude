@@ -147,9 +147,18 @@ export default function WellnessPage() {
   const [macroHistory, setMacroHistory] = useState([])
   const [range, setRange] = useState(30)
   const [chartTab, setChartTab] = useState('trend') // 'trend' | 'correlazione'
+  // Segnale indipendente dal range selezionato — "esiste mai stato un
+  // check-in, a prescindere dalla finestra 7/30/90gg attualmente scelta".
+  // Serve a non nascondere la card del grafico (e i suoi stessi selettori)
+  // quando il range corrente non ha dati: senza questo, selezionare "7g"
+  // con l'ultimo check-in più vecchio di 7 giorni fa nascondeva l'intera
+  // card, bottoni compresi, intrappolando l'utente (via solo un reload).
+  const [hasAnyHistory, setHasAnyHistory] = useState(null) // null = ancora da controllare
 
   useEffect(() => {
     loadData()
+    supabase.from('daily_wellness').select('id').eq('user_id', user.id).limit(2)
+      .then(({ data }) => setHasAnyHistory((data?.length || 0) > 1))
   }, [])
 
   useEffect(() => {
@@ -620,8 +629,10 @@ export default function WellnessPage() {
           </div>
         )}
 
-        {/* No data at all */}
-        {!showForm && !todayLog && history.length === 0 && (
+        {/* No data at all — hasAnyHistory è indipendente dal range selezionato,
+            così non mostra questo messaggio quando esiste storico ma non nella
+            finestra 7/30/90gg corrente */}
+        {!showForm && !todayLog && hasAnyHistory === false && (
           <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)' }}>
             <Heart size={40} style={{ marginBottom: 12, opacity: 0.3 }} />
             <p style={{ fontSize: 15, fontWeight: 500 }}>Inizia il tuo diario del benessere</p>
@@ -632,8 +643,11 @@ export default function WellnessPage() {
           </div>
         )}
 
-        {/* Charts section */}
-        {history.length > 1 && (
+        {/* Charts section — gate on hasAnyHistory (indipendente dal range), non
+            su history.length: altrimenti selezionare "7g" senza check-in negli
+            ultimi 7 giorni nascondeva l'intera card, selettori di range
+            inclusi, intrappolando l'utente (via solo un reload di pagina) */}
+        {hasAnyHistory && (
           <div className="card" style={{ padding: '18px 12px 14px' }}>
             {/* Tab selector */}
             <div style={{ display: 'flex', gap: 8, paddingLeft: 8, marginBottom: 16 }}>
@@ -674,7 +688,11 @@ export default function WellnessPage() {
               ))}
             </div>
 
-            {chartTab === 'trend' ? (
+            {history.length <= 1 ? (
+              <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--text-muted)', fontSize: 13 }}>
+                Nessun check-in negli ultimi {range} giorni.
+              </div>
+            ) : chartTab === 'trend' ? (
               <>
                 <p style={{ fontSize: 11, color: 'var(--text-muted)', paddingLeft: 8, marginBottom: 8 }}>
                   Scala 1–5 &nbsp;·&nbsp;
