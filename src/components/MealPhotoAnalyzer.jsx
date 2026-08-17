@@ -71,8 +71,8 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
   function handleAdd() {
     if (!result) return
     const foods = result.foods
-      .filter((_, i) => selected.has(i))
       .map((f, i) => {
+        if (!selected.has(i)) return null
         const g = parseFloat(grams[i]) || f.grams
         return {
           food_name: f.name,
@@ -89,6 +89,7 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
           })(),
         }
       })
+      .filter(Boolean)
     onAddFoods(foods)
     onClose()
   }
@@ -230,7 +231,8 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
 
             {/* Total preview */}
             {(() => {
-              const tot = result.foods.filter((_, i) => selected.has(i)).reduce((s, f, i) => {
+              const tot = result.foods.reduce((s, f, i) => {
+                if (!selected.has(i)) return s
                 const g = parseFloat(grams[i]) || f.grams
                 const factor = g / 100
                 return { kcal: s.kcal + Math.round(f.kcal_100g * factor), p: s.p + f.proteins_100g * factor, c: s.c + f.carbs_100g * factor, fat: s.fat + f.fats_100g * factor }

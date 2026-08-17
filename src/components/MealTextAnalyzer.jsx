@@ -94,8 +94,8 @@ export default function MealTextAnalyzer({ onAddFoods, onClose }) {
   function handleAdd() {
     if (!result) return
     const foods = result.foods
-      .filter((_, i) => selected.has(i))
       .map((f, i) => {
+        if (!selected.has(i)) return null
         const g = parseFloat(grams[i]) || f.grams
         const factor = g / 100
         return {
@@ -108,6 +108,7 @@ export default function MealTextAnalyzer({ onAddFoods, onClose }) {
           food_data: { source: 'text_ai', kcal_100g: f.kcal_100g, proteins_100g: f.proteins_100g, carbs_100g: f.carbs_100g, fats_100g: f.fats_100g },
         }
       })
+      .filter(Boolean)
     onAddFoods(foods)
     onClose()
   }
@@ -222,7 +223,8 @@ export default function MealTextAnalyzer({ onAddFoods, onClose }) {
             </div>
 
             {(() => {
-              const tot = result.foods.filter((_, i) => selected.has(i)).reduce((s, f, i) => {
+              const tot = result.foods.reduce((s, f, i) => {
+                if (!selected.has(i)) return s
                 const g = parseFloat(grams[i]) || f.grams
                 const factor = g / 100
                 return { kcal: s.kcal + Math.round(f.kcal_100g * factor), p: s.p + f.proteins_100g * factor, c: s.c + f.carbs_100g * factor, fat: s.fat + f.fats_100g * factor }
