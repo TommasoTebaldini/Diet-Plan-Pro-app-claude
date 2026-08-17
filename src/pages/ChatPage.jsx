@@ -417,7 +417,6 @@ function ChatListView({ dietitianName, dietitianOnline, dietitianPreview, dietit
 }
 
 function GroupThreadView({ group, user, onBack }) {
-  const { checkAndAward } = useAchievements()
   const [messages, setMessages] = useState([])
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
@@ -510,7 +509,6 @@ function GroupThreadView({ group, user, onBack }) {
     const { data, error } = await supabase.from('chat_group_messages').insert({ group_id: group.id, sender_id: user.id, content, type: 'text', status: 'sent' }).select().single()
     if (data) {
       setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
-      checkAndAward('first_dietitian_message').catch(() => {})
     } else if (error) {
       setMessages(prev => prev.filter(m => m.id !== optimistic.id))
       setText(content)
