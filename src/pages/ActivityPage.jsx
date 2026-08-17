@@ -204,7 +204,9 @@ export default function ActivityPage() {
   const pedoRef = useRef(null)
   const syncTimeoutRef = useRef(null)
 
-  const userWeight = latestWeight || profile?.weight_kg || profile?.target_weight || 70
+  // `profiles` non ha una colonna peso corrente (solo target_weight, l'obiettivo) —
+  // il peso reale vive in weight_logs, già caricato sopra in latestWeight.
+  const userWeight = latestWeight || profile?.target_weight || 70
 
   // Load today's logs + latest weight
   useEffect(() => {
