@@ -1004,7 +1004,12 @@ export default function MacroTrackerPage() {
   }
 
   const daysFromToday = Math.round((new Date(todayStr) - new Date(date)) / (1000 * 60 * 60 * 24))
-  const atFreeLimit = !isPro && daysFromToday >= FREE_HISTORY_DAYS - 1
+  // Disable "previous day" once the user is ON the last day still allowed by
+  // changeDate()'s own check (daysBack > FREE_HISTORY_DAYS blocks going further —
+  // i.e. day FREE_HISTORY_DAYS itself is reachable). Using "- 1" here locked the
+  // button out one day too early, so Free users could never actually reach day 7
+  // even though the constant/messaging ("storico limitato a 7 giorni") promised it.
+  const atFreeLimit = !isPro && daysFromToday >= FREE_HISTORY_DAYS
 
   const totals = useMemo(() =>
     log.filter(f => f.food_name !== '__note__').reduce((a, f) => ({

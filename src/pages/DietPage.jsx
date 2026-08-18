@@ -84,18 +84,34 @@ function DailyNutritionSummary({ meals, diet }) {
   )
 }
 
-function FoodItem({ food, overrideKey, override, onOverride }) {
-  // Normalize: dietitian panel stores alternatives as `altPrint` groups — each group bundles
-  // one or more foods printed as a single substitution (es. biscotti -> fette+marmellata+burro)
-  // plus an optional note; legacy plans store a flat {nome,qt} entry (no .items) for a 1-food
-  // group. The standard `substitutes` format ({name,quantity,unit}) is always single-food.
-  const dietSubs = food.substitutes?.length
-    ? food.substitutes.map(s => ({ name: s.name, qtyLabel: `${s.quantity}${s.unit || 'g'}`, parts: [{ name: s.name, quantity: s.quantity, unit: s.unit || 'g' }], nota: '' }))
+// Normalize: dietitian panel stores alternatives as `altPrint` groups — each group bundles
+// one or more foods printed as a single substitution (es. biscotti -> fette+marmellata+burro)
+// plus an optional note; legacy plans store a flat {nome,qt} entry (no .items) for a 1-food
+// group. The standard `substitutes` format ({name,quantity,unit}) is always single-food.
+// Shared by FoodItem (on-screen picker) and copyDayMealsToLog (diary copy) so a substitute
+// picked in the UI is the same one actually logged — the two must never disagree.
+function buildFoodSubs(food) {
+  return food.substitutes?.length
+    ? food.substitutes.map(s => ({
+        name: s.name,
+        qtyLabel: `${s.quantity}${s.unit || 'g'}`,
+        parts: [{ name: s.name, quantity: s.quantity, unit: s.unit || 'g', kcal_100g: s.kcal_100g, proteins_100g: s.proteins_100g, carbs_100g: s.carbs_100g, fats_100g: s.fats_100g }],
+        nota: '',
+      }))
     : (food.altPrint || []).map(g => {
         const items = Array.isArray(g?.items) ? g.items : [g]
-        const parts = items.map(a => ({ name: a.nome || a.name || '', quantity: a.qt || a.quantita || a.quantity || '', unit: a.misura || a.unit || 'g' }))
+        const parts = items.map(a => ({
+          name: a.nome || a.name || '',
+          quantity: a.qt || a.quantita || a.quantity || '',
+          unit: a.misura || a.unit || 'g',
+          kcal_100g: a.kcal_100g, proteins_100g: a.proteins_100g, carbs_100g: a.carbs_100g, fats_100g: a.fats_100g,
+        }))
         return { name: parts.map(p => p.name).join(' + '), qtyLabel: parts.map(p => `${p.quantity}${p.unit || 'g'}`).join(' + '), parts, nota: g?.nota || '' }
       })
+}
+
+function FoodItem({ food, overrideKey, override, onOverride }) {
+  const dietSubs = buildFoodSubs(food)
 
   // Smart-Swap: alternative generate on-demand dall'AI (oltre a quelle fisse
   // decise dal dietista), quando il paziente non ha l'alimento a disposizione.
@@ -1153,21 +1169,47 @@ export default function DietPage() {
           const food = foods[fi]
           const overrideKey = `${meal.id}_${fi}`
           const override = foodOverrides[overrideKey]
-          let name, qty, k100, p100, c100, f100
-          if (override?.subIdx != null && food.substitutes?.[override.subIdx]) {
-            const sub = food.substitutes[override.subIdx]
-            name = sub.name
-            qty = parseFloat(override.grams || sub.quantity) || 0
-            k100 = sub.kcal_100g || 0; p100 = sub.proteins_100g || 0
-            c100 = sub.carbs_100g || 0; f100 = sub.fats_100g || 0
-          } else {
-            name = food.name || food.nome || ''
-            if (!name) continue
-            qty = parseFloat(food.quantity || food.qt || 100) || 0
-            k100 = food.kcal_100g || 0; p100 = food.proteins_100g || 0
-            c100 = food.carbs_100g || 0; f100 = food.fats_100g || 0
+          const dietSubs = buildFoodSubs(food)
+          const sub = override?.subIdx != null ? dietSubs[override.subIdx] : null
+          if (sub) {
+            if (sub.parts.length === 1) {
+              const part = sub.parts[0]
+              const name = part.name
+              if (!name) continue
+              const qty = parseFloat(override.grams || part.quantity) || 0
+              inserts.push({
+                user_id: user.id, date: targetDate, meal_type: meal.meal_type,
+                food_name: name, grams: qty,
+                kcal: part.kcal_100g ? Math.round(part.kcal_100g * qty / 100) : null,
+                proteins: part.proteins_100g ? Math.round(part.proteins_100g * qty / 100 * 10) / 10 : null,
+                carbs: part.carbs_100g ? Math.round(part.carbs_100g * qty / 100 * 10) / 10 : null,
+                fats: part.fats_100g ? Math.round(part.fats_100g * qty / 100 * 10) / 10 : null,
+                food_data: { source: 'diet_plan', plan_nome: diet?.name || '' },
+              })
+            } else {
+              // Multi-food substitute group (es. biscotti -> fette+marmellata+burro):
+              // log one entry per component food, same as the clinical-plan copy path below.
+              for (const part of sub.parts) {
+                if (!part.name) continue
+                const qty = parseFloat(part.quantity) || 0
+                inserts.push({
+                  user_id: user.id, date: targetDate, meal_type: meal.meal_type,
+                  food_name: part.name, grams: qty,
+                  kcal: part.kcal_100g ? Math.round(part.kcal_100g * qty / 100) : null,
+                  proteins: part.proteins_100g ? Math.round(part.proteins_100g * qty / 100 * 10) / 10 : null,
+                  carbs: part.carbs_100g ? Math.round(part.carbs_100g * qty / 100 * 10) / 10 : null,
+                  fats: part.fats_100g ? Math.round(part.fats_100g * qty / 100 * 10) / 10 : null,
+                  food_data: { source: 'diet_plan', plan_nome: diet?.name || '' },
+                })
+              }
+            }
+            continue
           }
+          const name = food.name || food.nome || ''
           if (!name) continue
+          const qty = parseFloat(food.quantity || food.qt || 100) || 0
+          const k100 = food.kcal_100g || 0, p100 = food.proteins_100g || 0
+          const c100 = food.carbs_100g || 0, f100 = food.fats_100g || 0
           inserts.push({
             user_id: user.id, date: targetDate, meal_type: meal.meal_type,
             food_name: name, grams: qty,

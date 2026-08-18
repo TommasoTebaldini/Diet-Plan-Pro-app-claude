@@ -278,7 +278,7 @@ export default function MenstrualCyclePage() {
   // Genera previsioni per i prossimi 3 cicli
   let nextCycleEstimate = null
   const predictedRanges = []
-  if (cycles.length > 0 && !cycles[0]?.end_date === false || cycles[0]?.start_date) {
+  if (cycles.length > 0) {
     // Trova l'ultimo inizio registrato
     const sorted = [...cycles].sort((a, b) => b.start_date.localeCompare(a.start_date))
     const lastStart = new Date(sorted[0].start_date + 'T12:00:00')

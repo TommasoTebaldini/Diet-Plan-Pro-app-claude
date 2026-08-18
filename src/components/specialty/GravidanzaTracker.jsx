@@ -14,8 +14,9 @@ const IOM_SINGLE = [
   { max: Infinity, label: 'Obesità', total: [5, 9], weekly: [0.17, 0.27] },
 ]
 const IOM_TWINS = [
-  { max: 25, label: 'Normopeso', total: [17, 25] },
-  { max: 30, label: 'Sovrappeso', total: [14, 23] },
+  { max: 18.5, label: 'Sottopeso', total: [23, 28] },
+  { max: 25,   label: 'Normopeso', total: [17, 25] },
+  { max: 30,   label: 'Sovrappeso', total: [14, 23] },
   { max: Infinity, label: 'Obesità', total: [11, 19] },
 ]
 

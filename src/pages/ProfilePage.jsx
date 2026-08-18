@@ -1055,7 +1055,13 @@ export default function ProfilePage() {
   // Notification prefs
   const [notifPrefs, setNotifPrefs] = useState(() => {
     try {
-      const saved = localStorage.getItem('nutriplan_notif_prefs')
+      // NOTE: uses its own storage key (distinct from lib/notifications.js's
+      // PREFS_KEY = 'nutriplan_notif_prefs') because that key has a different
+      // shape (mealTimes, waterIntervalHours, weighDay, ...) and is consumed
+      // by NotificationContext — reusing it here would silently clobber the
+      // user's scheduled-notification settings whenever a quick toggle below
+      // is flipped, and vice versa.
+      const saved = localStorage.getItem('nutriplan_notif_prefs_quick')
       return saved ? JSON.parse(saved) : { mealReminder: true, waterReminder: true, weeklyReport: true, dietitianMessages: true, activityReminder: false }
     } catch { return { mealReminder: true, waterReminder: true, weeklyReport: true, dietitianMessages: true, activityReminder: false } }
   })
@@ -1253,7 +1259,7 @@ export default function ProfilePage() {
                 <button onClick={() => {
                   const next = { ...notifPrefs, [item.key]: !notifPrefs[item.key] }
                   setNotifPrefs(next)
-                  try { localStorage.setItem('nutriplan_notif_prefs', JSON.stringify(next)) } catch {}
+                  try { localStorage.setItem('nutriplan_notif_prefs_quick', JSON.stringify(next)) } catch {}
                 }} role="switch" aria-checked={notifPrefs[item.key]} aria-label={item.label.replace(/^[^\w]+/, '').trim()} style={{
                   width: 44, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer',
                   background: notifPrefs[item.key] ? 'var(--green-main)' : 'var(--border)',

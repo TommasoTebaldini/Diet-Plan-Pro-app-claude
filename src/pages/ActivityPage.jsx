@@ -389,9 +389,6 @@ export default function ActivityPage() {
     setEditingStepGoal(false)
   }
 
-  // Keep backward compat name
-  function saveStepGoalFn() { handleSaveGoal() }
-
   function reloadToday() {
     supabase.from('activity_logs').select('id,activity_type,duration_minutes,calories_burned,steps,notes,date,created_at').eq('user_id', user.id).eq('date', today).order('created_at')
       .then(({ data }) => { if (data) setLogs(data) })
@@ -559,7 +556,7 @@ export default function ActivityPage() {
                   type="number"
                   value={stepGoalInput}
                   onChange={e => setStepGoalInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') saveStepGoal() }}
+                  onKeyDown={e => { if (e.key === 'Enter') handleSaveGoal() }}
                   style={{ width: 84, padding: '6px 8px', borderRadius: 8, border: '1.5px solid var(--green-main)', fontSize: 16, fontFamily: 'var(--font-b)', outline: 'none' }}
                   inputMode="numeric"
                   min="500"

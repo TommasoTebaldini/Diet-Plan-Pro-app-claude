@@ -606,7 +606,7 @@ function SharedRecipeCard({ sr, onSave, onMarkViewed }) {
             <button
               className="btn btn-full"
               disabled={saving}
-              onClick={async () => { setSaving(true); await onSave(); setSaving(false); setSaved(true) }}
+              onClick={async () => { setSaving(true); const ok = await onSave(); setSaving(false); if (ok !== false) setSaved(true) }}
               style={{ marginTop: 14, background: '#ecfeff', color: '#0e7490', border: '1.5px solid #a5f3fc', borderRadius: 10, padding: '10px 16px', cursor: saving ? 'default' : 'pointer', fontWeight: 600, fontSize: 13, opacity: saving ? 0.7 : 1 }}
             >
               {saving ? 'Calcolo valori nutrizionali…' : '+ Salva nelle mie ricette'}
@@ -773,6 +773,10 @@ export default function RecipesPage() {
   }
 
   async function savePublicRecipe(recipe) {
+    if (!isPro && myRecipes.length >= FREE_RECIPES_LIMIT) {
+      showToast(`Piano gratuito: max ${FREE_RECIPES_LIMIT} ricette. Passa al Pro per ricette illimitate.`)
+      return false
+    }
     const { data, error } = await supabase.from('ricette').insert({
       user_id: user.id,
       nome: recipe.nome, porzioni: recipe.porzioni,
@@ -789,8 +793,9 @@ export default function RecipesPage() {
       tempo_raffreddamento_min: recipe.tempo_raffreddamento_min || 0,
       note: recipe.note, is_public: false,
     }).select().single()
-    if (error) { showToast(t('recipes.error_save')); return }
+    if (error) { showToast(t('recipes.error_save')); return false }
     if (data) { setMyRecipes(r => [data, ...r]); showToast(t('recipes.saved_yours')) }
+    return !!data
   }
 
   async function togglePublic(recipe) {
@@ -1148,7 +1153,7 @@ export default function RecipesPage() {
                       const ingredienti = await Promise.all(
                         rawIng.map(i => resolveSharedIngredient(i.nome || i.food_name, i.qt || i.grams))
                       )
-                      savePublicRecipe({
+                      return await savePublicRecipe({
                         nome: rd.nome || 'Ricetta',
                         porzioni: rd.porzioni || 1,
                         ingredienti,
