@@ -191,6 +191,7 @@ export async function requestMotionPermission() {
 export class Pedometer extends EventTarget {
   constructor() {
     super()
+    this._dateKey = todayKey()
     this._steps = getTodaySteps()
     this._lastStepMs = 0
     this._prevMag = 0
@@ -248,9 +249,26 @@ export class Pedometer extends EventTarget {
   }
 
   addSteps(n) {
+    this._checkDateRollover()
     this._steps += n
     setTodaySteps(this._steps)
     this.dispatchEvent(new CustomEvent('step', { detail: { steps: this._steps } }))
+  }
+
+  // The instance can stay alive (and actively polling/listening) across
+  // midnight if the tab/app is left open — without this, `this._steps` would
+  // keep accumulating yesterday's total forever: the browser engine would
+  // seed the new day's localStorage entry with yesterday's leftover count,
+  // and the native engine's max-against-current guard below would refuse to
+  // ever drop back down to the new day's (much smaller) OS total. Detect the
+  // day boundary and reset the in-memory counter to the new day's stored
+  // value (0 unless already written) before applying any update.
+  _checkDateRollover() {
+    const key = todayKey()
+    if (key !== this._dateKey) {
+      this._dateKey = key
+      this._steps = getTodaySteps()
+    }
   }
 
   // Reads the OS's own step count for today via Health Connect/HealthKit —
@@ -259,6 +277,7 @@ export class Pedometer extends EventTarget {
   // through the day, so this guards against a transient/partial read (e.g.
   // Health Connect still syncing) briefly showing fewer steps than before.
   async _refreshFromNativeHealth() {
+    this._checkDateRollover()
     try {
       const { Health } = await import('capacitor-health')
       const { aggregatedData } = await Health.queryAggregated({
@@ -277,6 +296,7 @@ export class Pedometer extends EventTarget {
   }
 
   _onMotion(e) {
+    this._checkDateRollover()
     const g = e.accelerationIncludingGravity
     if (!g || g.x == null) return
     const mag = Math.sqrt(g.x * g.x + g.y * g.y + g.z * g.z) - GRAVITY
