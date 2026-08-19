@@ -58,6 +58,21 @@ const supabaseAdmin = createClient(
   SERVICE_KEY,
 )
 
+// Constant-time string compare — mirrors api/send-push.js (Vercel side), which
+// uses crypto.timingSafeEqual for the exact same "is this the shared secret"
+// check. A plain === / Array.includes() here would short-circuit on the first
+// differing byte, leaking (over many requests) how many leading characters of
+// the guess are correct — a timing side-channel on a bearer-token webhook that
+// has no other auth (no per-request nonce/signature).
+function timingSafeEqualStr(a: string, b: string): boolean {
+  const bufA = new TextEncoder().encode(a)
+  const bufB = new TextEncoder().encode(b)
+  if (bufA.length !== bufB.length) return false
+  let diff = 0
+  for (let i = 0; i < bufA.length; i++) diff |= bufA[i] ^ bufB[i]
+  return diff === 0
+}
+
 async function sendPushToUser(userId: string, title: string, body: string, url = '/', tag = 'nutriplan') {
   const vapidPublic = Deno.env.get('VAPID_PUBLIC_KEY')
   const vapidPrivate = Deno.env.get('VAPID_PRIVATE_KEY')
@@ -159,7 +174,7 @@ Deno.serve(async (req: Request) => {
   // Accetta o la secret key nuova o il token del webhook (vecchia service_role).
   const accepted = [SERVICE_KEY, WEBHOOK_TOKEN].filter(Boolean).map(k => `Bearer ${k}`)
   const provided = req.headers.get('authorization') || ''
-  if (!accepted.length || !accepted.includes(provided)) {
+  if (!accepted.length || !accepted.some(token => timingSafeEqualStr(provided, token))) {
     return json({ error: 'unauthorized' }, 401)
   }
 

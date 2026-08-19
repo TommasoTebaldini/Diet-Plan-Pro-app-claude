@@ -210,6 +210,17 @@ async function checkFoodConflicts(authHeader: string, tags: string[], foodNames:
   }
 }
 
+// Coerce/clamp a value the AI provider returned as a "number" field.
+// The provider can hallucinate a non-numeric string, NaN, a negative value,
+// or an absurd magnitude (e.g. 90000 kcal/100g) even with responseMimeType
+// 'application/json' — there's no enforced schema. Never let that reach the
+// client/DB unclamped.
+function num(v: unknown, def: number, min: number, max: number): number {
+  const n = typeof v === 'number' ? v : parseFloat(String(v))
+  if (!Number.isFinite(n)) return def
+  return Math.min(max, Math.max(min, n))
+}
+
 function parseResponse(text: string) {
   const match = text.match(/\{[\s\S]*\}/)
   if (!match) throw new Error('Risposta AI non valida')
@@ -221,12 +232,15 @@ function parseResponse(text: string) {
   if (!Array.isArray(parsed.foods)) throw new Error('Formato risposta non valido')
   return {
     foods: parsed.foods.map(f => ({
-      name: f.name || 'Alimento',
-      grams: Math.max(1, Math.round(f.grams || 100)),
-      kcal_100g: Math.max(0, Math.round(f.kcal_100g || 0)),
-      proteins_100g: Math.max(0, Math.round((f.proteins_100g || 0) * 10) / 10),
-      carbs_100g: Math.max(0, Math.round((f.carbs_100g || 0) * 10) / 10),
-      fats_100g: Math.max(0, Math.round((f.fats_100g || 0) * 10) / 10),
+      name: (f.name && String(f.name).trim()) || 'Alimento',
+      // grams: 1..5000 (5kg — generous ceiling for a single food item in a meal)
+      grams: Math.round(num(f.grams, 100, 1, 5000)),
+      // kcal/100g: 0..900 — 900 covers even pure fat/oil (CREA max ~884-900)
+      kcal_100g: Math.round(num(f.kcal_100g, 0, 0, 900)),
+      // macros/100g: 0..100 — can't physically exceed 100g per 100g of food
+      proteins_100g: Math.round(num(f.proteins_100g, 0, 0, 100) * 10) / 10,
+      carbs_100g: Math.round(num(f.carbs_100g, 0, 0, 100) * 10) / 10,
+      fats_100g: Math.round(num(f.fats_100g, 0, 0, 100) * 10) / 10,
     })),
     description: parsed.meal_description || '',
     confidence: parsed.confidence || 'media',
