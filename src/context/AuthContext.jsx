@@ -138,7 +138,10 @@ export function AuthProvider({ children }) {
       // SEZIONE 52) — senza questa chiamata esplicita l'account resterebbe
       // senza riga in profiles. RPC SECURITY DEFINER, funziona anche senza
       // sessione attiva (caso conferma email obbligatoria).
-      await supabase.rpc('create_patient_profile', {
+      // SEZIONE 76: la RPC non ingoia più i propri errori — se fallisce (auth.
+      // users creato ma profiles no), va segnalato come errore di signUp
+      // invece di lasciar credere alla UI che la registrazione sia riuscita.
+      const { error: profileErr } = await supabase.rpc('create_patient_profile', {
         uid: data.user.id,
         user_email: email,
         p_full_name: rest.full_name || null,
@@ -146,6 +149,10 @@ export function AuthProvider({ children }) {
         p_last_name: rest.last_name || null,
         terms_accepted: !!termsAccepted,
       })
+      if (profileErr) {
+        console.error('create_patient_profile failed:', profileErr)
+        return { data, error: profileErr }
+      }
     }
     return { data, error }
   }, [])
