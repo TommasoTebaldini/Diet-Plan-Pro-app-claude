@@ -104,15 +104,20 @@ export default function OnboardingFlow({ onComplete }) {
       }
     }
     if (current.isNotification && notifStatus === null) {
-      // Try to request permission, then advance
+      // Request permission and show the feedback message below — do NOT
+      // advance yet, or the granted/denied message never gets a chance to
+      // render (setNotifStatus + advanceStep in the same tick means React
+      // has already moved past this step by the time it paints). The user
+      // taps the CTA a second time (now "Continua", see the button label
+      // below) once notifStatus is set.
       if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission().then(perm => {
           setNotifStatus(perm)
-          advanceStep()
         })
         return
       }
       setNotifStatus(Notification.permission)
+      return
     }
     advanceStep()
   }
@@ -329,7 +334,7 @@ export default function OnboardingFlow({ onComplete }) {
               letterSpacing: '0.01em',
             }}
           >
-            {current.cta}
+            {current.isNotification && notifStatus !== null ? 'Continua' : current.cta}
           </button>
 
           {/* Skip text link on first step */}
