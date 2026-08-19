@@ -145,7 +145,15 @@ export function initScheduledNotifications(prefs) {
 
   // Meal reminders
   if (p.mealReminder && Array.isArray(p.mealTimes)) {
-    const defaultLabels = ['Colazione','Spuntino mattina','Pranzo','Spuntino pomeriggio','Cena','Spuntino sera']
+    // Positional fallback names — must match DEFAULT_PREFS.mealTimes above
+    // (3 slots: colazione/pranzo/cena). A 6-slot canonical order was used
+    // here previously (colazione/spuntino mattina/pranzo/spuntino pomeriggio/
+    // cena/spuntino sera), which mislabeled the default 3-time schedule: the
+    // 13:00 slot (pranzo) fired as "Spuntino mattina" and the 20:00 slot
+    // (cena) fired as "Pranzo". Extra slots beyond index 2 fall back to the
+    // generic `Pasto ${i+1}` below — there's no reliable way to guess their
+    // meal type from position alone once the user adds custom times.
+    const defaultLabels = ['Colazione','Pranzo','Cena']
     p.mealTimes.forEach((time, i) => {
       const label = (p.mealLabels && p.mealLabels[i]) || defaultLabels[i] || `Pasto ${i+1}`
       _scheduleDaily(

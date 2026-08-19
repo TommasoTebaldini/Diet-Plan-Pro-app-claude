@@ -10,8 +10,14 @@ export default function BarcodeScanner({ onDetected, onFound, onClose }) {
   const [error, setError] = useState('')
   const [scanning, setScanning] = useState(true)
 
-  // Support both onDetected (new API) and onFound (legacy API)
-  const handleDetected = (code) => {
+  // Support both onDetected (new API) and onFound (legacy API).
+  // Kept in a ref (updated every render) so the video-decode effect below,
+  // which must run only once so it doesn't restart the camera stream on
+  // every re-render, always calls the LATEST callback instead of the one
+  // captured when it first mounted (stale closure otherwise, since the
+  // parent's onFound/onDetected prop is often a fresh function each render).
+  const handleDetectedRef = useRef(null)
+  handleDetectedRef.current = (code) => {
     if (onDetected) onDetected(code)
     else if (onFound) onFound(code)
   }
@@ -24,7 +30,7 @@ export default function BarcodeScanner({ onDetected, onFound, onClose }) {
       reader.decodeFromVideoDevice(null, videoRef.current, (result, err) => {
         if (result) {
           setScanning(false)
-          handleDetected(result.getText())
+          handleDetectedRef.current(result.getText())
         }
         if (err && !(err instanceof NotFoundException)) {
           // NotFoundException is normal (no barcode in frame yet), ignore it
