@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { supabase } from '../lib/supabase'
+import { supabase, getMyDietitianId } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { Clock, ChevronDown, ChevronUp, Flame, Leaf, FileText, CheckCircle2, Circle, History, RefreshCw, TrendingUp, Calendar, Download, ClipboardList, ImageOff, ClipboardCopy, Check, MessageSquare, X, Send, Sparkles, Loader2, AlertCircle } from 'lucide-react'
 import { useT } from '../i18n'
@@ -277,8 +277,10 @@ function MealFeedbackModal({ meal, user, onClose }) {
     if (!text.trim()) return
     setSending(true)
     try {
+      const dietitianId = await getMyDietitianId(user.id)
       await supabase.from('chat_messages').insert({
         patient_id: user.id,
+        dietitian_id: dietitianId,
         sender_id: user.id,
         sender_role: 'patient',
         content: `💬 Feedback sul pasto "${mealLabel}": ${text.trim()}`,

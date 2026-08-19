@@ -984,7 +984,7 @@ export default function ChatPage() {
     }
     setMessages(prev => [...prev, optimistic])
     const { data, error } = await supabase.from('chat_messages').insert({
-      patient_id: user.id, sender_role: 'patient',
+      patient_id: user.id, dietitian_id: dietitianId, sender_role: 'patient',
       sender_id: user.id, content, message_type: 'text'
     }).select().single()
     if (data) {
@@ -1010,7 +1010,7 @@ export default function ChatPage() {
     }
     setMessages(prev => [...prev, optimistic])
     const { data } = await supabase.from('chat_messages').insert({
-      patient_id: user.id, sender_role: 'patient',
+      patient_id: user.id, dietitian_id: dietitianId, sender_role: 'patient',
       sender_id: user.id, content: room, message_type: 'video_call',
     }).select().single()
     if (data) setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
@@ -1044,7 +1044,7 @@ export default function ChatPage() {
     try {
       const fileUrl = await uploadToStorage(file, 'img')
       const { data, error } = await supabase.from('chat_messages').insert({
-        patient_id: user.id, sender_role: 'patient', sender_id: user.id,
+        patient_id: user.id, dietitian_id: dietitianId, sender_role: 'patient', sender_id: user.id,
         content: '', message_type: 'image', file_url: fileUrl, file_name: file.name
       }).select().single()
       if (data) {
@@ -1124,7 +1124,7 @@ export default function ChatPage() {
     try {
       const fileUrl = await uploadToStorage(file, 'audio')
       const { data, error } = await supabase.from('chat_messages').insert({
-        patient_id: user.id, sender_role: 'patient', sender_id: user.id,
+        patient_id: user.id, dietitian_id: dietitianId, sender_role: 'patient', sender_id: user.id,
         content: '', message_type: 'audio', file_url: fileUrl, duration_seconds: dur
       }).select().single()
       if (data) {

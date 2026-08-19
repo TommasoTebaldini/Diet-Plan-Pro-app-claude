@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { supabase } from '../lib/supabase'
+import { supabase, getMyDietitianId } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useAchievements } from '../context/AchievementsContext'
 import { CheckCircle, ChevronRight, AlertCircle } from 'lucide-react'
@@ -220,8 +220,10 @@ export default function CheckinPage() {
 
       // If message to dietitian is not empty, send it as a chat message
       if (messageToDietitian.trim()) {
+        const dietitianId = await getMyDietitianId(user.id)
         await supabase.from('chat_messages').insert({
           patient_id: user.id,
+          dietitian_id: dietitianId,
           sender_role: 'patient',
           sender_id: user.id,
           content: `📊 Check-in settimanale: ${messageToDietitian.trim()}`,

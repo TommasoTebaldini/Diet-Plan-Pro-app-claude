@@ -13,3 +13,17 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     storageKey: 'nutriplan_patient_auth',
   }
 })
+
+// Resolves the patient's linked dietitian id, used to tag chat_messages
+// rows (see SEZIONE 73 in NutriPlan-Pro's supabase_setup.sql) so RLS can
+// scope a message to the specific dietitian relationship it belongs to,
+// instead of any dietitian ever linked to the patient.
+export async function getMyDietitianId(patientId) {
+  const { data } = await supabase
+    .from('patient_dietitian')
+    .select('dietitian_id')
+    .eq('patient_id', patientId)
+    .limit(1)
+    .maybeSingle()
+  return data?.dietitian_id || null
+}
