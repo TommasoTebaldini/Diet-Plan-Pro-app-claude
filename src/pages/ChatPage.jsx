@@ -766,33 +766,40 @@ export default function ChatPage() {
   }, [])
 
   // ── Load data + realtime ────────────────────────────────────────────────
+  // SEZIONE 80 (NutriPlan-Pro): chat_messages.content è ora cifrato lato DB —
+  // postgres_changes leggerebbe il replication stream della tabella base
+  // (bytea cifrato), non la vista decifrata. Canale separato, privato, che
+  // riceve via broadcast un payload già decifrato dal trigger
+  // chat_messages_broadcast() (vedi supabase_setup.sql di NutriPlan-Pro).
+  // Il canale su profiles (stato online dietista) resta postgres_changes,
+  // non riguarda dati cifrati — tenuto separato per non mischiare i due
+  // meccanismi di autorizzazione sullo stesso channel object.
   useEffect(() => {
     let channel
+    let profileChannel
     loadData().then(dId => {
       if (!dId) return
-      // Realtime: new chat messages
-      channel = supabase.channel(`chat-patient-${user.id}`)
-        .on('postgres_changes', {
-          event: 'INSERT', schema: 'public', table: 'chat_messages',
-          filter: `patient_id=eq.${user.id}`
-        }, payload => {
+      channel = supabase.channel(`chat:${user.id}`, { config: { private: true } })
+        .on('broadcast', { event: 'INSERT' }, payload => {
+          const msg = payload.payload
           setMessages(prev => {
-            if (prev.find(m => m.id === payload.new.id)) return prev
-            return [...prev, payload.new]
+            if (prev.find(m => m.id === msg.id)) return prev
+            return [...prev, msg]
           })
-          if (payload.new.sender_role === 'dietitian') {
-            markAsRead([payload.new.id])
-            showPushNotification(payload.new)
+          if (msg.sender_role === 'dietitian') {
+            markAsRead([msg.id])
+            showPushNotification(msg)
           }
         })
         // Realtime: read receipts updated (dietitian read our messages)
-        .on('postgres_changes', {
-          event: 'UPDATE', schema: 'public', table: 'chat_messages',
-          filter: `patient_id=eq.${user.id}`
-        }, payload => {
-          setMessages(prev => prev.map(m => m.id === payload.new.id ? { ...m, read_at: payload.new.read_at } : m))
+        .on('broadcast', { event: 'UPDATE' }, payload => {
+          const msg = payload.payload
+          setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, read_at: msg.read_at } : m))
         })
-        // Realtime: dietitian online status
+        .subscribe()
+
+      // Realtime: dietitian online status
+      profileChannel = supabase.channel(`dietitian-status-${dId}`)
         .on('postgres_changes', {
           event: 'UPDATE', schema: 'public', table: 'profiles',
           filter: `id=eq.${dId}`
@@ -808,6 +815,7 @@ export default function ChatPage() {
 
     return () => {
       if (channel) supabase.removeChannel(channel)
+      if (profileChannel) supabase.removeChannel(profileChannel)
       clearInterval(presenceIntervalRef.current)
       stopRecording(true)
     }
