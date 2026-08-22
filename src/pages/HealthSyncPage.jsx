@@ -7,6 +7,7 @@ import { checkWeightAchievements } from '../lib/achievementTriggers'
 import { Activity, Heart, Scale, Moon, Footprints, CheckCircle, AlertCircle, Info, ExternalLink } from 'lucide-react'
 import { getTodaySteps, setTodaySteps, isPedometerSupported, hasMotionPermission, isNativeApp, isNativeHealthAvailable, openHealthConnectInstall, hasHeartRatePermission, requestHeartRatePermission, getTodayHeartRateFromNativeHealth } from '../lib/pedometer'
 import { isBleScaleSupported, connectAndReadWeight } from '../lib/bleScale'
+import { useT } from '../i18n'
 
 // ── Platform detection ────────────────────────────────────────────────────────
 
@@ -25,11 +26,12 @@ function isStandalone() {
 // ── StatusBadge ───────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }) {
+  const t = useT()
   const map = {
-    connected:    { label: 'Connesso',     bg: '#d1fae5', color: '#065f46', icon: CheckCircle },
-    unavailable:  { label: 'Non disponibile', bg: '#fef3c7', color: '#92400e', icon: AlertCircle },
-    manual:       { label: 'Manuale',      bg: '#dbeafe', color: '#1e40af', icon: Info },
-    native:       { label: 'App nativa',   bg: '#ede9fe', color: '#5b21b6', icon: Info },
+    connected:    { label: t('healthsync.status_connected', 'Connesso'),        bg: '#d1fae5', color: '#065f46', icon: CheckCircle },
+    unavailable:  { label: t('healthsync.status_unavailable', 'Non disponibile'), bg: '#fef3c7', color: '#92400e', icon: AlertCircle },
+    manual:       { label: t('healthsync.status_manual', 'Manuale'),            bg: '#dbeafe', color: '#1e40af', icon: Info },
+    native:       { label: t('healthsync.status_native', 'App nativa'),         bg: '#ede9fe', color: '#5b21b6', icon: Info },
   }
   const cfg = map[status] || map.manual
   const Icon = cfg.icon
@@ -44,6 +46,7 @@ function StatusBadge({ status }) {
 // ── DataRow ────────────────────────────────────────────────────────────────────
 
 function DataRow({ icon: Icon, label, value, unit, status, children }) {
+  const t = useT()
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 0', borderBottom: '1px solid var(--border-light)' }}>
       <div style={{ width: 38, height: 38, borderRadius: 11, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -56,7 +59,7 @@ function DataRow({ icon: Icon, label, value, unit, status, children }) {
         </div>
         {value !== undefined && (
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 1 }}>
-            {value !== null ? <><strong style={{ color: 'var(--text-primary)' }}>{value}</strong> {unit}</> : 'Nessun dato'}
+            {value !== null ? <><strong style={{ color: 'var(--text-primary)' }}>{value}</strong> {unit}</> : t('healthsync.no_data', 'Nessun dato')}
           </p>
         )}
         {children}
@@ -70,6 +73,7 @@ function DataRow({ icon: Icon, label, value, unit, status, children }) {
 export default function HealthSyncPage() {
   const { user } = useAuth()
   const { checkAndAward } = useAchievements()
+  const t = useT()
   const os = getOS()
   const pwa = isStandalone()
 
@@ -85,6 +89,7 @@ export default function HealthSyncPage() {
 
   const today = new Date().toISOString().split('T')[0]
   const native = isNativeApp()
+  const healthAppName = os === 'ios' ? t('healthsync.health_app_name', 'Salute') : 'Health Connect'
 
   useEffect(() => {
     loadAppData()
@@ -124,7 +129,7 @@ export default function HealthSyncPage() {
     try {
       const ok = await requestHeartRatePermission()
       if (!ok) {
-        setSyncMsg('Permesso frequenza cardiaca negato — abilitalo da Impostazioni → Salute/Health Connect.')
+        setSyncMsg(t('healthsync.hr_permission_denied', 'Permesso frequenza cardiaca negato — abilitalo da Impostazioni → Salute/Health Connect.'))
         return
       }
       const bpm = await getTodayHeartRateFromNativeHealth()
@@ -132,9 +137,9 @@ export default function HealthSyncPage() {
         setHeartRate(bpm)
         localStorage.setItem('hr_' + today, String(bpm))
         syncWearablesToSupabase(null, bpm)
-        setSyncMsg('Frequenza cardiaca sincronizzata da ' + (os === 'ios' ? 'Salute' : 'Health Connect') + '.')
+        setSyncMsg(t('healthsync.hr_synced_from', { source: healthAppName }, 'Frequenza cardiaca sincronizzata da {{source}}.'))
       } else {
-        setSyncMsg('Nessun allenamento con frequenza cardiaca registrato oggi — registra un allenamento in Salute/Health Connect, oppure inseriscila a mano qui sotto.')
+        setSyncMsg(t('healthsync.hr_no_workout', 'Nessun allenamento con frequenza cardiaca registrato oggi — registra un allenamento in Salute/Health Connect, oppure inseriscila a mano qui sotto.'))
       }
     } finally {
       setHrSyncing(false)
@@ -193,18 +198,18 @@ export default function HealthSyncPage() {
       const ok = await requestMotionPermission()
       if (!ok) {
         setSyncMsg(native
-          ? 'Permesso negato — abilitalo da Impostazioni → Salute/Health Connect per usare il contapassi.'
-          : 'Permesso movimento negato — abilitalo dalle impostazioni del browser per usare il contapassi.')
+          ? t('healthsync.pedometer_permission_denied_native', 'Permesso negato — abilitalo da Impostazioni → Salute/Health Connect per usare il contapassi.')
+          : t('healthsync.pedometer_permission_denied_web', 'Permesso movimento negato — abilitalo dalle impostazioni del browser per usare il contapassi.'))
         return
       }
       const pedo = getPedometer()
       await pedo.start()
       setSteps(pedo.steps > 0 ? pedo.steps : null)
       setSyncMsg(native
-        ? 'Contapassi attivo — i tuoi passi vengono contati anche ad app chiusa.'
-        : 'Contapassi attivo — conterà i tuoi passi finché l\'app è aperta.')
+        ? t('healthsync.pedometer_active_native', 'Contapassi attivo — i tuoi passi vengono contati anche ad app chiusa.')
+        : t('healthsync.pedometer_active_web', 'Contapassi attivo — conterà i tuoi passi finché l\'app è aperta.'))
     } catch {
-      setSyncMsg('Impossibile attivare il contapassi su questo dispositivo.')
+      setSyncMsg(t('healthsync.pedometer_activate_error', 'Impossibile attivare il contapassi su questo dispositivo.'))
     } finally {
       setSyncing(false)
     }
@@ -223,7 +228,7 @@ export default function HealthSyncPage() {
     setTodaySteps(n)
     syncWearablesToSupabase(n, null)
     setManualSteps('')
-    setSyncMsg('Passi salvati!')
+    setSyncMsg(t('healthsync.steps_saved', 'Passi salvati!'))
     setTimeout(() => setSyncMsg(''), 2500)
   }
 
@@ -238,9 +243,9 @@ export default function HealthSyncPage() {
       if (error) throw error
       setWeight(kg)
       checkWeightAchievements(supabase, user.id, checkAndAward, kg).catch(() => {})
-      setSyncMsg(`Peso letto dalla bilancia: ${kg} kg`)
+      setSyncMsg(t('healthsync.weight_read_from_scale', { kg }, 'Peso letto dalla bilancia: {{kg}} kg'))
     } catch (e) {
-      setSyncMsg(e?.message || 'Impossibile leggere la bilancia Bluetooth.')
+      setSyncMsg(e?.message || t('healthsync.ble_scale_read_error', 'Impossibile leggere la bilancia Bluetooth.'))
     } finally {
       setBleScaleConnecting(false)
     }
@@ -251,14 +256,14 @@ export default function HealthSyncPage() {
     if (!kg || kg <= 0) return
     const { error } = await supabase.from('weight_logs').upsert({ user_id: user.id, weight_kg: kg, date: today }, { onConflict: 'user_id,date' })
     if (error) {
-      setSyncMsg('Errore salvataggio peso')
+      setSyncMsg(t('healthsync.weight_save_error', 'Errore salvataggio peso'))
       setTimeout(() => setSyncMsg(''), 2500)
       return
     }
     setWeight(kg)
     checkWeightAchievements(supabase, user.id, checkAndAward, kg).catch(() => {})
     setManualWeight('')
-    setSyncMsg('Peso salvato!')
+    setSyncMsg(t('healthsync.weight_saved', 'Peso salvato!'))
     setTimeout(() => setSyncMsg(''), 2500)
   }
 
@@ -267,13 +272,13 @@ export default function HealthSyncPage() {
     if (!h || h <= 0) return
     const { error } = await supabase.from('daily_wellness').upsert({ user_id: user.id, date: today, sleep_hours: h }, { onConflict: 'user_id,date' })
     if (error) {
-      setSyncMsg('Errore salvataggio sonno')
+      setSyncMsg(t('healthsync.sleep_save_error', 'Errore salvataggio sonno'))
       setTimeout(() => setSyncMsg(''), 2500)
       return
     }
     setSleep(h)
     setManualSleep('')
-    setSyncMsg('Ore di sonno salvate!')
+    setSyncMsg(t('healthsync.sleep_saved', 'Ore di sonno salvate!'))
     setTimeout(() => setSyncMsg(''), 2500)
   }
 
@@ -284,7 +289,7 @@ export default function HealthSyncPage() {
     localStorage.setItem('hr_' + today, String(bpm))
     syncWearablesToSupabase(null, bpm)
     setManualHR('')
-    setSyncMsg('Frequenza cardiaca salvata!')
+    setSyncMsg(t('healthsync.hr_saved', 'Frequenza cardiaca salvata!'))
     setTimeout(() => setSyncMsg(''), 2500)
   }
 
@@ -292,7 +297,7 @@ export default function HealthSyncPage() {
     <div className="page">
       {/* Header */}
       <div style={{ background: 'linear-gradient(160deg, #0f172a, #1e3a5f)', padding: 'calc(env(safe-area-inset-top) + 20px) 24px 24px' }}>
-        <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, marginBottom: 4 }}>Integrazione salute</p>
+        <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, marginBottom: 4 }}>{t('healthsync.header_eyebrow', 'Integrazione salute')}</p>
         <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300 }}>Health Sync</h1>
         <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, marginTop: 4 }}>
           {os === 'ios' ? 'iPhone · iOS' : os === 'android' ? 'Android' : 'Web'}{pwa ? ' · PWA' : ''}
@@ -312,18 +317,18 @@ export default function HealthSyncPage() {
           <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
             <span style={{ fontSize: 20, flexShrink: 0 }}>👣</span>
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 14, fontWeight: 700, color: '#14532d', marginBottom: 4 }}>Contapassi NutriPlan</p>
+              <p style={{ fontSize: 14, fontWeight: 700, color: '#14532d', marginBottom: 4 }}>{t('healthsync.pedometer_card_title', 'Contapassi NutriPlan')}</p>
               <p style={{ fontSize: 12, color: '#166534', lineHeight: 1.5, marginBottom: 10 }}>
                 {native
-                  ? `Legge i passi contati automaticamente da ${os === 'ios' ? 'Salute (Apple Health)' : 'Google Health Connect'} — il conteggio prosegue anche ad app chiusa, viene solo aggiornato quando riapri NutriPlan.`
-                  : <>Conta i passi usando l'accelerometro del telefono mentre l'app è aperta (anche in un'altra scheda o sezione). {os === 'ios' ? 'Apple' : 'Google'} non permette a nessun sito web di leggere {os === 'ios' ? 'Salute/HealthKit' : 'Google Health Connect'} in background — quindi il conteggio si ferma se chiudi del tutto l'app; usa l'inserimento manuale qui sotto per i giorni in cui hai contato i passi con un altro dispositivo.</>
+                  ? t('healthsync.pedometer_native_desc', { source: os === 'ios' ? t('healthsync.health_source_ios_full', 'Salute (Apple Health)') : 'Google Health Connect' }, 'Legge i passi contati automaticamente da {{source}} — il conteggio prosegue anche ad app chiusa, viene solo aggiornato quando riapri NutriPlan.')
+                  : <>{t('healthsync.pedometer_web_desc', { company: os === 'ios' ? 'Apple' : 'Google', source: os === 'ios' ? t('healthsync.health_source_ios_short', 'Salute/HealthKit') : 'Google Health Connect' }, "Conta i passi usando l'accelerometro del telefono mentre l'app è aperta (anche in un'altra scheda o sezione). {{company}} non permette a nessun sito web di leggere {{source}} in background — quindi il conteggio si ferma se chiudi del tutto l'app; usa l'inserimento manuale qui sotto per i giorni in cui hai contato i passi con un altro dispositivo.")}</>
                 }
               </p>
               {native && healthAvailable === false && os === 'android' && (
                 <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 10px', marginBottom: 10 }}>
-                  <p style={{ fontSize: 11.5, color: '#92400e', marginBottom: 6 }}>Google Health Connect non è installato su questo telefono — serve per contare i passi in background.</p>
+                  <p style={{ fontSize: 11.5, color: '#92400e', marginBottom: 6 }}>{t('healthsync.health_connect_not_installed', 'Google Health Connect non è installato su questo telefono — serve per contare i passi in background.')}</p>
                   <button onClick={openHealthConnectInstall} style={{ fontSize: 11.5, fontWeight: 700, color: '#92400e', background: 'none', border: 'none', padding: 0, textDecoration: 'underline', cursor: 'pointer' }}>
-                    Installa Health Connect
+                    {t('healthsync.install_health_connect', 'Installa Health Connect')}
                   </button>
                 </div>
               )}
@@ -333,10 +338,10 @@ export default function HealthSyncPage() {
                 style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#16a34a', color: 'white', border: 'none', borderRadius: 9, padding: '9px 14px', cursor: syncing ? 'default' : 'pointer', fontSize: 13, fontWeight: 600, opacity: isPedometerSupported() ? 1 : 0.5 }}
               >
                 <Footprints size={14} />
-                {syncing ? 'Attivazione…' : hasMotionPermission() ? 'Riattiva contapassi' : 'Attiva contapassi'}
+                {syncing ? t('healthsync.pedometer_activating', 'Attivazione…') : hasMotionPermission() ? t('healthsync.pedometer_reactivate', 'Riattiva contapassi') : t('healthsync.pedometer_activate', 'Attiva contapassi')}
               </button>
               {!isPedometerSupported() && (
-                <p style={{ fontSize: 11, color: '#78350f', marginTop: 6 }}>Il tuo browser non espone i sensori di movimento — usa l'inserimento manuale.</p>
+                <p style={{ fontSize: 11, color: '#78350f', marginTop: 6 }}>{t('healthsync.no_motion_sensors', "Il tuo browser non espone i sensori di movimento — usa l'inserimento manuale.")}</p>
               )}
               {syncMsg && <p style={{ fontSize: 12, color: '#166534', marginTop: 8 }}>{syncMsg}</p>}
             </div>
@@ -347,11 +352,11 @@ export default function HealthSyncPage() {
           <div style={{ display: 'flex', gap: 10 }}>
             <span style={{ fontSize: 20, flexShrink: 0 }}>{os === 'ios' ? '🍎' : '❤️'}</span>
             <div>
-              <p style={{ fontSize: 14, fontWeight: 700, color: '#92400e', marginBottom: 4 }}>Frequenza cardiaca e sonno</p>
+              <p style={{ fontSize: 14, fontWeight: 700, color: '#92400e', marginBottom: 4 }}>{t('healthsync.hr_sleep_card_title', 'Frequenza cardiaca e sonno')}</p>
               <p style={{ fontSize: 12, color: '#78350f', lineHeight: 1.5 }}>
                 {native
-                  ? `La frequenza cardiaca si sincronizza da ${os === 'ios' ? 'Salute' : 'Health Connect'} quando registri un allenamento (pulsante qui sotto). Il sonno non è ancora collegato automaticamente — puoi comunque copiarlo qui a mano.`
-                  : `Questi dati vivono nell'app ${os === 'ios' ? 'Salute di iOS' : 'Google Health Connect'} e nessun sito web può leggerli — servirebbe l'app nativa. Puoi comunque copiarli qui a mano.`}
+                  ? t('healthsync.hr_sleep_native_desc', { source: healthAppName }, 'La frequenza cardiaca si sincronizza da {{source}} quando registri un allenamento (pulsante qui sotto). Il sonno non è ancora collegato automaticamente — puoi comunque copiarlo qui a mano.')
+                  : t('healthsync.hr_sleep_web_desc', { source: os === 'ios' ? t('healthsync.health_source_ios_named', 'Salute di iOS') : 'Google Health Connect' }, "Questi dati vivono nell'app {{source}} e nessun sito web può leggerli — servirebbe l'app nativa. Puoi comunque copiarli qui a mano.")}
               </p>
               {os === 'ios' && (
                 <a
@@ -360,7 +365,7 @@ export default function HealthSyncPage() {
                   rel="noopener noreferrer"
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 8, fontSize: 12, color: '#d97706', fontWeight: 600 }}
                 >
-                  <ExternalLink size={11} /> Come consultare Salute su iOS
+                  <ExternalLink size={11} /> {t('healthsync.how_to_check_health_ios', 'Come consultare Salute su iOS')}
                 </a>
               )}
             </div>
@@ -369,7 +374,7 @@ export default function HealthSyncPage() {
 
         {/* Data overview */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card" style={{ padding: '14px 16px' }}>
-          <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Dati di oggi</p>
+          <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{t('healthsync.today_data_title', 'Dati di oggi')}</p>
           <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
             {new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
@@ -380,25 +385,25 @@ export default function HealthSyncPage() {
             </div>
           ) : (
             <>
-              <DataRow icon={Footprints} label="Passi" value={steps ? steps.toLocaleString('it-IT') : null} unit="passi" status={steps !== null ? 'connected' : 'manual'}>
+              <DataRow icon={Footprints} label={t('healthsync.steps_label', 'Passi')} value={steps ? steps.toLocaleString('it-IT') : null} unit={t('healthsync.steps_unit', 'passi')} status={steps !== null ? 'connected' : 'manual'}>
                 {steps === null && (
                   <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                     <input
                       type="number"
-                      placeholder="Inserisci passi…"
+                      placeholder={t('healthsync.steps_placeholder', 'Inserisci passi…')}
                       value={manualSteps}
                       onChange={e => setManualSteps(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && saveManualSteps()}
                       style={{ flex: 1, padding: '5px 9px', border: '1.5px solid var(--border)', borderRadius: 8, background: 'var(--surface-2)', fontSize: 13, outline: 'none', color: 'var(--text-primary)' }}
                     />
                     <button onClick={saveManualSteps} disabled={!manualSteps} style={{ padding: '5px 12px', background: 'var(--green-main)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12 }}>
-                      Salva
+                      {t('healthsync.save', 'Salva')}
                     </button>
                   </div>
                 )}
               </DataRow>
 
-              <DataRow icon={Heart} label="Frequenza cardiaca" value={heartRate} unit="bpm" status={heartRate !== null ? 'connected' : 'manual'}>
+              <DataRow icon={Heart} label={t('healthsync.hr_label', 'Frequenza cardiaca')} value={heartRate} unit="bpm" status={heartRate !== null ? 'connected' : 'manual'}>
                 {native && (
                   <button
                     onClick={syncHeartRate}
@@ -406,19 +411,19 @@ export default function HealthSyncPage() {
                     style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1.5px solid #fca5a5', color: '#b91c1c', borderRadius: 8, padding: '5px 10px', cursor: hrSyncing ? 'default' : 'pointer', fontSize: 12, fontWeight: 600, marginTop: 6 }}
                   >
                     <Heart size={12} />
-                    {hrSyncing ? 'Sincronizzazione…' : hasHeartRatePermission() ? 'Aggiorna da allenamento' : `Sincronizza da ${os === 'ios' ? 'Salute' : 'Health Connect'}`}
+                    {hrSyncing ? t('healthsync.hr_syncing', 'Sincronizzazione…') : hasHeartRatePermission() ? t('healthsync.hr_update_from_workout', 'Aggiorna da allenamento') : t('healthsync.hr_sync_from', { source: healthAppName }, 'Sincronizza da {{source}}')}
                   </button>
                 )}
                 <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                  <input type="number" placeholder="es. 72" value={manualHR} onChange={e => setManualHR(e.target.value)} onKeyDown={e => e.key === 'Enter' && saveManualHR()}
+                  <input type="number" placeholder={t('healthsync.hr_placeholder', 'es. 72')} value={manualHR} onChange={e => setManualHR(e.target.value)} onKeyDown={e => e.key === 'Enter' && saveManualHR()}
                     style={{ flex: 1, padding: '5px 9px', border: '1.5px solid var(--border)', borderRadius: 8, background: 'var(--surface-2)', fontSize: 13, outline: 'none', color: 'var(--text-primary)' }} />
                   <button onClick={saveManualHR} disabled={!manualHR} style={{ padding: '5px 12px', background: 'var(--green-main)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12 }}>
-                    {heartRate !== null ? 'Aggiorna' : 'Salva'}
+                    {heartRate !== null ? t('healthsync.update', 'Aggiorna') : t('healthsync.save', 'Salva')}
                   </button>
                 </div>
               </DataRow>
 
-              <DataRow icon={Scale} label="Peso" value={weight} unit="kg" status={weight !== null ? 'connected' : 'manual'}>
+              <DataRow icon={Scale} label={t('healthsync.weight_label', 'Peso')} value={weight} unit="kg" status={weight !== null ? 'connected' : 'manual'}>
                 {isBleScaleSupported() && (
                   <button
                     onClick={connectBleScale}
@@ -426,34 +431,34 @@ export default function HealthSyncPage() {
                     style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1.5px solid var(--green-main)', color: 'var(--green-main)', borderRadius: 8, padding: '5px 10px', cursor: bleScaleConnecting ? 'default' : 'pointer', fontSize: 12, fontWeight: 600, marginTop: 6 }}
                   >
                     <Scale size={12} />
-                    {bleScaleConnecting ? 'Connessione…' : 'Connetti bilancia Bluetooth'}
+                    {bleScaleConnecting ? t('healthsync.ble_connecting', 'Connessione…') : t('healthsync.ble_connect_button', 'Connetti bilancia Bluetooth')}
                   </button>
                 )}
                 <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                  <input type="number" step="0.1" placeholder="es. 70.5" value={manualWeight} onChange={e => setManualWeight(e.target.value)} onKeyDown={e => e.key === 'Enter' && saveManualWeight()}
+                  <input type="number" step="0.1" placeholder={t('healthsync.weight_placeholder', 'es. 70.5')} value={manualWeight} onChange={e => setManualWeight(e.target.value)} onKeyDown={e => e.key === 'Enter' && saveManualWeight()}
                     style={{ flex: 1, padding: '5px 9px', border: '1.5px solid var(--border)', borderRadius: 8, background: 'var(--surface-2)', fontSize: 13, outline: 'none', color: 'var(--text-primary)' }} />
                   <button onClick={saveManualWeight} disabled={!manualWeight} style={{ padding: '5px 12px', background: 'var(--green-main)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12 }}>
-                    {weight !== null ? 'Aggiorna' : 'Salva'}
+                    {weight !== null ? t('healthsync.update', 'Aggiorna') : t('healthsync.save', 'Salva')}
                   </button>
                 </div>
                 {isBleScaleSupported() && (
-                  <p style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 5 }}>Compatibile con bilance Bluetooth che usano il profilo standard "Weight Scale" — non tutte le bilance smart lo supportano (es. Xiaomi Mi Scale usa un protocollo proprietario non leggibile da qui).</p>
+                  <p style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 5 }}>{t('healthsync.ble_scale_compat_note', 'Compatibile con bilance Bluetooth che usano il profilo standard "Weight Scale" — non tutte le bilance smart lo supportano (es. Xiaomi Mi Scale usa un protocollo proprietario non leggibile da qui).')}</p>
                 )}
               </DataRow>
 
-              <DataRow icon={Moon} label="Ore di sonno" value={sleep} unit="ore" status={sleep !== null ? 'connected' : 'manual'}>
+              <DataRow icon={Moon} label={t('healthsync.sleep_label', 'Ore di sonno')} value={sleep} unit={t('healthsync.sleep_unit', 'ore')} status={sleep !== null ? 'connected' : 'manual'}>
                 <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                  <input type="number" step="0.5" placeholder="es. 7.5" value={manualSleep} onChange={e => setManualSleep(e.target.value)} onKeyDown={e => e.key === 'Enter' && saveManualSleep()}
+                  <input type="number" step="0.5" placeholder={t('healthsync.sleep_placeholder', 'es. 7.5')} value={manualSleep} onChange={e => setManualSleep(e.target.value)} onKeyDown={e => e.key === 'Enter' && saveManualSleep()}
                     style={{ flex: 1, padding: '5px 9px', border: '1.5px solid var(--border)', borderRadius: 8, background: 'var(--surface-2)', fontSize: 13, outline: 'none', color: 'var(--text-primary)' }} />
                   <button onClick={saveManualSleep} disabled={!manualSleep} style={{ padding: '5px 12px', background: 'var(--green-main)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12 }}>
-                    {sleep !== null ? 'Aggiorna' : 'Salva'}
+                    {sleep !== null ? t('healthsync.update', 'Aggiorna') : t('healthsync.save', 'Salva')}
                   </button>
                 </div>
               </DataRow>
 
-              <DataRow icon={Activity} label="Attività fisica" value={null} unit="" status="manual">
+              <DataRow icon={Activity} label={t('healthsync.activity_label', 'Attività fisica')} value={null} unit="" status="manual">
                 <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
-                  Registra in <a href="/attivita" style={{ color: 'var(--green-main)' }}>Attività</a>
+                  {t('healthsync.activity_register_prefix', 'Registra in')} <a href="/attivita" style={{ color: 'var(--green-main)' }}>{t('healthsync.activity_link_text', 'Attività')}</a>
                 </p>
               </DataRow>
             </>

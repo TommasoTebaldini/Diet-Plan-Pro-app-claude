@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { Download, FileText, Activity, Droplets, Scale, Database, CheckCircle, Loader } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { useT } from '../i18n'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,7 @@ function today() {
 // ── ExportCard ────────────────────────────────────────────────────────────────
 
 function ExportCard({ icon: Icon, title, description, color, onExport }) {
+  const t = useT()
   const [status, setStatus] = useState('idle') // idle | loading | done | error
 
   async function handle() {
@@ -101,7 +103,7 @@ function ExportCard({ icon: Icon, title, description, color, onExport }) {
         {status === 'done' && <CheckCircle size={14} />}
         {status === 'idle' && <Download size={14} />}
         {status === 'error' && <Download size={14} />}
-        {status === 'loading' ? 'Esportando…' : status === 'done' ? 'Scaricato!' : status === 'error' ? 'Errore' : 'Esporta'}
+        {status === 'loading' ? t('export.esportando', 'Esportando…') : status === 'done' ? t('export.scaricato', 'Scaricato!') : status === 'error' ? t('export.errore', 'Errore') : t('export.esporta', 'Esporta')}
       </button>
     </motion.div>
   )
@@ -111,6 +113,7 @@ function ExportCard({ icon: Icon, title, description, color, onExport }) {
 
 export default function ExportDataPage() {
   const { user } = useAuth()
+  const t = useT()
 
   // ── Diario alimentare CSV ─────────────────────────────────────────────────
   async function exportFoodLogs() {
@@ -122,8 +125,8 @@ export default function ExportDataPage() {
     if (error) throw error
 
     const MEAL_LABELS = {
-      colazione: 'Colazione', spuntino_mattina: 'Spuntino mat.',
-      pranzo: 'Pranzo', spuntino_pomeriggio: 'Merenda', cena: 'Cena',
+      colazione: t('export.meal_colazione', 'Colazione'), spuntino_mattina: t('export.meal_spuntino_mattina', 'Spuntino mat.'),
+      pranzo: t('export.meal_pranzo', 'Pranzo'), spuntino_pomeriggio: t('export.meal_spuntino_pomeriggio', 'Merenda'), cena: t('export.meal_cena', 'Cena'),
     }
 
     const rows = (data || []).map(r => ({
@@ -139,15 +142,15 @@ export default function ExportDataPage() {
     }))
 
     const csv = toCSV(rows, [
-      { key: 'data', label: 'Data' },
-      { key: 'ora', label: 'Ora' },
-      { key: 'pasto', label: 'Pasto' },
-      { key: 'alimento', label: 'Alimento' },
-      { key: 'grammi', label: 'Grammi' },
-      { key: 'kcal', label: 'Kcal' },
-      { key: 'proteine', label: 'Proteine (g)' },
-      { key: 'carboidrati', label: 'Carboidrati (g)' },
-      { key: 'grassi', label: 'Grassi (g)' },
+      { key: 'data', label: t('export.col_data', 'Data') },
+      { key: 'ora', label: t('export.col_ora', 'Ora') },
+      { key: 'pasto', label: t('export.col_pasto', 'Pasto') },
+      { key: 'alimento', label: t('export.col_alimento', 'Alimento') },
+      { key: 'grammi', label: t('export.col_grammi', 'Grammi') },
+      { key: 'kcal', label: t('export.col_kcal', 'Kcal') },
+      { key: 'proteine', label: t('export.col_proteine', 'Proteine (g)') },
+      { key: 'carboidrati', label: t('export.col_carboidrati', 'Carboidrati (g)') },
+      { key: 'grassi', label: t('export.col_grassi', 'Grassi (g)') },
     ])
     downloadFile(csv, `nutriplan_diario_${today()}.csv`, 'text/csv;charset=utf-8')
   }
@@ -168,9 +171,9 @@ export default function ExportDataPage() {
     }))
 
     const csv = toCSV(rows, [
-      { key: 'data', label: 'Data' },
-      { key: 'peso_kg', label: 'Peso (kg)' },
-      { key: 'note', label: 'Note' },
+      { key: 'data', label: t('export.col_data', 'Data') },
+      { key: 'peso_kg', label: t('export.col_peso_kg', 'Peso (kg)') },
+      { key: 'note', label: t('export.col_note', 'Note') },
     ])
     downloadFile(csv, `nutriplan_peso_${today()}.csv`, 'text/csv;charset=utf-8')
   }
@@ -196,14 +199,14 @@ export default function ExportDataPage() {
     }))
 
     const csv = toCSV(rows, [
-      { key: 'data', label: 'Data' },
-      { key: 'umore', label: 'Umore (1-5)' },
-      { key: 'energia', label: 'Energia (1-5)' },
-      { key: 'sonno', label: 'Qualità sonno (1-5)' },
-      { key: 'stress', label: 'Stress (1-5)' },
-      { key: 'idratazione', label: 'Idratazione (1-5)' },
-      { key: 'sintomi', label: 'Sintomi' },
-      { key: 'note', label: 'Note' },
+      { key: 'data', label: t('export.col_data', 'Data') },
+      { key: 'umore', label: t('export.col_umore', 'Umore (1-5)') },
+      { key: 'energia', label: t('export.col_energia', 'Energia (1-5)') },
+      { key: 'sonno', label: t('export.col_sonno', 'Qualità sonno (1-5)') },
+      { key: 'stress', label: t('export.col_stress', 'Stress (1-5)') },
+      { key: 'idratazione', label: t('export.col_idratazione', 'Idratazione (1-5)') },
+      { key: 'sintomi', label: t('export.col_sintomi', 'Sintomi') },
+      { key: 'note', label: t('export.col_note', 'Note') },
     ])
     downloadFile(csv, `nutriplan_benessere_${today()}.csv`, 'text/csv;charset=utf-8')
   }
@@ -221,7 +224,7 @@ export default function ExportDataPage() {
     const exportPayload = {
       export_date: new Date().toISOString(),
       user_id: user.id,
-      note: 'Esportazione dati personali ai sensi del GDPR Art. 20 – Portabilità dei dati',
+      note: t('export.gdpr_note', 'Esportazione dati personali ai sensi del GDPR Art. 20 – Portabilità dei dati'),
       data: {
         diario_alimentare: foodLogs.data || [],
         acqua: waterLogs.data || [],
@@ -244,11 +247,11 @@ export default function ExportDataPage() {
         color: 'white',
       }}>
         <p style={{ fontSize: 12, opacity: 0.8, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>
-          GDPR Art. 20
+          {t('export.gdpr_label', 'GDPR Art. 20')}
         </p>
-        <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 6 }}>📤 Esporta i tuoi dati</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 6 }}>📤 {t('export.title', 'Esporta i tuoi dati')}</h1>
         <p style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.5 }}>
-          Hai il diritto di ricevere i tuoi dati personali in un formato strutturato e leggibile.
+          {t('export.subtitle', 'Hai il diritto di ricevere i tuoi dati personali in un formato strutturato e leggibile.')}
         </p>
       </div>
 
@@ -264,39 +267,38 @@ export default function ExportDataPage() {
           color: '#1e40af',
           lineHeight: 1.6,
         }}>
-          <strong>💡 Come funziona:</strong> ogni export scarica un file direttamente sul tuo dispositivo.
-          I file CSV si aprono con Excel o Numbers. Il JSON è per sviluppatori o backup completo.
+          <strong>💡 {t('export.info_banner_title', 'Come funziona:')}</strong> {t('export.info_banner_text', 'ogni export scarica un file direttamente sul tuo dispositivo. I file CSV si aprono con Excel o Numbers. Il JSON è per sviluppatori o backup completo.')}
         </div>
 
         {/* Export cards */}
         <ExportCard
           icon={FileText}
-          title="Diario alimentare"
-          description="Tutti i pasti registrati con macro (kcal, proteine, carboidrati, grassi) e orari."
+          title={t('export.card_diario_title', 'Diario alimentare')}
+          description={t('export.card_diario_desc', 'Tutti i pasti registrati con macro (kcal, proteine, carboidrati, grassi) e orari.')}
           color="#1a7f5a"
           onExport={exportFoodLogs}
         />
 
         <ExportCard
           icon={Scale}
-          title="Storico peso"
-          description="Tutte le misurazioni del peso nel tempo."
+          title={t('export.card_peso_title', 'Storico peso')}
+          description={t('export.card_peso_desc', 'Tutte le misurazioni del peso nel tempo.')}
           color="#7c3aed"
           onExport={exportWeightLogs}
         />
 
         <ExportCard
           icon={Activity}
-          title="Benessere & umore"
-          description="Dati giornalieri di umore, energia, qualità del sonno, stress e sintomi."
+          title={t('export.card_benessere_title', 'Benessere & umore')}
+          description={t('export.card_benessere_desc', 'Dati giornalieri di umore, energia, qualità del sonno, stress e sintomi.')}
           color="#ec4899"
           onExport={exportWellness}
         />
 
         <ExportCard
           icon={Database}
-          title="Export completo (JSON)"
-          description="Tutti i tuoi dati in un unico file JSON: diario, acqua, peso, benessere e attività."
+          title={t('export.card_json_title', 'Export completo (JSON)')}
+          description={t('export.card_json_desc', 'Tutti i tuoi dati in un unico file JSON: diario, acqua, peso, benessere e attività.')}
           color="#f59e0b"
           onExport={exportAllJSON}
         />
@@ -312,9 +314,7 @@ export default function ExportDataPage() {
           color: 'var(--text-muted)',
           lineHeight: 1.7,
         }}>
-          <strong>Informativa:</strong> I dati esportati sono di tua proprietà esclusiva (GDPR Reg. UE 2016/679,
-          Art. 20). NutriPlan non condivide questi dati con terze parti senza il tuo esplicito consenso.
-          Per richiedere la cancellazione dei tuoi dati, contatta il supporto o usa la sezione Profilo.
+          <strong>{t('export.legal_title', 'Informativa:')}</strong> {t('export.legal_text', 'I dati esportati sono di tua proprietà esclusiva (GDPR Reg. UE 2016/679, Art. 20). NutriPlan non condivide questi dati con terze parti senza il tuo esplicito consenso. Per richiedere la cancellazione dei tuoi dati, contatta il supporto o usa la sezione Profilo.')}
         </div>
       </div>
 

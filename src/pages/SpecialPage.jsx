@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../i18n'
 import { fetchSpecialSections } from '../lib/specialSections'
 import { SPECIALTIES, FIELD_CONFIG, IDDSI_LEVELS, MEAL_COLUMNS, TIPS, QUICK_LINKS } from '../data/specialtyMeta'
 import DiabeteCalculator from '../components/specialty/DiabeteCalculator'
@@ -154,6 +155,7 @@ function GroupCard({ group, dati, accent }) {
 }
 
 function TipsCard({ tipo, accent, accentBg }) {
+  const t = useT()
   const tips = TIPS[tipo]
   if (!tips?.length) return null
   return (
@@ -162,11 +164,11 @@ function TipsCard({ tipo, accent, accentBg }) {
         <div style={{ width: 32, height: 32, borderRadius: 10, background: accentBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Lightbulb size={16} color={accent} />
         </div>
-        <h3 style={{ fontSize: 15, fontWeight: 700 }}>Consigli pratici</h3>
+        <h3 style={{ fontSize: 15, fontWeight: 700 }}>{t('special.tips_title', 'Consigli pratici')}</h3>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {tips.map((t, i) => {
-          const tip = typeof t === 'string' ? { text: t } : t
+        {tips.map((tipItem, i) => {
+          const tip = typeof tipItem === 'string' ? { text: tipItem } : tipItem
           return (
             <div key={i} style={{ display: 'flex', gap: 9, padding: '9px 11px', background: 'var(--surface-2)', borderRadius: 10 }}>
               <span style={{ flexShrink: 0, color: accent, fontWeight: 700, fontSize: 13 }}>{i + 1}</span>
@@ -204,6 +206,7 @@ function QuickLinksRow({ tipo }) {
 }
 
 function NoteDetail({ tipo, dati, accent }) {
+  const t = useT()
   const config = FIELD_CONFIG[tipo]
   if (!config) return null
 
@@ -215,7 +218,7 @@ function NoteDetail({ tipo, dati, accent }) {
         {fields.map(f => {
           if (f.format === 'iddsi') {
             const lvl = IDDSI_LEVELS[dati[f.key]]
-            return <FieldRow key={f.key} label={f.label} value={lvl ? `Livello ${dati[f.key]} — ${lvl.nome}` : dati[f.key]} />
+            return <FieldRow key={f.key} label={f.label} value={lvl ? t('special.iddsi_level', { level: dati[f.key], name: lvl.nome }, 'Livello {{level}} — {{name}}') : dati[f.key]} />
           }
           return <FieldRow key={f.key} label={f.label} value={dati[f.key]} unit={f.unit} />
         })}
@@ -233,6 +236,7 @@ function NoteDetail({ tipo, dati, accent }) {
 // ── main page ─────────────────────────────────────────────────────────────────
 export default function SpecialPage() {
   const { user } = useAuth()
+  const t = useT()
   const [loading, setLoading] = useState(true)
   const [sections, setSections] = useState([])
   const [activeTipo, setActiveTipo] = useState(null)
@@ -258,7 +262,7 @@ export default function SpecialPage() {
         {active ? (
           <>
             <button onClick={() => setActiveTipo(null)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 100, padding: '6px 12px 6px 8px', color: 'white', fontSize: 12, fontWeight: 600, marginBottom: 16, cursor: 'pointer' }}>
-              <ChevronLeft size={14} /> ✨ Speciale
+              <ChevronLeft size={14} /> {t('special.title', '✨ Speciale')}
             </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 26 }}>
@@ -272,9 +276,9 @@ export default function SpecialPage() {
           </>
         ) : (
           <>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Attivato dal tuo dietista</p>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>{t('special.activated_by_dietitian', 'Attivato dal tuo dietista')}</p>
             <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300, display: 'flex', alignItems: 'center', gap: 8 }}>
-              ✨ Speciale
+              {t('special.title', '✨ Speciale')}
             </h1>
           </>
         )}
@@ -294,8 +298,8 @@ export default function SpecialPage() {
                 {availableSpecialties.length === 0 ? (
                   <div className="card" style={{ padding: 28, textAlign: 'center' }}>
                     <Sparkles size={30} color="var(--text-muted)" style={{ marginBottom: 12 }} />
-                    <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Nessuna sezione attiva</p>
-                    <p style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Il tuo dietista non ha ancora attivato nessuna sezione qui.</p>
+                    <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{t('special.empty_title', 'Nessuna sezione attiva')}</p>
+                    <p style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{t('special.empty_desc', 'Il tuo dietista non ha ancora attivato nessuna sezione qui.')}</p>
                   </div>
                 ) : availableSpecialties.map((s, i) => {
                   const section = byKey[s.key]
@@ -315,7 +319,7 @@ export default function SpecialPage() {
                         <p style={{ fontSize: 14.5, fontWeight: 700 }}>{s.emoji} {s.label}</p>
                         <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 1 }}>{s.description}</p>
                         <p style={{ fontSize: 10.5, color: section.note ? s.color : 'var(--text-muted)', fontWeight: 600, marginTop: 4 }}>
-                          {section.note ? `● Aggiornato ${fmtDate(section.note.updated_at || section.note.created_at)}` : '○ In attesa dei dati del dietista'}
+                          {section.note ? t('special.updated_on', { date: fmtDate(section.note.updated_at || section.note.created_at) }, '● Aggiornato {{date}}') : t('special.awaiting_data_short', '○ In attesa dei dati del dietista')}
                         </p>
                       </div>
                       <ChevronRight size={18} color="var(--text-muted)" />
@@ -331,8 +335,8 @@ export default function SpecialPage() {
                     <div style={{ width: 52, height: 52, borderRadius: 16, background: active.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
                       <Clock size={24} color={active.color} />
                     </div>
-                    <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>In attesa dei dati</p>
-                    <p style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Il tuo dietista ha attivato questa sezione ma non ha ancora salvato una scheda — torna a controllare più avanti.</p>
+                    <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{t('special.awaiting_data_title', 'In attesa dei dati')}</p>
+                    <p style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{t('special.awaiting_data_desc', 'Il tuo dietista ha attivato questa sezione ma non ha ancora salvato una scheda — torna a controllare più avanti.')}</p>
                   </div>
                 ) : (
                   <>
@@ -342,7 +346,7 @@ export default function SpecialPage() {
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                           <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
-                          <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Dati della scheda</p>
+                          <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('special.card_data_title', 'Dati della scheda')}</p>
                           <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
                         </div>
                         {activeSection.note.nota && <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10 }}>{activeSection.note.nota}</p>}
@@ -350,7 +354,7 @@ export default function SpecialPage() {
                       </div>
                     )}
                     {activeSection?.note && (
-                      <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>Ultimo aggiornamento: {fmtDate(activeSection.note.updated_at || activeSection.note.created_at)}</p>
+                      <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>{t('special.last_updated', { date: fmtDate(activeSection.note.updated_at || activeSection.note.created_at) }, 'Ultimo aggiornamento: {{date}}')}</p>
                     )}
                   </>
                 )}

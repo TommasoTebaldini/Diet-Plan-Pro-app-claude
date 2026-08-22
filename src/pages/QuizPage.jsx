@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { Zap, Star, Trophy, RefreshCw, ChevronRight, CheckCircle2, XCircle, Flame, BookOpen, Lock } from 'lucide-react'
 import { CATEGORIES } from '../data/quizCategories'
 import { useAchievements } from '../context/AchievementsContext'
+import { useT } from '../i18n'
 
 // The ~2000-question bank lives in public/data/quiz-questions.json (fetched
 // on demand) instead of being bundled into this JS chunk — it's over 1MB of
@@ -110,6 +111,10 @@ function ScoreStars({ score, total }) {
 export default function QuizPage({ inModal = false }) {
   const { user } = useAuth()
   const { checkAndAward } = useAchievements()
+  const t = useT()
+  const streakLabel = (n) => n === 1
+    ? t('quiz.streak_day', { count: n }, 'Striscia: {{count}} giorno')
+    : t('quiz.streak_days', { count: n }, 'Striscia: {{count}} giorni')
   const tp = (x) => inModal ? `${x}px` : `calc(env(safe-area-inset-top) + ${x}px)`
   const pageClass = inModal ? undefined : 'page'
   const pageStyle = inModal ? { flex: 1, display: 'flex', flexDirection: 'column', paddingBottom: 24 } : { padding: 0 }
@@ -203,10 +208,10 @@ export default function QuizPage({ inModal = false }) {
   // ── ERROR
   if (phase === 'error') return (
     <div className={pageClass} style={{ ...pageStyle, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 14, padding: 24, textAlign: 'center' }}>
-      <p style={{ fontSize: 14, color: '#6b7280' }}>Non è stato possibile caricare il quiz. Controlla la connessione e riprova.</p>
+      <p style={{ fontSize: 14, color: '#6b7280' }}>{t('quiz.load_error', 'Non è stato possibile caricare il quiz. Controlla la connessione e riprova.')}</p>
       <button onClick={() => setFetchAttempt(n => n + 1)}
         style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 10, border: 'none', background: '#7c3aed', color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-        <RefreshCw size={14} /> Riprova
+        <RefreshCw size={14} /> {t('quiz.retry', 'Riprova')}
       </button>
     </div>
   )
@@ -215,9 +220,9 @@ export default function QuizPage({ inModal = false }) {
   if (phase === 'done') {
     const finalScore = answers.filter(a => a?.correct).length
     const pctFinal = finalScore / questions.length
-    const msg = pctFinal === 1 ? 'Perfetto! Sei un esperto!' :
-                pctFinal >= 0.8 ? 'Ottimo! Quasi tutto giusto!' :
-                pctFinal >= 0.5 ? 'Buono! Continua ad imparare.' : 'Non mollare, ritorna domani!'
+    const msg = pctFinal === 1 ? t('quiz.msg_perfect', 'Perfetto! Sei un esperto!') :
+                pctFinal >= 0.8 ? t('quiz.msg_great', 'Ottimo! Quasi tutto giusto!') :
+                pctFinal >= 0.5 ? t('quiz.msg_good', 'Buono! Continua ad imparare.') : t('quiz.msg_keep_going', 'Non mollare, ritorna domani!')
     const emoji = pctFinal === 1 ? '🏆' : pctFinal >= 0.8 ? '🌟' : pctFinal >= 0.5 ? '📚' : '💪'
     const fs = finalStreak || getStreak()
     return (
@@ -226,13 +231,13 @@ export default function QuizPage({ inModal = false }) {
           <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 200 }}>
             <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 10 }}>{emoji}</div>
           </motion.div>
-          <p style={{ color: 'rgba(255,255,255,.75)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 4 }}>Risultato</p>
-          <h1 style={{ color: 'white', fontSize: 24, fontWeight: 800, marginBottom: 6 }}>{finalScore}/{questions.length} corrette</h1>
+          <p style={{ color: 'rgba(255,255,255,.75)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 4 }}>{t('quiz.result_label', 'Risultato')}</p>
+          <h1 style={{ color: 'white', fontSize: 24, fontWeight: 800, marginBottom: 6 }}>{t('quiz.score_correct', { score: finalScore, total: questions.length }, '{{score}}/{{total}} corrette')}</h1>
           <p style={{ color: 'rgba(255,255,255,.85)', fontSize: 14 }}>{msg}</p>
           {fs > 0 && (
             <div style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,165,0,.2)', border: '1.5px solid rgba(255,165,0,.4)', borderRadius: 20, padding: '4px 12px' }}>
               <Flame size={13} color="#fbbf24" fill="#fbbf24" />
-              <span style={{ color: '#fde68a', fontSize: 12, fontWeight: 700 }}>Striscia: {fs} {fs === 1 ? 'giorno' : 'giorni'}</span>
+              <span style={{ color: '#fde68a', fontSize: 12, fontWeight: 700 }}>{streakLabel(fs)}</span>
             </div>
           )}
         </div>
@@ -241,10 +246,10 @@ export default function QuizPage({ inModal = false }) {
             initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}>
             <ScoreStars score={finalScore} total={questions.length} />
             <p style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }}>
-              {pctFinal === 1 ? '3 stelle — risultato perfetto!' : pctFinal >= 0.8 ? '2 stelle — ottima conoscenza!' : '1 stella — continua a praticare!'}
+              {pctFinal === 1 ? t('quiz.stars_3', '3 stelle — risultato perfetto!') : pctFinal >= 0.8 ? t('quiz.stars_2', '2 stelle — ottima conoscenza!') : t('quiz.stars_1', '1 stella — continua a praticare!')}
             </p>
           </motion.div>
-          <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '.06em' }}>Riepilogo</p>
+          <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '.06em' }}>{t('quiz.summary_label', 'Riepilogo')}</p>
           {questions.map((question, i) => {
             const ans = answers[i]
             const correct = ans?.correct
@@ -271,8 +276,8 @@ export default function QuizPage({ inModal = false }) {
           <div style={{ background: '#f3f4f6', borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10, border: '1px solid #e5e7eb' }}>
             <Lock size={16} color="#9ca3af" />
             <div>
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Nuovo quiz domani</p>
-              <p style={{ fontSize: 11.5, color: '#9ca3af' }}>Torna domani per 5 nuove domande!</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{t('quiz.new_quiz_tomorrow', 'Nuovo quiz domani')}</p>
+              <p style={{ fontSize: 11.5, color: '#9ca3af' }}>{t('quiz.new_quiz_tomorrow_desc', { count: QUESTIONS_PER_DAY }, 'Torna domani per {{count}} nuove domande!')}</p>
             </div>
           </div>
         </div>
@@ -290,12 +295,12 @@ export default function QuizPage({ inModal = false }) {
           <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,.06)' }} />
           <div style={{ position: 'relative' }}>
             <div style={{ fontSize: 52, lineHeight: 1, marginBottom: 10 }}>🧠</div>
-            <h1 style={{ color: 'white', fontSize: 22, fontWeight: 800, lineHeight: 1.2, marginBottom: 6 }}>Impara qualcosa di nuovo!</h1>
-            <p style={{ color: 'rgba(255,255,255,.75)', fontSize: 13 }}>{QUESTIONS_PER_DAY} domande • puoi tornare indietro quando vuoi</p>
+            <h1 style={{ color: 'white', fontSize: 22, fontWeight: 800, lineHeight: 1.2, marginBottom: 6 }}>{t('quiz.idle_title', 'Impara qualcosa di nuovo!')}</h1>
+            <p style={{ color: 'rgba(255,255,255,.75)', fontSize: 13 }}>{t('quiz.idle_subtitle', { count: QUESTIONS_PER_DAY }, '{{count}} domande • puoi tornare indietro quando vuoi')}</p>
             {currentStreak > 0 && (
               <div style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,165,0,.2)', border: '1.5px solid rgba(255,165,0,.4)', borderRadius: 20, padding: '4px 12px' }}>
                 <Flame size={13} color="#fbbf24" fill="#fbbf24" />
-                <span style={{ color: '#fde68a', fontSize: 12, fontWeight: 700 }}>Striscia: {currentStreak} {currentStreak === 1 ? 'giorno' : 'giorni'}</span>
+                <span style={{ color: '#fde68a', fontSize: 12, fontWeight: 700 }}>{streakLabel(currentStreak)}</span>
               </div>
             )}
           </div>
@@ -304,7 +309,7 @@ export default function QuizPage({ inModal = false }) {
 
           {/* Category filter */}
           <div>
-            <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>Categorie (lascia vuoto per tutte)</p>
+            <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>{t('quiz.categories_label', 'Categorie (lascia vuoto per tutte)')}</p>
             <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
               {Object.entries(CATEGORIES).map(([key, cat]) => {
                 const active = selectedCats.includes(key)
@@ -322,13 +327,13 @@ export default function QuizPage({ inModal = false }) {
 
           {/* Difficulty filter */}
           <div>
-            <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>Difficoltà</p>
+            <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>{t('quiz.difficulty_label', 'Difficoltà')}</p>
             <div style={{ display: 'flex', gap: 7 }}>
               {DIFFS.map(d => (
                 <button key={d.key}
                   onClick={() => setSelectedDiff(d.key)}
                   style={{ flex: 1, padding: '7px 0', borderRadius: 10, border: `1.5px solid ${selectedDiff === d.key ? '#7c3aed' : 'var(--border)'}`, background: selectedDiff === d.key ? '#f5f3ff' : 'var(--surface-2)', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: selectedDiff === d.key ? '#7c3aed' : 'var(--text-muted)', transition: 'all .15s' }}>
-                  {d.label}
+                  {t(`quiz.diff_${d.key}`, d.label)}
                 </button>
               ))}
             </div>
@@ -336,10 +341,10 @@ export default function QuizPage({ inModal = false }) {
 
           <div style={{ background: '#f9fafb', borderRadius: 14, padding: '14px 16px', border: '1px solid #e5e7eb' }}>
             {[
-              { icon: '↩️', text: 'Puoi andare avanti e indietro liberamente' },
-              { icon: '💡', text: 'Spiegazione subito dopo ogni risposta' },
-              { icon: '🔄', text: 'Puoi cambiare risposta tornando alla domanda' },
-              { icon: '🔥', text: 'Mantieni la striscia giornaliera' },
+              { icon: '↩️', text: t('quiz.tip_navigate', 'Puoi andare avanti e indietro liberamente') },
+              { icon: '💡', text: t('quiz.tip_explanation', 'Spiegazione subito dopo ogni risposta') },
+              { icon: '🔄', text: t('quiz.tip_change_answer', 'Puoi cambiare risposta tornando alla domanda') },
+              { icon: '🔥', text: t('quiz.tip_streak', 'Mantieni la striscia giornaliera') },
             ].map(({ icon, text }) => (
               <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 8, lastChild: { marginBottom: 0 } }}>
                 <span style={{ fontSize: 15 }}>{icon}</span>
@@ -350,7 +355,7 @@ export default function QuizPage({ inModal = false }) {
           <motion.button whileTap={{ scale: 0.96 }} onClick={startQuiz}
             style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: 'white', border: 'none', borderRadius: 14, padding: '15px 24px', fontSize: 16, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: '0 4px 16px rgba(124,58,237,.4)' }}>
             <Zap size={18} fill="white" color="white" />
-            Inizia il quiz
+            {t('quiz.start_button', 'Inizia il quiz')}
             <ChevronRight size={18} />
           </motion.button>
         </div>
@@ -387,7 +392,7 @@ export default function QuizPage({ inModal = false }) {
             <span style={{ fontSize: 12 }}>{cat.emoji}</span>
             <span style={{ fontSize: 11, fontWeight: 700, color: cat.color }}>{cat.label}</span>
           </div>
-          <span style={{ fontSize: 12, color: '#9ca3af', fontWeight: 600 }}>Domanda {idx + 1} di {questions.length}</span>
+          <span style={{ fontSize: 12, color: '#9ca3af', fontWeight: 600 }}>{t('quiz.question_progress', { current: idx + 1, total: questions.length }, 'Domanda {{current}} di {{total}}')}</span>
         </div>
       </div>
 
@@ -436,7 +441,7 @@ export default function QuizPage({ inModal = false }) {
                   <span style={{ fontSize: 18, flexShrink: 0 }}>{currentAnswer.correct ? '💡' : '📖'}</span>
                   <div>
                     <p style={{ fontSize: 12.5, fontWeight: 700, color: currentAnswer.correct ? '#15803d' : '#b91c1c', marginBottom: 4 }}>
-                      {currentAnswer.correct ? 'Corretto!' : `Risposta esatta: ${q.opts[q.ans]}`}
+                      {currentAnswer.correct ? t('quiz.correct_label', 'Corretto!') : t('quiz.correct_answer_label', { answer: q.opts[q.ans] }, 'Risposta esatta: {{answer}}')}
                     </p>
                     <p style={{ fontSize: 12.5, color: '#374151', lineHeight: 1.55 }}>{q.exp}</p>
                   </div>
@@ -450,25 +455,25 @@ export default function QuizPage({ inModal = false }) {
             {/* Back */}
             <button onClick={goPrev} disabled={idx === 0}
               style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: '2px solid #e5e7eb', background: 'white', fontSize: 13.5, fontWeight: 700, color: idx === 0 ? '#d1d5db' : '#374151', cursor: idx === 0 ? 'default' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              ← Precedente
+              {t('quiz.prev_button', '← Precedente')}
             </button>
 
             {/* Forward / Finish */}
             {isLast ? (
               <motion.button whileTap={{ scale: 0.97 }} onClick={finish}
                 style={{ flex: 2, padding: '11px 0', borderRadius: 12, border: 'none', background: answeredCount === questions.length ? 'linear-gradient(135deg, #16a34a, #15803d)' : '#d1fae5', fontSize: 13.5, fontWeight: 700, color: answeredCount === questions.length ? 'white' : '#6b7280', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                ✓ Completa quiz {answeredCount < questions.length ? `(${answeredCount}/${questions.length})` : ''}
+                {t('quiz.complete_button', '✓ Completa quiz')} {answeredCount < questions.length ? `(${answeredCount}/${questions.length})` : ''}
               </motion.button>
             ) : (
               <button onClick={goNext} disabled={!isAnswered}
                 style={{ flex: 2, padding: '11px 0', borderRadius: 12, border: 'none', background: isAnswered ? 'linear-gradient(135deg, #7c3aed, #a855f7)' : '#ede9fe', fontSize: 13.5, fontWeight: 700, color: isAnswered ? 'white' : '#9ca3af', cursor: isAnswered ? 'pointer' : 'default', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                Avanti →
+                {t('quiz.next_button', 'Avanti →')}
               </button>
             )}
           </div>
 
           {!isAnswered && (
-            <p style={{ textAlign: 'center', fontSize: 11.5, color: '#9ca3af' }}>Seleziona una risposta per continuare</p>
+            <p style={{ textAlign: 'center', fontSize: 11.5, color: '#9ca3af' }}>{t('quiz.select_answer_hint', 'Seleziona una risposta per continuare')}</p>
           )}
         </motion.div>
       </AnimatePresence>

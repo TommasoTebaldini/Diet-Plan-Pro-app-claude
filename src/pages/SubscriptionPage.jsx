@@ -3,34 +3,37 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { useSubscription, PAYMENTS_ACTIVE, FREE_FEATURES, PRO_FEATURES } from '../hooks/useSubscription'
+import { useT } from '../i18n'
 import {
   ArrowLeft, Star, Check, X, Crown, CreditCard,
   ChevronDown, ChevronUp, Lock, Zap, ShieldCheck,
 } from 'lucide-react'
 
 // ─── FAQ ──────────────────────────────────────────────────────────────────────
-const FAQS = [
-  {
-    q: 'Cosa include il piano gratuito?',
-    a: 'Il piano gratuito include tutto il necessario per seguire la terapia del tuo dietista: visualizzazione del piano alimentare, chat, documenti, diario degli ultimi 7 giorni, tracciamento acqua e peso.',
-  },
-  {
-    q: 'Posso disdire in qualsiasi momento?',
-    a: 'Sì, puoi cancellare l\'abbonamento quando vuoi dal portale Stripe (pulsante "Gestisci abbonamento"). L\'accesso Pro rimane attivo fino alla fine del periodo già pagato. Hai inoltre diritto di recesso entro 14 giorni dalla sottoscrizione ai sensi del Codice del Consumo, indipendentemente dalla cancellazione ordinaria.',
-  },
-  {
-    q: 'I miei dati sono al sicuro?',
-    a: 'Sì. I dati sono archiviati su Supabase (PostgreSQL) con crittografia TLS in transito e a riposo. I pagamenti sono gestiti da Stripe, certificato PCI-DSS Level 1. Non conserviamo mai i dati della tua carta.',
-  },
-  {
-    q: 'Il mio dietista vede che sono abbonato?',
-    a: 'No, il piano che scegli riguarda solo le funzionalità che usi tu sull\'app. Il rapporto con il tuo dietista è indipendente dall\'abbonamento.',
-  },
-  {
-    q: 'Esiste una prova gratuita?',
-    a: 'Sì, il piano Pro include 7 giorni di prova gratuita. Non serve inserire la carta di credito durante la prova.',
-  },
-]
+function getFaqs(t) {
+  return [
+    {
+      q: t('subscription.faq_q1', 'Cosa include il piano gratuito?'),
+      a: t('subscription.faq_a1', 'Il piano gratuito include tutto il necessario per seguire la terapia del tuo dietista: visualizzazione del piano alimentare, chat, documenti, diario degli ultimi 7 giorni, tracciamento acqua e peso.'),
+    },
+    {
+      q: t('subscription.faq_q2', 'Posso disdire in qualsiasi momento?'),
+      a: t('subscription.faq_a2', 'Sì, puoi cancellare l\'abbonamento quando vuoi dal portale Stripe (pulsante "Gestisci abbonamento"). L\'accesso Pro rimane attivo fino alla fine del periodo già pagato. Hai inoltre diritto di recesso entro 14 giorni dalla sottoscrizione ai sensi del Codice del Consumo, indipendentemente dalla cancellazione ordinaria.'),
+    },
+    {
+      q: t('subscription.faq_q3', 'I miei dati sono al sicuro?'),
+      a: t('subscription.faq_a3', 'Sì. I dati sono archiviati su Supabase (PostgreSQL) con crittografia TLS in transito e a riposo. I pagamenti sono gestiti da Stripe, certificato PCI-DSS Level 1. Non conserviamo mai i dati della tua carta.'),
+    },
+    {
+      q: t('subscription.faq_q4', 'Il mio dietista vede che sono abbonato?'),
+      a: t('subscription.faq_a4', 'No, il piano che scegli riguarda solo le funzionalità che usi tu sull\'app. Il rapporto con il tuo dietista è indipendente dall\'abbonamento.'),
+    },
+    {
+      q: t('subscription.faq_q5', 'Esiste una prova gratuita?'),
+      a: t('subscription.faq_a5', 'Sì, il piano Pro include 7 giorni di prova gratuita. Non serve inserire la carta di credito durante la prova.'),
+    },
+  ]
+}
 
 function FAQItem({ q, a }) {
   const [open, setOpen] = useState(false)
@@ -60,6 +63,7 @@ function FAQItem({ q, a }) {
 
 // ─── Plan card ────────────────────────────────────────────────────────────────
 function PlanCard({ title, price, period, features, locked, highlight, cta, onCta, ctaDisabled, note }) {
+  const t = useT()
   return (
     <div style={{
       border: `2px solid ${highlight ? 'var(--green-main)' : 'var(--border-light)'}`,
@@ -72,7 +76,7 @@ function PlanCard({ title, price, period, features, locked, highlight, cta, onCt
           background: 'var(--green-main)', color: 'white', fontSize: 11, fontWeight: 700,
           padding: '3px 14px', borderRadius: 20, whiteSpace: 'nowrap',
         }}>
-          Consigliato
+          {t('subscription.badge_recommended', 'Consigliato')}
         </div>
       )}
       <p style={{ fontSize: 13, fontWeight: 700, color: highlight ? 'var(--green-main)' : 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{title}</p>
@@ -121,6 +125,7 @@ export default function SubscriptionPage() {
   const { isPro, paymentsActive, expiresAt } = useSubscription()
   const [loading, setLoading] = useState(false)
   const [portalLoading, setPortalLoading] = useState(false)
+  const t = useT()
 
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
@@ -168,31 +173,33 @@ export default function SubscriptionPage() {
     }
   }
 
+  const FAQS = getFaqs(t)
+
   const FREE_PLAN_ITEMS = [
-    'Piano alimentare del dietista',
-    'Chat con il tuo dietista',
-    'Documenti e referti',
-    'Diario alimentare (7 giorni)',
-    'Tracciamento acqua e peso',
-    'Database alimenti CREA+BDA',
-    'Micronutrienti avanzati',
-    'Statistiche e grafici',
-    'Report PDF',
-    'Storico illimitato',
+    t('subscription.item_diet_plan', 'Piano alimentare del dietista'),
+    t('subscription.item_chat', 'Chat con il tuo dietista'),
+    t('subscription.item_documents', 'Documenti e referti'),
+    t('subscription.item_diary_free', 'Diario alimentare (7 giorni)'),
+    t('subscription.item_tracking', 'Tracciamento acqua e peso'),
+    t('subscription.item_database', 'Database alimenti CREA+BDA'),
+    t('subscription.item_micronutrients_free', 'Micronutrienti avanzati'),
+    t('subscription.item_stats_free', 'Statistiche e grafici'),
+    t('subscription.item_pdf_free', 'Report PDF'),
+    t('subscription.item_history_free', 'Storico illimitato'),
   ]
   const FREE_LOCKED = [false, false, false, false, false, false, true, true, true, true]
 
   const PRO_PLAN_ITEMS = [
-    'Piano alimentare del dietista',
-    'Chat con il tuo dietista',
-    'Documenti e referti',
-    'Diario alimentare illimitato',
-    'Tracciamento acqua e peso',
-    'Database alimenti CREA+BDA',
-    'Micronutrienti avanzati (vitamine, minerali)',
-    'Statistiche e grafici trend',
-    'Report PDF settimanale/mensile',
-    'Analisi aderenza al piano',
+    t('subscription.item_diet_plan', 'Piano alimentare del dietista'),
+    t('subscription.item_chat', 'Chat con il tuo dietista'),
+    t('subscription.item_documents', 'Documenti e referti'),
+    t('subscription.item_diary_pro', 'Diario alimentare illimitato'),
+    t('subscription.item_tracking', 'Tracciamento acqua e peso'),
+    t('subscription.item_database', 'Database alimenti CREA+BDA'),
+    t('subscription.item_micronutrients_pro', 'Micronutrienti avanzati (vitamine, minerali)'),
+    t('subscription.item_stats_pro', 'Statistiche e grafici trend'),
+    t('subscription.item_pdf_pro', 'Report PDF settimanale/mensile'),
+    t('subscription.item_adherence_pro', 'Analisi aderenza al piano'),
   ]
 
   return (
@@ -217,7 +224,7 @@ export default function SubscriptionPage() {
           >
             <ArrowLeft size={18} />
           </button>
-          <h1 style={{ color: 'white', fontSize: 18, fontWeight: 700, margin: 0 }}>Abbonamento</h1>
+          <h1 style={{ color: 'white', fontSize: 18, fontWeight: 700, margin: 0 }}>{t('subscription.title', 'Abbonamento')}</h1>
         </div>
 
         {/* Status badge */}
@@ -236,14 +243,14 @@ export default function SubscriptionPage() {
           </div>
           <div>
             <p style={{ color: 'white', fontWeight: 700, fontSize: 15, margin: '0 0 2px' }}>
-              {isPro ? 'Piano Pro attivo' : 'Piano Gratuito'}
+              {isPro ? t('subscription.status_pro_active', 'Piano Pro attivo') : t('subscription.status_free', 'Piano Gratuito')}
             </p>
             <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, margin: 0 }}>
               {isPro && expiresAt
-                ? `Rinnovo il ${new Date(expiresAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })}`
+                ? t('subscription.renew_on', { date: new Date(expiresAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' }) }, 'Rinnovo il {{date}}')
                 : isPro
-                  ? 'Abbonamento attivo'
-                  : 'Sblocca tutte le funzionalità avanzate'}
+                  ? t('subscription.subscription_active', 'Abbonamento attivo')
+                  : t('subscription.unlock_features', 'Sblocca tutte le funzionalità avanzate')}
             </p>
           </div>
         </div>
@@ -261,10 +268,10 @@ export default function SubscriptionPage() {
             <span style={{ fontSize: 20, flexShrink: 0 }}>🚧</span>
             <div>
               <p style={{ fontWeight: 700, color: '#92400e', fontSize: 13, margin: '0 0 3px' }}>
-                Sistema pagamenti in arrivo
+                {t('subscription.coming_soon_title', 'Sistema pagamenti in arrivo')}
               </p>
               <p style={{ fontSize: 12.5, color: '#78350f', margin: 0, lineHeight: 1.5 }}>
-                I pagamenti sono in fase di configurazione. Tutti gli utenti hanno attualmente accesso completo. Sarai avvisato quando sarà possibile abbonarsi.
+                {t('subscription.coming_soon_desc', 'I pagamenti sono in fase di configurazione. Tutti gli utenti hanno attualmente accesso completo. Sarai avvisato quando sarà possibile abbonarsi.')}
               </p>
             </div>
           </div>
@@ -274,23 +281,23 @@ export default function SubscriptionPage() {
         {(!paymentsActive || !isPro) && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
             <PlanCard
-              title="Gratuito"
+              title={t('subscription.plan_free_title', 'Gratuito')}
               price="€0"
-              period="/mese"
+              period={t('subscription.period_month', '/mese')}
               features={FREE_PLAN_ITEMS}
               locked={FREE_LOCKED}
-              cta={isPro ? undefined : 'Piano attuale'}
+              cta={isPro ? undefined : t('subscription.cta_current_plan', 'Piano attuale')}
               ctaDisabled={true}
             />
             <PlanCard
-              title="⭐ Pro"
+              title={t('subscription.plan_pro_title', '⭐ Pro')}
               price="€5,99"
-              period="/mese"
+              period={t('subscription.period_month', '/mese')}
               features={PRO_PLAN_ITEMS}
               highlight={true}
-              cta={isPro ? '✅ Abbonamento attivo' : loading ? 'Reindirizzamento…' : '⭐ Inizia 7 giorni gratis'}
+              cta={isPro ? t('subscription.cta_pro_active', '✅ Abbonamento attivo') : loading ? t('subscription.cta_redirecting', 'Reindirizzamento…') : t('subscription.cta_start_trial', '⭐ Inizia 7 giorni gratis')}
               ctaDisabled={isPro || !paymentsActive || loading}
-              note={!paymentsActive ? 'Disponibile a breve' : isPro ? undefined : 'Nessuna carta richiesta per la prova'}
+              note={!paymentsActive ? t('subscription.note_coming_soon', 'Disponibile a breve') : isPro ? undefined : t('subscription.note_no_card', 'Nessuna carta richiesta per la prova')}
               onCta={handleSubscribe}
             />
           </div>
@@ -303,15 +310,15 @@ export default function SubscriptionPage() {
             borderRadius: 16, padding: '18px 20px', marginBottom: 24,
           }}>
             <p style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)', marginBottom: 14 }}>
-              ⚙️ Gestione abbonamento
+              {t('subscription.manage_title', '⚙️ Gestione abbonamento')}
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
               <div style={{ background: 'var(--surface-2)', borderRadius: 10, padding: '10px 12px' }}>
-                <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px' }}>Piano</p>
-                <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--green-main)', margin: 0 }}>⭐ Pro</p>
+                <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px' }}>{t('subscription.label_plan', 'Piano')}</p>
+                <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--green-main)', margin: 0 }}>{t('subscription.plan_pro_title', '⭐ Pro')}</p>
               </div>
               <div style={{ background: 'var(--surface-2)', borderRadius: 10, padding: '10px 12px' }}>
-                <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px' }}>Rinnovo</p>
+                <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px' }}>{t('subscription.label_renewal', 'Rinnovo')}</p>
                 <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
                   {expiresAt ? new Date(expiresAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' }) : '—'}
                 </p>
@@ -328,17 +335,17 @@ export default function SubscriptionPage() {
               }}
             >
               <CreditCard size={16} />
-              {portalLoading ? 'Caricamento…' : 'Gestisci / Cancella abbonamento'}
+              {portalLoading ? t('subscription.loading', 'Caricamento…') : t('subscription.manage_cancel_btn', 'Gestisci / Cancella abbonamento')}
             </button>
             <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', margin: '8px 0 0' }}>
-              Gestione sicura tramite portale Stripe
+              {t('subscription.manage_secure_note', 'Gestione sicura tramite portale Stripe')}
             </p>
           </div>
         )}
 
         {/* Feature comparison */}
         <p style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)', marginBottom: 12 }}>
-          Cosa include il Pro
+          {t('subscription.whats_included', 'Cosa include il Pro')}
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
           {PRO_FEATURES.map((f, i) => (
@@ -373,22 +380,22 @@ export default function SubscriptionPage() {
           </div>
           <div>
             <p style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>
-              Nessun rischio: recesso garantito entro 14 giorni
+              {t('subscription.guarantee_title', 'Nessun rischio: recesso garantito entro 14 giorni')}
             </p>
             <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-              Se sottoscrivi l'abbonamento hai comunque diritto di recesso entro 14 giorni ai sensi del Codice del Consumo — oltre alla prova gratuita di 7 giorni senza carta. Puoi disdire in qualsiasi momento dal portale Stripe.
+              {t('subscription.guarantee_desc', 'Se sottoscrivi l\'abbonamento hai comunque diritto di recesso entro 14 giorni ai sensi del Codice del Consumo — oltre alla prova gratuita di 7 giorni senza carta. Puoi disdire in qualsiasi momento dal portale Stripe.')}
             </p>
           </div>
         </div>
 
         {/* FAQ */}
         <p style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)', marginBottom: 12 }}>
-          Domande frequenti
+          {t('subscription.faq_title', 'Domande frequenti')}
         </p>
         {FAQS.map((faq, i) => <FAQItem key={i} {...faq} />)}
 
         <p style={{ textAlign: 'center', fontSize: 11.5, color: 'var(--text-muted)', marginTop: 24, lineHeight: 1.6 }}>
-          Pagamenti sicuri gestiti da Stripe — PCI-DSS Level 1
+          {t('subscription.footer_secure_payments', 'Pagamenti sicuri gestiti da Stripe — PCI-DSS Level 1')}
         </p>
       </div>
     </div>
