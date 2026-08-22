@@ -2,6 +2,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../i18n'
 import DietitianReviewsSection from '../components/DietitianReviews'
 import {
   ArrowLeft, MapPin, Phone, Mail, Globe, Calendar, Briefcase,
@@ -52,6 +53,7 @@ function generateSlots(avail) {
 
 function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
   const { user } = useAuth()
+  const t = useT()
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
@@ -112,7 +114,7 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
   }
 
   async function book() {
-    if (!selectedDate || !selectedSlot) { setError('Seleziona data e orario.'); return }
+    if (!selectedDate || !selectedSlot) { setError(t('ddetail.errore_seleziona_data_orario', 'Seleziona data e orario.')); return }
     setSaving(true); setError('')
     const dow = getDow(selectedDate)
     const avail = getAvailForDow(dow)
@@ -121,7 +123,7 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
     const { error: err } = await supabase.from('appointments').insert({
       patient_id: user.id,
       dietitian_id: dietitianId,
-      title: 'Colloquio di conoscimento',
+      title: t('ddetail.titolo_colloquio_conoscimento', 'Colloquio di conoscimento'),
       appointment_date: apptDate.toISOString(),
       notes: notes.trim() || null,
       booked_by_patient: true,
@@ -129,7 +131,7 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
       duration_minutes: dur,
     })
     setSaving(false)
-    if (err) { setError('Errore nella prenotazione. Riprova.'); return }
+    if (err) { setError(t('ddetail.errore_prenotazione', 'Errore nella prenotazione. Riprova.')); return }
     setSaved(true)
     setTimeout(() => { onBooked?.(); onClose() }, 2600)
   }
@@ -163,10 +165,10 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 20px 14px', flexShrink: 0, borderBottom: '1px solid var(--border-light)' }}>
           <div>
-            <h2 style={{ fontSize: 17, fontWeight: 700 }}>Prenota un colloquio</h2>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>con {dietitianName}</p>
+            <h2 style={{ fontSize: 17, fontWeight: 700 }}>{t('ddetail.prenota_colloquio', 'Prenota un colloquio')}</h2>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{t('ddetail.con_nome', { nome: dietitianName }, 'con {{nome}}')}</p>
           </div>
-          <button onClick={onClose} aria-label="Chiudi" style={{ ...btnNav, borderRadius: '50%', width: 32, height: 32 }}>
+          <button onClick={onClose} aria-label={t('ddetail.chiudi', 'Chiudi')} style={{ ...btnNav, borderRadius: '50%', width: 32, height: 32 }}>
             <X size={16} />
           </button>
         </div>
@@ -177,17 +179,17 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
           {saved ? (
             <div style={{ textAlign: 'center', padding: '32px 0' }}>
               <CheckCircle size={52} color="var(--green-main)" className="animate-bounceIn" style={{ marginBottom: 16, display: 'block', margin: '0 auto 16px' }} />
-              <p style={{ fontSize: 17, fontWeight: 700 }}>Prenotazione inviata!</p>
+              <p style={{ fontSize: 17, fontWeight: 700 }}>{t('ddetail.prenotazione_inviata', 'Prenotazione inviata!')}</p>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.6 }}>
-                Il dietista riceverà la tua richiesta di colloquio. Ti contatteranno per conferma.
+                {t('ddetail.prenotazione_inviata_desc', 'Il dietista riceverà la tua richiesta di colloquio. Ti contatteranno per conferma.')}
               </p>
             </div>
           ) : noAvailability ? (
             <div style={{ textAlign: 'center', padding: '32px 0' }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>📅</div>
-              <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>Nessuna disponibilità configurata</p>
+              <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>{t('ddetail.nessuna_disponibilita', 'Nessuna disponibilità configurata')}</p>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                Questo dietista non ha ancora impostato gli orari disponibili. Contattalo direttamente.
+                {t('ddetail.nessuna_disponibilita_desc', 'Questo dietista non ha ancora impostato gli orari disponibili. Contattalo direttamente.')}
               </p>
             </div>
           ) : (
@@ -253,14 +255,14 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
               {selectedDate && (
                 <div style={{ marginBottom: 16 }}>
                   <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-                    Orari — {new Date(selectedDate + 'T00:00:00').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    {t('ddetail.orari_data', { data: new Date(selectedDate + 'T00:00:00').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }) }, 'Orari — {{data}}')}
                   </p>
                   {slotsLoading ? (
                     <div style={{ textAlign: 'center', padding: 16 }}>
                       <div style={{ width: 20, height: 20, border: '2px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto' }} />
                     </div>
                   ) : slots.length === 0 ? (
-                    <p style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>Nessuno slot per questo giorno.</p>
+                    <p style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>{t('ddetail.nessuno_slot', 'Nessuno slot per questo giorno.')}</p>
                   ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
                       {slots.map(slot => {
@@ -282,7 +284,7 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
                           >
                             <Clock size={11} style={{ opacity: booked ? 0.4 : 1 }} />
                             {slot}
-                            {booked && <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>Occupato</span>}
+                            {booked && <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{t('ddetail.occupato', 'Occupato')}</span>}
                           </button>
                         )
                       })}
@@ -294,11 +296,11 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
               {/* Notes */}
               {selectedSlot && (
                 <div className="input-group" style={{ marginBottom: 16 }}>
-                  <label className="input-label">Note (opzionale)</label>
+                  <label className="input-label">{t('ddetail.note_opzionale', 'Note (opzionale)')}</label>
                   <textarea
                     className="input-field" rows={3} value={notes}
                     onChange={e => setNotes(e.target.value)}
-                    placeholder="Motivo del colloquio, intolleranze, obiettivi..."
+                    placeholder={t('ddetail.note_placeholder', 'Motivo del colloquio, intolleranze, obiettivi...')}
                     style={{ resize: 'none' }}
                   />
                 </div>
@@ -316,7 +318,7 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
                 disabled={saving || !selectedDate || !selectedSlot}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
               >
-                {saving ? '…' : <><Calendar size={15} /> Conferma prenotazione</>}
+                {saving ? '…' : <><Calendar size={15} /> {t('ddetail.conferma_prenotazione', 'Conferma prenotazione')}</>}
               </button>
             </>
           )}
@@ -332,6 +334,7 @@ export default function DietitianDetailPage() {
   const { dietitianId } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const t = useT()
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -379,10 +382,10 @@ export default function DietitianDetailPage() {
     const apptDate = new Date(appt.appointment_date)
     const twoDaysBefore = new Date(apptDate.getTime() - 2 * 24 * 3600 * 1000)
     if (new Date() > twoDaysBefore) {
-      alert('Non puoi annullare meno di 48 ore prima del colloquio.')
+      alert(t('ddetail.alert_cancellazione_48h', 'Non puoi annullare meno di 48 ore prima del colloquio.'))
       return
     }
-    if (!confirm('Annullare questo colloquio?')) return
+    if (!confirm(t('ddetail.confirm_annulla_colloquio', 'Annullare questo colloquio?'))) return
     setCancelling(appt.id)
     await supabase.from('appointments')
       .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
@@ -411,13 +414,13 @@ export default function DietitianDetailPage() {
           <button onClick={() => navigate('/dietisti')} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}>
             <ArrowLeft size={18} />
           </button>
-          <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 19, color: 'white', fontWeight: 300 }}>Dietista</h1>
+          <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 19, color: 'white', fontWeight: 300 }}>{t('ddetail.titolo_pagina', 'Dietista')}</h1>
         </div>
         <div style={{ textAlign: 'center', padding: '60px 24px' }}>
-          <p style={{ fontSize: 15, fontWeight: 500 }}>Profilo non disponibile</p>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6 }}>Questo profilo non esiste o non è pubblico.</p>
+          <p style={{ fontSize: 15, fontWeight: 500 }}>{t('ddetail.profilo_non_disponibile', 'Profilo non disponibile')}</p>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6 }}>{t('ddetail.profilo_non_esiste', 'Questo profilo non esiste o non è pubblico.')}</p>
           <button onClick={() => navigate('/dietisti')} style={{ marginTop: 18, background: 'var(--green-pale)', border: 'none', borderRadius: 10, padding: '10px 20px', cursor: 'pointer', fontSize: 13, color: 'var(--green-main)', fontWeight: 600, fontFamily: 'var(--font-b)' }}>
-            Torna alla lista
+            {t('ddetail.torna_lista', 'Torna alla lista')}
           </button>
         </div>
       </div>
@@ -462,7 +465,7 @@ export default function DietitianDetailPage() {
         {/* My upcoming appointments */}
         {myAppointments.length > 0 && (
           <div className="card" style={{ padding: 14, marginBottom: 12, border: '1.5px solid var(--green-main)' }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--green-main)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Le tue prenotazioni</p>
+            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--green-main)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>{t('ddetail.tue_prenotazioni', 'Le tue prenotazioni')}</p>
             {myAppointments.map(appt => {
               const d = new Date(appt.appointment_date)
               const canC = canCancel(appt)
@@ -473,7 +476,7 @@ export default function DietitianDetailPage() {
                       {d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
                     </p>
                     <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                      ore {getLocalTimeHHMM(appt.appointment_date)} · {appt.duration_minutes || 60} min
+                      {t('ddetail.ora_label', 'ore')} {getLocalTimeHHMM(appt.appointment_date)} · {appt.duration_minutes || 60} {t('ddetail.min_label', 'min')}
                     </p>
                   </div>
                   {canC ? (
@@ -483,10 +486,10 @@ export default function DietitianDetailPage() {
                       style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}
                     >
                       <XCircle size={13} style={{ color: 'var(--red)' }} />
-                      {cancelling === appt.id ? '…' : 'Annulla'}
+                      {cancelling === appt.id ? '…' : t('ddetail.annulla', 'Annulla')}
                     </button>
                   ) : (
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 100, textAlign: 'right' }}>Annullabile fino a 48h prima</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 100, textAlign: 'right' }}>{t('ddetail.annullabile_48h', 'Annullabile fino a 48h prima')}</span>
                   )}
                 </div>
               )
@@ -499,7 +502,7 @@ export default function DietitianDetailPage() {
         {/* Presentazione */}
         {profile.descrizione && (
           <div className="card" style={{ padding: 16, marginBottom: 12 }}>
-            <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Presentazione</p>
+            <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>{t('ddetail.presentazione', 'Presentazione')}</p>
             <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.65 }}>{profile.descrizione}</p>
           </div>
         )}
@@ -509,7 +512,7 @@ export default function DietitianDetailPage() {
           <div className="card" style={{ padding: 16, marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
               <Briefcase size={13} color="var(--green-main)" />
-              <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Metodo di lavoro</p>
+              <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('ddetail.metodo_lavoro', 'Metodo di lavoro')}</p>
             </div>
             <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.65 }}>{profile.metodi_lavoro}</p>
           </div>
@@ -518,7 +521,7 @@ export default function DietitianDetailPage() {
         {/* Contatti */}
         {(profile.telefono || profile.email_contatto || profile.sito_web || profile.indirizzo) && (
           <div className="card" style={{ padding: 16, marginBottom: 12 }}>
-            <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Contatti</p>
+            <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>{t('ddetail.contatti', 'Contatti')}</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {profile.indirizzo && (
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
@@ -573,7 +576,7 @@ export default function DietitianDetailPage() {
           onClick={() => setShowModal(true)}
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%' }}
         >
-          <Calendar size={16} /> Prenota un colloquio
+          <Calendar size={16} /> {t('ddetail.prenota_colloquio', 'Prenota un colloquio')}
         </button>
       </div>
 

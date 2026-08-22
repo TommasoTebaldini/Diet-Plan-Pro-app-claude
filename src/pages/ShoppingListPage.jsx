@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { ShoppingCart, Plus, Trash2, Check, ChevronDown, ChevronUp, Leaf, X, Save, Edit2, ListChecks, BookOpen, Share2 } from 'lucide-react'
 import { subDays, format } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { useT } from '../i18n'
 
 // ── Food categorization ──────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -26,6 +27,24 @@ const CATEGORY_ICONS = {
   'Condimenti e grassi': '🫒',
   'Bevande': '💧',
   'Altro': '🛒',
+}
+
+// CATEGORIES stay as Italian internal ids (used as data keys in localStorage-persisted
+// lists and for grouping/matching against categorizeFood()) — only the on-screen label
+// is translated via t().
+const CATEGORY_LABEL_KEYS = {
+  'Frutta e verdura': ['shopping.cat_frutta_verdura', 'Frutta e verdura'],
+  'Carne e pesce': ['shopping.cat_carne_pesce', 'Carne e pesce'],
+  'Latticini e uova': ['shopping.cat_latticini_uova', 'Latticini e uova'],
+  'Cereali e pasta': ['shopping.cat_cereali_pasta', 'Cereali e pasta'],
+  'Legumi': ['shopping.cat_legumi', 'Legumi'],
+  'Condimenti e grassi': ['shopping.cat_condimenti_grassi', 'Condimenti e grassi'],
+  'Bevande': ['shopping.cat_bevande', 'Bevande'],
+  'Altro': ['shopping.cat_altro', 'Altro'],
+}
+function categoryLabel(t, cat) {
+  const entry = CATEGORY_LABEL_KEYS[cat]
+  return entry ? t(entry[0], entry[1]) : cat
 }
 
 // Collisioni per sottostringa note (stessa scoperta/metodologia di detectAllergens() in
@@ -123,6 +142,7 @@ function uid() {
 
 // ── DietTab: shopping list generated from active diet ────────────────────────
 function DietTab({ user }) {
+  const t = useT()
   const [loading, setLoading] = useState(true)
   const [foods, setFoods] = useState([])
   const [checked, setChecked] = useState({}) // { foodKey: true }
@@ -184,7 +204,7 @@ function DietTab({ user }) {
     const lists = loadLists(userId)
     lists.unshift({
       id: uid(),
-      name: `Lista dalla dieta – ${new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })}`,
+      name: t('shopping.nome_lista_da_dieta', { data: new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }) }, 'Lista dalla dieta – {{data}}'),
       createdAt: new Date().toISOString(),
       items,
     })
@@ -196,15 +216,15 @@ function DietTab({ user }) {
   if (loading) return (
     <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
       <div style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-      Caricamento dieta...
+      {t('shopping.caricamento_dieta', 'Caricamento dieta...')}
     </div>
   )
 
   if (foods.length === 0) return (
     <div style={{ textAlign: 'center', padding: '40px 24px', color: 'var(--text-muted)' }}>
       <ShoppingCart size={40} style={{ opacity: 0.25, marginBottom: 12 }} />
-      <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Nessuna dieta attiva</p>
-      <p style={{ fontSize: 13, lineHeight: 1.6 }}>Quando il tuo dietista ti assegna un piano alimentare, qui troverai la lista della spesa generata automaticamente.</p>
+      <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{t('shopping.nessuna_dieta_attiva', 'Nessuna dieta attiva')}</p>
+      <p style={{ fontSize: 13, lineHeight: 1.6 }}>{t('shopping.nessuna_dieta_attiva_desc', 'Quando il tuo dietista ti assegna un piano alimentare, qui troverai la lista della spesa generata automaticamente.')}</p>
     </div>
   )
 
@@ -215,13 +235,13 @@ function DietTab({ user }) {
       {/* Stats bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--green-pale)', borderRadius: 14, border: '1px solid var(--border-light)' }}>
         <span style={{ fontSize: 13, color: 'var(--green-dark)', fontWeight: 600 }}>
-          {checkedCount}/{foods.length} articoli
+          {t('shopping.articoli_contatore', { checked: checkedCount, total: foods.length }, '{{checked}}/{{total}} articoli')}
         </span>
         <button
           onClick={() => saveAsCustomList(user.id)}
           style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 20, border: 'none', background: saved ? '#10b981' : 'var(--green-main)', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s' }}
         >
-          {saved ? <><Check size={12} /> Salvata!</> : <><Save size={12} /> Salva lista</>}
+          {saved ? <><Check size={12} /> {t('shopping.salvata', 'Salvata!')}</> : <><Save size={12} /> {t('shopping.salva_lista', 'Salva lista')}</>}
         </button>
       </div>
 
@@ -237,7 +257,7 @@ function DietTab({ user }) {
               style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
             >
               <span style={{ fontSize: 18 }}>{CATEGORY_ICONS[cat]}</span>
-              <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{cat}</span>
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{categoryLabel(t, cat)}</span>
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{catChecked}/{items.length}</span>
               {isCollapsed ? <ChevronDown size={16} color="var(--text-muted)" /> : <ChevronUp size={16} color="var(--text-muted)" />}
             </button>
@@ -278,6 +298,7 @@ function DietTab({ user }) {
 
 // ── DiaryTab: shopping list from last 7 days diary ────────────────────────────
 function DiaryTab({ user }) {
+  const t = useT()
   const [loading, setLoading] = useState(true)
   const [foods, setFoods] = useState([])
   const [checked, setChecked] = useState({})
@@ -319,7 +340,7 @@ function DiaryTab({ user }) {
   function saveAsCustomList() {
     const items = foods.map(f => ({ id: uid(), name: f.name, quantity: `~${Math.round(f.totalGrams / f.count)}g`, category: f.category, checked: !!checked[f.name] }))
     const lists = loadLists(user.id)
-    lists.unshift({ id: uid(), name: `Dal diario – ultimi ${days}gg (${format(new Date(), 'd MMM', { locale: it })})`, createdAt: new Date().toISOString(), items })
+    lists.unshift({ id: uid(), name: t('shopping.nome_lista_da_diario', { giorni: days, data: format(new Date(), 'd MMM', { locale: it }) }, 'Dal diario – ultimi {{giorni}}gg ({{data}})'), createdAt: new Date().toISOString(), items })
     saveLists(user.id, lists)
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
@@ -328,15 +349,15 @@ function DiaryTab({ user }) {
   if (loading) return (
     <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
       <div style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-      Caricamento diario...
+      {t('shopping.caricamento_diario', 'Caricamento diario...')}
     </div>
   )
 
   if (foods.length === 0) return (
     <div style={{ textAlign: 'center', padding: '40px 24px', color: 'var(--text-muted)' }}>
       <BookOpen size={40} style={{ opacity: 0.25, marginBottom: 12 }} />
-      <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Nessun dato nel diario</p>
-      <p style={{ fontSize: 13, lineHeight: 1.6 }}>Registra i pasti nel diario per gli ultimi {days} giorni per generare la lista automaticamente.</p>
+      <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{t('shopping.nessun_dato_diario', 'Nessun dato nel diario')}</p>
+      <p style={{ fontSize: 13, lineHeight: 1.6 }}>{t('shopping.nessun_dato_diario_desc', { days }, 'Registra i pasti nel diario per gli ultimi {{days}} giorni per generare la lista automaticamente.')}</p>
     </div>
   )
 
@@ -344,17 +365,17 @@ function DiaryTab({ user }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {/* Period selector */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 13, color: 'var(--text-muted)', flexShrink: 0 }}>Ultimi</span>
+        <span style={{ fontSize: 13, color: 'var(--text-muted)', flexShrink: 0 }}>{t('shopping.ultimi', 'Ultimi')}</span>
         {[7, 14, 30].map(d => (
-          <button key={d} onClick={() => setDays(d)} style={{ padding: '5px 12px', borderRadius: 20, border: 'none', font: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer', background: days === d ? 'var(--green-main)' : 'var(--surface-2)', color: days === d ? 'white' : 'var(--text-secondary)' }}>{d}gg</button>
+          <button key={d} onClick={() => setDays(d)} style={{ padding: '5px 12px', borderRadius: 20, border: 'none', font: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer', background: days === d ? 'var(--green-main)' : 'var(--surface-2)', color: days === d ? 'white' : 'var(--text-secondary)' }}>{t('shopping.giorni_abbr', { d }, '{{d}}gg')}</button>
         ))}
       </div>
 
       {/* Stats bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--green-pale)', borderRadius: 14, border: '1px solid var(--border-light)' }}>
-        <span style={{ fontSize: 13, color: 'var(--green-dark)', fontWeight: 600 }}>{checkedCount}/{foods.length} articoli</span>
+        <span style={{ fontSize: 13, color: 'var(--green-dark)', fontWeight: 600 }}>{t('shopping.articoli_contatore', { checked: checkedCount, total: foods.length }, '{{checked}}/{{total}} articoli')}</span>
         <button onClick={saveAsCustomList} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 20, border: 'none', background: saved ? '#10b981' : 'var(--green-main)', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s' }}>
-          {saved ? <><Check size={12} /> Salvata!</> : <><Save size={12} /> Salva lista</>}
+          {saved ? <><Check size={12} /> {t('shopping.salvata', 'Salvata!')}</> : <><Save size={12} /> {t('shopping.salva_lista', 'Salva lista')}</>}
         </button>
       </div>
 
@@ -367,7 +388,7 @@ function DiaryTab({ user }) {
           <div key={cat} style={{ background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 14, overflow: 'hidden' }}>
             <button onClick={() => setCollapsed(s => ({ ...s, [cat]: !s[cat] }))} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
               <span style={{ fontSize: 18 }}>{CATEGORY_ICONS[cat]}</span>
-              <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{cat}</span>
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{categoryLabel(t, cat)}</span>
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{catChecked}/{items.length}</span>
               {isCollapsed ? <ChevronDown size={16} color="var(--text-muted)" /> : <ChevronUp size={16} color="var(--text-muted)" />}
             </button>
@@ -397,6 +418,7 @@ function DiaryTab({ user }) {
 
 // ── ListsTab: custom shopping lists ──────────────────────────────────────────
 function ListsTab({ user }) {
+  const t = useT()
   const [lists, setLists] = useState(() => loadLists(user.id))
   const [activeListId, setActiveListId] = useState(null)
   const [newItemText, setNewItemText] = useState('')
@@ -454,7 +476,7 @@ function ListsTab({ user }) {
     const lines = CATEGORIES.flatMap(cat => {
       const items = list.items.filter(i => i.category === cat)
       if (!items.length) return []
-      return [`\n${CATEGORY_ICONS[cat]} ${cat}`, ...items.map(i => `${i.checked ? '✅' : '◻️'} ${i.name}`)]
+      return [`\n${CATEGORY_ICONS[cat]} ${categoryLabel(t, cat)}`, ...items.map(i => `${i.checked ? '✅' : '◻️'} ${i.name}`)]
     })
     const text = `🛒 ${list.name}\n${lines.join('\n')}`
     if (navigator.share) {
@@ -489,7 +511,7 @@ function ListsTab({ user }) {
         {/* Back + title */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button onClick={() => setActiveListId(null)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 12, border: '1.5px solid var(--border)', background: 'var(--surface)', cursor: 'pointer', fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>
-            ← Indietro
+            ← {t('shopping.indietro', 'Indietro')}
           </button>
           <div style={{ flex: 1 }}>
             {editingName === activeList.id ? (
@@ -501,13 +523,13 @@ function ListsTab({ user }) {
                   autoFocus
                   style={{ flex: 1, padding: '7px 10px', border: '1.5px solid var(--green-main)', borderRadius: 10, fontSize: 14, fontFamily: 'inherit', outline: 'none' }}
                 />
-                <button onClick={() => renameList(activeList.id)} style={{ padding: '7px 12px', borderRadius: 10, border: 'none', background: 'var(--green-main)', color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>OK</button>
+                <button onClick={() => renameList(activeList.id)} style={{ padding: '7px 12px', borderRadius: 10, border: 'none', background: 'var(--green-main)', color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{t('shopping.ok', 'OK')}</button>
                 <button onClick={() => setEditingName(null)} style={{ padding: '7px 10px', borderRadius: 10, border: '1px solid var(--border)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-muted)' }}>✕</button>
               </div>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{activeList.name}</span>
-                <button onClick={() => { setEditingName(activeList.id); setEditNameText(activeList.name) }} aria-label="Rinomina lista" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
+                <button onClick={() => { setEditingName(activeList.id); setEditNameText(activeList.name) }} aria-label={t('shopping.rinomina_lista', 'Rinomina lista')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
                   <Edit2 size={13} />
                 </button>
               </div>
@@ -519,7 +541,7 @@ function ListsTab({ user }) {
             style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 11px', borderRadius: 10, border: '1.5px solid var(--border)', background: shareCopied ? 'var(--green-pale)' : 'var(--surface)', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: shareCopied ? 'var(--green-dark)' : 'var(--text-secondary)' }}
           >
             <Share2 size={13} />
-            {shareCopied ? 'Copiata!' : 'Condividi'}
+            {shareCopied ? t('shopping.copiata', 'Copiata!') : t('shopping.condividi', 'Condividi')}
           </button>
         </div>
 
@@ -529,7 +551,7 @@ function ListsTab({ user }) {
             value={newItemText}
             onChange={e => setNewItemText(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') addItem(activeList.id) }}
-            placeholder="Aggiungi un articolo..."
+            placeholder={t('shopping.aggiungi_articolo_placeholder', 'Aggiungi un articolo...')}
             style={{ flex: 1, padding: '11px 14px', border: '1.5px solid var(--border)', borderRadius: 12, fontSize: 14, fontFamily: 'inherit', outline: 'none', background: 'var(--surface)' }}
           />
           <button
@@ -543,7 +565,7 @@ function ListsTab({ user }) {
 
         {activeList.items.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--text-muted)', fontSize: 13 }}>
-            Aggiungi il tuo primo articolo qui sopra
+            {t('shopping.aggiungi_primo_articolo', 'Aggiungi il tuo primo articolo qui sopra')}
           </div>
         ) : (
           CATEGORIES.map(cat => {
@@ -553,7 +575,7 @@ function ListsTab({ user }) {
               <div key={cat} style={{ background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 14, overflow: 'hidden' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border-light)' }}>
                   <span style={{ fontSize: 16 }}>{CATEGORY_ICONS[cat]}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>{cat}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>{categoryLabel(t, cat)}</span>
                 </div>
                 {items.map((item, idx) => (
                   <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderBottom: idx < items.length - 1 ? '1px solid var(--border-light)' : 'none', background: item.checked ? 'var(--surface-2)' : 'transparent' }}>
@@ -566,7 +588,7 @@ function ListsTab({ user }) {
                     >
                       {item.name}
                     </span>
-                    <button onClick={() => deleteItem(activeList.id, item.id)} aria-label="Rimuovi elemento" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4, display: 'flex', alignItems: 'center' }}>
+                    <button onClick={() => deleteItem(activeList.id, item.id)} aria-label={t('shopping.rimuovi_elemento', 'Rimuovi elemento')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4, display: 'flex', alignItems: 'center' }}>
                       <X size={14} />
                     </button>
                   </div>
@@ -588,11 +610,11 @@ function ListsTab({ user }) {
             value={newListName}
             onChange={e => setNewListName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') createList() }}
-            placeholder="Nome della lista..."
+            placeholder={t('shopping.nome_lista_placeholder', 'Nome della lista...')}
             autoFocus
             style={{ flex: 1, padding: '11px 14px', border: '1.5px solid var(--green-main)', borderRadius: 12, fontSize: 14, fontFamily: 'inherit', outline: 'none' }}
           />
-          <button onClick={createList} disabled={!newListName.trim()} style={{ padding: '11px 16px', borderRadius: 12, border: 'none', background: newListName.trim() ? 'var(--green-main)' : 'var(--border)', color: 'white', cursor: newListName.trim() ? 'pointer' : 'default', fontSize: 14, fontWeight: 700 }}>Crea</button>
+          <button onClick={createList} disabled={!newListName.trim()} style={{ padding: '11px 16px', borderRadius: 12, border: 'none', background: newListName.trim() ? 'var(--green-main)' : 'var(--border)', color: 'white', cursor: newListName.trim() ? 'pointer' : 'default', fontSize: 14, fontWeight: 700 }}>{t('shopping.crea', 'Crea')}</button>
           <button onClick={() => { setCreatingList(false); setNewListName('') }} style={{ padding: '11px 14px', borderRadius: 12, border: '1px solid var(--border)', background: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--text-muted)' }}>✕</button>
         </div>
       ) : (
@@ -600,15 +622,15 @@ function ListsTab({ user }) {
           onClick={() => setCreatingList(true)}
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px', borderRadius: 14, border: '1.5px dashed var(--border)', background: 'var(--surface)', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', width: '100%' }}
         >
-          <Plus size={16} /> Nuova lista della spesa
+          <Plus size={16} /> {t('shopping.nuova_lista_spesa', 'Nuova lista della spesa')}
         </button>
       )}
 
       {lists.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)' }}>
           <ListChecks size={36} style={{ opacity: 0.25, marginBottom: 10 }} />
-          <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Nessuna lista salvata</p>
-          <p style={{ fontSize: 13 }}>Crea la tua prima lista oppure salvala dalla scheda "Dalla dieta"</p>
+          <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{t('shopping.nessuna_lista_salvata', 'Nessuna lista salvata')}</p>
+          <p style={{ fontSize: 13 }}>{t('shopping.nessuna_lista_salvata_desc', 'Crea la tua prima lista oppure salvala dalla scheda "Dalla dieta"')}</p>
         </div>
       ) : (
         lists.map(list => {
@@ -623,7 +645,7 @@ function ListsTab({ user }) {
                 <button onClick={() => setActiveListId(list.id)} style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0 }}>
                   <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>{list.name}</p>
                   <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                    {new Date(list.createdAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })} · {done}/{total} articoli
+                    {new Date(list.createdAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })} · {t('shopping.articoli_contatore', { checked: done, total }, '{{checked}}/{{total}} articoli')}
                   </p>
                 </button>
                 {total > 0 && (
@@ -651,13 +673,14 @@ function ListsTab({ user }) {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function ShoppingListPage() {
+  const t = useT()
   const { user } = useAuth()
   const [tab, setTab] = useState(0)
 
   const tabs = [
-    { label: 'Dalla dieta', icon: Leaf },
-    { label: 'Dal diario', icon: BookOpen },
-    { label: 'Mie liste', icon: ListChecks },
+    { label: t('shopping.tab_dalla_dieta', 'Dalla dieta'), icon: Leaf },
+    { label: t('shopping.tab_dal_diario', 'Dal diario'), icon: BookOpen },
+    { label: t('shopping.tab_mie_liste', 'Mie liste'), icon: ListChecks },
   ]
 
   return (
@@ -669,15 +692,15 @@ export default function ShoppingListPage() {
             <ShoppingCart size={22} color="white" />
           </div>
           <div>
-            <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 2 }}>Nutrizione</p>
-            <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 21, color: 'white', fontWeight: 300, lineHeight: 1.2 }}>Lista della spesa</h1>
+            <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 2 }}>{t('shopping.eyebrow_nutrizione', 'Nutrizione')}</p>
+            <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 21, color: 'white', fontWeight: 300, lineHeight: 1.2 }}>{t('shopping.titolo_pagina', 'Lista della spesa')}</h1>
           </div>
         </div>
 
         {/* Tab switcher */}
         <div style={{ display: 'flex', gap: 8 }}>
-          {tabs.map((t, i) => {
-            const Icon = t.icon
+          {tabs.map((tabItem, i) => {
+            const Icon = tabItem.icon
             return (
               <button
                 key={i}
@@ -685,7 +708,7 @@ export default function ShoppingListPage() {
                 style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px 12px', borderRadius: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 600, transition: 'all 0.15s', background: tab === i ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.15)', color: tab === i ? 'var(--green-dark)' : 'rgba(255,255,255,0.85)' }}
               >
                 <Icon size={14} strokeWidth={2} />
-                {t.label}
+                {tabItem.label}
               </button>
             )
           })}

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Star, Check, X, Crown, ChevronRight } from 'lucide-react'
 import { useSubscription } from '../hooks/useSubscription'
+import { useT } from '../i18n'
 
 // ─── Animation variants ───────────────────────────────────────────────────────
 const heroContainer = {
@@ -17,21 +18,23 @@ const heroItem = {
 const easeOut = [0.16, 1, 0.3, 1]
 
 // ─── Feature definitions ──────────────────────────────────────────────────────
-const FEATURES = [
+const getFeatures = (t) => [
   {
     id: 'diary',
     emoji: '📅',
-    title: 'Diario illimitato',
-    subtitle: 'Storico senza confini',
+    title: t('profeatures.diary_title', 'Diario illimitato'),
+    subtitle: t('profeatures.diary_subtitle', 'Storico senza confini'),
     gradient: 'linear-gradient(135deg, #0F766E 0%, #14B8A6 100%)',
     color: '#0F766E',
     pale: '#F0FDFA',
-    description:
-      'Con il piano Free il diario è limitato agli ultimi 7 giorni. Con il Pro accedi a tutto il tuo storico alimentare senza limiti di tempo. Puoi anche pianificare i pasti dei giorni futuri — utile per prepararti in anticipo.',
+    description: t(
+      'profeatures.diary_description',
+      'Con il piano Free il diario è limitato agli ultimi 7 giorni. Con il Pro accedi a tutto il tuo storico alimentare senza limiti di tempo. Puoi anche pianificare i pasti dei giorni futuri — utile per prepararti in anticipo.'
+    ),
     highlights: [
-      'Storico alimentare illimitato nel tempo',
-      'Pianifica i pasti dei giorni futuri',
-      'Identifica pattern e abitudini nel lungo periodo',
+      t('profeatures.diary_highlight_1', 'Storico alimentare illimitato nel tempo'),
+      t('profeatures.diary_highlight_2', 'Pianifica i pasti dei giorni futuri'),
+      t('profeatures.diary_highlight_3', 'Identifica pattern e abitudini nel lungo periodo'),
     ],
     illustration: ({ color, pale }) => (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center' }}>
@@ -48,32 +51,34 @@ const FEATURES = [
             )
           })}
         </div>
-        <div style={{ fontSize: 9, color, fontWeight: 700, marginTop: 2, letterSpacing: '0.05em' }}>∞ giorni</div>
+        <div style={{ fontSize: 9, color, fontWeight: 700, marginTop: 2, letterSpacing: '0.05em' }}>{t('profeatures.diary_illus_infinite_days', '∞ giorni')}</div>
       </div>
     ),
   },
   {
     id: 'micro',
     emoji: '🔬',
-    title: 'Micronutrienti',
-    subtitle: 'Vai oltre le calorie',
+    title: t('profeatures.micro_title', 'Micronutrienti'),
+    subtitle: t('profeatures.micro_subtitle', 'Vai oltre le calorie'),
     gradient: 'linear-gradient(135deg, #6D28D9 0%, #8B5CF6 100%)',
     color: '#7C3AED',
     pale: '#F5F3FF',
-    description:
-      'Le calorie non raccontano tutta la storia. Con i micronutrienti Pro monitori fibre alimentari, zuccheri semplici, grassi saturi e molto altro. Scopri davvero la qualità di ciò che mangi ogni giorno.',
+    description: t(
+      'profeatures.micro_description',
+      'Le calorie non raccontano tutta la storia. Con i micronutrienti Pro monitori fibre alimentari, zuccheri semplici, grassi saturi e molto altro. Scopri davvero la qualità di ciò che mangi ogni giorno.'
+    ),
     highlights: [
-      'Fibre alimentari totali giornaliere',
-      'Zuccheri semplici e grassi saturi',
-      'Dashboard nutrizione qualitativa avanzata',
+      t('profeatures.micro_highlight_1', 'Fibre alimentari totali giornaliere'),
+      t('profeatures.micro_highlight_2', 'Zuccheri semplici e grassi saturi'),
+      t('profeatures.micro_highlight_3', 'Dashboard nutrizione qualitativa avanzata'),
     ],
     illustration: ({ color, pale }) => (
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
         {[
-          { label: 'Fibre', pct: 72, c: '#7C3AED' },
-          { label: 'Zucch.', pct: 48, c: '#A855F7' },
-          { label: 'G.Sat.', pct: 61, c: '#C084FC' },
-          { label: 'Sodio', pct: 35, c: '#DDD6FE' },
+          { label: t('profeatures.micro_illus_fiber', 'Fibre'), pct: 72, c: '#7C3AED' },
+          { label: t('profeatures.micro_illus_sugar', 'Zucch.'), pct: 48, c: '#A855F7' },
+          { label: t('profeatures.micro_illus_satfat', 'G.Sat.'), pct: 61, c: '#C084FC' },
+          { label: t('profeatures.micro_illus_sodium', 'Sodio'), pct: 35, c: '#DDD6FE' },
         ].map((b, i) => (
           <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
             <div style={{ fontSize: 9, fontWeight: 700, color: b.c }}>{b.pct}%</div>
@@ -89,17 +94,19 @@ const FEATURES = [
   {
     id: 'stats',
     emoji: '📊',
-    title: 'Statistiche avanzate',
-    subtitle: 'I tuoi trend nel tempo',
+    title: t('profeatures.stats_title', 'Statistiche avanzate'),
+    subtitle: t('profeatures.stats_subtitle', 'I tuoi trend nel tempo'),
     gradient: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
     color: '#1D4ED8',
     pale: '#EFF6FF',
-    description:
-      'Grafici interattivi che mostrano l\'andamento di calorie, macronutrienti e peso nel tempo. Identifica i giorni migliori, analizza i pattern settimanali e scopri dove puoi migliorare.',
+    description: t(
+      'profeatures.stats_description',
+      'Grafici interattivi che mostrano l\'andamento di calorie, macronutrienti e peso nel tempo. Identifica i giorni migliori, analizza i pattern settimanali e scopri dove puoi migliorare.'
+    ),
     highlights: [
-      'Grafici trend settimanali e mensili',
-      'Analisi calorie per tipo di pasto',
-      'Confronto con gli obiettivi calorici del piano',
+      t('profeatures.stats_highlight_1', 'Grafici trend settimanali e mensili'),
+      t('profeatures.stats_highlight_2', 'Analisi calorie per tipo di pasto'),
+      t('profeatures.stats_highlight_3', 'Confronto con gli obiettivi calorici del piano'),
     ],
     illustration: ({ color, pale }) => (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -111,13 +118,13 @@ const FEATURES = [
               position: 'relative',
             }}>
               {i === 5 && (
-                <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', fontSize: 8, fontWeight: 700, color, whiteSpace: 'nowrap' }}>best</div>
+                <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', fontSize: 8, fontWeight: 700, color, whiteSpace: 'nowrap' }}>{t('profeatures.stats_illus_best', 'best')}</div>
               )}
             </div>
           ))}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 2px' }}>
-          {['L', 'M', 'M', 'G', 'V', 'S', 'D'].map((d, i) => (
+          {[t('profeatures.day_mon', 'L'), t('profeatures.day_tue', 'M'), t('profeatures.day_wed', 'M'), t('profeatures.day_thu', 'G'), t('profeatures.day_fri', 'V'), t('profeatures.day_sat', 'S'), t('profeatures.day_sun', 'D')].map((d, i) => (
             <div key={i} style={{ flex: 1, textAlign: 'center', fontSize: 8, color: '#94A3B8', fontWeight: 600 }}>{d}</div>
           ))}
         </div>
@@ -127,17 +134,19 @@ const FEATURES = [
   {
     id: 'adherence',
     emoji: '🎯',
-    title: 'Aderenza al piano',
-    subtitle: 'Segui la dieta al meglio',
+    title: t('profeatures.adherence_title', 'Aderenza al piano'),
+    subtitle: t('profeatures.adherence_subtitle', 'Segui la dieta al meglio'),
     gradient: 'linear-gradient(135deg, #92400E 0%, #F59E0B 100%)',
     color: '#B45309',
     pale: '#FFFBEB',
-    description:
-      'Scopri in percentuale quanto stai seguendo il piano alimentare prescritto dal tuo dietista. Analisi automatica giornaliera con confronto tra pasti prescritti e quelli effettivamente consumati.',
+    description: t(
+      'profeatures.adherence_description',
+      'Scopri in percentuale quanto stai seguendo il piano alimentare prescritto dal tuo dietista. Analisi automatica giornaliera con confronto tra pasti prescritti e quelli effettivamente consumati.'
+    ),
     highlights: [
-      'Percentuale aderenza giornaliera automatica',
-      'Confronto pasto prescritto vs consumato',
-      'Storico aderenza settimana per settimana',
+      t('profeatures.adherence_highlight_1', 'Percentuale aderenza giornaliera automatica'),
+      t('profeatures.adherence_highlight_2', 'Confronto pasto prescritto vs consumato'),
+      t('profeatures.adherence_highlight_3', 'Storico aderenza settimana per settimana'),
     ],
     illustration: ({ color, pale }) => {
       const pct = 82
@@ -156,7 +165,7 @@ const FEATURES = [
               <span style={{ fontSize: 13, fontWeight: 800, color, lineHeight: 1 }}>{pct}%</span>
             </div>
           </div>
-          <div style={{ fontSize: 9, color: '#92400E', fontWeight: 700 }}>Aderenza oggi</div>
+          <div style={{ fontSize: 9, color: '#92400E', fontWeight: 700 }}>{t('profeatures.adherence_illus_today', 'Aderenza oggi')}</div>
         </div>
       )
     },
@@ -164,17 +173,19 @@ const FEATURES = [
   {
     id: 'pdf',
     emoji: '📄',
-    title: 'Report PDF',
-    subtitle: 'Porta i dati dal dietista',
+    title: t('profeatures.pdf_title', 'Report PDF'),
+    subtitle: t('profeatures.pdf_subtitle', 'Porta i dati dal dietista'),
     gradient: 'linear-gradient(135deg, #0E7490 0%, #06B6D4 100%)',
     color: '#0E7490',
     pale: '#ECFEFF',
-    description:
-      'Genera report PDF professionali del tuo diario alimentare. Riepilogo calorico, grafici macronutrienti e andamento settimanale, pronti da condividere con il tuo dietista prima di ogni visita.',
+    description: t(
+      'profeatures.pdf_description',
+      'Genera report PDF professionali del tuo diario alimentare. Riepilogo calorico, grafici macronutrienti e andamento settimanale, pronti da condividere con il tuo dietista prima di ogni visita.'
+    ),
     highlights: [
-      'Report settimanale e mensile in PDF',
-      'Grafici nutrizionali e riepilogo macros',
-      'Condividi in un tap con il dietista',
+      t('profeatures.pdf_highlight_1', 'Report settimanale e mensile in PDF'),
+      t('profeatures.pdf_highlight_2', 'Grafici nutrizionali e riepilogo macros'),
+      t('profeatures.pdf_highlight_3', 'Condividi in un tap con il dietista'),
     ],
     illustration: ({ color, pale }) => (
       <div style={{ position: 'relative', width: 52, height: 64 }}>
@@ -193,17 +204,19 @@ const FEATURES = [
   {
     id: 'activity',
     emoji: '🏃',
-    title: 'Attività avanzata',
-    subtitle: 'Sport e nutrizione uniti',
+    title: t('profeatures.activity_title', 'Attività avanzata'),
+    subtitle: t('profeatures.activity_subtitle', 'Sport e nutrizione uniti'),
     gradient: 'linear-gradient(135deg, #C2410C 0%, #F97316 100%)',
     color: '#EA580C',
     pale: '#FFF7ED',
-    description:
-      'Tracciamento avanzato dell\'attività fisica con calcolo delle calorie bruciate per ogni esercizio. Visualizza il bilancio energetico netto: calorie introdotte meno quelle bruciate in un\'unica dashboard.',
+    description: t(
+      'profeatures.activity_description',
+      'Tracciamento avanzato dell\'attività fisica con calcolo delle calorie bruciate per ogni esercizio. Visualizza il bilancio energetico netto: calorie introdotte meno quelle bruciate in un\'unica dashboard.'
+    ),
     highlights: [
-      'Calorie bruciate per tipo di attività',
-      'Bilancio energetico netto giornaliero',
-      'Storico allenamenti illimitato',
+      t('profeatures.activity_highlight_1', 'Calorie bruciate per tipo di attività'),
+      t('profeatures.activity_highlight_2', 'Bilancio energetico netto giornaliero'),
+      t('profeatures.activity_highlight_3', 'Storico allenamenti illimitato'),
     ],
     illustration: ({ color }) => {
       const pts = [30, 18, 32, 12, 28, 8, 22, 15, 25, 10]
@@ -226,17 +239,19 @@ const FEATURES = [
   {
     id: 'progress',
     emoji: '📈',
-    title: 'Progressi avanzati',
-    subtitle: 'La tua trasformazione',
+    title: t('profeatures.progress_title', 'Progressi avanzati'),
+    subtitle: t('profeatures.progress_subtitle', 'La tua trasformazione'),
     gradient: 'linear-gradient(135deg, #5B21B6 0%, #7C3AED 100%)',
     color: '#6D28D9',
     pale: '#EDE9FE',
-    description:
-      'Grafici storici illimitati di peso e BMI. Vedi l\'evoluzione della tua composizione corporea, imposta obiettivi intermedi e osserva la tua trasformazione mese dopo mese.',
+    description: t(
+      'profeatures.progress_description',
+      'Grafici storici illimitati di peso e BMI. Vedi l\'evoluzione della tua composizione corporea, imposta obiettivi intermedi e osserva la tua trasformazione mese dopo mese.'
+    ),
     highlights: [
-      'Grafico peso illimitato nel tempo',
-      'Andamento BMI e confronto con il target',
-      'Milestone e obiettivi intermedi',
+      t('profeatures.progress_highlight_1', 'Grafico peso illimitato nel tempo'),
+      t('profeatures.progress_highlight_2', 'Andamento BMI e confronto con il target'),
+      t('profeatures.progress_highlight_3', 'Milestone e obiettivi intermedi'),
     ],
     illustration: ({ color }) => {
       const weights = [88, 87, 86.5, 87, 85.5, 84, 83.5, 82]
@@ -271,17 +286,19 @@ const FEATURES = [
   {
     id: 'recipes',
     emoji: '🍳',
-    title: 'Ricette illimitate',
-    subtitle: 'Il tuo ricettario digitale',
+    title: t('profeatures.recipes_title', 'Ricette illimitate'),
+    subtitle: t('profeatures.recipes_subtitle', 'Il tuo ricettario digitale'),
     gradient: 'linear-gradient(135deg, #065F46 0%, #10B981 100%)',
     color: '#065F46',
     pale: '#ECFDF5',
-    description:
-      'Crea e salva quante ricette vuoi nel tuo ricettario personale. Aggiungi ingredienti dal database CREA+BDA, ottieni automaticamente i valori nutrizionali completi e aggiungile al diario in un solo tap.',
+    description: t(
+      'profeatures.recipes_description',
+      'Crea e salva quante ricette vuoi nel tuo ricettario personale. Aggiungi ingredienti dal database CREA+BDA, ottieni automaticamente i valori nutrizionali completi e aggiungile al diario in un solo tap.'
+    ),
     highlights: [
-      'Ricette personali illimitate (vs 5 nel Free)',
-      'Valori nutrizionali calcolati automaticamente',
-      'Aggiungi al diario con un solo tap',
+      t('profeatures.recipes_highlight_1', 'Ricette personali illimitate (vs 5 nel Free)'),
+      t('profeatures.recipes_highlight_2', 'Valori nutrizionali calcolati automaticamente'),
+      t('profeatures.recipes_highlight_3', 'Aggiungi al diario con un solo tap'),
     ],
     illustration: ({ color, pale }) => (
       <div style={{ position: 'relative', width: 80, height: 56 }}>
@@ -302,7 +319,7 @@ const FEATURES = [
               <div style={{ height: 3, background: '#D1FAE5', borderRadius: 2, width: '90%' }} />
               <div style={{ height: 3, background: '#D1FAE5', borderRadius: 2, width: '75%' }} />
               <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
-                {['P', 'C', 'G'].map(l => (
+                {[t('profeatures.recipes_illus_protein', 'P'), t('profeatures.recipes_illus_carbs', 'C'), t('profeatures.recipes_illus_fat', 'G')].map(l => (
                   <div key={l} style={{ flex: 1, height: 10, background: '#ECFDF5', borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <span style={{ fontSize: 7, color, fontWeight: 700 }}>{l}</span>
                   </div>
@@ -318,19 +335,20 @@ const FEATURES = [
 ]
 
 // ─── Comparison rows ──────────────────────────────────────────────────────────
-const COMPARE = [
-  { label: 'Diario alimentare', free: '7 giorni', pro: '∞ illimitato' },
-  { label: 'Piani futuri', free: false, pro: true },
-  { label: 'Micronutrienti', free: false, pro: true },
-  { label: 'Statistiche avanzate', free: false, pro: true },
-  { label: 'Aderenza al piano', free: false, pro: true },
-  { label: 'Report PDF', free: false, pro: true },
-  { label: 'Attività avanzata', free: false, pro: true },
-  { label: 'Ricette', free: '5 ricette', pro: '∞ illimitate' },
+const getCompare = (t) => [
+  { label: t('profeatures.compare_diary', 'Diario alimentare'), free: t('profeatures.compare_diary_free', '7 giorni'), pro: t('profeatures.compare_diary_pro', '∞ illimitato') },
+  { label: t('profeatures.compare_future_plans', 'Piani futuri'), free: false, pro: true },
+  { label: t('profeatures.compare_micro', 'Micronutrienti'), free: false, pro: true },
+  { label: t('profeatures.compare_stats', 'Statistiche avanzate'), free: false, pro: true },
+  { label: t('profeatures.compare_adherence', 'Aderenza al piano'), free: false, pro: true },
+  { label: t('profeatures.compare_pdf', 'Report PDF'), free: false, pro: true },
+  { label: t('profeatures.compare_activity', 'Attività avanzata'), free: false, pro: true },
+  { label: t('profeatures.compare_recipes', 'Ricette'), free: t('profeatures.compare_recipes_free', '5 ricette'), pro: t('profeatures.compare_recipes_pro', '∞ illimitate') },
 ]
 
 // ─── FeatureCard ─────────────────────────────────────────────────────────────
 function FeatureCard({ feature, onOpen, index }) {
+  const t = useT()
   return (
     <motion.button
       initial={{ opacity: 0, y: 32 }}
@@ -382,7 +400,7 @@ function FeatureCard({ feature, onOpen, index }) {
 
       {/* "Scopri" CTA */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 'auto' }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: feature.color, fontFamily: 'var(--font-b)' }}>Scopri</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: feature.color, fontFamily: 'var(--font-b)' }}>{t('profeatures.discover_cta', 'Scopri')}</span>
         <ChevronRight size={11} color={feature.color} />
       </div>
     </motion.button>
@@ -391,6 +409,7 @@ function FeatureCard({ feature, onOpen, index }) {
 
 // ─── Feature detail bottom sheet — rendered via portal ───────────────────────
 function FeatureSheet({ feature, onClose, onSubscribe }) {
+  const t = useT()
   const Illus = feature.illustration
 
   const sheetContent = (
@@ -501,7 +520,7 @@ function FeatureSheet({ feature, onClose, onSubscribe }) {
             variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4 } } }}
             style={{ background: 'var(--surface-2)', borderRadius: 14, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}
           >
-            <p style={{ fontSize: 11, fontWeight: 800, color: feature.color, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px', fontFamily: 'var(--font-b)' }}>Include</p>
+            <p style={{ fontSize: 11, fontWeight: 800, color: feature.color, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px', fontFamily: 'var(--font-b)' }}>{t('profeatures.includes_label', 'Include')}</p>
             {feature.highlights.map((h, i) => (
               <motion.div
                 key={i}
@@ -531,7 +550,7 @@ function FeatureSheet({ feature, onClose, onSubscribe }) {
           >
             <Crown size={18} color="#D97706" style={{ flexShrink: 0 }} />
             <p style={{ fontSize: 12.5, color: '#92400E', margin: 0, lineHeight: 1.4, fontFamily: 'var(--font-b)' }}>
-              Funzione esclusiva del piano <strong>NutriPlan Pro</strong> · €5,99/mese
+              {t('profeatures.exclusive_prefix', 'Funzione esclusiva del piano')} <strong>NutriPlan Pro</strong> {t('profeatures.exclusive_suffix', '· €5,99/mese')}
             </p>
           </motion.div>
 
@@ -551,7 +570,7 @@ function FeatureSheet({ feature, onClose, onSubscribe }) {
             }}
           >
             <Star size={16} />
-            Sblocca con il Pro
+            {t('profeatures.unlock_with_pro_cta', 'Sblocca con il Pro')}
           </motion.button>
         </motion.div>
       </motion.div>
@@ -566,6 +585,9 @@ export default function ProFeaturesPage() {
   const navigate = useNavigate()
   const { isPro } = useSubscription()
   const [activeFeature, setActiveFeature] = useState(null)
+  const t = useT()
+  const FEATURES = getFeatures(t)
+  const COMPARE = getCompare(t)
 
   function handleSubscribe() {
     setActiveFeature(null)
@@ -632,12 +654,12 @@ export default function ProFeaturesPage() {
             </motion.div>
             <div>
               <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, margin: 0, letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 700, fontFamily: 'var(--font-b)' }}>NutriPlan</p>
-              <h1 style={{ color: 'white', fontSize: 26, fontWeight: 700, margin: 0, fontFamily: 'var(--font-d)', lineHeight: 1 }}>Piano Pro</h1>
+              <h1 style={{ color: 'white', fontSize: 26, fontWeight: 700, margin: 0, fontFamily: 'var(--font-d)', lineHeight: 1 }}>{t('profeatures.hero_title', 'Piano Pro')}</h1>
             </div>
           </motion.div>
 
           <motion.p variants={heroItem} style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14.5, lineHeight: 1.55, margin: '0 0 18px', fontFamily: 'var(--font-b)' }}>
-            Il massimo della nutrizione personalizzata. <strong style={{ color: 'white' }}>8 funzioni esclusive</strong> per seguire al meglio la tua alimentazione.
+            {t('profeatures.hero_description_prefix', 'Il massimo della nutrizione personalizzata.')} <strong style={{ color: 'white' }}>{t('profeatures.hero_description_highlight', '8 funzioni esclusive')}</strong> {t('profeatures.hero_description_suffix', 'per seguire al meglio la tua alimentazione.')}
           </motion.p>
 
           {/* Price badge */}
@@ -650,9 +672,9 @@ export default function ProFeaturesPage() {
             }}
           >
             <Star size={14} color="#FCD34D" fill="#FCD34D" />
-            <span style={{ color: 'white', fontSize: 13.5, fontWeight: 700, fontFamily: 'var(--font-b)' }}>€5,99/mese</span>
+            <span style={{ color: 'white', fontSize: 13.5, fontWeight: 700, fontFamily: 'var(--font-b)' }}>{t('profeatures.price_per_month', '€5,99/mese')}</span>
             <span style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.3)' }} />
-            <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12.5, fontFamily: 'var(--font-b)' }}>7 giorni gratis</span>
+            <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12.5, fontFamily: 'var(--font-b)' }}>{t('profeatures.free_trial_badge', '7 giorni gratis')}</span>
           </motion.div>
 
           {/* CTA */}
@@ -670,7 +692,7 @@ export default function ProFeaturesPage() {
             }}
           >
             <Star size={16} color="#0F766E" fill="#0F766E" />
-            {isPro ? '✅ Piano Pro attivo' : 'Inizia 7 giorni gratuiti'}
+            {isPro ? t('profeatures.pro_active_badge', '✅ Piano Pro attivo') : t('profeatures.start_free_trial_cta', 'Inizia 7 giorni gratuiti')}
           </motion.button>
 
           {!isPro && (
@@ -678,7 +700,7 @@ export default function ProFeaturesPage() {
               variants={heroItem}
               style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11, textAlign: 'center', marginTop: 8, fontFamily: 'var(--font-b)' }}
             >
-              Nessuna carta di credito richiesta per la prova
+              {t('profeatures.no_credit_card_note', 'Nessuna carta di credito richiesta per la prova')}
             </motion.p>
           )}
         </motion.div>
@@ -696,7 +718,7 @@ export default function ProFeaturesPage() {
             style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}
           >
             <div style={{ width: 3, height: 18, background: 'linear-gradient(180deg, #0F766E, #10B981)', borderRadius: 2 }} />
-            <p style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', margin: 0, fontFamily: 'var(--font-b)' }}>8 funzioni esclusive</p>
+            <p style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', margin: 0, fontFamily: 'var(--font-b)' }}>{t('profeatures.features_section_title', '8 funzioni esclusive')}</p>
           </motion.div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {FEATURES.map((f, i) => (
@@ -714,14 +736,14 @@ export default function ProFeaturesPage() {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
             <div style={{ width: 3, height: 18, background: 'linear-gradient(180deg, #0F766E, #10B981)', borderRadius: 2 }} />
-            <p style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', margin: 0, fontFamily: 'var(--font-b)' }}>Free vs Pro</p>
+            <p style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', margin: 0, fontFamily: 'var(--font-b)' }}>{t('profeatures.compare_section_title', 'Free vs Pro')}</p>
           </div>
           <div style={{ background: 'var(--surface)', border: '1.5px solid var(--border-light)', borderRadius: 18, overflow: 'hidden' }}>
             {/* Table header */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border-light)' }}>
-              <div style={{ padding: '11px 14px', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-b)' }}>Funzione</div>
-              <div style={{ padding: '11px 8px', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-b)' }}>Free</div>
-              <div style={{ padding: '11px 8px', fontSize: 11, fontWeight: 700, color: '#0F766E', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.06em', background: '#F0FDFA', fontFamily: 'var(--font-b)' }}>⭐ Pro</div>
+              <div style={{ padding: '11px 14px', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-b)' }}>{t('profeatures.compare_header_feature', 'Funzione')}</div>
+              <div style={{ padding: '11px 8px', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-b)' }}>{t('profeatures.compare_header_free', 'Free')}</div>
+              <div style={{ padding: '11px 8px', fontSize: 11, fontWeight: 700, color: '#0F766E', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.06em', background: '#F0FDFA', fontFamily: 'var(--font-b)' }}>{t('profeatures.compare_header_pro', '⭐ Pro')}</div>
             </div>
             {COMPARE.map((row, i) => (
               <motion.div
@@ -751,10 +773,10 @@ export default function ProFeaturesPage() {
         {/* ── Trust signals ── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
           {[
-            { emoji: '🔒', label: 'Pagamenti sicuri', sub: 'via Stripe PCI' },
-            { emoji: '🔄', label: 'Cancella quando', sub: 'vuoi, senza vincoli' },
-            { emoji: '🎁', label: '7 giorni gratis', sub: 'senza carta' },
-          ].map((t, i) => (
+            { emoji: '🔒', label: t('profeatures.trust_secure_payments_label', 'Pagamenti sicuri'), sub: t('profeatures.trust_secure_payments_sub', 'via Stripe PCI') },
+            { emoji: '🔄', label: t('profeatures.trust_cancel_anytime_label', 'Cancella quando'), sub: t('profeatures.trust_cancel_anytime_sub', 'vuoi, senza vincoli') },
+            { emoji: '🎁', label: t('profeatures.trust_free_trial_label', '7 giorni gratis'), sub: t('profeatures.trust_free_trial_sub', 'senza carta') },
+          ].map((ts, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 20, scale: 0.92 }}
@@ -766,9 +788,9 @@ export default function ProFeaturesPage() {
                 borderRadius: 14, padding: '14px 10px', textAlign: 'center',
               }}
             >
-              <div style={{ fontSize: 24, marginBottom: 6 }}>{t.emoji}</div>
-              <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 2px', lineHeight: 1.3, fontFamily: 'var(--font-b)' }}>{t.label}</p>
-              <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: 0, lineHeight: 1.3, fontFamily: 'var(--font-b)' }}>{t.sub}</p>
+              <div style={{ fontSize: 24, marginBottom: 6 }}>{ts.emoji}</div>
+              <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 2px', lineHeight: 1.3, fontFamily: 'var(--font-b)' }}>{ts.label}</p>
+              <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: 0, lineHeight: 1.3, fontFamily: 'var(--font-b)' }}>{ts.sub}</p>
             </motion.div>
           ))}
         </div>
@@ -795,8 +817,8 @@ export default function ProFeaturesPage() {
             <Crown size={30} color="#FCD34D" />
           </motion.div>
           <h3 style={{ color: 'white', fontSize: 20, fontWeight: 700, margin: '0 0 6px', fontFamily: 'var(--font-d)' }}>NutriPlan Pro</h3>
-          <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, margin: '0 0 4px', fontFamily: 'var(--font-b)' }}>€5,99/mese · fatturato mensilmente</p>
-          <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, margin: '0 0 20px', fontFamily: 'var(--font-b)' }}>7 giorni gratis, poi €5,99/mese</p>
+          <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, margin: '0 0 4px', fontFamily: 'var(--font-b)' }}>{t('profeatures.final_cta_price_billed', '€5,99/mese · fatturato mensilmente')}</p>
+          <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, margin: '0 0 20px', fontFamily: 'var(--font-b)' }}>{t('profeatures.final_cta_trial_then_price', '7 giorni gratis, poi €5,99/mese')}</p>
           <motion.button
             whileHover={{ scale: 1.03, boxShadow: '0 8px 30px rgba(0,0,0,0.3)' }}
             whileTap={{ scale: 0.97 }}
@@ -809,10 +831,10 @@ export default function ProFeaturesPage() {
             }}
           >
             <Star size={16} color="#0F766E" fill="#0F766E" />
-            {isPro ? '✅ Piano Pro attivo' : 'Inizia 7 giorni gratuiti'}
+            {isPro ? t('profeatures.pro_active_badge', '✅ Piano Pro attivo') : t('profeatures.start_free_trial_cta', 'Inizia 7 giorni gratuiti')}
           </motion.button>
           <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10.5, marginTop: 10, fontFamily: 'var(--font-b)' }}>
-            Nessun impegno · Cancella in qualsiasi momento
+            {t('profeatures.final_cta_no_commitment', 'Nessun impegno · Cancella in qualsiasi momento')}
           </p>
         </motion.div>
 

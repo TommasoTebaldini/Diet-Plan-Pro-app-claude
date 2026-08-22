@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useAchievements } from '../context/AchievementsContext'
 import { CheckCircle, ChevronRight, AlertCircle } from 'lucide-react'
 import PageTransition from '../components/PageTransition'
+import { useT } from '../i18n'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getWeekStart(date = new Date()) {
@@ -16,20 +17,24 @@ function getWeekStart(date = new Date()) {
   return d.toISOString().split('T')[0] // YYYY-MM-DD
 }
 
-const ADHERENCE_OPTIONS = [
-  { value: 'sempre', label: 'Sempre', color: '#1a7f5a', bg: '#e8f5ee' },
-  { value: 'spesso', label: 'Spesso', color: '#2563eb', bg: '#eff6ff' },
-  { value: 'a_volte', label: 'A volte', color: '#d97706', bg: '#fff7ed' },
-  { value: 'raramente', label: 'Raramente', color: '#dc2626', bg: '#fff0f0' },
-  { value: 'mai', label: 'Mai', color: '#6b7280', bg: '#f9fafb' },
-]
+function getAdherenceOptions(t) {
+  return [
+    { value: 'sempre', label: t('checkin.aderenza_sempre', 'Sempre'), color: '#1a7f5a', bg: '#e8f5ee' },
+    { value: 'spesso', label: t('checkin.aderenza_spesso', 'Spesso'), color: '#2563eb', bg: '#eff6ff' },
+    { value: 'a_volte', label: t('checkin.aderenza_a_volte', 'A volte'), color: '#d97706', bg: '#fff7ed' },
+    { value: 'raramente', label: t('checkin.aderenza_raramente', 'Raramente'), color: '#dc2626', bg: '#fff0f0' },
+    { value: 'mai', label: t('checkin.aderenza_mai', 'Mai'), color: '#6b7280', bg: '#f9fafb' },
+  ]
+}
 
-const MOTIVATIONAL_MESSAGES = [
-  'Ottimo lavoro! Ogni check-in ti avvicina ai tuoi obiettivi. 💪',
-  'Continuità è la chiave del successo. Sei sulla strada giusta! 🌟',
-  'Grazie per la tua onestà. Il tuo dietista ti supporta in ogni passo. 🤝',
-  'Analizzare la settimana è il primo passo per migliorare. Bravissimo/a! 🎯',
-]
+function getMotivationalMessages(t) {
+  return [
+    t('checkin.motiv_1', 'Ottimo lavoro! Ogni check-in ti avvicina ai tuoi obiettivi. 💪'),
+    t('checkin.motiv_2', 'Continuità è la chiave del successo. Sei sulla strada giusta! 🌟'),
+    t('checkin.motiv_3', 'Grazie per la tua onestà. Il tuo dietista ti supporta in ogni passo. 🤝'),
+    t('checkin.motiv_4', 'Analizzare la settimana è il primo passo per migliorare. Bravissimo/a! 🎯'),
+  ]
+}
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 function RatingRow({ label, value, onChange, max = 5, emojis }) {
@@ -66,12 +71,13 @@ function RatingRow({ label, value, onChange, max = 5, emojis }) {
 }
 
 function SatisfactionSlider({ value, onChange }) {
+  const t = useT()
   const pct = ((value - 1) / 9) * 100
   const color = value <= 3 ? '#dc2626' : value <= 6 ? '#d97706' : '#1a7f5a'
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Per niente soddisfatto</span>
+        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{t('checkin.per_niente_soddisfatto', 'Per niente soddisfatto')}</span>
         <span style={{
           fontSize: '22px',
           fontWeight: 800,
@@ -81,7 +87,7 @@ function SatisfactionSlider({ value, onChange }) {
         }}>
           {value}
         </span>
-        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Molto soddisfatto</span>
+        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{t('checkin.molto_soddisfatto', 'Molto soddisfatto')}</span>
       </div>
       <input
         type="range"
@@ -149,17 +155,22 @@ function Section({ number, title, children }) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function CheckinPage() {
+  const t = useT()
   const { user } = useAuth()
   const { checkAndAward } = useAchievements()
 
   const weekStart = getWeekStart()
+  const adherenceOptions = getAdherenceOptions(t)
 
   const [alreadyDone, setAlreadyDone] = useState(false)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState(null)
-  const [motivMsg] = useState(() => MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)])
+  const [motivMsg] = useState(() => {
+    const messages = getMotivationalMessages(t)
+    return messages[Math.floor(Math.random() * messages.length)]
+  })
 
   // Form state
   const [satisfaction, setSatisfaction] = useState(7)
@@ -191,7 +202,7 @@ export default function CheckinPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!adherence || !energy || !sleepQuality || !stress) {
-      setError('Per favore completa tutte le sezioni obbligatorie.')
+      setError(t('checkin.errore_campi_obbligatori', 'Per favore completa tutte le sezioni obbligatorie.'))
       return
     }
     setError(null)
@@ -226,7 +237,7 @@ export default function CheckinPage() {
           dietitian_id: dietitianId,
           sender_role: 'patient',
           sender_id: user.id,
-          content: `📊 Check-in settimanale: ${messageToDietitian.trim()}`,
+          content: t('checkin.msg_prefix_chat', { msg: messageToDietitian.trim() }, '📊 Check-in settimanale: {{msg}}'),
           message_type: 'text',
         })
       }
@@ -236,7 +247,7 @@ export default function CheckinPage() {
 
       setSubmitted(true)
     } catch (err) {
-      setError(err.message || 'Si è verificato un errore. Riprova.')
+      setError(err.message || t('checkin.errore_generico', 'Si è verificato un errore. Riprova.'))
     } finally {
       setSubmitting(false)
     }
@@ -258,10 +269,10 @@ export default function CheckinPage() {
         <div className="page" style={{ padding: '24px 16px', textAlign: 'center', minHeight: '60dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
           <div style={{ fontSize: '64px' }}>✅</div>
           <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-            Check-in già completato
+            {t('checkin.gia_completato_titolo', 'Check-in già completato')}
           </h2>
           <p style={{ fontSize: '15px', color: 'var(--text-muted)', maxWidth: '300px', lineHeight: 1.5, margin: 0 }}>
-            Hai già inviato il check-in per questa settimana (dal {weekStart}). Torna la prossima settimana!
+            {t('checkin.gia_completato_testo', { weekStart }, 'Hai già inviato il check-in per questa settimana (dal {{weekStart}}). Torna la prossima settimana!')}
           </p>
         </div>
       </PageTransition>
@@ -295,7 +306,7 @@ export default function CheckinPage() {
             transition={{ delay: 0.2 }}
           >
             <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 10px', fontFamily: 'var(--font-d)' }}>
-              Check-in completato!
+              {t('checkin.completato_titolo', 'Check-in completato!')}
             </h2>
             <p style={{ fontSize: '16px', color: 'var(--text-muted)', maxWidth: '300px', lineHeight: 1.6, margin: '0 auto' }}>
               {motivMsg}
@@ -316,7 +327,7 @@ export default function CheckinPage() {
             }}
           >
             <div style={{ fontSize: '13px', color: '#1a7f5a', fontWeight: 600 }}>
-              Il tuo dietista potrà visualizzare questo check-in nel suo pannello. Continua così!
+              {t('checkin.dietista_visualizza', 'Il tuo dietista potrà visualizzare questo check-in nel suo pannello. Continua così!')}
             </div>
           </motion.div>
         </div>
@@ -337,10 +348,10 @@ export default function CheckinPage() {
         }}>
           <div style={{ fontSize: '36px', marginBottom: '10px' }}>📋</div>
           <h1 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 6px', fontFamily: 'var(--font-d)' }}>
-            Check-in Settimanale
+            {t('checkin.titolo_pagina', 'Check-in Settimanale')}
           </h1>
           <p style={{ fontSize: '13px', opacity: 0.8, margin: 0 }}>
-            Settimana dal {new Date(weekStart + 'T00:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'long' })}
+            {t('checkin.settimana_dal', { data: new Date(weekStart + 'T00:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'long' }) }, 'Settimana dal {{data}}')}
           </p>
         </div>
 
@@ -348,14 +359,14 @@ export default function CheckinPage() {
         <form onSubmit={handleSubmit} style={{ padding: '16px 14px' }}>
 
           {/* 1. Soddisfazione generale */}
-          <Section number="1" title="Come è andata questa settimana?">
+          <Section number="1" title={t('checkin.sezione1_titolo', 'Come è andata questa settimana?')}>
             <SatisfactionSlider value={satisfaction} onChange={setSatisfaction} />
           </Section>
 
           {/* 2. Aderenza al piano */}
-          <Section number="2" title="Hai seguito il piano alimentare?">
+          <Section number="2" title={t('checkin.sezione2_titolo', 'Hai seguito il piano alimentare?')}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {ADHERENCE_OPTIONS.map(opt => (
+              {adherenceOptions.map(opt => (
                 <button
                   key={opt.value}
                   type="button"
@@ -381,14 +392,14 @@ export default function CheckinPage() {
           </Section>
 
           {/* 3. Peso */}
-          <Section number="3" title="Peso attuale (opzionale)">
+          <Section number="3" title={t('checkin.sezione3_titolo', 'Peso attuale (opzionale)')}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <input
                 type="number"
                 step="0.1"
                 min="30"
                 max="300"
-                placeholder="es. 72.5"
+                placeholder={t('checkin.peso_placeholder', 'es. 72.5')}
                 value={weightKg}
                 onChange={e => setWeightKg(e.target.value)}
                 style={{
@@ -407,21 +418,21 @@ export default function CheckinPage() {
           </Section>
 
           {/* 4. Benessere fisico */}
-          <Section number="4" title="Come ti sei sentito/a fisicamente?">
+          <Section number="4" title={t('checkin.sezione4_titolo', 'Come ti sei sentito/a fisicamente?')}>
             <RatingRow
-              label="Energia"
+              label={t('checkin.energia', 'Energia')}
               value={energy}
               onChange={setEnergy}
               emojis={['🪫', '😴', '😐', '⚡', '🚀']}
             />
             <RatingRow
-              label="Qualità del sonno"
+              label={t('checkin.qualita_sonno', 'Qualità del sonno')}
               value={sleepQuality}
               onChange={setSleepQuality}
               emojis={['😫', '😔', '😐', '😴', '🌟']}
             />
             <RatingRow
-              label="Livello di stress"
+              label={t('checkin.livello_stress', 'Livello di stress')}
               value={stress}
               onChange={setStress}
               emojis={['😌', '🙂', '😐', '😰', '😤']}
@@ -429,9 +440,9 @@ export default function CheckinPage() {
           </Section>
 
           {/* 5. Difficoltà */}
-          <Section number="5" title="Difficoltà incontrate (opzionale)">
+          <Section number="5" title={t('checkin.sezione5_titolo', 'Difficoltà incontrate (opzionale)')}>
             <textarea
-              placeholder="Descrivi eventuali difficoltà nella settimana..."
+              placeholder={t('checkin.difficolta_placeholder', 'Descrivi eventuali difficoltà nella settimana...')}
               value={difficulties}
               onChange={e => setDifficulties(e.target.value)}
               rows={3}
@@ -452,9 +463,9 @@ export default function CheckinPage() {
           </Section>
 
           {/* 6. Obiettivo prossima settimana */}
-          <Section number="6" title="Obiettivo per la prossima settimana (opzionale)">
+          <Section number="6" title={t('checkin.sezione6_titolo', 'Obiettivo per la prossima settimana (opzionale)')}>
             <textarea
-              placeholder="Cosa vuoi migliorare o raggiungere la prossima settimana?"
+              placeholder={t('checkin.obiettivo_placeholder', 'Cosa vuoi migliorare o raggiungere la prossima settimana?')}
               value={nextWeekGoal}
               onChange={e => setNextWeekGoal(e.target.value)}
               rows={3}
@@ -475,9 +486,9 @@ export default function CheckinPage() {
           </Section>
 
           {/* 7. Messaggio al dietista */}
-          <Section number="7" title="Messaggio al dietista (opzionale)">
+          <Section number="7" title={t('checkin.sezione7_titolo', 'Messaggio al dietista (opzionale)')}>
             <textarea
-              placeholder="Vuoi comunicare qualcosa al tuo dietista? (verrà inviato anche in chat)"
+              placeholder={t('checkin.messaggio_placeholder', 'Vuoi comunicare qualcosa al tuo dietista? (verrà inviato anche in chat)')}
               value={messageToDietitian}
               onChange={e => setMessageToDietitian(e.target.value)}
               rows={3}
@@ -504,7 +515,7 @@ export default function CheckinPage() {
                 fontSize: '12px',
                 color: '#2563eb',
               }}>
-                Il messaggio verrà inviato al tuo dietista anche nella chat.
+                {t('checkin.messaggio_info_chat', 'Il messaggio verrà inviato al tuo dietista anche nella chat.')}
               </div>
             )}
           </Section>
@@ -558,12 +569,12 @@ export default function CheckinPage() {
             {submitting ? (
               <>
                 <div style={{ width: 18, height: 18, borderRadius: '50%', border: '2.5px solid var(--text-muted)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
-                Invio in corso...
+                {t('checkin.invio_in_corso', 'Invio in corso...')}
               </>
             ) : (
               <>
                 <CheckCircle size={18} />
-                Invia check-in
+                {t('checkin.invia', 'Invia check-in')}
               </>
             )}
           </button>

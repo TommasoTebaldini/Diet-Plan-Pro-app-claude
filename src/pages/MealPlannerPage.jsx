@@ -7,16 +7,27 @@ import { ChevronLeft, ChevronRight, Plus, X, ShoppingCart, Calendar, Share2, Tra
 import { startOfWeek, addWeeks, subWeeks, addDays, format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { useIsDesktop } from '../hooks/useIsDesktop'
+import { useT } from '../i18n'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const DAYS_SHORT = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']
+// Translation key + Italian fallback for each short day label (used at render time via t())
+const DAY_LABEL_KEYS = {
+  Lun: { key: 'mealplan.giorno_lun', fallback: 'Lun' },
+  Mar: { key: 'mealplan.giorno_mar', fallback: 'Mar' },
+  Mer: { key: 'mealplan.giorno_mer', fallback: 'Mer' },
+  Gio: { key: 'mealplan.giorno_gio', fallback: 'Gio' },
+  Ven: { key: 'mealplan.giorno_ven', fallback: 'Ven' },
+  Sab: { key: 'mealplan.giorno_sab', fallback: 'Sab' },
+  Dom: { key: 'mealplan.giorno_dom', fallback: 'Dom' },
+}
 const MEAL_TYPES = [
-  { key: 'colazione',          label: 'Colazione',      icon: '☀️' },
-  { key: 'spuntino_mattina',   label: 'Spuntino mat.',  icon: '🍎' },
-  { key: 'pranzo',             label: 'Pranzo',         icon: '🍽️' },
-  { key: 'merenda',            label: 'Merenda',        icon: '🥤' },
-  { key: 'cena',               label: 'Cena',           icon: '🌙' },
+  { key: 'colazione',          i18nKey: 'mealplan.pasto_colazione',    fallback: 'Colazione',      icon: '☀️' },
+  { key: 'spuntino_mattina',   i18nKey: 'mealplan.pasto_spuntino_mat', fallback: 'Spuntino mat.',  icon: '🍎' },
+  { key: 'pranzo',             i18nKey: 'mealplan.pasto_pranzo',       fallback: 'Pranzo',         icon: '🍽️' },
+  { key: 'merenda',            i18nKey: 'mealplan.pasto_merenda',      fallback: 'Merenda',        icon: '🥤' },
+  { key: 'cena',               i18nKey: 'mealplan.pasto_cena',         fallback: 'Cena',           icon: '🌙' },
 ]
 
 // Food categories for shopping list grouping
@@ -49,6 +60,16 @@ function categorizeFood(name) {
   return 'Altro'
 }
 
+// Translation key + Italian fallback for each internal category identifier (display only)
+const CATEGORY_LABEL_KEYS = {
+  Proteine: { key: 'mealplan.categoria_proteine', fallback: 'Proteine' },
+  Latticini: { key: 'mealplan.categoria_latticini', fallback: 'Latticini' },
+  Verdure: { key: 'mealplan.categoria_verdure', fallback: 'Verdure' },
+  Cereali: { key: 'mealplan.categoria_cereali', fallback: 'Cereali' },
+  Frutta: { key: 'mealplan.categoria_frutta', fallback: 'Frutta' },
+  Altro: { key: 'mealplan.categoria_altro', fallback: 'Altro' },
+}
+
 // ─── Week helpers ─────────────────────────────────────────────────────────────
 
 function getWeekStart(date) {
@@ -75,6 +96,7 @@ function calcMacros(foodData, grams) {
 // ─── Cell item component ──────────────────────────────────────────────────────
 
 function MealItem({ item, onRemove }) {
+  const t = useT()
   const macros = calcMacros(item.food_data, item.grams)
   return (
     <div style={{
@@ -93,7 +115,7 @@ function MealItem({ item, onRemove }) {
           padding: 2, borderRadius: 4, color: 'var(--text-muted)',
           display: 'flex', alignItems: 'center',
         }}
-        title="Rimuovi"
+        title={t('mealplan.rimuovi', 'Rimuovi')}
       >
         <X size={12} />
       </button>
@@ -104,7 +126,7 @@ function MealItem({ item, onRemove }) {
         {macros.kcal} kcal · {item.grams}g
       </div>
       <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>
-        P:{macros.proteins}g C:{macros.carbs}g G:{macros.fats}g
+        {t('mealplan.abbr_proteine', 'P')}:{macros.proteins}g {t('mealplan.abbr_carboidrati', 'C')}:{macros.carbs}g {t('mealplan.abbr_grassi', 'G')}:{macros.fats}g
       </div>
     </div>
   )
@@ -113,6 +135,7 @@ function MealItem({ item, onRemove }) {
 // ─── Add Food Modal ───────────────────────────────────────────────────────────
 
 function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
+  const t = useT()
   const [tab, setTab] = useState('alimento') // 'alimento' | 'ricetta'
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
@@ -219,8 +242,10 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
     onClose()
   }
 
-  const mealLabel = MEAL_TYPES.find(m => m.key === mealType)?.label || mealType
-  const dayLabel = DAYS_SHORT[dayIndex]
+  const mealDef = MEAL_TYPES.find(m => m.key === mealType)
+  const mealLabel = mealDef ? t(mealDef.i18nKey, mealDef.fallback) : mealType
+  const dayShort = DAYS_SHORT[dayIndex]
+  const dayLabel = t(DAY_LABEL_KEYS[dayShort].key, DAY_LABEL_KEYS[dayShort].fallback)
 
   return (
     <div
@@ -250,7 +275,7 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
-              Aggiungi al piano
+              {t('mealplan.aggiungi_al_piano', 'Aggiungi al piano')}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
               {dayLabel} · {mealLabel}
@@ -258,7 +283,7 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
           </div>
           <button
             onClick={onClose}
-            aria-label="Chiudi"
+            aria-label={t('mealplan.chiudi', 'Chiudi')}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}
           >
             <X size={20} />
@@ -267,10 +292,13 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
 
         {/* Tab switcher */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-          {[{ key: 'alimento', label: '🍎 Alimento' }, { key: 'ricetta', label: '👨‍🍳 Ricetta' }].map(t => (
-            <button key={t.key} onClick={() => { setTab(t.key); setQuery(''); setSelected(null) }}
-              style={{ flex: 1, padding: '8px', borderRadius: 10, border: 'none', font: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer', background: tab === t.key ? 'var(--green-main)' : 'var(--surface-2)', color: tab === t.key ? 'white' : 'var(--text-secondary)' }}>
-              {t.label}
+          {[
+            { key: 'alimento', i18nKey: 'mealplan.tab_alimento', fallback: '🍎 Alimento' },
+            { key: 'ricetta', i18nKey: 'mealplan.tab_ricetta', fallback: '👨‍🍳 Ricetta' },
+          ].map(tabDef => (
+            <button key={tabDef.key} onClick={() => { setTab(tabDef.key); setQuery(''); setSelected(null) }}
+              style={{ flex: 1, padding: '8px', borderRadius: 10, border: 'none', font: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer', background: tab === tabDef.key ? 'var(--green-main)' : 'var(--surface-2)', color: tab === tabDef.key ? 'white' : 'var(--text-secondary)' }}>
+              {t(tabDef.i18nKey, tabDef.fallback)}
             </button>
           ))}
         </div>
@@ -279,7 +307,7 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
           ref={inputRef}
           value={query}
           onChange={e => { setQuery(e.target.value); setSelected(null) }}
-          placeholder={tab === 'alimento' ? 'Cerca alimento...' : 'Cerca ricetta...'}
+          placeholder={tab === 'alimento' ? t('mealplan.cerca_alimento_placeholder', 'Cerca alimento...') : t('mealplan.cerca_ricetta_placeholder', 'Cerca ricetta...')}
           style={{
             width: '100%', padding: '10px 12px', borderRadius: 10,
             border: '1.5px solid var(--border)', background: 'var(--surface-2)',
@@ -290,7 +318,7 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
 
         {loading && (
           <div style={{ textAlign: 'center', padding: '12px 0', color: 'var(--text-muted)', fontSize: 13 }}>
-            Ricerca in corso...
+            {t('mealplan.ricerca_in_corso', 'Ricerca in corso...')}
           </div>
         )}
 
@@ -315,8 +343,8 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{item.name}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                   {item._isRecipe
-                    ? `🍽️ ${item.porzioni} porz. · ${item.caloriePorzione} kcal/porz.`
-                    : `${item.kcal_100g} kcal/100g · P:${item.proteins_100g}g C:${item.carbs_100g}g G:${item.fats_100g}g`}
+                    ? t('mealplan.risultato_ricetta_info', { porzioni: item.porzioni, kcal: item.caloriePorzione }, '🍽️ {{porzioni}} porz. · {{kcal}} kcal/porz.')
+                    : t('mealplan.risultato_alimento_info', { kcal: item.kcal_100g, proteins: item.proteins_100g, carbs: item.carbs_100g, fats: item.fats_100g }, '{{kcal}} kcal/100g · P:{{proteins}}g C:{{carbs}}g G:{{fats}}g')}
                 </div>
               </button>
             ))}
@@ -334,15 +362,17 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                 {selected._isRecipe
-                  ? `👨‍🍳 ${selected.porzioni} porzione${selected.porzioni !== 1 ? 'i' : ''} · ${selected.caloriePorzione} kcal/porz.`
-                  : `${selected.kcal_100g} kcal / 100g`}
+                  ? (selected.porzioni !== 1
+                      ? t('mealplan.info_ricetta_porzioni_plurale', { porzioni: selected.porzioni, kcal: selected.caloriePorzione }, '👨‍🍳 {{porzioni}} porzioni · {{kcal}} kcal/porz.')
+                      : t('mealplan.info_ricetta_porzioni_singolare', { porzioni: selected.porzioni, kcal: selected.caloriePorzione }, '👨‍🍳 {{porzioni}} porzione · {{kcal}} kcal/porz.'))
+                  : t('mealplan.info_alimento_kcal', { kcal: selected.kcal_100g }, '{{kcal}} kcal / 100g')}
               </div>
             </div>
 
             {selected._isRecipe ? (
               <>
                 <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
-                  Numero di porzioni
+                  {t('mealplan.numero_porzioni', 'Numero di porzioni')}
                 </label>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <input
@@ -353,10 +383,10 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
                     step="0.5"
                     style={{ width: 90, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text-primary)', fontSize: 14, outline: 'none' }}
                   />
-                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>porz.</span>
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('mealplan.unita_porzioni', 'porz.')}</span>
                   {parseFloat(portions) > 0 && selected.caloriePorzione > 0 && (
                     <span style={{ fontSize: 12, color: 'var(--green-main)', marginLeft: 4 }}>
-                      = {Math.round(selected.caloriePorzione * parseFloat(portions))} kcal
+                      {t('mealplan.uguale_kcal', { kcal: Math.round(selected.caloriePorzione * parseFloat(portions)) }, '= {{kcal}} kcal')}
                     </span>
                   )}
                 </div>
@@ -364,7 +394,7 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
             ) : (
               <>
                 <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
-                  Grammi
+                  {t('mealplan.grammi_label', 'Grammi')}
                 </label>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <input
@@ -377,7 +407,7 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
                   <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>g</span>
                   {parseFloat(grams) > 0 && (
                     <span style={{ fontSize: 12, color: 'var(--green-main)', marginLeft: 4 }}>
-                      = {Math.round((selected.kcal_100g || 0) * parseFloat(grams) / 100)} kcal
+                      {t('mealplan.uguale_kcal', { kcal: Math.round((selected.kcal_100g || 0) * parseFloat(grams) / 100) }, '= {{kcal}} kcal')}
                     </span>
                   )}
                 </div>
@@ -395,7 +425,7 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
               color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer',
             }}
           >
-            Annulla
+            {t('mealplan.annulla', 'Annulla')}
           </button>
           <button
             onClick={handleAdd}
@@ -408,7 +438,7 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
               transition: 'background 0.2s',
             }}
           >
-            Aggiungi
+            {t('mealplan.aggiungi', 'Aggiungi')}
           </button>
         </div>
       </motion.div>
@@ -419,6 +449,7 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
 // ─── Shopping List Tab ────────────────────────────────────────────────────────
 
 function ShoppingListTab({ items, userId, weekStart }) {
+  const t = useT()
   const storageKey = `shopping_list_checked_${userId}_${weekStart}`
 
   const [checked, setChecked] = useState(() => {
@@ -462,22 +493,23 @@ function ShoppingListTab({ items, userId, weekStart }) {
   }
 
   async function shareList() {
-    const lines = ['Lista della Spesa', `Settimana del ${weekStart}`, '']
+    const lines = [t('mealplan.lista_spesa_titolo', 'Lista della Spesa'), t('mealplan.settimana_del', { data: weekStart }, 'Settimana del {{data}}'), '']
     categoryOrder.forEach(cat => {
       const catItems = grouped[cat]
       if (!catItems?.length) return
-      lines.push(`--- ${cat} ---`)
+      const catLabel = t(CATEGORY_LABEL_KEYS[cat].key, CATEGORY_LABEL_KEYS[cat].fallback)
+      lines.push(`--- ${catLabel} ---`)
       catItems.forEach(i => lines.push(`• ${i.name} — ${Math.round(i.grams)}g`))
       lines.push('')
     })
     const text = lines.join('\n')
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Lista della Spesa NutriPlan', text })
+        await navigator.share({ title: t('mealplan.condividi_titolo', 'Lista della Spesa NutriPlan'), text })
       } catch { /* user cancelled */ }
     } else {
       await navigator.clipboard.writeText(text)
-      alert('Lista copiata negli appunti!')
+      alert(t('mealplan.lista_copiata', 'Lista copiata negli appunti!'))
     }
   }
 
@@ -485,8 +517,8 @@ function ShoppingListTab({ items, userId, weekStart }) {
     return (
       <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
         <ShoppingCart size={48} style={{ opacity: 0.3, marginBottom: 12 }} />
-        <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>Lista vuota</div>
-        <div style={{ fontSize: 14 }}>Aggiungi alimenti al piano per generare la lista della spesa</div>
+        <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>{t('mealplan.lista_vuota_titolo', 'Lista vuota')}</div>
+        <div style={{ fontSize: 14 }}>{t('mealplan.lista_vuota_testo', 'Aggiungi alimenti al piano per generare la lista della spesa')}</div>
       </div>
     )
   }
@@ -496,7 +528,7 @@ function ShoppingListTab({ items, userId, weekStart }) {
       {/* Header actions */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
         <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>
-          {allChecked.length}/{totalItems} acquistati
+          {t('mealplan.acquistati_contatore', { checked: allChecked.length, total: totalItems }, '{{checked}}/{{total}} acquistati')}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button
@@ -508,7 +540,7 @@ function ShoppingListTab({ items, userId, weekStart }) {
               color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer',
             }}
           >
-            <Trash2 size={14} /> Pulisci acquistati
+            <Trash2 size={14} /> {t('mealplan.pulisci_acquistati', 'Pulisci acquistati')}
           </button>
           <button
             onClick={shareList}
@@ -519,7 +551,7 @@ function ShoppingListTab({ items, userId, weekStart }) {
               fontSize: 13, fontWeight: 600, cursor: 'pointer',
             }}
           >
-            <Share2 size={14} /> Condividi lista
+            <Share2 size={14} /> {t('mealplan.condividi_lista', 'Condividi lista')}
           </button>
         </div>
       </div>
@@ -536,7 +568,7 @@ function ShoppingListTab({ items, userId, weekStart }) {
               marginBottom: 8, paddingBottom: 4,
               borderBottom: '1px solid var(--border-light)',
             }}>
-              {cat}
+              {t(CATEGORY_LABEL_KEYS[cat].key, CATEGORY_LABEL_KEYS[cat].fallback)}
             </div>
             {catItems.map(item => (
               <div
@@ -604,6 +636,7 @@ function DailyKcalBadge({ items, kcalGoal }) {
 }
 
 function GridCell({ dayIndex, mealType, items, onAdd, onRemove }) {
+  const t = useT()
   const cellItems = items.filter(i => i.day_of_week === dayIndex && i.meal_type === mealType)
 
   return (
@@ -630,7 +663,7 @@ function GridCell({ dayIndex, mealType, items, onAdd, onRemove }) {
         onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--green-main)'; e.currentTarget.style.color = 'var(--green-main)' }}
         onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
       >
-        <Plus size={12} /> Aggiungi
+        <Plus size={12} /> {t('mealplan.aggiungi', 'Aggiungi')}
       </button>
     </div>
   )
@@ -643,6 +676,7 @@ function GridCell({ dayIndex, mealType, items, onAdd, onRemove }) {
 // dalla striscia e si vedono solo i suoi pasti, impilati verticalmente.
 
 function DayStrip({ weekStart, selectedDay, onSelect, items }) {
+  const t = useT()
   const todayStr = format(new Date(), 'yyyy-MM-dd')
   return (
     <div style={{ display: 'flex', gap: 6, overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 2 }}>
@@ -666,7 +700,7 @@ function DayStrip({ weekStart, selectedDay, onSelect, items }) {
             }}
           >
             <span style={{ fontSize: 11, fontWeight: 700, color: active || isToday ? 'var(--green-main)' : 'var(--text-secondary)' }}>
-              {day}
+              {t(DAY_LABEL_KEYS[day].key, DAY_LABEL_KEYS[day].fallback)}
             </span>
             <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{format(date, 'd')}</span>
             <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--green-main)', minHeight: 11 }}>
@@ -680,6 +714,7 @@ function DayStrip({ weekStart, selectedDay, onSelect, items }) {
 }
 
 function MobileDayPlan({ dayIndex, items, onAdd, onRemove }) {
+  const t = useT()
   const dayItems = items.filter(i => i.day_of_week === dayIndex)
   const dayTotal = dayItems.reduce((sum, i) => sum + calcMacros(i.food_data, i.grams).kcal, 0)
 
@@ -687,7 +722,7 @@ function MobileDayPlan({ dayIndex, items, onAdd, onRemove }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
       {dayTotal > 0 && (
         <div style={{ textAlign: 'center', fontSize: 13, fontWeight: 700, color: 'var(--green-main)' }}>
-          {dayTotal} kcal totali in giornata
+          {t('mealplan.kcal_totali_giornata', { kcal: dayTotal }, '{{kcal}} kcal totali in giornata')}
         </div>
       )}
       {MEAL_TYPES.map(meal => {
@@ -696,7 +731,7 @@ function MobileDayPlan({ dayIndex, items, onAdd, onRemove }) {
           <div key={meal.key} className="card" style={{ padding: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
               <span style={{ fontSize: 17 }}>{meal.icon}</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{meal.label}</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{t(meal.i18nKey, meal.fallback)}</span>
             </div>
             {mealItems.map(item => (
               <MealItem key={item.id} item={item} onRemove={onRemove} />
@@ -711,7 +746,7 @@ function MobileDayPlan({ dayIndex, items, onAdd, onRemove }) {
                 fontSize: 13, gap: 5, marginTop: mealItems.length ? 4 : 0,
               }}
             >
-              <Plus size={13} /> Aggiungi
+              <Plus size={13} /> {t('mealplan.aggiungi', 'Aggiungi')}
             </button>
           </div>
         )
@@ -723,6 +758,7 @@ function MobileDayPlan({ dayIndex, items, onAdd, onRemove }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function MealPlannerPage() {
+  const t = useT()
   const { user } = useAuth()
   const isDesktop = useIsDesktop()
   const [weekOffset, setWeekOffset] = useState(0)
@@ -738,6 +774,7 @@ export default function MealPlannerPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState('')
+  const [saveMsgIsError, setSaveMsgIsError] = useState(false)
   const [modal, setModal] = useState(null) // { dayIndex, mealType }
 
   const weekStart = getWeekStart(addWeeks(new Date(), weekOffset))
@@ -827,7 +864,8 @@ export default function MealPlannerPage() {
       setItems(prev => [...prev, data])
     } catch (err) {
       console.error('Errore aggiunta alimento:', err)
-      setSaveMsg('Errore nell\'aggiunta. Riprova.')
+      setSaveMsgIsError(true)
+      setSaveMsg(t('mealplan.errore_aggiunta', 'Errore nell\'aggiunta. Riprova.'))
       setTimeout(() => setSaveMsg(''), 2500)
     }
   }
@@ -840,7 +878,8 @@ export default function MealPlannerPage() {
       setItems(prev => prev.filter(i => i.id !== itemId))
     } catch (err) {
       console.error('Errore rimozione alimento:', err)
-      setSaveMsg('Errore nella rimozione. Riprova.')
+      setSaveMsgIsError(true)
+      setSaveMsg(t('mealplan.errore_rimozione', 'Errore nella rimozione. Riprova.'))
       setTimeout(() => setSaveMsg(''), 2500)
     }
   }
@@ -851,11 +890,13 @@ export default function MealPlannerPage() {
     setSaving(true)
     try {
       await ensurePlan()
-      setSaveMsg('Piano salvato!')
+      setSaveMsgIsError(false)
+      setSaveMsg(t('mealplan.piano_salvato', 'Piano salvato!'))
       setTimeout(() => setSaveMsg(''), 2500)
     } catch (err) {
       console.error('Errore salvataggio piano:', err)
-      setSaveMsg('Errore nel salvataggio')
+      setSaveMsgIsError(true)
+      setSaveMsg(t('mealplan.errore_salvataggio', 'Errore nel salvataggio'))
       setTimeout(() => setSaveMsg(''), 2500)
     } finally {
       setSaving(false)
@@ -876,7 +917,7 @@ export default function MealPlannerPage() {
       <div style={{ padding: '0 16px 16px', background: 'var(--surface)', borderBottom: '1px solid var(--border-light)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-            Pianificatore Settimanale
+            {t('mealplan.titolo', 'Pianificatore Settimanale')}
           </h1>
           <Calendar size={22} color="var(--green-main)" />
         </div>
@@ -911,8 +952,8 @@ export default function MealPlannerPage() {
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 4, marginTop: 14, background: 'var(--surface-3)', borderRadius: 10, padding: 4 }}>
           {[
-            { key: 'piano', label: 'Piano' },
-            { key: 'spesa', label: 'Lista Spesa' },
+            { key: 'piano', i18nKey: 'mealplan.tab_piano', fallback: 'Piano' },
+            { key: 'spesa', i18nKey: 'mealplan.tab_lista_spesa', fallback: 'Lista Spesa' },
           ].map(tab => (
             <button
               key={tab.key}
@@ -927,7 +968,7 @@ export default function MealPlannerPage() {
                 transition: 'background 0.15s',
               }}
             >
-              {tab.label}
+              {t(tab.i18nKey, tab.fallback)}
             </button>
           ))}
         </div>
@@ -937,7 +978,7 @@ export default function MealPlannerPage() {
       <div style={{ padding: '16px' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)', fontSize: 14 }}>
-            Caricamento piano...
+            {t('mealplan.caricamento_piano', 'Caricamento piano...')}
           </div>
         ) : activeTab === 'piano' ? (
           !isDesktop ? (
@@ -977,7 +1018,7 @@ export default function MealPlannerPage() {
                       }}
                     >
                       <div style={{ fontSize: 13, fontWeight: 700, color: isToday ? 'var(--green-main)' : 'var(--text-secondary)' }}>
-                        {day}
+                        {t(DAY_LABEL_KEYS[day].key, DAY_LABEL_KEYS[day].fallback)}
                       </div>
                       <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                         {format(date, 'd MMM', { locale: it })}
@@ -1004,7 +1045,7 @@ export default function MealPlannerPage() {
                     >
                       <span style={{ fontSize: 16 }}>{meal.icon}</span>
                       <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.2 }}>
-                        {meal.label}
+                        {t(meal.i18nKey, meal.fallback)}
                       </span>
                     </div>
 
@@ -1030,7 +1071,7 @@ export default function MealPlannerPage() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textAlign: 'center' }}>
-                    TOTALE
+                    {t('mealplan.totale', 'TOTALE')}
                   </span>
                 </div>
                 {DAYS_SHORT.map((_, di) => {
@@ -1076,7 +1117,7 @@ export default function MealPlannerPage() {
         }}>
           {saveMsg && (
             <span style={{
-              fontSize: 13, color: saveMsg.includes('Errore') ? 'var(--red)' : 'var(--green-main)',
+              fontSize: 13, color: saveMsgIsError ? 'var(--red)' : 'var(--green-main)',
               fontWeight: 600, flex: 1,
             }}>
               {saveMsg}
@@ -1095,7 +1136,7 @@ export default function MealPlannerPage() {
               display: 'block',
             }}
           >
-            {saving ? 'Salvataggio...' : 'Salva piano'}
+            {saving ? t('mealplan.salvataggio_in_corso', 'Salvataggio...') : t('mealplan.salva_piano', 'Salva piano')}
           </button>
         </div>
       )}

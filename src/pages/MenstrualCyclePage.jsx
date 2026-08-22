@@ -20,39 +20,110 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../i18n'
 import { Plus, X, Check, Trash2, Calendar } from 'lucide-react'
 
+// Valori interni (memorizzati anche su DB) — l'etichetta visualizzata passa da symptomLabel()
 const CYCLE_SYMPTOMS = [
   'Crampi', 'Gonfiore', 'Mal di testa', 'Stanchezza',
   'Sbalzi umore', 'Nausea', 'Schiena dolente', 'Seno sensibile',
   'Spotting', 'Acne', 'Insonnia', 'Voglie alimentari',
 ]
 
-const PHASE_NUTRITION = {
-  'Mestruale': {
-    color: '#ec4899', bg: '#fce7f3',
-    summary: 'Focus su ferro e antinfiammatori per ridurre crampi e affaticamento.',
-    foods: ['🥩 Carne rossa magra, legumi (ferro)', '🥦 Spinaci, broccoli (ferro + vitamina C)', '🐟 Salmone, sardine (omega-3, antinfiammatori)', '🍫 Cioccolato fondente ≥70% (magnesio)', '🫖 Tisane di zenzero e cannella (antidolorifici)'],
-    avoid: ['☕ Caffeina e alcol (aggravano crampi e perdita di ferro)', '🧂 Cibi salati (ritenzione idrica)'],
-  },
-  'Pre-ovulatoria': {
-    color: '#f59e0b', bg: '#fffbeb',
-    summary: 'Energia in crescita: privilegia fitoestrogeni e vitamina B6.',
-    foods: ['🫘 Soia, lenticchie, ceci (fitoestrogeni)', '🥚 Uova, pollo (vitamina B6)', '🌾 Avena, riso integrale (energia stabile)', '🥑 Avocado (grassi sani per estrogeni)', '🍓 Frutti di bosco (antiossidanti)'],
-    avoid: ['🍬 Zuccheri raffinati (picchi glicemici)', '🧀 Latticini in eccesso'],
-  },
-  'Ovulatoria': {
-    color: '#10b981', bg: '#ecfdf5',
-    summary: 'Picco di energia: supporta la fertilità con fibre e antiossidanti.',
-    foods: ['🥗 Verdure a foglia verde (folati)', '🍋 Agrumi, kiwi (vitamina C)', '🌰 Noci, semi di lino (zinco e omega-3)', '🐟 Tonno, sgombro (vitamina D)', '🫐 Mirtilli, lamponi (antiossidanti)'],
-    avoid: ['🍟 Fritture e grassi saturi (stress ossidativo)', '🥃 Alcol'],
-  },
-  'Luteale': {
-    color: '#7c3aed', bg: '#f5f3ff',
-    summary: 'Combatti il PMS con magnesio, triptofano e riduci sale e zucchero.',
-    foods: ['🍫 Cioccolato fondente, banane (triptofano e magnesio)', '🥜 Mandorle, noci (magnesio)', '🍗 Tacchino, avena (serotonina)', '🫘 Legumi (fibre, sazietà)', '🍠 Patate dolci, zucca (comfort food sano)'],
-    avoid: ['🧂 Sale (gonfiore e ritenzione)', '🍬 Zuccheri (aggravano sbalzi d\'umore)', '☕ Caffeina in eccesso (ansia, insonnia)'],
-  },
+// Mappa il valore interno del sintomo (IT, usato anche come valore salvato su DB) all'etichetta tradotta
+function symptomLabel(t, s) {
+  const map = {
+    'Crampi': t('menstrual.symptom_crampi', 'Crampi'),
+    'Gonfiore': t('menstrual.symptom_gonfiore', 'Gonfiore'),
+    'Mal di testa': t('menstrual.symptom_maldiTesta', 'Mal di testa'),
+    'Stanchezza': t('menstrual.symptom_stanchezza', 'Stanchezza'),
+    'Sbalzi umore': t('menstrual.symptom_sbalziUmore', 'Sbalzi umore'),
+    'Nausea': t('menstrual.symptom_nausea', 'Nausea'),
+    'Schiena dolente': t('menstrual.symptom_schienaDolente', 'Schiena dolente'),
+    'Seno sensibile': t('menstrual.symptom_senoSensibile', 'Seno sensibile'),
+    'Spotting': t('menstrual.symptom_spotting', 'Spotting'),
+    'Acne': t('menstrual.symptom_acne', 'Acne'),
+    'Insonnia': t('menstrual.symptom_insonnia', 'Insonnia'),
+    'Voglie alimentari': t('menstrual.symptom_voglieAlimentari', 'Voglie alimentari'),
+  }
+  return map[s] || s
+}
+
+// Mappa il nome interno della fase (IT, usato come chiave di lookup) all'etichetta tradotta
+function phaseLabel(t, name) {
+  const map = {
+    'Mestruale': t('menstrual.fase_mestruale', 'Mestruale'),
+    'Pre-ovulatoria': t('menstrual.fase_preovulatoria', 'Pre-ovulatoria'),
+    'Ovulatoria': t('menstrual.fase_ovulatoria', 'Ovulatoria'),
+    'Luteale': t('menstrual.fase_luteale', 'Luteale'),
+  }
+  return map[name] || name
+}
+
+function getPhaseNutrition(t) {
+  return {
+    'Mestruale': {
+      color: '#ec4899', bg: '#fce7f3',
+      summary: t('menstrual.nutr_mestruale_summary', 'Focus su ferro e antinfiammatori per ridurre crampi e affaticamento.'),
+      foods: [
+        t('menstrual.nutr_mestruale_food1', '🥩 Carne rossa magra, legumi (ferro)'),
+        t('menstrual.nutr_mestruale_food2', '🥦 Spinaci, broccoli (ferro + vitamina C)'),
+        t('menstrual.nutr_mestruale_food3', '🐟 Salmone, sardine (omega-3, antinfiammatori)'),
+        t('menstrual.nutr_mestruale_food4', '🍫 Cioccolato fondente ≥70% (magnesio)'),
+        t('menstrual.nutr_mestruale_food5', '🫖 Tisane di zenzero e cannella (antidolorifici)'),
+      ],
+      avoid: [
+        t('menstrual.nutr_mestruale_avoid1', '☕ Caffeina e alcol (aggravano crampi e perdita di ferro)'),
+        t('menstrual.nutr_mestruale_avoid2', '🧂 Cibi salati (ritenzione idrica)'),
+      ],
+    },
+    'Pre-ovulatoria': {
+      color: '#f59e0b', bg: '#fffbeb',
+      summary: t('menstrual.nutr_preov_summary', 'Energia in crescita: privilegia fitoestrogeni e vitamina B6.'),
+      foods: [
+        t('menstrual.nutr_preov_food1', '🫘 Soia, lenticchie, ceci (fitoestrogeni)'),
+        t('menstrual.nutr_preov_food2', '🥚 Uova, pollo (vitamina B6)'),
+        t('menstrual.nutr_preov_food3', '🌾 Avena, riso integrale (energia stabile)'),
+        t('menstrual.nutr_preov_food4', '🥑 Avocado (grassi sani per estrogeni)'),
+        t('menstrual.nutr_preov_food5', '🍓 Frutti di bosco (antiossidanti)'),
+      ],
+      avoid: [
+        t('menstrual.nutr_preov_avoid1', '🍬 Zuccheri raffinati (picchi glicemici)'),
+        t('menstrual.nutr_preov_avoid2', '🧀 Latticini in eccesso'),
+      ],
+    },
+    'Ovulatoria': {
+      color: '#10b981', bg: '#ecfdf5',
+      summary: t('menstrual.nutr_ovul_summary', 'Picco di energia: supporta la fertilità con fibre e antiossidanti.'),
+      foods: [
+        t('menstrual.nutr_ovul_food1', '🥗 Verdure a foglia verde (folati)'),
+        t('menstrual.nutr_ovul_food2', '🍋 Agrumi, kiwi (vitamina C)'),
+        t('menstrual.nutr_ovul_food3', '🌰 Noci, semi di lino (zinco e omega-3)'),
+        t('menstrual.nutr_ovul_food4', '🐟 Tonno, sgombro (vitamina D)'),
+        t('menstrual.nutr_ovul_food5', '🫐 Mirtilli, lamponi (antiossidanti)'),
+      ],
+      avoid: [
+        t('menstrual.nutr_ovul_avoid1', '🍟 Fritture e grassi saturi (stress ossidativo)'),
+        t('menstrual.nutr_ovul_avoid2', '🥃 Alcol'),
+      ],
+    },
+    'Luteale': {
+      color: '#7c3aed', bg: '#f5f3ff',
+      summary: t('menstrual.nutr_luteale_summary', 'Combatti il PMS con magnesio, triptofano e riduci sale e zucchero.'),
+      foods: [
+        t('menstrual.nutr_luteale_food1', '🍫 Cioccolato fondente, banane (triptofano e magnesio)'),
+        t('menstrual.nutr_luteale_food2', '🥜 Mandorle, noci (magnesio)'),
+        t('menstrual.nutr_luteale_food3', '🍗 Tacchino, avena (serotonina)'),
+        t('menstrual.nutr_luteale_food4', '🫘 Legumi (fibre, sazietà)'),
+        t('menstrual.nutr_luteale_food5', '🍠 Patate dolci, zucca (comfort food sano)'),
+      ],
+      avoid: [
+        t('menstrual.nutr_luteale_avoid1', '🧂 Sale (gonfiore e ritenzione)'),
+        t('menstrual.nutr_luteale_avoid2', '🍬 Zuccheri (aggravano sbalzi d\'umore)'),
+        t('menstrual.nutr_luteale_avoid3', '☕ Caffeina in eccesso (ansia, insonnia)'),
+      ],
+    },
+  }
 }
 
 import { useState as useState2 } from 'react'
@@ -89,6 +160,7 @@ function buildCycleMap(cycles, year, month, predictedRanges) {
 }
 
 function MiniCalendar({ cycles, predictedRanges }) {
+  const t = useT()
   const todayObj = new Date()
   const [viewYear, setViewYear] = useState2(todayObj.getFullYear())
   const [viewMonth, setViewMonth] = useState2(todayObj.getMonth())
@@ -98,7 +170,15 @@ function MiniCalendar({ cycles, predictedRanges }) {
   const { cycleDays, predictedDays } = buildCycleMap(cycles, viewYear, viewMonth, predictedRanges)
 
   const isCurrentMonth = viewYear === todayObj.getFullYear() && viewMonth === todayObj.getMonth()
-  const DAYS_IT = ['L', 'M', 'M', 'G', 'V', 'S', 'D']
+  const DAYS_IT = [
+    t('menstrual.day_mon', 'L'),
+    t('menstrual.day_tue', 'M'),
+    t('menstrual.day_wed', 'M'),
+    t('menstrual.day_thu', 'G'),
+    t('menstrual.day_fri', 'V'),
+    t('menstrual.day_sat', 'S'),
+    t('menstrual.day_sun', 'D'),
+  ]
   const cells = Array(firstDow).fill(null).concat(Array.from({ length: daysInMonth }, (_, i) => i + 1))
 
   const prevMonth = () => { if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1) } else setViewMonth(m => m - 1) }
@@ -107,13 +187,13 @@ function MiniCalendar({ cycles, predictedRanges }) {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <button onClick={prevMonth} aria-label="Mese precedente" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
+        <button onClick={prevMonth} aria-label={t('menstrual.aria_mese_precedente', 'Mese precedente')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
           <ChevronLeft size={18} />
         </button>
         <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'capitalize' }}>
           {new Date(viewYear, viewMonth, 1).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })}
         </p>
-        <button onClick={nextMonth} aria-label="Mese successivo" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
+        <button onClick={nextMonth} aria-label={t('menstrual.aria_mese_successivo', 'Mese successivo')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
           <ChevronRight size={18} />
         </button>
       </div>
@@ -150,6 +230,8 @@ function MiniCalendar({ cycles, predictedRanges }) {
 
 export default function MenstrualCyclePage() {
   const { user, profile } = useAuth()
+  const t = useT()
+  const PHASE_NUTRITION = getPhaseNutrition(t)
   const today = new Date().toISOString().split('T')[0]
 
   const [cycles, setCycles] = useState([])
@@ -178,7 +260,7 @@ export default function MenstrualCyclePage() {
       if (err.code === '42P01') {
         setTableExists(false)
       } else {
-        setError('Errore nel caricamento dati.')
+        setError(t('menstrual.errore_caricamento', 'Errore nel caricamento dati.'))
       }
     } else {
       setCycles(data || [])
@@ -198,9 +280,9 @@ export default function MenstrualCyclePage() {
     if (err) {
       if (err.code === '42P01') {
         setTableExists(false)
-        setError('Tabella menstrual_cycle non esiste. Creala nel Supabase SQL editor (vedi commento nel file sorgente).')
+        setError(t('menstrual.errore_tabella_mancante', 'Tabella menstrual_cycle non esiste. Creala nel Supabase SQL editor (vedi commento nel file sorgente).'))
       } else {
-        setError('Errore nel salvare. Riprova.')
+        setError(t('menstrual.errore_salvataggio', 'Errore nel salvare. Riprova.'))
       }
     } else if (data) {
       setCycles(prev => [data, ...prev])
@@ -306,25 +388,25 @@ export default function MenstrualCyclePage() {
       name: 'Mestruale', emoji: '🩸',
       startDay: 1, endDay: Math.max(3, avgDuration),
       color: '#ec4899', bg: '#fce7f3',
-      desc: 'Perdita di sangue. Riposo, cura di sé e alimentazione ricca di ferro.',
+      desc: t('menstrual.desc_mestruale', 'Perdita di sangue. Riposo, cura di sé e alimentazione ricca di ferro.'),
     },
     {
       name: 'Pre-ovulatoria', emoji: '🌱',
       startDay: Math.max(3, avgDuration) + 1, endDay: Math.max(ovDay - 3, Math.max(3, avgDuration) + 2),
       color: '#f59e0b', bg: '#fffbeb',
-      desc: 'Energia in crescita, umore positivo. Estrogeni in aumento.',
+      desc: t('menstrual.desc_preovulatoria', 'Energia in crescita, umore positivo. Estrogeni in aumento.'),
     },
     {
       name: 'Ovulatoria', emoji: '🌸',
       startDay: Math.max(ovDay - 2, Math.max(3, avgDuration) + 2), endDay: ovDay + 1,
       color: '#10b981', bg: '#ecfdf5',
-      desc: 'Periodo fertile. Picco di energia, libido e creatività.',
+      desc: t('menstrual.desc_ovulatoria', 'Periodo fertile. Picco di energia, libido e creatività.'),
     },
     {
       name: 'Luteale', emoji: '🌙',
       startDay: ovDay + 2, endDay: avgInterval,
       color: '#7c3aed', bg: '#f5f3ff',
-      desc: 'Progesterone in salita. Possibili sbalzi d\'umore (PMS), gonfiore.',
+      desc: t('menstrual.desc_luteale', 'Progesterone in salita. Possibili sbalzi d\'umore (PMS), gonfiore.'),
     },
   ].filter(p => p.startDay <= p.endDay)
 
@@ -346,14 +428,14 @@ export default function MenstrualCyclePage() {
     return (
       <div className="page">
         <div style={{ background: 'linear-gradient(160deg, #9d174d, #ec4899)', padding: 'calc(env(safe-area-inset-top) + 20px) 20px 24px' }}>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Salute</p>
-          <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300 }}>Ciclo Mestruale</h1>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>{t('menstrual.eyebrow_salute', 'Salute')}</p>
+          <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300 }}>{t('menstrual.titolo', 'Ciclo Mestruale')}</h1>
         </div>
         <div style={{ padding: 20 }}>
           <div className="card" style={{ padding: 20, textAlign: 'center' }}>
-            <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Sezione non disponibile</p>
+            <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{t('menstrual.sezione_non_disponibile_titolo', 'Sezione non disponibile')}</p>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              Questa sezione è dedicata al tracciamento del ciclo mestruale e non è pertinente per il tuo profilo.
+              {t('menstrual.sezione_non_disponibile_desc', 'Questa sezione è dedicata al tracciamento del ciclo mestruale e non è pertinente per il tuo profilo.')}
             </p>
           </div>
         </div>
@@ -365,14 +447,14 @@ export default function MenstrualCyclePage() {
     return (
       <div className="page">
         <div style={{ background: 'linear-gradient(160deg, #9d174d, #ec4899)', padding: 'calc(env(safe-area-inset-top) + 20px) 20px 24px' }}>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Salute</p>
-          <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300 }}>Ciclo Mestruale</h1>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>{t('menstrual.eyebrow_salute', 'Salute')}</p>
+          <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300 }}>{t('menstrual.titolo', 'Ciclo Mestruale')}</h1>
         </div>
         <div style={{ padding: 20 }}>
           <div className="card" style={{ padding: 20 }}>
-            <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 10 }}>Configurazione richiesta</p>
+            <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 10 }}>{t('menstrual.config_richiesta_titolo', 'Configurazione richiesta')}</p>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              La tabella <code>menstrual_cycle</code> non esiste ancora nel database. Esegui questo SQL nel pannello Supabase:
+              {t('menstrual.config_richiesta_desc_pre', 'La tabella ')}<code>menstrual_cycle</code>{t('menstrual.config_richiesta_desc_post', ' non esiste ancora nel database. Esegui questo SQL nel pannello Supabase:')}
             </p>
             <pre style={{ background: 'var(--surface-2)', borderRadius: 10, padding: 12, fontSize: 11, marginTop: 12, overflowX: 'auto', color: 'var(--text-primary)' }}>{`CREATE TABLE IF NOT EXISTS menstrual_cycle (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -389,7 +471,7 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);`}</pre>
             <button className="btn btn-primary" onClick={() => { setTableExists(true); setLoading(true); loadCycles() }} style={{ marginTop: 16 }}>
-              Ho creato la tabella, riprova
+              {t('menstrual.tabella_creata_riprova', 'Ho creato la tabella, riprova')}
             </button>
           </div>
         </div>
@@ -401,14 +483,14 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
     <div className="page">
       {/* Header */}
       <div style={{ background: 'linear-gradient(160deg, #9d174d, #ec4899)', padding: 'calc(env(safe-area-inset-top) + 20px) 20px 24px' }}>
-        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Salute femminile</p>
-        <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300, marginBottom: 16 }}>Ciclo Mestruale</h1>
+        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>{t('menstrual.eyebrow_salute_femminile', 'Salute femminile')}</p>
+        <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300, marginBottom: 16 }}>{t('menstrual.titolo', 'Ciclo Mestruale')}</h1>
         {/* Stats */}
         <div style={{ display: 'flex', gap: 8 }}>
           {[
-            { label: 'Cicli registrati', val: cycles.length },
-            { label: 'Durata media', val: completedCycles.length > 0 ? `${Math.round(completedCycles.reduce((s, c) => s + c.cycle_length, 0) / completedCycles.length)}g` : '–' },
-            { label: 'Intervallo medio', val: nextCycleEstimate ? `${nextCycleEstimate.interval}g` : '–' },
+            { label: t('menstrual.stat_cicli_registrati', 'Cicli registrati'), val: cycles.length },
+            { label: t('menstrual.stat_durata_media', 'Durata media'), val: completedCycles.length > 0 ? `${Math.round(completedCycles.reduce((s, c) => s + c.cycle_length, 0) / completedCycles.length)}${t('menstrual.giorni_abbr', 'g')}` : '–' },
+            { label: t('menstrual.stat_intervallo_medio', 'Intervallo medio'), val: nextCycleEstimate ? `${nextCycleEstimate.interval}${t('menstrual.giorni_abbr', 'g')}` : '–' },
           ].map((s, i) => (
             <motion.div key={s.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
               style={{ flex: 1, background: 'rgba(255,255,255,0.15)', borderRadius: 12, padding: '10px 8px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.2)' }}>
@@ -437,18 +519,18 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
               style={{ flex: 1, background: 'linear-gradient(135deg, #9d174d, #ec4899)', justifyContent: 'center', gap: 8 }}
             >
               <Plus size={16} />
-              {saving ? '…' : 'Inizia ciclo oggi'}
+              {saving ? '…' : t('menstrual.inizia_ciclo_oggi', 'Inizia ciclo oggi')}
             </button>
           ) : (
             <>
               <div style={{ flex: 1, background: '#fce7f3', border: '1.5px solid #f9a8d4', borderRadius: 12, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ec4899', animation: 'pulse 1.5s infinite' }} />
                 <div>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: '#be185d' }}>Ciclo in corso</p>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: '#be185d' }}>{t('menstrual.ciclo_in_corso', 'Ciclo in corso')}</p>
                   <p style={{ fontSize: 11, color: '#9d174d' }}>
-                    Dal {new Date(activeCycle.start_date + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })}
+                    {t('menstrual.dal', 'Dal')} {new Date(activeCycle.start_date + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })}
                     {' · '}
-                    {Math.round((new Date() - new Date(activeCycle.start_date + 'T12:00:00')) / (1000 * 60 * 60 * 24)) + 1}° giorno
+                    {t('menstrual.giorno_ordinale', { n: Math.round((new Date() - new Date(activeCycle.start_date + 'T12:00:00')) / (1000 * 60 * 60 * 24)) + 1 }, '{{n}}° giorno')}
                   </p>
                 </div>
               </div>
@@ -459,7 +541,7 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
                 style={{ background: '#fce7f3', color: '#be185d', border: '1.5px solid #f9a8d4', gap: 6, padding: '0 16px' }}
               >
                 <Check size={15} />
-                Fine ciclo
+                {t('menstrual.fine_ciclo', 'Fine ciclo')}
               </button>
             </>
           )}
@@ -471,7 +553,7 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
               <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg, #9d174d, #ec4899)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🌸</div>
               <div>
-                <p style={{ fontSize: 12, color: '#9d174d', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Prossimo ciclo stimato</p>
+                <p style={{ fontSize: 12, color: '#9d174d', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}>{t('menstrual.prossimo_ciclo_stimato', 'Prossimo ciclo stimato')}</p>
                 <p style={{ fontSize: 16, fontWeight: 800, color: '#be185d' }}>
                   {new Date(nextCycleEstimate.date + 'T12:00:00').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </p>
@@ -480,39 +562,39 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
             <div style={{ display: 'flex', gap: 8 }}>
               <div style={{ flex: 1, background: 'rgba(255,255,255,0.7)', borderRadius: 10, padding: '8px 12px', textAlign: 'center' }}>
                 <p style={{ fontSize: 18, fontWeight: 800, color: '#be185d' }}>{nextCycleEstimate.daysUntil > 0 ? nextCycleEstimate.daysUntil : 0}</p>
-                <p style={{ fontSize: 10, color: '#9d174d', fontWeight: 600 }}>giorni mancanti</p>
+                <p style={{ fontSize: 10, color: '#9d174d', fontWeight: 600 }}>{t('menstrual.giorni_mancanti', 'giorni mancanti')}</p>
               </div>
               <div style={{ flex: 1, background: 'rgba(255,255,255,0.7)', borderRadius: 10, padding: '8px 12px', textAlign: 'center' }}>
                 <p style={{ fontSize: 18, fontWeight: 800, color: '#be185d' }}>{nextCycleEstimate.avgDuration}</p>
-                <p style={{ fontSize: 10, color: '#9d174d', fontWeight: 600 }}>durata stimata</p>
+                <p style={{ fontSize: 10, color: '#9d174d', fontWeight: 600 }}>{t('menstrual.durata_stimata', 'durata stimata')}</p>
               </div>
               <div style={{ flex: 1, background: 'rgba(255,255,255,0.7)', borderRadius: 10, padding: '8px 12px', textAlign: 'center' }}>
                 <p style={{ fontSize: 18, fontWeight: 800, color: '#be185d' }}>{nextCycleEstimate.interval}</p>
-                <p style={{ fontSize: 10, color: '#9d174d', fontWeight: 600 }}>giorni ciclo</p>
+                <p style={{ fontSize: 10, color: '#9d174d', fontWeight: 600 }}>{t('menstrual.giorni_ciclo', 'giorni ciclo')}</p>
               </div>
             </div>
             <p style={{ fontSize: 10, color: '#9d174d', opacity: 0.7, marginTop: 8, textAlign: 'center' }}>
-              Stima basata sui tuoi cicli precedenti · Le date tratteggiate sul calendario indicano i cicli previsti
+              {t('menstrual.stima_nota', 'Stima basata sui tuoi cicli precedenti · Le date tratteggiate sul calendario indicano i cicli previsti')}
             </p>
           </div>
         )}
 
         {/* Mini calendar */}
         <div className="card" style={{ padding: 16 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Calendario del mese</h3>
+          <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>{t('menstrual.calendario_mese', 'Calendario del mese')}</h3>
           <MiniCalendar cycles={cycles} predictedRanges={predictedRanges} />
           <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <div style={{ width: 14, height: 14, borderRadius: 4, background: '#fce7f3', border: '1.5px solid #f9a8d4' }} />
-              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Ciclo registrato</span>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('menstrual.legenda_ciclo_registrato', 'Ciclo registrato')}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <div style={{ width: 14, height: 14, borderRadius: 4, background: '#fff0f7', border: '1.5px dashed #f9a8d4' }} />
-              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Ciclo previsto</span>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('menstrual.legenda_ciclo_previsto', 'Ciclo previsto')}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <div style={{ width: 14, height: 14, borderRadius: 4, background: 'var(--green-pale)', border: '1.5px solid var(--green-main)' }} />
-              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Oggi</span>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('menstrual.legenda_oggi', 'Oggi')}</span>
             </div>
           </div>
         </div>
@@ -520,7 +602,7 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
         {/* ── Fasi del ciclo ── */}
         {cycles.length > 0 && cyclePhases.length > 0 && (
           <div className="card" style={{ padding: 16 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Fasi del ciclo</h3>
+            <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>{t('menstrual.fasi_del_ciclo', 'Fasi del ciclo')}</h3>
 
             {/* Fase attuale */}
             {currentPhase && dayInCycle !== null && (
@@ -533,9 +615,9 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
                   <span style={{ fontSize: 30 }}>{currentPhase.emoji}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontSize: 10, color: currentPhase.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 2 }}>
-                      Fase attuale · Giorno {dayInCycle} di {avgInterval}
+                      {t('menstrual.fase_attuale_giorno', { day: dayInCycle, total: avgInterval }, 'Fase attuale · Giorno {{day}} di {{total}}')}
                     </p>
-                    <p style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)' }}>{currentPhase.name}</p>
+                    <p style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)' }}>{phaseLabel(t, currentPhase.name)}</p>
                     <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2, lineHeight: 1.4 }}>{currentPhase.desc}</p>
                   </div>
                 </div>
@@ -544,7 +626,7 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
                   <div style={{ height: '100%', width: `${Math.min(100, Math.round(dayInCycle / avgInterval * 100))}%`, background: currentPhase.color, borderRadius: 2, transition: 'width .6s' }} />
                 </div>
                 <p style={{ fontSize: 10, color: currentPhase.color, marginTop: 4, opacity: 0.8 }}>
-                  {avgInterval - dayInCycle} giorni al prossimo ciclo stimato
+                  {t('menstrual.giorni_al_prossimo_ciclo', { n: avgInterval - dayInCycle }, '{{n}} giorni al prossimo ciclo stimato')}
                 </p>
               </div>
             )}
@@ -563,20 +645,20 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
                   }}>
                     <span style={{ fontSize: 22, flexShrink: 0 }}>{p.emoji}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 700, color: isActive ? p.color : 'var(--text-primary)' }}>{p.name}</p>
-                      <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Giorni {p.startDay}–{p.endDay} · {p.endDay - p.startDay + 1} giorni</p>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: isActive ? p.color : 'var(--text-primary)' }}>{phaseLabel(t, p.name)}</p>
+                      <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('menstrual.giorni_range', { start: p.startDay, end: p.endDay, count: p.endDay - p.startDay + 1 }, 'Giorni {{start}}–{{end}} · {{count}} giorni')}</p>
                     </div>
                     {isActive ? (
-                      <span style={{ fontSize: 10, background: p.color, color: 'white', borderRadius: 100, padding: '2px 9px', fontWeight: 700, flexShrink: 0 }}>Ora</span>
+                      <span style={{ fontSize: 10, background: p.color, color: 'white', borderRadius: 100, padding: '2px 9px', fontWeight: 700, flexShrink: 0 }}>{t('menstrual.ora_badge', 'Ora')}</span>
                     ) : (
-                      <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>g.{p.startDay}–{p.endDay}</span>
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>{t('menstrual.giorni_range_short', { start: p.startDay, end: p.endDay }, 'g.{{start}}–{{end}}')}</span>
                     )}
                   </div>
                 )
               })}
             </div>
             <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 10, textAlign: 'center', opacity: 0.7 }}>
-              Stime basate su ciclo medio di {avgInterval} giorni · Per uso informativo
+              {t('menstrual.stime_nota', { n: avgInterval }, 'Stime basate su ciclo medio di {{n}} giorni · Per uso informativo')}
             </p>
           </div>
         )}
@@ -589,18 +671,18 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <span style={{ fontSize: 22 }}>{currentPhase.emoji}</span>
                 <div>
-                  <p style={{ fontSize: 10, fontWeight: 700, color: tips.color, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Consigli nutrizionali</p>
-                  <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Fase {currentPhase.name}</p>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: tips.color, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('menstrual.consigli_nutrizionali', 'Consigli nutrizionali')}</p>
+                  <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{t('menstrual.fase_label', { name: phaseLabel(t, currentPhase.name) }, 'Fase {{name}}')}</p>
                 </div>
               </div>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5, background: tips.bg, borderRadius: 10, padding: '10px 12px', border: `1px solid ${tips.color}33` }}>{tips.summary}</p>
-              <p style={{ fontSize: 11, fontWeight: 700, color: tips.color, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>✅ Preferisci</p>
+              <p style={{ fontSize: 11, fontWeight: 700, color: tips.color, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{t('menstrual.preferisci', '✅ Preferisci')}</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
                 {tips.foods.map((f, i) => (
                   <p key={i} style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.4, paddingLeft: 4 }}>{f}</p>
                 ))}
               </div>
-              <p style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>⚠️ Riduci o evita</p>
+              <p style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{t('menstrual.riduci_evita', '⚠️ Riduci o evita')}</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {tips.avoid.map((f, i) => (
                   <p key={i} style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4, paddingLeft: 4 }}>{f}</p>
@@ -612,16 +694,16 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
 
         {/* History list */}
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 13 }}>Caricamento…</div>
+          <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 13 }}>{t('menstrual.caricamento', 'Caricamento…')}</div>
         ) : cycles.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
             <Calendar size={40} style={{ opacity: 0.3, marginBottom: 12 }} />
-            <p style={{ fontSize: 15, fontWeight: 500 }}>Nessun ciclo registrato</p>
-            <p style={{ fontSize: 13, marginTop: 4 }}>Premi "Inizia ciclo oggi" per cominciare il tracciamento.</p>
+            <p style={{ fontSize: 15, fontWeight: 500 }}>{t('menstrual.nessun_ciclo_registrato', 'Nessun ciclo registrato')}</p>
+            <p style={{ fontSize: 13, marginTop: 4 }}>{t('menstrual.stato_vuoto_desc', { btn: t('menstrual.inizia_ciclo_oggi', 'Inizia ciclo oggi') }, 'Premi "{{btn}}" per cominciare il tracciamento.')}</p>
           </div>
         ) : (
           <div className="card" style={{ padding: '18px 20px' }}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Storico cicli</h3>
+            <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>{t('menstrual.storico_cicli', 'Storico cicli')}</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {cycles.slice(0, 6).map((cycle, idx) => {
                 const startD = new Date(cycle.start_date + 'T12:00:00')
@@ -640,10 +722,10 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
                                 {endD && ` → ${endD.toLocaleDateString('it-IT', { day: 'numeric', month: 'long' })}`}
                               </p>
                               {cycle.cycle_length && (
-                                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{cycle.cycle_length} giorni di durata</p>
+                                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('menstrual.giorni_di_durata', { n: cycle.cycle_length }, '{{n}} giorni di durata')}</p>
                               )}
                               {isActive && (
-                                <p style={{ fontSize: 11, color: '#ec4899', fontWeight: 500 }}>In corso</p>
+                                <p style={{ fontSize: 11, color: '#ec4899', fontWeight: 500 }}>{t('menstrual.in_corso', 'In corso')}</p>
                               )}
                             </div>
                           </div>
@@ -652,7 +734,7 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
                           {cycle.symptoms?.length > 0 && (
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
                               {cycle.symptoms.map(s => (
-                                <span key={s} style={{ fontSize: 10, background: '#fce7f3', color: '#be185d', borderRadius: 100, padding: '2px 7px', border: '1px solid #f9a8d4' }}>{s}</span>
+                                <span key={s} style={{ fontSize: 10, background: '#fce7f3', color: '#be185d', borderRadius: 100, padding: '2px 7px', border: '1px solid #f9a8d4' }}>{symptomLabel(t, s)}</span>
                               ))}
                             </div>
                           )}
@@ -667,13 +749,13 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
                               onClick={() => { setShowSymptomModal(cycle.id); setSelectedSymptoms(cycle.symptoms || []) }}
                               style={{ fontSize: 11, fontFamily: 'var(--font-b)', color: '#ec4899', background: 'none', border: '1px solid #f9a8d4', borderRadius: 8, padding: '4px 10px', cursor: 'pointer' }}
                             >
-                              + Sintomi
+                              {t('menstrual.btn_sintomi', '+ Sintomi')}
                             </button>
                             <button
                               onClick={() => { setShowNotes(cycle.id); setNoteText(cycle.notes || '') }}
                               style={{ fontSize: 11, fontFamily: 'var(--font-b)', color: 'var(--text-muted)', background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 10px', cursor: 'pointer' }}
                             >
-                              📝 Note
+                              {t('menstrual.btn_note', '📝 Note')}
                             </button>
                           </div>
                         </div>
@@ -695,7 +777,7 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
           <div className="animate-slideUp" style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', padding: 20, paddingBottom: 'calc(20px + env(safe-area-inset-bottom))', maxHeight: '90dvh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700 }}>Sintomi</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 700 }}>{t('menstrual.modal_sintomi_titolo', 'Sintomi')}</h3>
               <button onClick={() => setShowSymptomModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
@@ -705,12 +787,12 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
                     background: selectedSymptoms.includes(s) ? '#fce7f3' : 'var(--surface-2)',
                     color: selectedSymptoms.includes(s) ? '#be185d' : 'var(--text-secondary)',
                     border: `1.5px solid ${selectedSymptoms.includes(s) ? '#f9a8d4' : 'var(--border)'}` }}>
-                  {s}
+                  {symptomLabel(t, s)}
                 </button>
               ))}
             </div>
             <button className="btn btn-primary" onClick={() => saveSymptoms(showSymptomModal)} style={{ width: '100%', background: 'linear-gradient(135deg, #9d174d, #ec4899)' }}>
-              Salva sintomi
+              {t('menstrual.salva_sintomi', 'Salva sintomi')}
             </button>
           </div>
         </div>
@@ -721,7 +803,7 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 20, width: '100%', maxWidth: 400, maxHeight: '85dvh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700 }}>Note ciclo</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 700 }}>{t('menstrual.modal_note_titolo', 'Note ciclo')}</h3>
               <button onClick={() => setShowNotes(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
             </div>
             <textarea
@@ -729,12 +811,12 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
               rows={4}
               value={noteText}
               onChange={e => setNoteText(e.target.value)}
-              placeholder="Come ti senti? Annotazioni…"
+              placeholder={t('menstrual.note_placeholder', 'Come ti senti? Annotazioni…')}
               style={{ resize: 'vertical', marginBottom: 12 }}
               autoFocus
             />
             <button className="btn btn-primary" onClick={() => saveNotes(showNotes)} style={{ width: '100%', background: 'linear-gradient(135deg, #9d174d, #ec4899)' }}>
-              Salva note
+              {t('menstrual.salva_note', 'Salva note')}
             </button>
           </div>
         </div>
