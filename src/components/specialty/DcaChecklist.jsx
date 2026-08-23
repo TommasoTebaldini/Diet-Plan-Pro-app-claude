@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Check } from 'lucide-react'
+import { useT } from '../../i18n'
 
 function todayKey() {
   const d = new Date()
@@ -15,6 +16,7 @@ function noteKey() {
 // disorder pathway, a numeric adherence score can do more harm than good.
 // This is just a gentle "have you had your meals today" presence tracker.
 export default function DcaChecklist({ dati }) {
+  const t = useT()
   const [checked, setChecked] = useState({})
   const [nota, setNota] = useState('')
   const storageKey = todayKey()
@@ -46,9 +48,9 @@ export default function DcaChecklist({ dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>🫀 I tuoi pasti di oggi</h3>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{t('dca.mealsTitle', '🫀 I tuoi pasti di oggi')}</h3>
       <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 14 }}>
-        Un piccolo promemoria, senza numeri da inseguire — spunta man mano che li completi.
+        {t('dca.mealsSubtitle', 'Un piccolo promemoria, senza numeri da inseguire — spunta man mano che li completi.')}
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -75,20 +77,20 @@ export default function DcaChecklist({ dati }) {
 
       {doneCount > 0 && (
         <p style={{ fontSize: 12, color: '#E11D48', marginTop: 10, textAlign: 'center' }}>
-          {doneCount === pasti.length ? 'Hai completato la giornata — bravo/a per esserci stato/a per te.' : 'Un passo alla volta, va bene così.'}
+          {doneCount === pasti.length ? t('dca.allDone', 'Hai completato la giornata — bravo/a per esserci stato/a per te.') : t('dca.stepAtATime', 'Un passo alla volta, va bene così.')}
         </p>
       )}
 
       <div style={{ marginTop: 16 }}>
-        <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>📓 Come ti senti oggi (spazio privato)</p>
+        <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>{t('dca.notesTitle', '📓 Come ti senti oggi (spazio privato)')}</p>
         <textarea
           value={nota}
           onChange={e => updateNota(e.target.value)}
-          placeholder="Solo per te — pensieri, emozioni, difficoltà incontrate oggi. Non viene condiviso automaticamente con nessuno."
+          placeholder={t('dca.notesPlaceholder', 'Solo per te — pensieri, emozioni, difficoltà incontrate oggi. Non viene condiviso automaticamente con nessuno.')}
           rows={3}
           style={{ width: '100%', resize: 'vertical', padding: '10px 12px', borderRadius: 10, border: '1.5px solid var(--border-light)', fontSize: 12.5, fontFamily: 'inherit', background: 'var(--surface-2)', color: 'var(--text-primary)' }}
         />
-        <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>Salvato solo su questo dispositivo. Se vuoi, puoi condividerlo con il tuo dietista in chat.</p>
+        <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>{t('dca.notesHint', 'Salvato solo su questo dispositivo. Se vuoi, puoi condividerlo con il tuo dietista in chat.')}</p>
       </div>
     </div>
   )

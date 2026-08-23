@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Droplets } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { fetchLatestWeight } from '../../lib/specialSections'
+import { useT } from '../../i18n'
 
 function num(v) {
   if (v === null || v === undefined || v === '') return null
@@ -10,6 +11,7 @@ function num(v) {
 }
 
 export default function SportCalculator({ dati }) {
+  const t = useT()
   const { user } = useAuth()
   const [training, setTraining] = useState(true)
   const [latestWeight, setLatestWeight] = useState(null)
@@ -36,7 +38,7 @@ export default function SportCalculator({ dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>🎯 Il tuo obiettivo di oggi</h3>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{t('sport.todayGoalTitle', '🎯 Il tuo obiettivo di oggi')}</h3>
 
       {(kcalTrain !== null || kcalRest !== null) && (
         <div style={{ display: 'flex', gap: 6, background: 'var(--surface-2)', borderRadius: 12, padding: 4, marginBottom: 14, marginTop: 10 }}>
@@ -46,27 +48,27 @@ export default function SportCalculator({ dati }) {
             background: training ? 'var(--surface)' : 'transparent',
             color: training ? '#059669' : 'var(--text-muted)',
             boxShadow: training ? 'var(--shadow-sm)' : 'none',
-          }}>🏋️ Giorno di allenamento</button>
+          }}>{t('sport.trainingDayTab', '🏋️ Giorno di allenamento')}</button>
           <button onClick={() => setTraining(false)} style={{
             flex: 1, padding: '8px 4px', borderRadius: 9, border: 'none', cursor: 'pointer', font: 'inherit',
             fontSize: 12.5, fontWeight: !training ? 700 : 500,
             background: !training ? 'var(--surface)' : 'transparent',
             color: !training ? '#059669' : 'var(--text-muted)',
             boxShadow: !training ? 'var(--shadow-sm)' : 'none',
-          }}>🛌 Giorno di riposo</button>
+          }}>{t('sport.restDayTab', '🛌 Giorno di riposo')}</button>
         </div>
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: protTarget ? '1fr 1fr' : '1fr', gap: 10 }}>
         {kcalTarget !== null && (
           <div style={{ textAlign: 'center', padding: '14px 10px', background: '#D1FAE5', borderRadius: 12 }}>
-            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Kcal target</p>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{t('sport.kcalTargetLabel', 'Kcal target')}</p>
             <p style={{ fontSize: 22, fontWeight: 800, color: '#059669' }}>{kcalTarget}</p>
           </div>
         )}
         {protTarget !== null && (
           <div style={{ textAlign: 'center', padding: '14px 10px', background: '#EFF6FF', borderRadius: 12 }}>
-            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Proteine target</p>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{t('sport.proteinTargetLabel', 'Proteine target')}</p>
             <p style={{ fontSize: 22, fontWeight: 800, color: '#1D4ED8' }}>{protTarget} g</p>
           </div>
         )}
@@ -76,14 +78,16 @@ export default function SportCalculator({ dati }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10, padding: '10px 12px', background: '#ECFEFF', borderRadius: 12 }}>
           <Droplets size={18} color="#0891B2" />
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 12, fontWeight: 600, color: '#0891B2' }}>Idratazione consigliata oggi: ~{waterTarget} ml</p>
-            <p style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>Stima generica in base al peso{training ? ' e al giorno di allenamento' : ''} — di più con caldo/sudorazione intensa</p>
+            <p style={{ fontSize: 12, fontWeight: 600, color: '#0891B2' }}>{t('sport.hydrationRecommendedToday', { amount: waterTarget }, 'Idratazione consigliata oggi: ~{{amount}} ml')}</p>
+            <p style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{training
+              ? t('sport.hydrationEstimateTraining', 'Stima generica in base al peso e al giorno di allenamento — di più con caldo/sudorazione intensa')
+              : t('sport.hydrationEstimateRest', 'Stima generica in base al peso — di più con caldo/sudorazione intensa')}</p>
           </div>
         </div>
       )}
 
       {training && oraTrain && (
-        <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 12, textAlign: 'center' }}>⏱️ Timing pre-workout consigliato: {oraTrain}</p>
+        <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 12, textAlign: 'center' }}>{t('sport.preworkoutTiming', { time: oraTrain }, '⏱️ Timing pre-workout consigliato: {{time}}')}</p>
       )}
     </div>
   )

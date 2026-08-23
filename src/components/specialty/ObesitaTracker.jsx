@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { fetchLatestWeight, fetchTodayIntake } from '../../lib/specialSections'
+import { useT } from '../../i18n'
 
 function num(v) {
   if (v === null || v === undefined || v === '') return null
@@ -9,14 +10,15 @@ function num(v) {
 }
 
 const BMI_CATEGORIES = [
-  { max: 18.5, label: 'Sottopeso', color: '#0891B2' },
-  { max: 25, label: 'Normopeso', color: '#16A34A' },
-  { max: 30, label: 'Sovrappeso', color: '#D97706' },
-  { max: Infinity, label: 'Obesità', color: '#DC2626' },
+  { max: 18.5, key: 'obesita.bmiCategoryUnderweight', label: 'Sottopeso', color: '#0891B2' },
+  { max: 25, key: 'obesita.bmiCategoryNormal', label: 'Normopeso', color: '#16A34A' },
+  { max: 30, key: 'obesita.bmiCategoryOverweight', label: 'Sovrappeso', color: '#D97706' },
+  { max: Infinity, key: 'obesita.bmiCategoryObesity', label: 'Obesità', color: '#DC2626' },
 ]
 
 export default function ObesitaTracker({ dati }) {
   const { user, profile } = useAuth()
+  const t = useT()
   const [current, setCurrent] = useState(null)
   const [intake, setIntake] = useState(null)
 
@@ -51,17 +53,17 @@ export default function ObesitaTracker({ dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 14 }}>⚖️ Il tuo percorso peso</h3>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 14 }}>{t('obesita.title', '⚖️ Il tuo percorso peso')}</h3>
 
       {bmi !== null && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 12, marginBottom: 14 }}>
           <div style={{ textAlign: 'center' }}>
             <p style={{ fontSize: 20, fontWeight: 800, color: bmiCat.color }}>{bmi}</p>
-            <p style={{ fontSize: 9.5, color: 'var(--text-muted)' }}>BMI</p>
+            <p style={{ fontSize: 9.5, color: 'var(--text-muted)' }}>{t('obesita.bmiLabel', 'BMI')}</p>
           </div>
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 12.5, fontWeight: 600, color: bmiCat.color }}>{bmiCat.label}</p>
-            <p style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>Calcolato dal tuo ultimo peso registrato e dall'altezza nel profilo</p>
+            <p style={{ fontSize: 12.5, fontWeight: 600, color: bmiCat.color }}>{t(bmiCat.key, bmiCat.label)}</p>
+            <p style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{t('obesita.bmiDescription', "Calcolato dal tuo ultimo peso registrato e dall'altezza nel profilo")}</p>
           </div>
         </div>
       )}
@@ -70,7 +72,7 @@ export default function ObesitaTracker({ dati }) {
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>
             <span>{weight !== null ? `${weight} kg` : '—'}</span>
-            <span>Obiettivo: {target} kg</span>
+            <span>{t('obesita.goalLabel', { target }, 'Obiettivo: {{target}} kg')}</span>
           </div>
           {progressPct !== null && (
             <div style={{ height: 8, background: 'var(--border-light)', borderRadius: 4, overflow: 'hidden' }}>
@@ -78,20 +80,24 @@ export default function ObesitaTracker({ dati }) {
             </div>
           )}
           {toGo !== null && toGo > 0 && (
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8, textAlign: 'center' }}>Mancano {toGo} kg all'obiettivo</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8, textAlign: 'center' }}>{t('obesita.kgToGo', { toGo }, "Mancano {{toGo}} kg all'obiettivo")}</p>
           )}
           {toGo !== null && toGo <= 0 && (
-            <p style={{ fontSize: 12, color: '#16A34A', marginTop: 8, textAlign: 'center', fontWeight: 600 }}>✓ Obiettivo raggiunto</p>
+            <p style={{ fontSize: 12, color: '#16A34A', marginTop: 8, textAlign: 'center', fontWeight: 600 }}>{t('obesita.goalReached', '✓ Obiettivo raggiunto')}</p>
           )}
           {weeksToGoal !== null && (
-            <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, textAlign: 'center' }}>Al ritmo previsto dal tuo dietista: ~{weeksToGoal} settimane per arrivarci</p>
+            <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, textAlign: 'center' }}>
+              {weeksToGoal === 1
+                ? t('obesita.weeksToGoalOne', { weeksToGoal }, 'Al ritmo previsto dal tuo dietista: ~{{weeksToGoal}} settimana per arrivarci')
+                : t('obesita.weeksToGoalOther', { weeksToGoal }, 'Al ritmo previsto dal tuo dietista: ~{{weeksToGoal}} settimane per arrivarci')}
+            </p>
           )}
         </>
       )}
 
       {kcalTarget !== null && (
         <div style={{ marginTop: target !== null ? 16 : 0, textAlign: 'center', padding: '12px 10px', background: '#FFEDD5', borderRadius: 12 }}>
-          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Kcal target giornaliero{deficit ? ` (${deficit})` : ''}</p>
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{t('obesita.kcalTargetLabel', 'Kcal target giornaliero')}{deficit ? ` (${deficit})` : ''}</p>
           <p style={{ fontSize: 20, fontWeight: 800, color: '#EA580C' }}>{kcalTarget} kcal</p>
         </div>
       )}
@@ -99,7 +105,7 @@ export default function ObesitaTracker({ dati }) {
       {kcalTarget !== null && intake !== null && (
         <div style={{ marginTop: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
-            <span style={{ fontWeight: 500 }}>Assunte oggi</span>
+            <span style={{ fontWeight: 500 }}>{t('obesita.dailyIntakeLabel', 'Assunte oggi')}</span>
             <span><b>{Math.round(intake.kcal)}</b> / {kcalTarget} kcal</span>
           </div>
           <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>

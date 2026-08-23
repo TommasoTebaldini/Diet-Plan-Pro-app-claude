@@ -1,3 +1,5 @@
+import { useT } from '../../i18n'
+
 function num(v) {
   if (v === null || v === undefined || v === '') return null
   const n = parseFloat(String(v).replace(',', '.'))
@@ -8,16 +10,16 @@ function num(v) {
 // pre-pregnancy BMI category → total recommended gain + 2nd/3rd trimester
 // weekly rate. First trimester (≤13 weeks) is ~0.5–2 kg for every category.
 const IOM_SINGLE = [
-  { max: 18.5, label: 'Sottopeso', total: [12.5, 18], weekly: [0.44, 0.58] },
-  { max: 25,   label: 'Normopeso', total: [11.5, 16], weekly: [0.35, 0.50] },
-  { max: 30,   label: 'Sovrappeso', total: [7, 11.5],  weekly: [0.23, 0.33] },
-  { max: Infinity, label: 'Obesità', total: [5, 9], weekly: [0.17, 0.27] },
+  { max: 18.5, key: 'underweight', total: [12.5, 18], weekly: [0.44, 0.58] },
+  { max: 25,   key: 'normal', total: [11.5, 16], weekly: [0.35, 0.50] },
+  { max: 30,   key: 'overweight', total: [7, 11.5],  weekly: [0.23, 0.33] },
+  { max: Infinity, key: 'obese', total: [5, 9], weekly: [0.17, 0.27] },
 ]
 const IOM_TWINS = [
-  { max: 18.5, label: 'Sottopeso', total: [23, 28] },
-  { max: 25,   label: 'Normopeso', total: [17, 25] },
-  { max: 30,   label: 'Sovrappeso', total: [14, 23] },
-  { max: Infinity, label: 'Obesità', total: [11, 19] },
+  { max: 18.5, key: 'underweight', total: [23, 28] },
+  { max: 25,   key: 'normal', total: [17, 25] },
+  { max: 30,   key: 'overweight', total: [14, 23] },
+  { max: Infinity, key: 'obese', total: [11, 19] },
 ]
 
 function categoryFor(bmi, isTwins) {
@@ -32,6 +34,7 @@ function trimesterFor(w) {
 }
 
 export default function GravidanzaTracker({ dati }) {
+  const t = useT()
   const bmi = num(dati.bmi)
   const pesoPre = num(dati.pesoPre)
   const pesoAtt = num(dati.pesoAtt)
@@ -40,6 +43,13 @@ export default function GravidanzaTracker({ dati }) {
 
   if (bmi === null) return null
   const cat = categoryFor(bmi, isTwins)
+  const CATEGORY_LABELS = {
+    underweight: t('gravidanza.catUnderweight', 'Sottopeso'),
+    normal: t('gravidanza.catNormal', 'Normopeso'),
+    overweight: t('gravidanza.catOverweight', 'Sovrappeso'),
+    obese: t('gravidanza.catObese', 'Obesità'),
+  }
+  const catLabel = CATEGORY_LABELS[cat.key]
   const gain = pesoPre !== null && pesoAtt !== null ? Math.round((pesoAtt - pesoPre) * 10) / 10 : null
 
   let expectedRange = null
@@ -59,11 +69,11 @@ export default function GravidanzaTracker({ dati }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>🤰 Incremento di peso in gravidanza</h3>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{t('gravidanza.title', '🤰 Incremento di peso in gravidanza')}</h3>
       {settimane !== null && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
           <span style={{ fontSize: 12, fontWeight: 700, background: '#FAE8FF', color: '#C026D3', borderRadius: 100, padding: '3px 10px' }}>
-            Settimana {settimane} · {trimesterFor(settimane)}° trimestre
+            {t('gravidanza.weekBadge', { week: settimane, trimester: trimesterFor(settimane) }, 'Settimana {{week}} · {{trimester}}° trimestre')}
           </span>
           <div style={{ flex: 1, height: 5, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${Math.min(100, Math.round(settimane / 40 * 100))}%`, background: '#C026D3', borderRadius: 3 }} />
@@ -71,18 +81,18 @@ export default function GravidanzaTracker({ dati }) {
         </div>
       )}
       <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 14 }}>
-        Categoria pre-gravidanza: <b style={{ color: '#C026D3' }}>{cat.label}</b> (BMI {bmi}){isTwins ? ' · Gravidanza gemellare' : ''}
+        {t('gravidanza.preCategoryLabel', 'Categoria pre-gravidanza:')} <b style={{ color: '#C026D3' }}>{catLabel}</b> {t('gravidanza.bmiSuffix', { bmi }, '(BMI {{bmi}})')}{isTwins ? t('gravidanza.twinsLabel', ' · Gravidanza gemellare') : ''}
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: gain !== null ? '1fr 1fr' : '1fr', gap: 10, marginBottom: 14 }}>
         {gain !== null && (
           <div style={{ textAlign: 'center', padding: '14px 10px', background: '#FAE8FF', borderRadius: 12 }}>
-            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Incremento finora</p>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{t('gravidanza.gainSoFarLabel', 'Incremento finora')}</p>
             <p style={{ fontSize: 22, fontWeight: 800, color: '#C026D3' }}>{gain > 0 ? '+' : ''}{gain} kg</p>
           </div>
         )}
         <div style={{ textAlign: 'center', padding: '14px 10px', background: 'var(--surface-2)', borderRadius: 12 }}>
-          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Obiettivo a termine</p>
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{t('gravidanza.targetLabel', 'Obiettivo a termine')}</p>
           <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-secondary)' }}>{cat.total[0]}–{cat.total[1]} kg</p>
         </div>
       </div>
@@ -90,14 +100,14 @@ export default function GravidanzaTracker({ dati }) {
       {expectedRange && (
         <div style={{ padding: '10px 14px', background: inRange ? '#F0FDF4' : '#FFFBEB', borderRadius: 10 }}>
           <p style={{ fontSize: 12.5, color: inRange ? '#166534' : '#92400E' }}>
-            Alla settimana {settimane}, l'incremento tipico atteso è <b>{expectedRange[0]}–{expectedRange[1]} kg</b>
-            {gain !== null && (inRange ? ' — sei in linea con il percorso previsto.' : gain < expectedRange[0] ? ', il tuo incremento è al momento sotto il range tipico.' : ', il tuo incremento è al momento sopra il range tipico.')}
+            {t('gravidanza.expectedRangeIntro', { week: settimane }, "Alla settimana {{week}}, l'incremento tipico atteso è")} <b>{expectedRange[0]}–{expectedRange[1]} kg</b>
+            {gain !== null && (inRange ? t('gravidanza.inRangeSuffix', ' — sei in linea con il percorso previsto.') : gain < expectedRange[0] ? t('gravidanza.belowRangeSuffix', ', il tuo incremento è al momento sotto il range tipico.') : t('gravidanza.aboveRangeSuffix', ', il tuo incremento è al momento sopra il range tipico.'))}
           </p>
         </div>
       )}
 
       <p style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 12, textAlign: 'center' }}>
-        Range di riferimento IOM 2009 — parlane sempre con il tuo dietista/ginecologo, ogni gravidanza è diversa.
+        {t('gravidanza.disclaimer', 'Range di riferimento IOM 2009 — parlane sempre con il tuo dietista/ginecologo, ogni gravidanza è diversa.')}
       </p>
     </div>
   )
