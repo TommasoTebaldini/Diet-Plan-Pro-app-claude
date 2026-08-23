@@ -3,8 +3,10 @@ import { createPortal } from 'react-dom'
 import { BrowserMultiFormatReader } from '@zxing/browser'
 import { NotFoundException } from '@zxing/library'
 import { X, Camera } from 'lucide-react'
+import { useT } from '../i18n'
 
 export default function BarcodeScanner({ onDetected, onFound, onClose }) {
+  const t = useT()
   const videoRef = useRef(null)
   const readerRef = useRef(null)
   const [error, setError] = useState('')
@@ -35,17 +37,17 @@ export default function BarcodeScanner({ onDetected, onFound, onClose }) {
         if (err && !(err instanceof NotFoundException)) {
           // NotFoundException is normal (no barcode in frame yet), ignore it
           if (!String(err).includes('NotFoundException')) {
-            setError('Impossibile accedere alla fotocamera.')
+            setError(t('barcode.cameraAccessError', 'Impossibile accedere alla fotocamera.'))
           }
         }
-      }).catch(() => setError('Permesso fotocamera negato.'))
+      }).catch(() => setError(t('barcode.cameraPermissionDenied', 'Permesso fotocamera negato.')))
     } catch (e) {
-      setError('Scanner non supportato su questo browser.')
+      setError(t('barcode.notSupported', 'Scanner non supportato su questo browser.'))
     }
     return () => {
       try { if (readerRef.current) readerRef.current.reset() } catch {}
     }
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Portal su document.body: le pagine sono avvolte in PageTransition
   // (framer-motion, transform) che crea uno stacking context isolato — dentro
@@ -53,12 +55,12 @@ export default function BarcodeScanner({ onDetected, onFound, onClose }) {
   // contesto radice (stesso fix già applicato a VideoCallModal/DocModal).
   return createPortal(
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-      <button onClick={onClose} aria-label="Chiudi scanner" style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <button onClick={onClose} aria-label={t('barcode.closeScanner', 'Chiudi scanner')} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <X size={20} />
       </button>
       <p style={{ color: 'white', fontSize: 16, fontWeight: 600, marginBottom: 20 }}>
         <Camera size={18} style={{ verticalAlign: 'middle', marginRight: 8 }} />
-        Inquadra il codice a barre
+        {t('barcode.frameInstruction', 'Inquadra il codice a barre')}
       </p>
       {error ? (
         <div style={{ color: '#FCA5A5', fontSize: 14, textAlign: 'center', padding: '0 32px' }}>{error}</div>
@@ -69,7 +71,7 @@ export default function BarcodeScanner({ onDetected, onFound, onClose }) {
           {scanning && <div style={{ position: 'absolute', left: 0, right: 0, top: '50%', height: 2, background: 'rgba(34,197,94,0.8)', animation: 'scanline 1.5s ease-in-out infinite' }} />}
         </div>
       )}
-      <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 16 }}>Supporta EAN-13, QR code, UPC-A e altri formati</p>
+      <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 16 }}>{t('barcode.supportedFormats', 'Supporta EAN-13, QR code, UPC-A e altri formati')}</p>
       <style>{`@keyframes scanline { 0%,100%{top:30%} 50%{top:70%} }`}</style>
     </div>,
     document.body

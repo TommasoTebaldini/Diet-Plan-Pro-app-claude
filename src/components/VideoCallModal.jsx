@@ -1,12 +1,14 @@
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { jitsiUrl } from '../lib/videoCall'
+import { useT } from '../i18n'
 
 // z-index vicino al massimo int: la videochiamata deve stare SOPRA qualunque
 // altro overlay dell'app (menu, toast, tutorial, sheet arrivano fino a 99999).
 const TOP = 2147483000
 
 export default function VideoCallModal({ roomName, displayName, onClose }) {
+  const t = useT()
   if (!roomName) return null
   // Portal su document.body: le pagine sono avvolte in PageTransition
   // (framer-motion, transform) che crea uno stacking context isolato — dentro
@@ -27,7 +29,7 @@ export default function VideoCallModal({ roomName, displayName, onClose }) {
       }}>
         <button
           onClick={onClose}
-          aria-label="Chiudi videochiamata"
+          aria-label={t('videocall.closeAriaLabel', 'Chiudi videochiamata')}
           style={{
             pointerEvents: 'auto',
             display: 'flex', alignItems: 'center', gap: 6,
@@ -37,14 +39,14 @@ export default function VideoCallModal({ roomName, displayName, onClose }) {
             boxShadow: '0 2px 10px rgba(0,0,0,0.4)',
           }}
         >
-          <X size={18} color="#fff" /> Chiudi
+          <X size={18} color="#fff" /> {t('videocall.close', 'Chiudi')}
         </button>
       </div>
       <iframe
         src={jitsiUrl(roomName, displayName)}
         allow="camera; microphone; fullscreen; display-capture; autoplay; screen-wake-lock"
         style={{ width: '100%', height: '100%', border: 'none' }}
-        title="Videochiamata"
+        title={t('videocall.iframeTitle', 'Videochiamata')}
       />
     </div>,
     document.body,

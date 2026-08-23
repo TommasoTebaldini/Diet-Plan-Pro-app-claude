@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../i18n'
 import { Sparkles, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
 
 const CACHE_KEY = 'nutriplan_daily_tips'
@@ -32,6 +33,7 @@ const CATEGORY_COLOR = {
 
 export default function DailyTipsCard() {
   const { user } = useAuth()
+  const t = useT()
   const [tips, setTips] = useState(() => loadCache())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -54,15 +56,16 @@ export default function DailyTipsCard() {
     setNoData(false)
     try {
       const { data, error } = await supabase.functions.invoke('daily-tips', { method: 'POST' })
-      if (error) throw new Error(error.message || 'Errore AI')
+      if (error) throw new Error(error.message || t('dailytips.errorAI', 'Errore AI'))
       if (data?.noData) { setNoData(true); setTips([]); return }
       setTips(data?.tips || [])
       if (data?.tips?.length) saveCache(data.tips)
     } catch (e) {
-      setError(e.message || 'Errore nel caricare i suggerimenti')
+      setError(e.message || t('dailytips.errorLoadingTips', 'Errore nel caricare i suggerimenti'))
     } finally {
       setLoading(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
   useEffect(() => { fetchTips() }, [fetchTips])
@@ -81,15 +84,21 @@ export default function DailyTipsCard() {
           <Sparkles size={16} color="white" />
         </div>
         <div style={{ flex: 1 }}>
-          <p style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.2 }}>Suggerimenti AI di oggi</p>
+          <p style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.2 }}>{t('dailytips.headerTitle', 'Suggerimenti AI di oggi')}</p>
           <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>
-            {loading ? 'Analisi in corso…' : tips?.length ? `${tips.length} consigli basati su ieri` : 'Personalizzati per te'}
+            {loading
+              ? t('dailytips.analyzing', 'Analisi in corso…')
+              : tips?.length
+                ? (tips.length === 1
+                    ? t('dailytips.countOne', { count: tips.length }, '{{count}} consiglio basato su ieri')
+                    : t('dailytips.countOther', { count: tips.length }, '{{count}} consigli basati su ieri'))
+                : t('dailytips.personalizedForYou', 'Personalizzati per te')}
           </p>
         </div>
         <button
           onClick={e => { e.stopPropagation(); fetchTips(true) }}
           disabled={loading}
-          title="Aggiorna suggerimenti"
+          title={t('dailytips.refreshTipsTitle', 'Aggiorna suggerimenti')}
           style={{ background: 'none', border: 'none', cursor: loading ? 'default' : 'pointer', padding: 8, color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
         >
           <RefreshCw size={14} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
@@ -113,7 +122,7 @@ export default function DailyTipsCard() {
             <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '8px 0' }}>
               <p style={{ marginBottom: 8 }}>⚠️ {error}</p>
               <button onClick={() => fetchTips(true)} style={{ fontSize: 12, color: 'var(--green-main)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
-                Riprova
+                {t('dailytips.retry', 'Riprova')}
               </button>
             </div>
           )}
@@ -134,7 +143,7 @@ export default function DailyTipsCard() {
                 )
               })}
               <p style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'right', marginTop: 2 }}>
-                Basati sui dati di ieri · si aggiornano ogni giorno
+                {t('dailytips.basedOnYesterday', 'Basati sui dati di ieri · si aggiornano ogni giorno')}
               </p>
             </div>
           )}

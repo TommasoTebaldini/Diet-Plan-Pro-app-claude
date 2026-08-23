@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { Lock, Star } from 'lucide-react'
 import { useSubscription, PAYMENTS_ACTIVE } from '../hooks/useSubscription'
+import { useT } from '../i18n'
 
 /**
  * Wraps Pro-only content. While PAYMENTS_ACTIVE=false renders children unconditionally.
@@ -14,6 +15,7 @@ import { useSubscription, PAYMENTS_ACTIVE } from '../hooks/useSubscription'
 export default function ProGate({ feature, teaser, children }) {
   const { isPro } = useSubscription()
   const navigate = useNavigate()
+  const t = useT()
 
   // Payments inactive: render content for everyone
   if (!PAYMENTS_ACTIVE) return children
@@ -49,10 +51,10 @@ export default function ProGate({ feature, teaser, children }) {
         </div>
         <div>
           <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)', margin: '0 0 4px' }}>
-            {feature || 'Funzione Premium'}
+            {feature || t('progate.defaultFeature', 'Funzione Premium')}
           </p>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-            Disponibile con il piano Pro a €5,99/mese
+            {t('progate.upsellText', 'Disponibile con il piano Pro a €5,99/mese')}
           </p>
         </div>
         <button
@@ -65,7 +67,7 @@ export default function ProGate({ feature, teaser, children }) {
           }}
         >
           <Star size={15} />
-          Scopri il piano Pro
+          {t('progate.ctaButton', 'Scopri il piano Pro')}
         </button>
       </div>
     </div>

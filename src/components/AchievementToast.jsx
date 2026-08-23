@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import { useT } from '../i18n'
 
 const AUTO_DISMISS_MS = 4000
 
 export default function AchievementToast({ achievement, onDismiss }) {
+  const t = useT()
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
@@ -47,7 +49,7 @@ export default function AchievementToast({ achievement, onDismiss }) {
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: '#b45309', marginBottom: 2 }}>Badge sbloccato!</div>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: '#b45309', marginBottom: 2 }}>{t('achtoast.unlocked', 'Badge sbloccato!')}</div>
         <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{achievement.name}</div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{achievement.description}</div>
       </div>

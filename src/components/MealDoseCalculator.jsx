@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Syringe, Pill, ChevronDown, ChevronUp } from 'lucide-react'
 import { calcDiabeteMealDose, calcPancreasMealDose } from '../lib/mealCalculators'
+import { useT } from '../i18n'
 
 // Shows "what to do for this meal" directly inside the diario, computed from
 // whichever specialty sections the dietitian has enabled AND configured for
@@ -10,6 +11,7 @@ import { calcDiabeteMealDose, calcPancreasMealDose } from '../lib/mealCalculator
 // enough dietitian-entered data to compute anything for this meal — this is
 // meant to appear only when it can give a real, actionable number.
 export default function MealDoseCalculator({ specialtyNotes, choGrams, fatGrams, mealTime, currentWeight }) {
+  const t = useT()
   const [glicemia, setGlicemia] = useState('')
   const [expanded, setExpanded] = useState(null)
 
@@ -20,8 +22,8 @@ export default function MealDoseCalculator({ specialtyNotes, choGrams, fatGrams,
   const pancreas = pancreasDati ? calcPancreasMealDose(pancreasDati, { fatGrams, currentWeight }) : null
 
   const rows = [
-    diabete?.available && { key: 'diabete', icon: Syringe, color: '#1D4ED8', bg: '#EFF6FF', label: 'Insulina', dose: diabete.total !== null ? `${diabete.total} U` : null, calc: diabete },
-    pancreas?.available && { key: 'pancreas', icon: Pill, color: '#D97706', bg: '#FEF3C7', label: 'Enzimi pancreatici', dose: pancreas.ul !== null ? `${pancreas.ul.toLocaleString('it-IT')} UL` : null, calc: pancreas },
+    diabete?.available && { key: 'diabete', icon: Syringe, color: '#1D4ED8', bg: '#EFF6FF', label: t('dosecalc.insulina_label', 'Insulina'), dose: diabete.total !== null ? `${diabete.total} U` : null, calc: diabete },
+    pancreas?.available && { key: 'pancreas', icon: Pill, color: '#D97706', bg: '#FEF3C7', label: t('dosecalc.enzimi_label', 'Enzimi pancreatici'), dose: pancreas.ul !== null ? `${pancreas.ul.toLocaleString('it-IT')} UL` : null, calc: pancreas },
   ].filter(Boolean)
 
   if (!rows.length) return null
@@ -29,7 +31,7 @@ export default function MealDoseCalculator({ specialtyNotes, choGrams, fatGrams,
   return (
     <div style={{ marginBottom: 8, borderRadius: 12, border: '1.5px solid #E0E7FF', overflow: 'hidden' }}>
       <div style={{ padding: '8px 12px', background: '#F5F3FF', borderBottom: '1px solid #E0E7FF' }}>
-        <p style={{ fontSize: 11, fontWeight: 700, color: '#5B21B6' }}>📋 Cosa fare per questo pasto</p>
+        <p style={{ fontSize: 11, fontWeight: 700, color: '#5B21B6' }}>{t('dosecalc.header', '📋 Cosa fare per questo pasto')}</p>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {rows.map(r => {
@@ -53,14 +55,14 @@ export default function MealDoseCalculator({ specialtyNotes, choGrams, fatGrams,
                   {r.key === 'diabete' && (
                     <>
                       <p style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                        {choGrams > 0 && r.calc.icRatio && <>Dose pasto: {Math.round(choGrams)}g CHO ÷ 1:{r.calc.icRatio} = {r.calc.mealDose ?? 0} U<br /></>}
-                        {r.calc.fasciaNome && <>Fascia oraria: {r.calc.fasciaNome}<br /></>}
-                        {r.calc.needsGlicemia && 'Aggiungi la tua glicemia attuale per includere la dose di correzione.'}
+                        {choGrams > 0 && r.calc.icRatio && <>{t('dosecalc.dose_pasto', { grams: Math.round(choGrams), ratio: r.calc.icRatio, dose: r.calc.mealDose ?? 0 }, 'Dose pasto: {{grams}}g CHO ÷ 1:{{ratio}} = {{dose}} U')}<br /></>}
+                        {r.calc.fasciaNome && <>{t('dosecalc.fascia_oraria', { fascia: r.calc.fasciaNome }, 'Fascia oraria: {{fascia}}')}<br /></>}
+                        {r.calc.needsGlicemia && t('dosecalc.add_glicemia', 'Aggiungi la tua glicemia attuale per includere la dose di correzione.')}
                       </p>
                       {(r.calc.fsi && r.calc.target) && (
                         <div style={{ display: 'flex', gap: 6, marginTop: 6, alignItems: 'center' }}>
                           <input
-                            type="number" inputMode="decimal" placeholder="Glicemia attuale (mg/dL)"
+                            type="number" inputMode="decimal" placeholder={t('dosecalc.glicemia_placeholder', 'Glicemia attuale (mg/dL)')}
                             value={glicemia} onChange={e => setGlicemia(e.target.value)}
                             style={{ flex: 1, padding: '6px 9px', border: '1.5px solid var(--border)', borderRadius: 8, background: 'var(--surface-2)', fontSize: 12.5, outline: 'none', color: 'var(--text-primary)' }}
                           />
@@ -69,16 +71,16 @@ export default function MealDoseCalculator({ specialtyNotes, choGrams, fatGrams,
                       )}
                       {r.calc.correctionDose !== null && (
                         <p style={{ fontSize: 11, color: r.color, fontWeight: 600, marginTop: 6 }}>
-                          + correzione: {r.calc.correctionDose} U
+                          {t('dosecalc.correzione', { dose: r.calc.correctionDose }, '+ correzione: {{dose}} U')}
                         </p>
                       )}
                     </>
                   )}
                   {r.key === 'pancreas' && (
                     <p style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                      {r.calc.isGrassiMethod && fatGrams > 0 && <>Basato su {Math.round(fatGrams)}g di grassi in questo pasto.<br /></>}
-                      {r.calc.isPesoMethod && <>Dose fissa per pasto principale, non dipende dai grassi di questo pasto.<br /></>}
-                      {r.calc.creon40 !== null && <>Creon 40.000: {r.calc.creon40} cps · 25.000: {r.calc.creon25} cps · 10.000: {r.calc.creon10} cps</>}
+                      {r.calc.isGrassiMethod && fatGrams > 0 && <>{t('dosecalc.basato_su_grassi', { grams: Math.round(fatGrams) }, 'Basato su {{grams}}g di grassi in questo pasto.')}<br /></>}
+                      {r.calc.isPesoMethod && <>{t('dosecalc.dose_fissa', 'Dose fissa per pasto principale, non dipende dai grassi di questo pasto.')}<br /></>}
+                      {r.calc.creon40 !== null && <>{t('dosecalc.creon_doses', { c40: r.calc.creon40, c25: r.calc.creon25, c10: r.calc.creon10 }, 'Creon 40.000: {{c40}} cps · 25.000: {{c25}} cps · 10.000: {{c10}} cps')}</>}
                     </p>
                   )}
                 </div>
@@ -88,7 +90,7 @@ export default function MealDoseCalculator({ specialtyNotes, choGrams, fatGrams,
         })}
       </div>
       <p style={{ fontSize: 9.5, color: 'var(--text-muted)', padding: '6px 12px', background: 'var(--surface-2)' }}>
-        Supporto al calcolo — verifica sempre con il tuo dietista/team clinico prima di somministrare.
+        {t('dosecalc.footer', 'Supporto al calcolo — verifica sempre con il tuo dietista/team clinico prima di somministrare.')}
       </p>
     </div>
   )
