@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { AlertTriangle, History, Trash2, Clock } from 'lucide-react'
 import { calcDiabeteMealDose, round05 } from '../../lib/mealCalculators'
+import { useT } from '../../i18n'
 
 const STORAGE_KEY = 'diabete_dose_history_v1'
 const MAX_HISTORY = 20
@@ -35,6 +36,7 @@ function findCurrentFasciaIdx(fasce) {
 }
 
 export default function DiabeteCalculator({ dati }) {
+  const t = useT()
   const [cho, setCho] = useState('')
   const [glicemia, setGlicemia] = useState('')
   const [history, setHistory] = useState([])
@@ -90,12 +92,12 @@ export default function DiabeteCalculator({ dati }) {
 
   return (
     <div className="card" style={{ padding: 18 }}>
-      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>💉 Calcolo dose insulina pasto</h3>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>{t('diabete.title', '💉 Calcolo dose insulina pasto')}</h3>
 
       {fasce.length > 0 && (
         <div style={{ marginBottom: 14 }}>
           <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Clock size={12} /> Fascia oraria — selezionata automaticamente in base all'ora, puoi cambiarla
+            <Clock size={12} /> {t('diabete.fasciaOrariaHint', "Fascia oraria — selezionata automaticamente in base all'ora, puoi cambiarla")}
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {fasce.map((f, i) => (
@@ -104,7 +106,7 @@ export default function DiabeteCalculator({ dati }) {
                 background: i === fasciaIdx ? '#EFF6FF' : 'var(--surface)', color: i === fasciaIdx ? '#1D4ED8' : 'var(--text-secondary)',
                 fontSize: 12, fontWeight: 600, cursor: 'pointer', font: 'inherit',
               }}>
-                {f.nome || `Fascia ${i + 1}`}{f.oraDa && f.oraA ? ` · ${f.oraDa}–${f.oraA}` : ''}
+                {f.nome || t('diabete.fasciaDefaultName', { num: i + 1 }, 'Fascia {{num}}')}{f.oraDa && f.oraA ? ` · ${f.oraDa}–${f.oraA}` : ''}
               </button>
             ))}
           </div>
@@ -113,72 +115,72 @@ export default function DiabeteCalculator({ dati }) {
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         <span style={{ fontSize: 11.5, fontWeight: 600, background: icRatio ? '#EFF6FF' : 'var(--surface-2)', color: icRatio ? '#1D4ED8' : 'var(--text-muted)', borderRadius: 100, padding: '4px 10px' }}>
-          I:C {icRatio ? `1U : ${icRatio}g` : 'non impostato'}
+          {t('diabete.icLabel', 'I:C')} {icRatio ? t('diabete.icValue', { ratio: icRatio }, '1U : {{ratio}}g') : t('diabete.notSet', 'non impostato')}
         </span>
         <span style={{ fontSize: 11.5, fontWeight: 600, background: fsi ? '#EFF6FF' : 'var(--surface-2)', color: fsi ? '#1D4ED8' : 'var(--text-muted)', borderRadius: 100, padding: '4px 10px' }}>
-          FSI {fsi ? `${fsi} mg/dL per U` : 'non impostato'}
+          {t('diabete.fsiLabel', 'FSI')} {fsi ? t('diabete.fsiValue', { fsi }, '{{fsi}} mg/dL per U') : t('diabete.notSet', 'non impostato')}
         </span>
         <span style={{ fontSize: 11.5, fontWeight: 600, background: target ? '#EFF6FF' : 'var(--surface-2)', color: target ? '#1D4ED8' : 'var(--text-muted)', borderRadius: 100, padding: '4px 10px' }}>
-          Target {target ? `${target} mg/dL` : 'non impostato'}
+          {t('diabete.targetLabel', 'Target')} {target ? t('diabete.targetValue', { target }, '{{target}} mg/dL') : t('diabete.notSet', 'non impostato')}
         </span>
       </div>
 
       {!icRatio && !fsi && (
         <div style={{ display: 'flex', gap: 8, padding: '10px 12px', background: 'var(--alert-info-bg)', border: '1px solid var(--alert-info-border)', borderRadius: 10, marginBottom: 14 }}>
           <p style={{ fontSize: 12, color: 'var(--alert-info-text)', lineHeight: 1.5 }}>
-            Il tuo dietista non ha ancora impostato i parametri per questo calcolo (rapporto I:C e FSI) — puoi comunque provare i valori qui sotto, ma il risultato non apparirà finché non li avrà inseriti nella tua scheda.
+            {t('diabete.paramsNotSetInfo', 'Il tuo dietista non ha ancora impostato i parametri per questo calcolo (rapporto I:C e FSI) — puoi comunque provare i valori qui sotto, ma il risultato non apparirà finché non li avrà inseriti nella tua scheda.')}
           </p>
         </div>
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div className="input-group">
-          <label className="input-label">Carboidrati del pasto (g)</label>
-          <input type="number" inputMode="decimal" className="input-field" placeholder="es. 60" value={cho} onChange={e => setCho(e.target.value)} />
+          <label className="input-label">{t('diabete.choLabel', 'Carboidrati del pasto (g)')}</label>
+          <input type="number" inputMode="decimal" className="input-field" placeholder={t('diabete.choPlaceholder', 'es. 60')} value={cho} onChange={e => setCho(e.target.value)} />
         </div>
         <div className="input-group">
-          <label className="input-label">Glicemia attuale (mg/dL) — opzionale, per la correzione</label>
-          <input type="number" inputMode="decimal" className="input-field" placeholder="es. 140" value={glicemia} onChange={e => setGlicemia(e.target.value)} />
+          <label className="input-label">{t('diabete.glicemiaLabel', 'Glicemia attuale (mg/dL) — opzionale, per la correzione')}</label>
+          <input type="number" inputMode="decimal" className="input-field" placeholder={t('diabete.glicemiaPlaceholder', 'es. 140')} value={glicemia} onChange={e => setGlicemia(e.target.value)} />
         </div>
         {!cho && glicemiaVal !== null && (
           <button className="btn btn-secondary btn-full" onClick={registraSoloGlicemia}>
-            Registra solo questa glicemia (senza calcolare una dose)
+            {t('diabete.registraSoloGlicemiaButton', 'Registra solo questa glicemia (senza calcolare una dose)')}
           </button>
         )}
       </div>
 
       {total !== null && (
         <div style={{ marginTop: 16, padding: '14px 16px', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 12 }}>
-          <p style={{ fontSize: 12, color: '#1D4ED8', marginBottom: 4 }}>Dose stimata</p>
+          <p style={{ fontSize: 12, color: '#1D4ED8', marginBottom: 4 }}>{t('diabete.doseStimataLabel', 'Dose stimata')}</p>
           <p style={{ fontSize: 28, fontWeight: 800, color: '#1D4ED8' }}>{total} U</p>
           <div style={{ fontSize: 11.5, color: '#1D4ED8', opacity: 0.8, marginTop: 6 }}>
-            {mealDose !== null && <div>Dose pasto: {choVal}g ÷ {icRatio} = {round05(mealDose)} U</div>}
-            {correctionDose !== null && <div>Correzione: ({glicemiaVal} − {target}) ÷ {fsi} = {round05(correctionDose)} U</div>}
+            {mealDose !== null && <div>{t('diabete.mealDoseFormula', { cho: choVal, ratio: icRatio, dose: round05(mealDose) }, 'Dose pasto: {{cho}}g ÷ {{ratio}} = {{dose}} U')}</div>}
+            {correctionDose !== null && <div>{t('diabete.correctionDoseFormula', { glicemia: glicemiaVal, target, fsi, dose: round05(correctionDose) }, 'Correzione: ({{glicemia}} − {{target}}) ÷ {{fsi}} = {{dose}} U')}</div>}
           </div>
           <button className="btn btn-primary btn-full" onClick={registra} style={{ marginTop: 12 }}>
-            Registra questa dose
+            {t('diabete.registraDoseButton', 'Registra questa dose')}
           </button>
         </div>
       )}
 
       {fasce.length > 0 && (
         <div style={{ marginTop: 18 }}>
-          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>📋 Il tuo profilo completo</p>
+          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>{t('diabete.profiloCompletoTitle', '📋 Il tuo profilo completo')}</p>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
                 <tr style={{ borderBottom: '1.5px solid var(--border)' }}>
-                  <th style={{ padding: '6px 8px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600 }}>Fascia</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600 }}>Orario</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600 }}>I:C</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600 }}>FSI</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600 }}>Target</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600 }}>{t('diabete.tableFascia', 'Fascia')}</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600 }}>{t('diabete.tableOrario', 'Orario')}</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600 }}>{t('diabete.icLabel', 'I:C')}</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600 }}>{t('diabete.fsiLabel', 'FSI')}</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600 }}>{t('diabete.targetLabel', 'Target')}</th>
                 </tr>
               </thead>
               <tbody>
                 {fasce.map((f, i) => (
                   <tr key={i} style={{ borderBottom: '1px solid var(--border-light)', background: i === fasciaIdx ? '#EFF6FF' : (i % 2 ? 'var(--surface-2)' : 'transparent') }}>
-                    <td style={{ padding: '7px 8px', fontWeight: i === fasciaIdx ? 700 : 400 }}>{f.nome || `Fascia ${i + 1}`}</td>
+                    <td style={{ padding: '7px 8px', fontWeight: i === fasciaIdx ? 700 : 400 }}>{f.nome || t('diabete.fasciaDefaultName', { num: i + 1 }, 'Fascia {{num}}')}</td>
                     <td style={{ padding: '7px 8px', color: 'var(--text-secondary)' }}>{f.oraDa && f.oraA ? `${f.oraDa}–${f.oraA}` : '—'}</td>
                     <td style={{ padding: '7px 8px', color: 'var(--text-secondary)' }}>{f.ic ? `1:${f.ic}` : '—'}</td>
                     <td style={{ padding: '7px 8px', color: 'var(--text-secondary)' }}>{f.fsi || '—'}</td>
@@ -195,10 +197,10 @@ export default function DiabeteCalculator({ dati }) {
         <div style={{ marginTop: 18 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 5 }}>
-              <History size={13} /> Dosi registrate (su questo dispositivo)
+              <History size={13} /> {t('diabete.dosiRegistrateTitle', 'Dosi registrate (su questo dispositivo)')}
             </p>
             <button onClick={cancellaStorico} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '10px 4px', margin: '-10px -4px' }}>
-              <Trash2 size={12} /> Cancella
+              <Trash2 size={12} /> {t('diabete.cancellaButton', 'Cancella')}
             </button>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -216,7 +218,7 @@ export default function DiabeteCalculator({ dati }) {
       <div style={{ marginTop: 14, display: 'flex', gap: 8, padding: '10px 12px', background: 'var(--alert-warning-bg)', border: '1px solid var(--alert-warning-border)', borderRadius: 10 }}>
         <AlertTriangle size={16} color="var(--alert-warning-text)" style={{ flexShrink: 0, marginTop: 1 }} />
         <p style={{ fontSize: 11.5, color: 'var(--alert-warning-text)', lineHeight: 1.5 }}>
-          Questo è solo un supporto al calcolo basato sui parametri che ti ha comunicato il tuo dietista/diabetologo — non sostituisce il suo giudizio clinico. Verifica sempre la dose prima di somministrarla, specialmente se la glicemia è molto fuori range.
+          {t('diabete.disclaimerFooter', 'Questo è solo un supporto al calcolo basato sui parametri che ti ha comunicato il tuo dietista/diabetologo — non sostituisce il suo giudizio clinico. Verifica sempre la dose prima di somministrarla, specialmente se la glicemia è molto fuori range.')}
         </p>
       </div>
     </div>

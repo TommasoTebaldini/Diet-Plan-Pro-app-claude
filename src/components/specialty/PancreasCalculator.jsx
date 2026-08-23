@@ -3,15 +3,15 @@ import { AlertTriangle, Check } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { fetchLatestWeight } from '../../lib/specialSections'
 import { calcPancreasMealDose } from '../../lib/mealCalculators'
+import { useT } from '../../i18n'
 
 function todayKey() {
   const d = new Date()
   return `pancreas_vit_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-const VIT_LABELS = { vitD: 'Vitamina D', vitE: 'Vitamina E', vitA: 'Vitamina A', vitK: 'Vitamina K' }
-
 export default function PancreasCalculator({ dati }) {
+  const t = useT()
   const { user } = useAuth()
   const [grassiPasto, setGrassiPasto] = useState('')
   const [checked, setChecked] = useState({})
@@ -37,53 +37,67 @@ export default function PancreasCalculator({ dati }) {
   const dose = calcPancreasMealDose(dati, { fatGrams: grassiPasto, currentWeight })
   const { isGrassiMethod, isPesoMethod, ratePerGram, ratePerKg, pesoRef, ul, creon40, creon25, creon10 } = dose
 
+  const VIT_LABELS = {
+    vitD: t('pancreas.vitD', 'Vitamina D'),
+    vitE: t('pancreas.vitE', 'Vitamina E'),
+    vitA: t('pancreas.vitA', 'Vitamina A'),
+    vitK: t('pancreas.vitK', 'Vitamina K'),
+  }
+
   const prescribedVits = Object.keys(VIT_LABELS).filter(k => dati.piano?.[k])
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>💊 Calcolo dose enzimi pancreatici (PERT)</h3>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>💊 {t('pancreas.title', 'Calcolo dose enzimi pancreatici (PERT)')}</h3>
 
       {isGrassiMethod ? (
         ratePerGram ? (
           <>
             <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 14 }}>
-              Basato sul rapporto {Math.round(ratePerGram)} UL per grammo di grasso, calcolato dal tuo dietista.
+              {t('pancreas.gramsMethodInfo', { rate: Math.round(ratePerGram) }, 'Basato sul rapporto {{rate}} UL per grammo di grasso, calcolato dal tuo dietista.')}
             </p>
             <div className="input-group">
-              <label className="input-label">Grammi di grasso in questo pasto</label>
-              <input type="number" inputMode="decimal" className="input-field" placeholder="es. 25" value={grassiPasto} onChange={e => setGrassiPasto(e.target.value)} />
+              <label className="input-label">{t('pancreas.fatGramsLabel', 'Grammi di grasso in questo pasto')}</label>
+              <input type="number" inputMode="decimal" className="input-field" placeholder={t('pancreas.fatGramsPlaceholder', 'es. 25')} value={grassiPasto} onChange={e => setGrassiPasto(e.target.value)} />
             </div>
           </>
         ) : (
-          <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Mancano i dati di riferimento del tuo dietista per calcolare il rapporto UL/grammo — chiedi di aggiornare la scheda.</p>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('pancreas.missingGramsRateInfo', 'Mancano i dati di riferimento del tuo dietista per calcolare il rapporto UL/grammo — chiedi di aggiornare la scheda.')}</p>
         )
       ) : isPesoMethod ? (
         ratePerKg ? (
           <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 14 }}>
-            Basato su {Math.round(ratePerKg)} UL/kg di peso corporeo, calcolato dal tuo dietista{currentWeight ? ` sul tuo ultimo peso registrato (${currentWeight} kg)` : pesoRef ? ` sul peso di riferimento (${pesoRef} kg)` : ''}. Dose fissa da assumere a ogni pasto principale, non dipende dai grammi di grasso.
+            {t('pancreas.weightMethodInfo', {
+              rate: Math.round(ratePerKg),
+              weightNote: currentWeight
+                ? t('pancreas.currentWeightNote', { weight: currentWeight }, ' sul tuo ultimo peso registrato ({{weight}} kg)')
+                : pesoRef
+                  ? t('pancreas.refWeightNote', { weight: pesoRef }, ' sul peso di riferimento ({{weight}} kg)')
+                  : '',
+            }, 'Basato su {{rate}} UL/kg di peso corporeo, calcolato dal tuo dietista{{weightNote}}. Dose fissa da assumere a ogni pasto principale, non dipende dai grammi di grasso.')}
           </p>
         ) : (
-          <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Mancano i dati di riferimento del tuo dietista per calcolare il rapporto UL/kg — chiedi di aggiornare la scheda.</p>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('pancreas.missingWeightRateInfo', 'Mancano i dati di riferimento del tuo dietista per calcolare il rapporto UL/kg — chiedi di aggiornare la scheda.')}</p>
         )
       ) : (
-        <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Il tuo dietista non ha ancora impostato un metodo di calcolo per la dose PERT.</p>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('pancreas.noMethodConfigured', 'Il tuo dietista non ha ancora impostato un metodo di calcolo per la dose PERT.')}</p>
       )}
 
       {ul !== null && (
         <div style={{ marginTop: 14, padding: '14px 16px', background: '#FEF3C7', borderRadius: 12 }}>
-          <p style={{ fontSize: 12, color: '#D97706', marginBottom: 4 }}>{isPesoMethod ? 'Dose di riferimento per pasto' : 'Dose stimata per questo pasto'}</p>
+          <p style={{ fontSize: 12, color: '#D97706', marginBottom: 4 }}>{isPesoMethod ? t('pancreas.refDosePerMeal', 'Dose di riferimento per pasto') : t('pancreas.estimatedDosePerMeal', 'Dose stimata per questo pasto')}</p>
           <p style={{ fontSize: 26, fontWeight: 800, color: '#D97706' }}>{ul.toLocaleString('it-IT')} UL</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
-            <span style={{ fontSize: 11.5, fontWeight: 700, background: '#DBEAFE', color: '#1D4ED8', borderRadius: 100, padding: '3px 10px' }}>Creon 40.000: {creon40} cps</span>
-            <span style={{ fontSize: 11.5, fontWeight: 700, background: '#EDE9FE', color: '#5B21B6', borderRadius: 100, padding: '3px 10px' }}>Creon 25.000: {creon25} cps</span>
-            <span style={{ fontSize: 11.5, fontWeight: 700, background: '#FCE7F3', color: '#9D174D', borderRadius: 100, padding: '3px 10px' }}>Creon 10.000: {creon10} cps</span>
+            <span style={{ fontSize: 11.5, fontWeight: 700, background: '#DBEAFE', color: '#1D4ED8', borderRadius: 100, padding: '3px 10px' }}>{t('pancreas.creon40Capsules', { count: creon40 }, 'Creon 40.000: {{count}} cps')}</span>
+            <span style={{ fontSize: 11.5, fontWeight: 700, background: '#EDE9FE', color: '#5B21B6', borderRadius: 100, padding: '3px 10px' }}>{t('pancreas.creon25Capsules', { count: creon25 }, 'Creon 25.000: {{count}} cps')}</span>
+            <span style={{ fontSize: 11.5, fontWeight: 700, background: '#FCE7F3', color: '#9D174D', borderRadius: 100, padding: '3px 10px' }}>{t('pancreas.creon10Capsules', { count: creon10 }, 'Creon 10.000: {{count}} cps')}</span>
           </div>
         </div>
       )}
 
       {prescribedVits.length > 0 && (
         <div style={{ marginTop: 16 }}>
-          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>💊 Vitamine liposolubili di oggi</p>
+          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>💊 {t('pancreas.vitaminsTodayTitle', 'Vitamine liposolubili di oggi')}</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {prescribedVits.map(k => {
               const done = !!checked[k]
@@ -105,7 +119,7 @@ export default function PancreasCalculator({ dati }) {
       <div style={{ marginTop: 14, display: 'flex', gap: 8, padding: '10px 12px', background: 'var(--alert-warning-bg)', border: '1px solid var(--alert-warning-border)', borderRadius: 10 }}>
         <AlertTriangle size={16} color="var(--alert-warning-text)" style={{ flexShrink: 0, marginTop: 1 }} />
         <p style={{ fontSize: 11.5, color: 'var(--alert-warning-text)', lineHeight: 1.5 }}>
-          Supporto al calcolo basato sui parametri del tuo specialista — non modificare la terapia enzimatica senza il suo parere, specialmente in caso di sintomi digestivi persistenti.
+          {t('pancreas.disclaimer', 'Supporto al calcolo basato sui parametri del tuo specialista — non modificare la terapia enzimatica senza il suo parere, specialmente in caso di sintomi digestivi persistenti.')}
         </p>
       </div>
     </div>

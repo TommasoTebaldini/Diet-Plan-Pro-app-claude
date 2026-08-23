@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Check } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { fetchTodayIntake } from '../../lib/specialSections'
+import { useT } from '../../i18n'
 
 function num(v) {
   if (v === null || v === undefined || v === '') return null
@@ -53,6 +54,7 @@ function percentileFor(table, sesso, ageMonths, value) {
 }
 
 export default function PediatriaTracker({ dati }) {
+  const t = useT()
   const { user, profile } = useAuth()
   const [intake, setIntake] = useState(null)
   const [checked, setChecked] = useState({})
@@ -89,41 +91,41 @@ export default function PediatriaTracker({ dati }) {
   if (!pasti.length && kcalTarget === null && !hasGrowth) return null
 
   function percBadge(perc) {
-    if (perc < 3 || perc > 97) return { color: '#DC2626', bg: '#FEF2F2', label: perc < 3 ? 'Molto basso' : 'Molto alto' }
-    if (perc < 15 || perc > 85) return { color: '#CA8A04', bg: '#FEFCE8', label: perc < 15 ? 'Sotto la media' : 'Sopra la media' }
-    return { color: '#16A34A', bg: '#F0FDF4', label: 'Nella norma' }
+    if (perc < 3 || perc > 97) return { color: '#DC2626', bg: '#FEF2F2', label: perc < 3 ? t('pediatria.badgeVeryLow', 'Molto basso') : t('pediatria.badgeVeryHigh', 'Molto alto') }
+    if (perc < 15 || perc > 85) return { color: '#CA8A04', bg: '#FEFCE8', label: perc < 15 ? t('pediatria.badgeBelowAverage', 'Sotto la media') : t('pediatria.badgeAboveAverage', 'Sopra la media') }
+    return { color: '#16A34A', bg: '#F0FDF4', label: t('pediatria.badgeNormal', 'Nella norma') }
   }
 
   return (
     <>
       {hasGrowth && (
         <div className="card" style={{ padding: 16, marginBottom: 12 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>📈 La tua crescita</h3>
-          <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 14 }}>Percentili calcolati sulle curve di crescita OMS per età e sesso.</p>
+          <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>📈 {t('pediatria.growthTitle', 'La tua crescita')}</h3>
+          <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 14 }}>{t('pediatria.growthSubtitle', 'Percentili calcolati sulle curve di crescita OMS per età e sesso.')}</p>
           <div style={{ display: 'grid', gridTemplateColumns: pesoPerc !== null && altezzaPerc !== null ? '1fr 1fr' : '1fr', gap: 10 }}>
             {pesoPerc !== null && (() => { const b = percBadge(pesoPerc); return (
               <div style={{ textAlign: 'center', padding: '12px 10px', background: b.bg, borderRadius: 12 }}>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Peso/Età</p>
-                <p style={{ fontSize: 20, fontWeight: 800, color: b.color }}>{pesoPerc}° perc.</p>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{t('pediatria.weightForAge', 'Peso/Età')}</p>
+                <p style={{ fontSize: 20, fontWeight: 800, color: b.color }}>{t('pediatria.percentileValue', { value: pesoPerc }, '{{value}}° perc.')}</p>
                 <p style={{ fontSize: 11, fontWeight: 600, color: b.color, marginTop: 2 }}>{b.label}</p>
               </div>
             )})()}
             {altezzaPerc !== null && (() => { const b = percBadge(altezzaPerc); return (
               <div style={{ textAlign: 'center', padding: '12px 10px', background: b.bg, borderRadius: 12 }}>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Altezza/Età</p>
-                <p style={{ fontSize: 20, fontWeight: 800, color: b.color }}>{altezzaPerc}° perc.</p>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{t('pediatria.heightForAge', 'Altezza/Età')}</p>
+                <p style={{ fontSize: 20, fontWeight: 800, color: b.color }}>{t('pediatria.percentileValue', { value: altezzaPerc }, '{{value}}° perc.')}</p>
                 <p style={{ fontSize: 11, fontWeight: 600, color: b.color, marginTop: 2 }}>{b.label}</p>
               </div>
             )})()}
           </div>
           <p style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 12, textAlign: 'center' }}>
-            Basato su OMS Child Growth Standards — parlane sempre con il tuo dietista/pediatra.
+            {t('pediatria.growthFooter', 'Basato su OMS Child Growth Standards — parlane sempre con il tuo dietista/pediatra.')}
           </p>
         </div>
       )}
       {(pasti.length > 0 || kcalTarget !== null) && (
     <div className="card" style={{ padding: 16 }}>
-      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 14 }}>👶 Pasti di oggi</h3>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 14 }}>👶 {t('pediatria.todayMealsTitle', 'Pasti di oggi')}</h3>
 
       {pasti.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: kcalTarget !== null ? 16 : 0 }}>
@@ -150,7 +152,7 @@ export default function PediatriaTracker({ dati }) {
 
       {kcalTarget !== null && intake !== null && (
         <div style={{ padding: '12px 10px', background: '#E0E7FF', borderRadius: 12, textAlign: 'center' }}>
-          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Kcal assunte oggi / target</p>
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{t('pediatria.kcalTodayTarget', 'Kcal assunte oggi / target')}</p>
           <p style={{ fontSize: 18, fontWeight: 800, color: '#4F46E5' }}>{Math.round(intake.kcal)} / {kcalTarget}</p>
         </div>
       )}

@@ -3,18 +3,19 @@ import { Check } from 'lucide-react'
 import { IDDSI_LEVELS, IDDSI_ALIMENTI } from '../../data/specialtyMeta'
 import { useAuth } from '../../context/AuthContext'
 import { fetchTodayIntake } from '../../lib/specialSections'
+import { useT } from '../../i18n'
 
 const CATEGORIES = [
-  { key: 'ok', label: 'Consentiti', icon: '✅', color: '#16A34A', bg: '#F0FDF4' },
-  { key: 'mod', label: 'Con moderazione', icon: '⚠️', color: '#CA8A04', bg: '#FEFCE8' },
-  { key: 'no', label: 'Da evitare', icon: '⛔', color: '#DC2626', bg: '#FEF2F2' },
+  { key: 'ok', icon: '✅', color: '#16A34A', bg: '#F0FDF4' },
+  { key: 'mod', icon: '⚠️', color: '#CA8A04', bg: '#FEFCE8' },
+  { key: 'no', icon: '⛔', color: '#DC2626', bg: '#FEF2F2' },
 ]
 
 const SAFETY_CHECKS = [
-  { key: 'postura', label: 'Seduto/a con la schiena dritta' },
-  { key: 'bocconi', label: 'Bocconi piccoli, uno alla volta' },
-  { key: 'tempo', label: 'Tempo sufficiente, senza fretta' },
-  { key: 'addensante', label: 'Addensante nella quantità giusta (se previsto)' },
+  { key: 'postura' },
+  { key: 'bocconi' },
+  { key: 'tempo' },
+  { key: 'addensante' },
 ]
 
 function todayKey() {
@@ -29,10 +30,24 @@ function num(v) {
 }
 
 export default function DisfagiaGuide({ dati }) {
+  const t = useT()
   const { user } = useAuth()
   const [checked, setChecked] = useState({})
   const [intake, setIntake] = useState(null)
   const storageKey = todayKey()
+
+  const categoryLabels = {
+    ok: t('disfagia.categoryOk', 'Consentiti'),
+    mod: t('disfagia.categoryMod', 'Con moderazione'),
+    no: t('disfagia.categoryNo', 'Da evitare'),
+  }
+
+  const safetyLabels = {
+    postura: t('disfagia.safetyPostura', 'Seduto/a con la schiena dritta'),
+    bocconi: t('disfagia.safetyBocconi', 'Bocconi piccoli, uno alla volta'),
+    tempo: t('disfagia.safetyTempo', 'Tempo sufficiente, senza fretta'),
+    addensante: t('disfagia.safetyAddensante', 'Addensante nella quantità giusta (se previsto)'),
+  }
 
   useEffect(() => {
     try { setChecked(JSON.parse(localStorage.getItem(storageKey) || '{}')) } catch { setChecked({}) }
@@ -60,15 +75,15 @@ export default function DisfagiaGuide({ dati }) {
   return (
     <>
       <div className="card" style={{ padding: 16 }}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>🗣️ Alimenti per il tuo livello — IDDSI {level}</h3>
+        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{t('disfagia.headingLevel', { level }, '🗣️ Alimenti per il tuo livello — IDDSI {{level}}')}</h3>
         <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 14 }}>
-          Consistenza assegnata dal tuo dietista: <b style={{ color: meta.color }}>{meta.nome}</b>
+          {t('disfagia.assignedConsistency', 'Consistenza assegnata dal tuo dietista:')} <b style={{ color: meta.color }}>{meta.nome}</b>
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {CATEGORIES.map(cat => (
             <div key={cat.key}>
-              <p style={{ fontSize: 12.5, fontWeight: 700, color: cat.color, marginBottom: 8 }}>{cat.icon} {cat.label}</p>
+              <p style={{ fontSize: 12.5, fontWeight: 700, color: cat.color, marginBottom: 8 }}>{cat.icon} {categoryLabels[cat.key]}</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {foods[cat.key].map((f, i) => (
                   <span key={i} style={{ fontSize: 12, background: cat.bg, color: cat.color, borderRadius: 100, padding: '5px 12px', fontWeight: 500 }}>{f}</span>
@@ -81,9 +96,9 @@ export default function DisfagiaGuide({ dati }) {
 
       {kcalTarget !== null && intake !== null && (
         <div className="card" style={{ padding: 16, marginTop: 12 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 10 }}>🎯 Apporto calorico di oggi</h3>
+          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 10 }}>{t('disfagia.headingCalorieIntake', '🎯 Apporto calorico di oggi')}</h3>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
-            <span style={{ fontWeight: 500 }}>Assunte oggi</span>
+            <span style={{ fontWeight: 500 }}>{t('disfagia.intakeTodayLabel', 'Assunte oggi')}</span>
             <span><b>{Math.round(intake.kcal)}</b> / {kcalTarget} kcal</span>
           </div>
           <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
@@ -93,8 +108,8 @@ export default function DisfagiaGuide({ dati }) {
       )}
 
       <div className="card" style={{ padding: 16, marginTop: 12 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>✅ Controlli di sicurezza per il pasto</h3>
-        <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 12 }}>Spunta prima di iniziare a mangiare.</p>
+        <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{t('disfagia.headingSafetyChecks', '✅ Controlli di sicurezza per il pasto')}</h3>
+        <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 12 }}>{t('disfagia.safetyChecksHint', 'Spunta prima di iniziare a mangiare.')}</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {SAFETY_CHECKS.map(c => {
             const done = !!checked[c.key]
@@ -110,7 +125,7 @@ export default function DisfagiaGuide({ dati }) {
                 }}>
                   {done && <Check size={13} color="white" />}
                 </div>
-                <span style={{ fontSize: 13, fontWeight: 500 }}>{c.label}</span>
+                <span style={{ fontSize: 13, fontWeight: 500 }}>{safetyLabels[c.key]}</span>
               </button>
             )
           })}
