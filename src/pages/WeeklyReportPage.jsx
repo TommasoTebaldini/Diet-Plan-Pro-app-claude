@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../i18n'
 import { CalendarCheck, TrendingUp, TrendingDown, Minus, Droplets, Footprints, Flame } from 'lucide-react'
 
 // "La tua settimana": riepilogo automatico degli ultimi 7 giorni confrontati
@@ -22,21 +23,23 @@ function daysAgoStr(n) {
 }
 
 function Delta({ value, unit = '', invert = false, decimals = 0 }) {
+  const t = useT()
   if (value === null || !isFinite(value)) return null
   const rounded = Math.round(value * Math.pow(10, decimals)) / Math.pow(10, decimals)
-  if (rounded === 0) return <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 2 }}><Minus size={11} /> stabile</span>
+  if (rounded === 0) return <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 2 }}><Minus size={11} /> {t('weeklyreport.stable', 'stabile')}</span>
   const positiveIsGood = invert ? rounded < 0 : rounded > 0
   const color = positiveIsGood ? 'var(--green-main)' : 'var(--orange)'
   const Icon = rounded > 0 ? TrendingUp : TrendingDown
   return (
     <span style={{ fontSize: 11, fontWeight: 600, color, display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-      <Icon size={11} /> {rounded > 0 ? '+' : ''}{rounded}{unit} vs sett. prec.
+      <Icon size={11} /> {rounded > 0 ? '+' : ''}{rounded}{unit} {t('weeklyreport.vs_prev_week', 'vs sett. prec.')}
     </span>
   )
 }
 
 export default function WeeklyReportPage() {
   const { user } = useAuth()
+  const t = useT()
   const [data, setData] = useState(null)
 
   const load = useCallback(async () => {
@@ -117,27 +120,35 @@ export default function WeeklyReportPage() {
   useEffect(() => { load() }, [load])
 
   if (!data) {
-    return <div className="page" style={{ padding: 16 }}><p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Caricamento…</p></div>
+    return <div className="page" style={{ padding: 16 }}><p style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('weeklyreport.loading', 'Caricamento…')}</p></div>
   }
 
   const maxBar = Math.max(1, ...data.bars.map(b => b.kcal))
-  const giorniLbl = ['L', 'M', 'M', 'G', 'V', 'S', 'D']
+  const giorniLbl = [
+    t('weeklyreport.day_letter_mon', 'L'),
+    t('weeklyreport.day_letter_tue', 'M'),
+    t('weeklyreport.day_letter_wed', 'M'),
+    t('weeklyreport.day_letter_thu', 'G'),
+    t('weeklyreport.day_letter_fri', 'V'),
+    t('weeklyreport.day_letter_sat', 'S'),
+    t('weeklyreport.day_letter_sun', 'D'),
+  ]
 
   return (
     <div className="page" style={{ padding: 16 }}>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 2 }}>📅 La tua settimana</h1>
-        <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 16 }}>Ultimi 7 giorni a confronto con la settimana precedente.</p>
+        <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 2 }}>📅 {t('weeklyreport.title', 'La tua settimana')}</h1>
+        <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 16 }}>{t('weeklyreport.subtitle', 'Ultimi 7 giorni a confronto con la settimana precedente.')}</p>
 
         <div className="card" style={{ padding: 16, marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
             <CalendarCheck size={18} color="var(--green-main)" />
-            <span style={{ fontSize: 14, fontWeight: 700 }}>Diario compilato</span>
+            <span style={{ fontSize: 14, fontWeight: 700 }}>{t('weeklyreport.diary_filled', 'Diario compilato')}</span>
           </div>
           <p style={{ fontSize: 26, fontWeight: 800, color: data.daysCur >= 5 ? 'var(--green-main)' : data.daysCur >= 3 ? 'var(--orange)' : 'var(--red)' }}>
-            {data.daysCur}<span style={{ fontSize: 15, color: 'var(--text-muted)', fontWeight: 600 }}>/7 giorni</span>
+            {data.daysCur}<span style={{ fontSize: 15, color: 'var(--text-muted)', fontWeight: 600 }}>{t('weeklyreport.out_of_7_days', '/7 giorni')}</span>
           </p>
-          <Delta value={data.daysCur - data.daysPrev} unit=" gg" />
+          <Delta value={data.daysCur - data.daysPrev} unit={t('weeklyreport.unit_days', ' gg')} />
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height: 64, marginTop: 14 }}>
             {data.bars.map((b, i) => {
               const dow = (new Date(b.date + 'T12:00:00').getDay() + 6) % 7
@@ -155,7 +166,7 @@ export default function WeeklyReportPage() {
           </div>
           {data.avgKcal !== null && (
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Flame size={13} /> Media {data.avgKcal} kcal/giorno{data.kcalTarget ? ` · target ${data.kcalTarget} kcal` : ''}
+              <Flame size={13} /> {t('weeklyreport.avg_kcal_per_day', { avgKcal: data.avgKcal }, 'Media {{avgKcal}} kcal/giorno')}{data.kcalTarget ? t('weeklyreport.target_kcal_suffix', { kcalTarget: data.kcalTarget }, ' · target {{kcalTarget}} kcal') : ''}
             </p>
           )}
         </div>
@@ -164,17 +175,17 @@ export default function WeeklyReportPage() {
           <div className="card" style={{ padding: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
               <TrendingUp size={14} color="var(--orange)" />
-              <span style={{ fontSize: 12.5, fontWeight: 700 }}>Peso</span>
+              <span style={{ fontSize: 12.5, fontWeight: 700 }}>{t('weeklyreport.weight', 'Peso')}</span>
             </div>
             <p style={{ fontSize: 20, fontWeight: 800 }}>{data.lastWeight != null ? `${data.lastWeight} kg` : '—'}</p>
             {data.weekWeightDelta !== null
               ? <Delta value={data.weekWeightDelta} unit=" kg" invert decimals={1} />
-              : <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Pesati in entrambe le settimane per il confronto</span>}
+              : <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('weeklyreport.weighed_both_weeks', 'Pesati in entrambe le settimane per il confronto')}</span>}
           </div>
           <div className="card" style={{ padding: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
               <Droplets size={14} color="#0891B2" />
-              <span style={{ fontSize: 12.5, fontWeight: 700 }}>Acqua</span>
+              <span style={{ fontSize: 12.5, fontWeight: 700 }}>{t('weeklyreport.water', 'Acqua')}</span>
             </div>
             <p style={{ fontSize: 20, fontWeight: 800 }}>{data.avgWaterCur != null ? `${(data.avgWaterCur / 1000).toFixed(1)} L` : '—'}</p>
             {data.avgWaterCur != null && data.avgWaterPrev != null && <Delta value={(data.avgWaterCur - data.avgWaterPrev) / 1000} unit=" L" decimals={1} />}
@@ -182,7 +193,7 @@ export default function WeeklyReportPage() {
           <div className="card" style={{ padding: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
               <Footprints size={14} color="var(--green-main)" />
-              <span style={{ fontSize: 12.5, fontWeight: 700 }}>Passi</span>
+              <span style={{ fontSize: 12.5, fontWeight: 700 }}>{t('weeklyreport.steps', 'Passi')}</span>
             </div>
             <p style={{ fontSize: 20, fontWeight: 800 }}>{data.avgStepsCur != null ? data.avgStepsCur.toLocaleString('it') : '—'}</p>
             {data.avgStepsCur != null && data.avgStepsPrev != null && <Delta value={data.avgStepsCur - data.avgStepsPrev} />}
@@ -190,19 +201,21 @@ export default function WeeklyReportPage() {
           <div className="card" style={{ padding: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
               <Flame size={14} color="var(--red)" />
-              <span style={{ fontSize: 12.5, fontWeight: 700 }}>Kcal medie</span>
+              <span style={{ fontSize: 12.5, fontWeight: 700 }}>{t('weeklyreport.avg_kcal', 'Kcal medie')}</span>
             </div>
             <p style={{ fontSize: 20, fontWeight: 800 }}>{data.avgKcal != null ? data.avgKcal : '—'}</p>
             {data.kcalTarget && data.avgKcal != null && (
               <span style={{ fontSize: 11, color: Math.abs(data.avgKcal - data.kcalTarget) <= data.kcalTarget * 0.15 ? 'var(--green-main)' : 'var(--orange)', fontWeight: 600 }}>
-                {Math.abs(data.avgKcal - data.kcalTarget) <= data.kcalTarget * 0.15 ? '✓ In linea col target' : `${data.avgKcal > data.kcalTarget ? '+' : ''}${data.avgKcal - data.kcalTarget} kcal dal target`}
+                {Math.abs(data.avgKcal - data.kcalTarget) <= data.kcalTarget * 0.15
+                  ? t('weeklyreport.on_target', '✓ In linea col target')
+                  : t('weeklyreport.kcal_from_target', { sign: data.avgKcal > data.kcalTarget ? '+' : '', delta: data.avgKcal - data.kcalTarget }, '{{sign}}{{delta}} kcal dal target')}
               </span>
             )}
           </div>
         </div>
 
         <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>
-          Il riepilogo si aggiorna automaticamente con i dati che registri nell'app.
+          {t('weeklyreport.footer_note', "Il riepilogo si aggiorna automaticamente con i dati che registri nell'app.")}
         </p>
       </motion.div>
     </div>

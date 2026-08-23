@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../i18n'
 import { Trophy, CheckCircle2 } from 'lucide-react'
 
 // Sfide settimanali auto-tracciate: il progresso è DERIVATO dai dati che il
@@ -28,6 +29,7 @@ const HISTORY_KEY = 'weekly_challenges_history'
 
 export default function ChallengesPage() {
   const { user } = useAuth()
+  const t = useT()
   const [challenges, setChallenges] = useState(null)
   const [history, setHistory] = useState(() => {
     try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]') } catch { return [] }
@@ -68,12 +70,12 @@ export default function ChallengesPage() {
       : 0
 
     const list = [
-      { id: 'diario', emoji: '📔', title: 'Diario costante', desc: 'Registra i pasti in 5 giorni', progress: foodDays, goal: 5 },
-      { id: 'acqua', emoji: '💧', title: 'Idratazione', desc: 'Almeno 1,5L d\'acqua in 5 giorni', progress: waterDays, goal: 5 },
-      { id: 'passi', emoji: '🚶', title: 'In movimento', desc: '7.000+ passi in 4 giorni', progress: stepDays, goal: 4 },
-      { id: 'peso', emoji: '⚖️', title: 'Sotto controllo', desc: 'Pesati almeno 2 volte', progress: weighIns, goal: 2 },
-      { id: 'benessere', emoji: '😊', title: 'Check benessere', desc: 'Compila il benessere in 4 giorni', progress: wellDays, goal: 4 },
-      ...(kcalTarget ? [{ id: 'target', emoji: '🎯', title: 'In linea', desc: 'Kcal nel target (±15%) in 4 giorni', progress: inTargetDays, goal: 4 }] : []),
+      { id: 'diario', emoji: '📔', progress: foodDays, goal: 5 },
+      { id: 'acqua', emoji: '💧', progress: waterDays, goal: 5 },
+      { id: 'passi', emoji: '🚶', progress: stepDays, goal: 4 },
+      { id: 'peso', emoji: '⚖️', progress: weighIns, goal: 2 },
+      { id: 'benessere', emoji: '😊', progress: wellDays, goal: 4 },
+      ...(kcalTarget ? [{ id: 'target', emoji: '🎯', progress: inTargetDays, goal: 4 }] : []),
     ]
     setChallenges(list)
 
@@ -95,24 +97,33 @@ export default function ChallengesPage() {
   const total = (challenges || []).length
   const allDone = total > 0 && completed === total
 
+  const CHALLENGE_TEXT = {
+    diario: { title: t('challenges.diario_title', 'Diario costante'), desc: t('challenges.diario_desc', 'Registra i pasti in 5 giorni') },
+    acqua: { title: t('challenges.acqua_title', 'Idratazione'), desc: t('challenges.acqua_desc', "Almeno 1,5L d'acqua in 5 giorni") },
+    passi: { title: t('challenges.passi_title', 'In movimento'), desc: t('challenges.passi_desc', '7.000+ passi in 4 giorni') },
+    peso: { title: t('challenges.peso_title', 'Sotto controllo'), desc: t('challenges.peso_desc', 'Pesati almeno 2 volte') },
+    benessere: { title: t('challenges.benessere_title', 'Check benessere'), desc: t('challenges.benessere_desc', 'Compila il benessere in 4 giorni') },
+    target: { title: t('challenges.target_title', 'In linea'), desc: t('challenges.target_desc', 'Kcal nel target (±15%) in 4 giorni') },
+  }
+
   return (
     <div className="page" style={{ paddingTop: 16, paddingLeft: 16, paddingRight: 16 }}>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 2 }}>🏆 Sfide della settimana</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 2 }}>{t('challenges.title', '🏆 Sfide della settimana')}</h1>
         <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 16 }}>
-          Si azzerano ogni lunedì e avanzano da sole con quello che registri nell'app.
+          {t('challenges.subtitle', "Si azzerano ogni lunedì e avanzano da sole con quello che registri nell'app.")}
         </p>
 
         {challenges === null ? (
-          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Caricamento…</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('challenges.loading', 'Caricamento…')}</p>
         ) : (
           <>
             <div className="card" style={{ padding: 16, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 14, ...(allDone ? { borderLeft: '3px solid var(--green-main)' } : {}) }}>
               <Trophy size={26} color={allDone ? 'var(--green-main)' : 'var(--orange)'} />
               <div>
-                <p style={{ fontSize: 15, fontWeight: 800 }}>{completed}/{total} completate</p>
+                <p style={{ fontSize: 15, fontWeight: 800 }}>{t('challenges.completed_count', { completed, total }, '{{completed}}/{{total}} completate')}</p>
                 <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                  {allDone ? '🎉 Settimana perfetta! Grande costanza.' : 'Continua così, ogni registrazione conta.'}
+                  {allDone ? t('challenges.all_done', '🎉 Settimana perfetta! Grande costanza.') : t('challenges.keep_going', 'Continua così, ogni registrazione conta.')}
                 </p>
               </div>
             </div>
@@ -121,14 +132,15 @@ export default function ChallengesPage() {
               {challenges.map((c, i) => {
                 const done = c.progress >= c.goal
                 const pct = Math.min(100, Math.round((c.progress / c.goal) * 100))
+                const meta = CHALLENGE_TEXT[c.id] || {}
                 return (
                   <motion.div key={c.id} className="card" style={{ padding: '14px 16px' }}
                     initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <span style={{ fontSize: 22 }}>{c.emoji}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 13.5, fontWeight: 700 }}>{c.title}</p>
-                        <p style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{c.desc}</p>
+                        <p style={{ fontSize: 13.5, fontWeight: 700 }}>{meta.title}</p>
+                        <p style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{meta.desc}</p>
                       </div>
                       {done
                         ? <CheckCircle2 size={22} color="var(--green-main)" />
@@ -144,8 +156,8 @@ export default function ChallengesPage() {
 
             {history.length > 0 && (
               <div className="card" style={{ padding: '14px 16px', marginTop: 12 }}>
-                <p style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 4 }}>🏅 Settimane perfette: {history.length}</p>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Ogni settimana con tutte le sfide completate vale una medaglia.</p>
+                <p style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 4 }}>{t('challenges.perfect_weeks_count', { count: history.length }, '🏅 Settimane perfette: {{count}}')}</p>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('challenges.perfect_weeks_desc', 'Ogni settimana con tutte le sfide completate vale una medaglia.')}</p>
               </div>
             )}
           </>

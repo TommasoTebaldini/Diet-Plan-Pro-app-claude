@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { Lock, Award } from 'lucide-react'
 import { useAchievements, ALL_ACHIEVEMENTS } from '../context/AchievementsContext'
 import PageTransition from '../components/PageTransition'
+import { useT } from '../i18n'
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -16,8 +17,24 @@ const CATEGORIES = ['Tutti', 'Diario', 'Acqua', 'Peso', 'Benessere', 'Ricette', 
 
 export default function BadgesPage() {
   const { earned } = useAchievements()
+  const t = useT()
   const earnedCount = Object.keys(earned).length
   const totalCount = ALL_ACHIEVEMENTS.length
+
+  // Etichette tradotte per le intestazioni di categoria — la stringa italiana
+  // in CATEGORIES resta invariata perché è la chiave usata per il filtro
+  // contro ach.category (dati in AchievementsContext.jsx, non tradotti qui).
+  const CATEGORY_LABELS = {
+    Diario: t('badges.category_diario', 'Diario'),
+    Acqua: t('badges.category_acqua', 'Acqua'),
+    Peso: t('badges.category_peso', 'Peso'),
+    Benessere: t('badges.category_benessere', 'Benessere'),
+    Ricette: t('badges.category_ricette', 'Ricette'),
+    Attività: t('badges.category_attivita', 'Attività'),
+    Social: t('badges.category_social', 'Social'),
+    Engagement: t('badges.category_engagement', 'Engagement'),
+    Speciali: t('badges.category_speciali', 'Speciali'),
+  }
 
   return (
     <PageTransition>
@@ -41,7 +58,7 @@ export default function BadgesPage() {
             🏆
           </div>
           <h1 style={{ fontSize: '22px', fontWeight: 800, margin: '0 0 6px', fontFamily: 'var(--font-d)' }}>
-            I tuoi Badge
+            {t('badges.title', 'I tuoi Badge')}
           </h1>
           <div style={{
             display: 'inline-flex',
@@ -54,7 +71,7 @@ export default function BadgesPage() {
             fontWeight: 600,
           }}>
             <Award size={14} />
-            {earnedCount} badge su {totalCount}
+            {t('badges.count', { earned: earnedCount, total: totalCount }, '{{earned}} badge su {{total}}')}
           </div>
 
           {/* Progress bar */}
@@ -95,7 +112,7 @@ export default function BadgesPage() {
                   marginBottom: '12px',
                   paddingLeft: '4px',
                 }}>
-                  {category}
+                  {CATEGORY_LABELS[category] || category}
                 </h2>
                 <div style={{
                   display: 'grid',

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { CreditCard, Check, Clock, ExternalLink } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../i18n'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
@@ -15,6 +16,7 @@ function fmtDate(d) {
 
 export default function PaymentsPage() {
   const { user } = useAuth()
+  const t = useT()
   const [fatture, setFatture] = useState([])
   const [loading, setLoading] = useState(true)
   const [payingId, setPayingId] = useState(null)
@@ -37,19 +39,19 @@ export default function PaymentsPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('paid') === '1') {
-      setBanner({ type: 'ok', text: 'Pagamento ricevuto — grazie! Potrebbero volerci alcuni secondi prima che la fattura risulti aggiornata qui sotto.' })
+      setBanner({ type: 'ok', text: t('payments.banner_paid', 'Pagamento ricevuto — grazie! Potrebbero volerci alcuni secondi prima che la fattura risulti aggiornata qui sotto.') })
       window.history.replaceState({}, '', window.location.pathname)
     } else if (params.get('cancelled') === '1') {
-      setBanner({ type: 'info', text: 'Pagamento annullato — la fattura resta in attesa, puoi riprovare quando vuoi.' })
+      setBanner({ type: 'info', text: t('payments.banner_cancelled', 'Pagamento annullato — la fattura resta in attesa, puoi riprovare quando vuoi.') })
       window.history.replaceState({}, '', window.location.pathname)
     }
-  }, [])
+  }, [t])
 
   async function paga(fatturaId) {
     setPayingId(fatturaId)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('Sessione scaduta — effettua di nuovo il login.')
+      if (!session) throw new Error(t('payments.session_expired', 'Sessione scaduta — effettua di nuovo il login.'))
 
       const res = await fetch(`${SUPABASE_URL}/functions/v1/create-invoice-checkout-session`, {
         method: 'POST',
@@ -57,10 +59,10 @@ export default function PaymentsPage() {
         body: JSON.stringify({ fatturaId }),
       })
       const data = await res.json()
-      if (!res.ok || !data.url) throw new Error(data.error || 'Impossibile avviare il pagamento.')
+      if (!res.ok || !data.url) throw new Error(data.error || t('payments.checkout_start_error', 'Impossibile avviare il pagamento.'))
       window.location.href = data.url
     } catch (e) {
-      setBanner({ type: 'error', text: e.message || 'Errore durante l\'avvio del pagamento.' })
+      setBanner({ type: 'error', text: e.message || t('payments.checkout_generic_error', 'Errore durante l\'avvio del pagamento.') })
       setPayingId(null)
     }
   }
@@ -71,8 +73,8 @@ export default function PaymentsPage() {
   return (
     <div className="page">
       <div style={{ background: 'linear-gradient(160deg, #065f46, #0d9488)', padding: 'calc(env(safe-area-inset-top) + 20px) 24px 24px', margin: '0 0 16px' }}>
-        <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, marginBottom: 4 }}>Le tue prestazioni</p>
-        <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300 }}>Pagamenti</h1>
+        <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, marginBottom: 4 }}>{t('payments.your_services', 'Le tue prestazioni')}</p>
+        <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300 }}>{t('payments.title', 'Pagamenti')}</h1>
       </div>
 
       <div style={{ padding: '0 16px 40px', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -93,14 +95,14 @@ export default function PaymentsPage() {
         ) : fatture.length === 0 ? (
           <div className="card" style={{ padding: '36px 20px', textAlign: 'center' }}>
             <CreditCard size={30} color="var(--text-muted)" style={{ marginBottom: 10 }} />
-            <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Nessuna fattura</p>
-            <p style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Le fatture emesse dal tuo dietista compariranno qui.</p>
+            <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{t('payments.no_invoices', 'Nessuna fattura')}</p>
+            <p style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{t('payments.no_invoices_desc', 'Le fatture emesse dal tuo dietista compariranno qui.')}</p>
           </div>
         ) : (
           <>
             {daPagare.length > 0 && (
               <div>
-                <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Da pagare</p>
+                <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{t('payments.to_pay', 'Da pagare')}</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {daPagare.map(f => (
                     <div key={f.id} className="card" style={{ padding: '13px 15px', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -108,8 +110,8 @@ export default function PaymentsPage() {
                         <Clock size={17} color="#92400e" />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 14, fontWeight: 700 }}>{f.tipo_visita || 'Prestazione'}</p>
-                        <p style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{fmtDate(f.data_fattura)}{f.numero_fattura ? ` · N. ${f.numero_fattura}` : ''}</p>
+                        <p style={{ fontSize: 14, fontWeight: 700 }}>{f.tipo_visita || t('payments.service_default', 'Prestazione')}</p>
+                        <p style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{fmtDate(f.data_fattura)}{f.numero_fattura ? t('payments.invoice_number', { numero: f.numero_fattura }, ' · N. {{numero}}') : ''}</p>
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
                         <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>{euro(f.importo)}</p>
@@ -118,7 +120,7 @@ export default function PaymentsPage() {
                           disabled={payingId === f.id}
                           style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--green-main)', color: 'white', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: payingId === f.id ? 'default' : 'pointer' }}
                         >
-                          {payingId === f.id ? 'Attendere…' : <>Paga ora <ExternalLink size={12} /></>}
+                          {payingId === f.id ? t('payments.waiting', 'Attendere…') : <>{t('payments.pay_now', 'Paga ora')} <ExternalLink size={12} /></>}
                         </button>
                       </div>
                     </div>
@@ -129,7 +131,7 @@ export default function PaymentsPage() {
 
             {pagate.length > 0 && (
               <div>
-                <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '6px 0 8px' }}>Pagate</p>
+                <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '6px 0 8px' }}>{t('payments.paid', 'Pagate')}</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {pagate.map(f => (
                     <div key={f.id} className="card" style={{ padding: '13px 15px', display: 'flex', alignItems: 'center', gap: 12, opacity: 0.75 }}>
@@ -137,8 +139,8 @@ export default function PaymentsPage() {
                         <Check size={17} color="#065f46" />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 14, fontWeight: 700 }}>{f.tipo_visita || 'Prestazione'}</p>
-                        <p style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{fmtDate(f.data_fattura)}{f.numero_fattura ? ` · N. ${f.numero_fattura}` : ''}</p>
+                        <p style={{ fontSize: 14, fontWeight: 700 }}>{f.tipo_visita || t('payments.service_default', 'Prestazione')}</p>
+                        <p style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{fmtDate(f.data_fattura)}{f.numero_fattura ? t('payments.invoice_number', { numero: f.numero_fattura }, ' · N. {{numero}}') : ''}</p>
                       </div>
                       <p style={{ fontSize: 15, fontWeight: 700, flexShrink: 0 }}>{euro(f.importo)}</p>
                     </div>
