@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { GraduationCap, CheckCircle2, XCircle, Flame } from 'lucide-react'
+import { useT } from '../i18n'
 
 // "Lezione del giorno" (stile percorso educativo Noom): una micro-lezione
 // quotidiana costruita sul question bank del quiz (2000 domande con
@@ -50,6 +51,7 @@ function questionIndexForToday(n) {
 }
 
 export default function DailyLessonCard() {
+  const t = useT()
   const [done, setDone] = useState(() => loadDone())
   const [streak, setStreak] = useState(() => loadStreak())
   const [question, setQuestion] = useState(null)
@@ -68,7 +70,7 @@ export default function DailyLessonCard() {
       if (!qs.length) throw new Error('Bank vuoto')
       setQuestion(qs[questionIndexForToday(qs.length)])
     } catch {
-      setError('Impossibile caricare la lezione, riprova.')
+      setError(t('lesson.loadError', 'Impossibile caricare la lezione, riprova.'))
     }
     setLoading(false)
   }
@@ -92,8 +94,8 @@ export default function DailyLessonCard() {
           <GraduationCap size={19} color="var(--purple, #7c3aed)" />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 14, fontWeight: 700 }}>Lezione del giorno</p>
-          <p style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>1 minuto per imparare qualcosa di nuovo</p>
+          <p style={{ fontSize: 14, fontWeight: 700 }}>{t('lesson.title', 'Lezione del giorno')}</p>
+          <p style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{t('lesson.subtitle', '1 minuto per imparare qualcosa di nuovo')}</p>
         </div>
         {streak.count > 1 && (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, color: '#EA580C', flexShrink: 0 }}>
@@ -106,7 +108,7 @@ export default function DailyLessonCard() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 10 }}>
           {done.correct ? <CheckCircle2 size={16} color="var(--green-main)" /> : <XCircle size={16} color="var(--orange)" />}
           <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
-            Lezione di oggi completata{done.correct ? ' — risposta esatta! 🎉' : ' — domani un\'altra occasione.'}
+            {done.correct ? t('lesson.completedCorrect', 'Lezione di oggi completata — risposta esatta! 🎉') : t('lesson.completedIncorrect', 'Lezione di oggi completata — domani un\'altra occasione.')}
           </span>
         </div>
       ) : !showQuestion ? (
@@ -116,7 +118,7 @@ export default function DailyLessonCard() {
             width: '100%', padding: '11px', borderRadius: 12, border: 'none', cursor: 'pointer',
             background: 'var(--purple, #7c3aed)', color: 'white', fontSize: 13.5, fontWeight: 700, font: 'inherit', opacity: loading ? 0.6 : 1,
           }}>
-            {loading ? 'Caricamento…' : '📚 Inizia la lezione'}
+            {loading ? t('lesson.loading', 'Caricamento…') : t('lesson.start', '📚 Inizia la lezione')}
           </button>
         </>
       ) : (
@@ -144,7 +146,7 @@ export default function DailyLessonCard() {
           {picked !== null && (
             <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--icon-bg-purple, #f5f3ff)', borderRadius: 10 }}>
               <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                <b>{picked === question.ans ? '✅ Esatto! ' : '💡 '}</b>{question.exp}
+                <b>{picked === question.ans ? t('lesson.correctPrefix', '✅ Esatto! ') : t('lesson.incorrectPrefix', '💡 ')}</b>{question.exp}
               </p>
             </div>
           )}

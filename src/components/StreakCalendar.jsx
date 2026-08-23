@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { computeDayStreak } from '../lib/achievementTriggers'
+import { useT } from '../i18n'
 
 function getColor(count) {
   if (!count || count === 0) return '#EBEDF0'
@@ -15,6 +16,7 @@ function getColor(count) {
 }
 
 export default function StreakCalendar() {
+  const t = useT()
   const { user } = useAuth()
   const [dayCounts, setDayCounts] = useState({})
   const [loading, setLoading] = useState(true)
@@ -65,12 +67,20 @@ export default function StreakCalendar() {
     weeks.push(paddedDays.slice(i, i + 7))
   }
 
-  const DAYS_IT = ['L', 'M', 'M', 'G', 'V', 'S', 'D']
+  const DAYS_IT = [
+    t('streak.day_mon', 'L'),
+    t('streak.day_tue', 'M'),
+    t('streak.day_wed', 'M'),
+    t('streak.day_thu', 'G'),
+    t('streak.day_fri', 'V'),
+    t('streak.day_sat', 'S'),
+    t('streak.day_sun', 'D'),
+  ]
 
   if (loading) {
     return (
       <div style={{ padding: '14px 0', color: 'var(--text-muted)', fontSize: 13, textAlign: 'center' }}>
-        Caricamento streak…
+        {t('streak.loading', 'Caricamento streak…')}
       </div>
     )
   }
@@ -84,9 +94,11 @@ export default function StreakCalendar() {
         <span style={{ fontSize: 20 }}>🔥</span>
         <div style={{ textAlign: 'left' }}>
           <p style={{ fontSize: 14, fontWeight: 700, color: streakCount >= 7 ? '#216E39' : 'var(--text-primary)' }}>
-            {streakCount} {streakCount === 1 ? 'giorno' : 'giorni'} consecutivi
+            {streakCount === 1
+              ? t('streak.count_singular', { count: streakCount }, '{{count}} giorno consecutivi')
+              : t('streak.count_plural', { count: streakCount }, '{{count}} giorni consecutivi')}
           </p>
-          <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Ultime 12 settimane di log alimentari</p>
+          <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('streak.last_weeks', 'Ultime 12 settimane di log alimentari')}</p>
         </div>
       </div>
 
@@ -148,7 +160,7 @@ export default function StreakCalendar() {
                         // tap and auto-dismiss it, so the info isn't hover-only.
                         const rect = e.currentTarget.getBoundingClientRect()
                         setTooltip({ day, count, x: rect.left, y: rect.top, label })
-                        setTimeout(() => setTooltip(t => (t && t.day === day ? null : t)), 2000)
+                        setTimeout(() => setTooltip(prev => (prev && prev.day === day ? null : prev)), 2000)
                       }}
                     />
                   )
@@ -161,11 +173,11 @@ export default function StreakCalendar() {
 
       {/* Legend */}
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8, justifyContent: 'center' }}>
-        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Meno</span>
+        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('streak.less', 'Meno')}</span>
         {['#EBEDF0', '#9BE9A8', '#40C463', '#216E39'].map(c => (
           <div key={c} style={{ width: 12, height: 12, borderRadius: 3, background: c }} />
         ))}
-        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Di più</span>
+        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('streak.more', 'Di più')}</span>
       </div>
 
       {/* Tooltip */}
@@ -184,7 +196,9 @@ export default function StreakCalendar() {
           whiteSpace: 'nowrap',
           transform: 'translateX(-50%)',
         }}>
-          {tooltip.label}: {tooltip.count} {tooltip.count === 1 ? 'alimento' : 'alimenti'}
+          {tooltip.count === 1
+            ? t('streak.tooltip_singular', { label: tooltip.label, count: tooltip.count }, '{{label}}: {{count}} alimento')
+            : t('streak.tooltip_plural', { label: tooltip.label, count: tooltip.count }, '{{label}}: {{count}} alimenti')}
         </div>
       )}
     </div>

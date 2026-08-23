@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useFirstVisit } from '../hooks/useFirstVisit'
+import { useT } from '../i18n'
 
 function getRect(selector) {
   try {
@@ -14,6 +15,7 @@ function getRect(selector) {
 }
 
 export default function TutorialTooltip({ steps, onDone, pageKey }) {
+  const t = useT()
   const { isFirstVisit, markDone } = useFirstVisit(pageKey)
   const [currentStep, setCurrentStep] = useState(0)
   const [targetRect, setTargetRect] = useState(null)
@@ -160,7 +162,7 @@ export default function TutorialTooltip({ steps, onDone, pageKey }) {
             <button
               onClick={handleSkip}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2, flexShrink: 0 }}
-              aria-label="Chiudi tutorial"
+              aria-label={t('tutorial.close', 'Chiudi tutorial')}
             >
               <X size={15} />
             </button>
@@ -201,7 +203,7 @@ export default function TutorialTooltip({ steps, onDone, pageKey }) {
                 cursor: 'pointer',
               }}
             >
-              {isLast ? 'Capito!' : 'Capito'}
+              {isLast ? t('tutorial.gotItLast', 'Capito!') : t('tutorial.gotIt', 'Capito')}
             </button>
           </div>
         </motion.div>

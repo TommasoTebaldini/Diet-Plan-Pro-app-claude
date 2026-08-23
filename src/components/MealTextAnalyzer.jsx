@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mic, MicOff, X, Check, ChevronDown, ChevronUp, Sparkles, Send, Loader2 } from 'lucide-react'
 import { analyzeMealText } from '../lib/mealTextAI'
+import { useT } from '../i18n'
 
 function calcMacros(food) {
   const f = food.grams / 100
@@ -30,6 +31,7 @@ export default function MealTextAnalyzer({ onAddFoods, onClose }) {
   const [expanded, setExpanded] = useState(true)
   const [grams, setGrams] = useState({})
   const recognitionRef = useRef(null)
+  const t = useT()
 
   const SpeechRecognitionCtor = getSpeechRecognition()
 
@@ -69,7 +71,7 @@ export default function MealTextAnalyzer({ onAddFoods, onClose }) {
     try {
       const res = await analyzeMealText(text)
       if (!res.foods.length) {
-        setError('Non ho riconosciuto alimenti nel testo. Prova a essere più specifico.')
+        setError(t('mealtext.errorNoFoods', 'Non ho riconosciuto alimenti nel testo. Prova a essere più specifico.'))
         setPhase('error')
         return
       }
@@ -78,7 +80,7 @@ export default function MealTextAnalyzer({ onAddFoods, onClose }) {
       setGrams(Object.fromEntries(res.foods.map((f, i) => [i, String(f.grams)])))
       setPhase('results')
     } catch (e) {
-      setError(e.message || 'Errore analisi testo')
+      setError(e.message || t('mealtext.errorGeneric', 'Errore analisi testo'))
       setPhase('error')
     }
   }
@@ -129,11 +131,11 @@ export default function MealTextAnalyzer({ onAddFoods, onClose }) {
               <Sparkles size={18} color="white" />
             </div>
             <div>
-              <h3 style={{ fontSize: 16, fontWeight: 700 }}>Racconta cosa hai mangiato</h3>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>A voce o per iscritto, l'AI struttura il diario</p>
+              <h3 style={{ fontSize: 16, fontWeight: 700 }}>{t('mealtext.title', 'Racconta cosa hai mangiato')}</h3>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('mealtext.subtitle', "A voce o per iscritto, l'AI struttura il diario")}</p>
             </div>
           </div>
-          <button onClick={onClose} aria-label="Chiudi" style={{ background: 'var(--surface-3)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <button onClick={onClose} aria-label={t('mealtext.close', 'Chiudi')} style={{ background: 'var(--surface-3)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <X size={16} color="var(--text-muted)" />
           </button>
         </div>
@@ -144,7 +146,7 @@ export default function MealTextAnalyzer({ onAddFoods, onClose }) {
             <textarea
               value={text}
               onChange={e => setText(e.target.value)}
-              placeholder='Es. "Ho mangiato una mela e un petto di pollo alla griglia con insalata"'
+              placeholder={t('mealtext.placeholder', 'Es. "Ho mangiato una mela e un petto di pollo alla griglia con insalata"')}
               rows={4}
               style={{ width: '100%', boxSizing: 'border-box', padding: '12px 14px', borderRadius: 14, border: '1.5px solid var(--border)', background: 'var(--surface-2)', fontSize: 14, fontFamily: 'inherit', color: 'var(--text-primary)', resize: 'none', marginBottom: 14 }}
             />
@@ -166,12 +168,12 @@ export default function MealTextAnalyzer({ onAddFoods, onClose }) {
                 disabled={!text.trim()}
                 style={{ flex: 1, background: !text.trim() ? 'var(--border)' : 'linear-gradient(135deg, #0891b2, #06b6d4)', color: 'white', border: 'none', borderRadius: 14, padding: '13px 20px', fontSize: 14, fontWeight: 600, cursor: !text.trim() ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
               >
-                <Send size={16} /> Analizza
+                <Send size={16} /> {t('mealtext.analyze', 'Analizza')}
               </button>
             </div>
-            {listening && <p style={{ fontSize: 12, color: '#dc2626', marginTop: 10, textAlign: 'center' }}>🔴 In ascolto… parla ora</p>}
+            {listening && <p style={{ fontSize: 12, color: '#dc2626', marginTop: 10, textAlign: 'center' }}>{t('mealtext.listening', '🔴 In ascolto… parla ora')}</p>}
             {!SpeechRecognitionCtor && (
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 10, textAlign: 'center' }}>Il tuo browser non supporta la dettatura vocale — puoi comunque scrivere.</p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 10, textAlign: 'center' }}>{t('mealtext.noSpeechSupport', 'Il tuo browser non supporta la dettatura vocale — puoi comunque scrivere.')}</p>
             )}
           </motion.div>
         )}
@@ -183,9 +185,9 @@ export default function MealTextAnalyzer({ onAddFoods, onClose }) {
               <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
                 <Loader2 size={22} color="#0891b2" />
               </motion.div>
-              <span style={{ fontSize: 15, fontWeight: 600, color: '#0891b2' }}>Analisi in corso…</span>
+              <span style={{ fontSize: 15, fontWeight: 600, color: '#0891b2' }}>{t('mealtext.analyzing', 'Analisi in corso…')}</span>
             </div>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>L'AI sta identificando gli alimenti descritti</p>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('mealtext.analyzingDesc', "L'AI sta identificando gli alimenti descritti")}</p>
           </motion.div>
         )}
 
@@ -193,17 +195,17 @@ export default function MealTextAnalyzer({ onAddFoods, onClose }) {
         {phase === 'error' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ padding: '10px 0' }}>
             <div className="alert-error" style={{ marginBottom: 12, lineHeight: 1.5 }}>
-              <strong>Errore analisi</strong><br />{error}
+              <strong>{t('mealtext.errorTitle', 'Errore analisi')}</strong><br />{error}
             </div>
             {error?.includes('chiave AI') && (
               <div className="alert-info" style={{ marginBottom: 16, fontSize: 12, lineHeight: 1.6 }}>
-                <strong>Setup richiesto (una volta sola):</strong><br />
-                Supabase Dashboard → Edge Functions → <code>analyze-meal-text</code> → Secrets<br />
-                Aggiungi <code>GEMINI_API_KEY</code> (stessa chiave già usata per l'analisi foto)<br />
-                Deploy: <code>supabase functions deploy analyze-meal-text</code>
+                <strong>{t('mealtext.setupTitle', 'Setup richiesto (una volta sola):')}</strong><br />
+                {t('mealtext.setupStep1', 'Supabase Dashboard → Edge Functions → ')}<code>analyze-meal-text</code>{t('mealtext.setupStep1After', ' → Secrets')}<br />
+                {t('mealtext.setupStep2', 'Aggiungi ')}<code>GEMINI_API_KEY</code>{t('mealtext.setupStep2After', " (stessa chiave già usata per l'analisi foto)")}<br />
+                {t('mealtext.setupStep3', 'Deploy: ')}<code>supabase functions deploy analyze-meal-text</code>
               </div>
             )}
-            <button onClick={() => setPhase('idle')} className="btn btn-secondary btn-full">Riprova</button>
+            <button onClick={() => setPhase('idle')} className="btn btn-secondary btn-full">{t('mealtext.retry', 'Riprova')}</button>
           </motion.div>
         )}
 
@@ -212,9 +214,9 @@ export default function MealTextAnalyzer({ onAddFoods, onClose }) {
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div>
-                <p style={{ fontSize: 14, fontWeight: 700 }}>{result.description || 'Alimenti riconosciuti'}</p>
+                <p style={{ fontSize: 14, fontWeight: 700 }}>{result.description || t('mealtext.foodsRecognized', 'Alimenti riconosciuti')}</p>
                 <span style={{ fontSize: 11, color: CONFIDENCE_COLOR[result.confidence] || '#666', fontWeight: 600 }}>
-                  Confidenza: {result.confidence}
+                  {t('mealtext.confidenceLabel', 'Confidenza:')} {result.confidence}
                 </span>
               </div>
               <button onClick={() => setExpanded(v => !v)} style={{ background: 'var(--surface-3)', border: 'none', borderRadius: 8, padding: 6, cursor: 'pointer' }}>
@@ -232,10 +234,10 @@ export default function MealTextAnalyzer({ onAddFoods, onClose }) {
               return (
                 <div style={{ background: 'linear-gradient(135deg, #ecfeff, #cffafe)', borderRadius: 14, padding: '12px 14px', marginBottom: 14, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
                   {[
-                    { label: 'kcal', val: tot.kcal, color: '#f59e0b' },
-                    { label: 'Proteine', val: `${tot.p.toFixed(1)}g`, color: '#22c55e' },
-                    { label: 'Carboidrati', val: `${tot.c.toFixed(1)}g`, color: '#3b82f6' },
-                    { label: 'Grassi', val: `${tot.fat.toFixed(1)}g`, color: '#f97316' },
+                    { label: t('mealtext.kcal', 'kcal'), val: tot.kcal, color: '#f59e0b' },
+                    { label: t('mealtext.proteins', 'Proteine'), val: `${tot.p.toFixed(1)}g`, color: '#22c55e' },
+                    { label: t('mealtext.carbs', 'Carboidrati'), val: `${tot.c.toFixed(1)}g`, color: '#3b82f6' },
+                    { label: t('mealtext.fats', 'Grassi'), val: `${tot.fat.toFixed(1)}g`, color: '#f97316' },
                   ].map(m => (
                     <div key={m.label} style={{ textAlign: 'center' }}>
                       <p style={{ fontSize: 15, fontWeight: 700, color: m.color }}>{m.val}</p>
@@ -260,7 +262,7 @@ export default function MealTextAnalyzer({ onAddFoods, onClose }) {
                         </button>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontSize: 13, fontWeight: 600, color: selected.has(i) ? 'var(--text-primary)' : 'var(--text-muted)' }}>{food.name}</p>
-                          <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{m.kcal} kcal · P:{m.proteins}g · C:{m.carbs}g · G:{m.fats}g</p>
+                          <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('mealtext.macroSummary', { kcal: m.kcal, p: m.proteins, c: m.carbs, g: m.fats }, '{{kcal}} kcal · P:{{p}}g · C:{{c}}g · G:{{g}}g')}</p>
                         </div>
                         <input
                           type="number" min={1} inputMode="numeric"
@@ -268,7 +270,7 @@ export default function MealTextAnalyzer({ onAddFoods, onClose }) {
                           onChange={e => setGrams(g => ({ ...g, [i]: e.target.value }))}
                           style={{ width: 62, padding: '6px 8px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--surface-2)', fontSize: 13, color: 'var(--text-primary)', textAlign: 'right' }}
                         />
-                        <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>g</span>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>{t('mealtext.gramsUnit', 'g')}</span>
                       </motion.div>
                     )
                   })}
@@ -278,10 +280,12 @@ export default function MealTextAnalyzer({ onAddFoods, onClose }) {
 
             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
               <button onClick={() => { setPhase('idle'); setText(''); setResult(null) }} className="btn btn-secondary" style={{ flex: 1 }}>
-                Nuova descrizione
+                {t('mealtext.newDescription', 'Nuova descrizione')}
               </button>
               <button onClick={handleAdd} disabled={selected.size === 0} className="btn" style={{ flex: 2, background: 'linear-gradient(135deg, #0891b2, #06b6d4)', color: 'white', borderRadius: 14, padding: '13px 20px', fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer', opacity: selected.size === 0 ? 0.5 : 1 }}>
-                <Check size={15} /> Aggiungi {selected.size} aliment{selected.size === 1 ? 'o' : 'i'}
+                <Check size={15} /> {selected.size === 1
+                  ? t('mealtext.addFoods_one', { count: selected.size }, 'Aggiungi {{count}} alimento')
+                  : t('mealtext.addFoods_other', { count: selected.size }, 'Aggiungi {{count}} alimenti')}
               </button>
             </div>
           </motion.div>

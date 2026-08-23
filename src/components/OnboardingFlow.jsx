@@ -4,87 +4,89 @@ import { Utensils, Droplets, Bell, CheckCircle, Target, User, X } from 'lucide-r
 import { useAuth } from '../context/AuthContext'
 import { useAchievements } from '../context/AchievementsContext'
 import { supabase } from '../lib/supabase'
-
-const STEPS = [
-  {
-    id: 'welcome',
-    icon: '🥗',
-    title: 'Benvenuto in NutriPlan!',
-    subtitle: 'Ti guidiamo in 5 minuti attraverso le funzioni principali per iniziare al meglio il tuo percorso.',
-    cta: 'Iniziamo',
-    showSkip: true,
-  },
-  {
-    id: 'goal',
-    icon: null,
-    lucideIcon: Target,
-    title: 'Qual è il tuo obiettivo?',
-    subtitle: 'Scegli l\'obiettivo principale del tuo piano nutrizionale.',
-    cta: 'Avanti',
-    showSkip: false,
-    isGoal: true,
-  },
-  {
-    id: 'dietitian',
-    icon: '👨‍⚕️',
-    title: 'Trova il tuo professionista',
-    subtitle: 'Collegati al tuo dietista di fiducia oppure esplora i professionisti disponibili su NutriPlan per essere seguito passo dopo passo nel tuo percorso.',
-    cta: 'Avanti',
-    showSkip: false,
-    infoNote: 'Vai nella sezione "Dietisti" della dashboard per cercare un professionista o collegare il tuo dietista.',
-  },
-  {
-    id: 'diary',
-    icon: null,
-    lucideIcon: Utensils,
-    title: 'Diario alimentare',
-    subtitle: 'Registra ogni pasto in pochi secondi. NutriPlan traccia automaticamente calorie, proteine, carboidrati e grassi per aiutarti a rispettare il piano.',
-    cta: 'Avanti',
-    showSkip: false,
-  },
-  {
-    id: 'water',
-    icon: null,
-    lucideIcon: Droplets,
-    title: 'Acqua & Benessere',
-    subtitle: 'Monitora la tua idratazione giornaliera e registra il tuo umore. Piccole abitudini quotidiane fanno grandi differenze nel tempo.',
-    cta: 'Avanti',
-    showSkip: false,
-  },
-  {
-    id: 'notifications',
-    icon: null,
-    lucideIcon: Bell,
-    title: 'Attiva le notifiche',
-    subtitle: 'Ti ricordiamo i pasti e l\'idratazione al momento giusto, così non dimentichi mai di registrare la tua giornata.',
-    cta: 'Attiva notifiche',
-    showSkip: false,
-    isNotification: true,
-  },
-  {
-    id: 'ready',
-    icon: null,
-    lucideIcon: CheckCircle,
-    title: 'Tutto pronto! 🎉',
-    subtitle: 'Hai tutto ciò che serve per iniziare. Registra i tuoi pasti, monitora il benessere e traccia i progressi — ogni piccolo passo conta!',
-    cta: 'Inizia',
-    showSkip: false,
-    isFinal: true,
-  },
-]
-
-const GOALS = [
-  { value: 'lose', label: '⬇️ Perdere peso', desc: 'Ridurre il peso corporeo in modo sano' },
-  { value: 'maintain', label: '⚖️ Mantenere il peso', desc: 'Mantenere il peso attuale con equilibrio' },
-  { value: 'gain', label: '⬆️ Aumentare la massa', desc: 'Sviluppare massa muscolare magra' },
-]
+import { useT } from '../i18n'
 
 export default function OnboardingFlow({ onComplete }) {
   const { user, refreshProfile } = useAuth()
   const { checkAndAward } = useAchievements()
+  const t = useT()
   const [step, setStep] = useState(0)
   const [selectedGoal, setSelectedGoal] = useState('')
   const [notifStatus, setNotifStatus] = useState(null) // null | 'granted' | 'denied'
+
+  const STEPS = [
+    {
+      id: 'welcome',
+      icon: '🥗',
+      title: t('onboarding.welcome.title', 'Benvenuto in NutriPlan!'),
+      subtitle: t('onboarding.welcome.subtitle', 'Ti guidiamo in 5 minuti attraverso le funzioni principali per iniziare al meglio il tuo percorso.'),
+      cta: t('onboarding.welcome.cta', 'Iniziamo'),
+      showSkip: true,
+    },
+    {
+      id: 'goal',
+      icon: null,
+      lucideIcon: Target,
+      title: t('onboarding.goal.title', 'Qual è il tuo obiettivo?'),
+      subtitle: t('onboarding.goal.subtitle', 'Scegli l\'obiettivo principale del tuo piano nutrizionale.'),
+      cta: t('onboarding.goal.cta', 'Avanti'),
+      showSkip: false,
+      isGoal: true,
+    },
+    {
+      id: 'dietitian',
+      icon: '👨‍⚕️',
+      title: t('onboarding.dietitian.title', 'Trova il tuo professionista'),
+      subtitle: t('onboarding.dietitian.subtitle', 'Collegati al tuo dietista di fiducia oppure esplora i professionisti disponibili su NutriPlan per essere seguito passo dopo passo nel tuo percorso.'),
+      cta: t('onboarding.dietitian.cta', 'Avanti'),
+      showSkip: false,
+      infoNote: t('onboarding.dietitian.infoNote', 'Vai nella sezione "Dietisti" della dashboard per cercare un professionista o collegare il tuo dietista.'),
+    },
+    {
+      id: 'diary',
+      icon: null,
+      lucideIcon: Utensils,
+      title: t('onboarding.diary.title', 'Diario alimentare'),
+      subtitle: t('onboarding.diary.subtitle', 'Registra ogni pasto in pochi secondi. NutriPlan traccia automaticamente calorie, proteine, carboidrati e grassi per aiutarti a rispettare il piano.'),
+      cta: t('onboarding.diary.cta', 'Avanti'),
+      showSkip: false,
+    },
+    {
+      id: 'water',
+      icon: null,
+      lucideIcon: Droplets,
+      title: t('onboarding.water.title', 'Acqua & Benessere'),
+      subtitle: t('onboarding.water.subtitle', 'Monitora la tua idratazione giornaliera e registra il tuo umore. Piccole abitudini quotidiane fanno grandi differenze nel tempo.'),
+      cta: t('onboarding.water.cta', 'Avanti'),
+      showSkip: false,
+    },
+    {
+      id: 'notifications',
+      icon: null,
+      lucideIcon: Bell,
+      title: t('onboarding.notifications.title', 'Attiva le notifiche'),
+      subtitle: t('onboarding.notifications.subtitle', 'Ti ricordiamo i pasti e l\'idratazione al momento giusto, così non dimentichi mai di registrare la tua giornata.'),
+      cta: t('onboarding.notifications.cta', 'Attiva notifiche'),
+      showSkip: false,
+      isNotification: true,
+    },
+    {
+      id: 'ready',
+      icon: null,
+      lucideIcon: CheckCircle,
+      title: t('onboarding.ready.title', 'Tutto pronto! 🎉'),
+      subtitle: t('onboarding.ready.subtitle', 'Hai tutto ciò che serve per iniziare. Registra i tuoi pasti, monitora il benessere e traccia i progressi — ogni piccolo passo conta!'),
+      cta: t('onboarding.ready.cta', 'Inizia'),
+      showSkip: false,
+      isFinal: true,
+    },
+  ]
+
+  const GOALS = [
+    { value: 'lose', label: t('onboarding.goal.lose.label', '⬇️ Perdere peso'), desc: t('onboarding.goal.lose.desc', 'Ridurre il peso corporeo in modo sano') },
+    { value: 'maintain', label: t('onboarding.goal.maintain.label', '⚖️ Mantenere il peso'), desc: t('onboarding.goal.maintain.desc', 'Mantenere il peso attuale con equilibrio') },
+    { value: 'gain', label: t('onboarding.goal.gain.label', '⬆️ Aumentare la massa'), desc: t('onboarding.goal.gain.desc', 'Sviluppare massa muscolare magra') },
+  ]
 
   const current = STEPS[step]
   const totalSteps = STEPS.length
@@ -186,7 +188,7 @@ export default function OnboardingFlow({ onComplete }) {
               justifyContent: 'center',
               borderRadius: 8,
             }}
-            aria-label="Salta onboarding"
+            aria-label={t('onboarding.skipAriaLabel', 'Salta onboarding')}
           >
             <X size={18} />
           </button>
@@ -308,8 +310,8 @@ export default function OnboardingFlow({ onComplete }) {
                 fontWeight: 500,
               }}>
                 {notifStatus === 'granted'
-                  ? '✅ Notifiche attivate!'
-                  : '⚠️ Potrai attivarle in seguito dalle impostazioni.'}
+                  ? t('onboarding.notifGranted', '✅ Notifiche attivate!')
+                  : t('onboarding.notifDenied', '⚠️ Potrai attivarle in seguito dalle impostazioni.')}
               </p>
             </div>
           )}
@@ -334,7 +336,7 @@ export default function OnboardingFlow({ onComplete }) {
               letterSpacing: '0.01em',
             }}
           >
-            {current.isNotification && notifStatus !== null ? 'Continua' : current.cta}
+            {current.isNotification && notifStatus !== null ? t('onboarding.continueCta', 'Continua') : current.cta}
           </button>
 
           {/* Skip text link on first step */}
@@ -352,13 +354,13 @@ export default function OnboardingFlow({ onComplete }) {
                 padding: '6px',
               }}
             >
-              Salta introduzione
+              {t('onboarding.skipIntro', 'Salta introduzione')}
             </button>
           )}
 
           {/* Step counter */}
           <p style={{ textAlign: 'center', marginTop: 16, fontSize: 12, color: 'var(--text-muted)' }}>
-            {step + 1} di {totalSteps}
+            {t('onboarding.stepCounter', { current: step + 1, total: totalSteps }, '{{current}} di {{total}}')}
           </p>
         </motion.div>
       </AnimatePresence>

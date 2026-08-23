@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Star, MessageSquare } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../i18n'
 
 // ─── Presentational star rating (read-only, supports half-star display) ────
 export function StarRating({ value = 0, size = 14, showValue = false, count = null }) {
@@ -71,6 +72,7 @@ export async function fetchRatingSummaries(dietitianIds) {
 
 // ─── Full reviews section (list + form) per la scheda dettaglio dietista ────
 export default function DietitianReviewsSection({ dietitianId }) {
+  const t = useT()
   const { user } = useAuth()
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
@@ -125,7 +127,7 @@ export default function DietitianReviewsSection({ dietitianId }) {
   }
 
   async function submitReview() {
-    if (formRating < 1) { setError('Seleziona un punteggio da 1 a 5 stelle.'); return }
+    if (formRating < 1) { setError(t('reviews.errore_punteggio', 'Seleziona un punteggio da 1 a 5 stelle.')); return }
     setSaving(true); setError('')
     const { error: err } = await supabase.from('dietitian_reviews').upsert({
       dietitian_id: dietitianId,
@@ -135,13 +137,13 @@ export default function DietitianReviewsSection({ dietitianId }) {
       updated_at: new Date().toISOString(),
     }, { onConflict: 'dietitian_id,patient_id' })
     setSaving(false)
-    if (err) { setError('Errore nel salvataggio: ' + err.message); return }
+    if (err) { setError(t('reviews.errore_salvataggio', { messaggio: err.message }, 'Errore nel salvataggio: {{messaggio}}')); return }
     setShowForm(false)
     load()
   }
 
   async function deleteReview() {
-    if (!confirm('Eliminare la tua recensione?')) return
+    if (!confirm(t('reviews.conferma_elimina', 'Eliminare la tua recensione?'))) return
     await supabase.from('dietitian_reviews').delete().eq('id', myReview.id)
     setMyReview(null); setFormRating(0); setFormComment('')
     load()
@@ -156,13 +158,13 @@ export default function DietitianReviewsSection({ dietitianId }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <MessageSquare size={13} color="var(--green-main)" />
-          <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Recensioni</p>
+          <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('reviews.titolo_sezione', 'Recensioni')}</p>
         </div>
         {reviews.length > 0 && <StarRating value={average} count={reviews.length} showValue size={15} />}
       </div>
 
       {reviews.length === 0 && !canReview && !myReview && (
-        <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Nessuna recensione ancora.</p>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('reviews.nessuna_recensione', 'Nessuna recensione ancora.')}</p>
       )}
 
       {(canReview || myReview) && !showForm && (
@@ -171,18 +173,18 @@ export default function DietitianReviewsSection({ dietitianId }) {
           className="btn btn-secondary"
           style={{ marginBottom: reviews.length ? 14 : 0, fontSize: 13, padding: '8px 14px' }}
         >
-          {myReview ? 'Modifica la tua recensione' : 'Lascia una recensione'}
+          {myReview ? t('reviews.modifica_recensione', 'Modifica la tua recensione') : t('reviews.lascia_recensione', 'Lascia una recensione')}
         </button>
       )}
 
       {showForm && (
         <div style={{ background: 'var(--surface-2)', borderRadius: 10, padding: 14, marginBottom: 14 }}>
-          <p style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Il tuo voto</p>
+          <p style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>{t('reviews.il_tuo_voto', 'Il tuo voto')}</p>
           <StarPicker value={formRating} onChange={setFormRating} />
           <textarea
             value={formComment}
             onChange={e => setFormComment(e.target.value)}
-            placeholder="Racconta la tua esperienza (facoltativo)"
+            placeholder={t('reviews.placeholder_commento', 'Racconta la tua esperienza (facoltativo)')}
             maxLength={600}
             rows={3}
             style={{ width: '100%', marginTop: 10, padding: 10, borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, fontFamily: 'inherit', resize: 'vertical' }}
@@ -190,12 +192,12 @@ export default function DietitianReviewsSection({ dietitianId }) {
           {error && <p style={{ fontSize: 12, color: 'var(--red)', marginTop: 6 }}>{error}</p>}
           <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
             <button onClick={submitReview} disabled={saving} className="btn btn-primary" style={{ fontSize: 13, padding: '8px 16px' }}>
-              {saving ? 'Salvataggio…' : 'Pubblica'}
+              {saving ? t('reviews.salvataggio', 'Salvataggio…') : t('reviews.pubblica', 'Pubblica')}
             </button>
-            <button onClick={() => setShowForm(false)} className="btn btn-secondary" style={{ fontSize: 13, padding: '8px 16px' }}>Annulla</button>
+            <button onClick={() => setShowForm(false)} className="btn btn-secondary" style={{ fontSize: 13, padding: '8px 16px' }}>{t('reviews.annulla', 'Annulla')}</button>
             {myReview && (
               <button onClick={deleteReview} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--red)', fontSize: 12, cursor: 'pointer' }}>
-                Elimina
+                {t('reviews.elimina', 'Elimina')}
               </button>
             )}
           </div>
@@ -208,7 +210,7 @@ export default function DietitianReviewsSection({ dietitianId }) {
             <span style={{ fontSize: 13, fontWeight: 600 }}>
               {r._patient?.nome
                 ? `${r._patient.nome} ${r._patient.cognome?.[0] || ''}.`
-                : r._patient?.full_name || 'Paziente'}
+                : r._patient?.full_name || t('reviews.paziente_default', 'Paziente')}
             </span>
             <StarRating value={r.rating} size={12} />
           </div>

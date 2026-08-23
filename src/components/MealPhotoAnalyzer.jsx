@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Camera, X, Check, AlertCircle, Loader2, ChevronDown, ChevronUp, Sparkles, ShieldCheck } from 'lucide-react'
 import { analyzeMealPhoto, isMealAIAvailable } from '../lib/mealPhotoAI'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../i18n'
 
 function calcMacros(food) {
   const f = food.grams / 100
@@ -18,6 +19,7 @@ function calcMacros(food) {
 const CONFIDENCE_COLOR = { alta: '#16a34a', media: '#d97706', bassa: '#dc2626' }
 
 export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
+  const t = useT()
   const { profile, recordAiPhotoConsent } = useAuth()
   const [phase, setPhase] = useState(profile?.ai_photo_consent_at ? 'idle' : 'consent') // consent | idle | analyzing | results | error
   const [consenting, setConsenting] = useState(false)
@@ -33,7 +35,7 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
     setConsenting(true)
     const { error: consentError } = await recordAiPhotoConsent()
     setConsenting(false)
-    if (consentError) { setError(consentError.message || 'Errore salvataggio consenso'); setPhase('error'); return }
+    if (consentError) { setError(consentError.message || t('mealphoto.errorConsentSave', 'Errore salvataggio consenso')); setPhase('error'); return }
     setPhase('idle')
   }
 
@@ -50,7 +52,7 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
       setGrams(Object.fromEntries(res.foods.map((f, i) => [i, String(f.grams)])))
       setPhase('results')
     } catch (e) {
-      setError(e.message || 'Errore analisi foto')
+      setError(e.message || t('mealphoto.errorAnalysis', 'Errore analisi foto'))
       setPhase('error')
     }
   }
@@ -110,11 +112,11 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
               <Sparkles size={18} color="white" />
             </div>
             <div>
-              <h3 style={{ fontSize: 16, fontWeight: 700 }}>Analisi foto pasto</h3>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>AI riconosce gli alimenti automaticamente</p>
+              <h3 style={{ fontSize: 16, fontWeight: 700 }}>{t('mealphoto.title', 'Analisi foto pasto')}</h3>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('mealphoto.subtitle', 'AI riconosce gli alimenti automaticamente')}</p>
             </div>
           </div>
-          <button onClick={onClose} aria-label="Chiudi" style={{ background: 'var(--surface-3)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <button onClick={onClose} aria-label={t('mealphoto.close', 'Chiudi')} style={{ background: 'var(--surface-3)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <X size={16} color="var(--text-muted)" />
           </button>
         </div>
@@ -128,26 +130,26 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
               <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(124,58,237,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <ShieldCheck size={20} color="#7c3aed" />
               </div>
-              <p style={{ fontSize: 14, fontWeight: 700 }}>Prima di continuare</p>
+              <p style={{ fontSize: 14, fontWeight: 700 }}>{t('mealphoto.consentTitle', 'Prima di continuare')}</p>
             </div>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12 }}>
-              Questa funzione invia la foto del tuo pasto a <strong>Google Gemini</strong> (un servizio AI esterno) per riconoscere automaticamente gli alimenti. La foto viene analizzata al momento e non è associata alla tua identità dal fornitore AI.
+              {t('mealphoto.consentIntro1', 'Questa funzione invia la foto del tuo pasto a ')}<strong>Google Gemini</strong>{t('mealphoto.consentIntro2', ' (un servizio AI esterno) per riconoscere automaticamente gli alimenti. La foto viene analizzata al momento e non è associata alla tua identità dal fornitore AI.')}
             </p>
             <ul style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.7, margin: '0 0 16px', paddingLeft: 18 }}>
-              <li>È una funzione facoltativa: puoi continuare a registrare i pasti manualmente senza usarla.</li>
-              <li>Il tuo dietista tratta i tuoi dati come Titolare; NutriPlan/Diet-Plan agisce come Responsabile del trattamento.</li>
-              <li>Puoi leggere i dettagli completi nell'<a href="/privacy" target="_blank" style={{ color: '#7c3aed', fontWeight: 600 }}>Informativa Privacy</a>.</li>
+              <li>{t('mealphoto.consentBullet1', 'È una funzione facoltativa: puoi continuare a registrare i pasti manualmente senza usarla.')}</li>
+              <li>{t('mealphoto.consentBullet2', 'Il tuo dietista tratta i tuoi dati come Titolare; NutriPlan/Diet-Plan agisce come Responsabile del trattamento.')}</li>
+              <li>{t('mealphoto.consentBullet3Pre', "Puoi leggere i dettagli completi nell'")}<a href="/privacy" target="_blank" style={{ color: '#7c3aed', fontWeight: 600 }}>{t('mealphoto.privacyPolicyLink', 'Informativa Privacy')}</a>.</li>
             </ul>
             {error && phase === 'consent' && <div className="alert-error" style={{ marginBottom: 12, fontSize: 12.5 }}>{error}</div>}
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={onClose} className="btn btn-secondary" style={{ flex: 1 }}>Non ora</button>
+              <button onClick={onClose} className="btn btn-secondary" style={{ flex: 1 }}>{t('mealphoto.declineConsent', 'Non ora')}</button>
               <button
                 onClick={handleAcceptConsent}
                 disabled={consenting}
                 className="btn"
                 style={{ flex: 2, background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: 'white', borderRadius: 14, padding: '13px 20px', fontSize: 14, fontWeight: 600, border: 'none', cursor: consenting ? 'default' : 'pointer', opacity: consenting ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
               >
-                {consenting ? <Loader2 size={15} className="spin" /> : <Check size={15} />} Accetto, continua
+                {consenting ? <Loader2 size={15} className="spin" /> : <Check size={15} />} {t('mealphoto.acceptConsent', 'Accetto, continua')}
               </button>
             </div>
           </motion.div>
@@ -159,20 +161,20 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
             <div style={{ width: 90, height: 90, borderRadius: 24, background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', border: '2px dashed #a78bfa' }}>
               <Camera size={36} color="#7c3aed" />
             </div>
-            <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Scatta o carica una foto del pasto</p>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>L'AI identificherà gli alimenti e stimerà le calorie</p>
+            <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{t('mealphoto.captureTitle', 'Scatta o carica una foto del pasto')}</p>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>{t('mealphoto.captureSubtitle', "L'AI identificherà gli alimenti e stimerà le calorie")}</p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <button
                 onClick={() => { inputRef.current.capture = 'environment'; inputRef.current.click() }}
                 style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: 'white', border: 'none', borderRadius: 14, padding: '13px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
               >
-                <Camera size={16} /> Fotocamera
+                <Camera size={16} /> {t('mealphoto.cameraButton', 'Fotocamera')}
               </button>
               <button
                 onClick={() => { inputRef.current.removeAttribute('capture'); inputRef.current.click() }}
                 style={{ background: 'var(--surface-3)', color: 'var(--text-primary)', border: '1.5px solid var(--border)', borderRadius: 14, padding: '13px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
               >
-                Galleria
+                {t('mealphoto.galleryButton', 'Galleria')}
               </button>
             </div>
             <input ref={inputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleCapture} />
@@ -182,14 +184,14 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
         {/* Analyzing */}
         {phase === 'analyzing' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ textAlign: 'center', padding: '20px 0' }}>
-            {preview && <img src={preview} alt="pasto" style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 16, marginBottom: 20 }} />}
+            {preview && <img src={preview} alt={t('mealphoto.mealPhotoAlt', 'pasto')} style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 16, marginBottom: 20 }} />}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 10 }}>
               <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
                 <Loader2 size={22} color="#7c3aed" />
               </motion.div>
-              <span style={{ fontSize: 15, fontWeight: 600, color: '#7c3aed' }}>Analisi in corso…</span>
+              <span style={{ fontSize: 15, fontWeight: 600, color: '#7c3aed' }}>{t('mealphoto.analyzingLabel', 'Analisi in corso…')}</span>
             </div>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>L'AI sta identificando gli alimenti nel piatto</p>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('mealphoto.analyzingSubtitle', "L'AI sta identificando gli alimenti nel piatto")}</p>
           </motion.div>
         )}
 
@@ -197,31 +199,31 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
         {phase === 'error' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ padding: '10px 0' }}>
             <div className="alert-error" style={{ marginBottom: 12, lineHeight: 1.5 }}>
-              <strong>Errore analisi</strong><br />{error}
+              <strong>{t('mealphoto.errorAnalysisTitle', 'Errore analisi')}</strong><br />{error}
             </div>
             {error?.includes('chiave AI') || error?.includes('Secrets') ? (
               <div className="alert-info" style={{ marginBottom: 16, fontSize: 12, lineHeight: 1.6 }}>
-                <strong>Setup richiesto (una volta sola):</strong><br />
-                1. Ottieni una chiave gratuita su <strong>aistudio.google.com</strong><br />
-                2. Supabase Dashboard → Edge Functions → <code>analyze-meal</code> → Secrets<br />
-                3. Aggiungi <code>GEMINI_API_KEY</code> con la tua chiave<br />
-                4. Deploy: <code>supabase functions deploy analyze-meal</code>
+                <strong>{t('mealphoto.setupRequiredTitle', 'Setup richiesto (una volta sola):')}</strong><br />
+                {t('mealphoto.setupStep1', '1. Ottieni una chiave gratuita su ')}<strong>aistudio.google.com</strong><br />
+                {t('mealphoto.setupStep2Pre', '2. Supabase Dashboard → Edge Functions → ')}<code>analyze-meal</code>{t('mealphoto.setupStep2Post', ' → Secrets')}<br />
+                {t('mealphoto.setupStep3Pre', '3. Aggiungi ')}<code>GEMINI_API_KEY</code>{t('mealphoto.setupStep3Post', ' con la tua chiave')}<br />
+                {t('mealphoto.setupStep4', '4. Deploy: ')}<code>supabase functions deploy analyze-meal</code>
               </div>
             ) : null}
-            <button onClick={() => setPhase(profile?.ai_photo_consent_at ? 'idle' : 'consent')} className="btn btn-secondary btn-full">Riprova</button>
+            <button onClick={() => setPhase(profile?.ai_photo_consent_at ? 'idle' : 'consent')} className="btn btn-secondary btn-full">{t('mealphoto.retryButton', 'Riprova')}</button>
           </motion.div>
         )}
 
         {/* Results */}
         {phase === 'results' && result && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-            {preview && <img src={preview} alt="pasto" style={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 16, marginBottom: 14 }} />}
+            {preview && <img src={preview} alt={t('mealphoto.mealPhotoAlt', 'pasto')} style={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 16, marginBottom: 14 }} />}
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div>
-                <p style={{ fontSize: 14, fontWeight: 700 }}>{result.description || 'Alimenti riconosciuti'}</p>
+                <p style={{ fontSize: 14, fontWeight: 700 }}>{result.description || t('mealphoto.foodsRecognizedFallback', 'Alimenti riconosciuti')}</p>
                 <span style={{ fontSize: 11, color: CONFIDENCE_COLOR[result.confidence] || '#666', fontWeight: 600 }}>
-                  Confidenza: {result.confidence}
+                  {t('mealphoto.confidenceLabel', 'Confidenza: ')}{result.confidence}
                 </span>
               </div>
               <button onClick={() => setExpanded(v => !v)} style={{ background: 'var(--surface-3)', border: 'none', borderRadius: 8, padding: 6, cursor: 'pointer' }}>
@@ -240,10 +242,10 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
               return (
                 <div style={{ background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)', borderRadius: 14, padding: '12px 14px', marginBottom: 14, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
                   {[
-                    { label: 'kcal', val: tot.kcal, color: '#f59e0b' },
-                    { label: 'Proteine', val: `${tot.p.toFixed(1)}g`, color: '#22c55e' },
-                    { label: 'Carboidrati', val: `${tot.c.toFixed(1)}g`, color: '#3b82f6' },
-                    { label: 'Grassi', val: `${tot.fat.toFixed(1)}g`, color: '#f97316' },
+                    { label: t('mealphoto.kcalLabel', 'kcal'), val: tot.kcal, color: '#f59e0b' },
+                    { label: t('mealphoto.proteinsLabel', 'Proteine'), val: `${tot.p.toFixed(1)}g`, color: '#22c55e' },
+                    { label: t('mealphoto.carbsLabel', 'Carboidrati'), val: `${tot.c.toFixed(1)}g`, color: '#3b82f6' },
+                    { label: t('mealphoto.fatsLabel', 'Grassi'), val: `${tot.fat.toFixed(1)}g`, color: '#f97316' },
                   ].map(m => (
                     <div key={m.label} style={{ textAlign: 'center' }}>
                       <p style={{ fontSize: 15, fontWeight: 700, color: m.color }}>{m.val}</p>
@@ -269,10 +271,10 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
                         </button>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontSize: 13, fontWeight: 600, color: selected.has(i) ? 'var(--text-primary)' : 'var(--text-muted)' }}>{food.name}</p>
-                          <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{m.kcal} kcal · P:{m.proteins}g · C:{m.carbs}g · G:{m.fats}g</p>
+                          <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{m.kcal} kcal · {t('mealphoto.proteinAbbr', 'P')}:{m.proteins}g · {t('mealphoto.carbsAbbr', 'C')}:{m.carbs}g · {t('mealphoto.fatsAbbr', 'G')}:{m.fats}g</p>
                           {result.conflicts?.[i] && (
-                            <p style={{ fontSize: 11, color: '#b45309', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }} title="Suggerimento automatico, non sostituisce il parere del tuo dietista">
-                              <AlertCircle size={11} /> Da limitare per la tua condizione ({result.conflicts[i]})
+                            <p style={{ fontSize: 11, color: '#b45309', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }} title={t('mealphoto.conflictTooltip', "Suggerimento automatico, non sostituisce il parere del tuo dietista")}>
+                              <AlertCircle size={11} /> {t('mealphoto.conflictWarning', { condition: result.conflicts[i] }, 'Da limitare per la tua condizione ({{condition}})')}
                             </p>
                           )}
                         </div>
@@ -292,10 +294,12 @@ export default function MealPhotoAnalyzer({ onAddFoods, onClose }) {
 
             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
               <button onClick={() => { setPhase('idle'); setPreview(null); setResult(null) }} className="btn btn-secondary" style={{ flex: 1 }}>
-                Nuova foto
+                {t('mealphoto.newPhotoButton', 'Nuova foto')}
               </button>
               <button onClick={handleAdd} disabled={selected.size === 0} className="btn" style={{ flex: 2, background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: 'white', borderRadius: 14, padding: '13px 20px', fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer', opacity: selected.size === 0 ? 0.5 : 1 }}>
-                <Check size={15} /> Aggiungi {selected.size} aliment{selected.size === 1 ? 'o' : 'i'}
+                <Check size={15} /> {selected.size === 1
+                  ? t('mealphoto.addFoodsButtonOne', { count: selected.size }, 'Aggiungi {{count}} alimento')
+                  : t('mealphoto.addFoodsButtonOther', { count: selected.size }, 'Aggiungi {{count}} alimenti')}
               </button>
             </div>
           </motion.div>
