@@ -41,10 +41,11 @@ function safeParseArray(v) {
 
 // ─── Modal wrapper ────────────────────────────────────────────────────────────
 function Modal({ title, onClose, children }) {
+  const t = useT()
   return (
     <div className="modal-fullscreen" style={{ position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', flexDirection: 'column', background: 'var(--surface)' }}>
       <div style={{ background: 'linear-gradient(160deg, var(--green-dark), var(--green-main))', padding: 'calc(env(safe-area-inset-top) + 14px) 18px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button onClick={onClose} aria-label="Chiudi" style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0 }}>
+        <button onClick={onClose} aria-label={t('common.close', 'Chiudi')} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0 }}>
           <X size={18} />
         </button>
         <h2 style={{ color: 'white', fontSize: 17, fontWeight: 600 }}>{title}</h2>
@@ -58,6 +59,7 @@ function Modal({ title, onClose, children }) {
 
 // ─── Personal data modal ──────────────────────────────────────────────────────
 function PersonalDataModal({ profile, user, onClose, onSaved }) {
+  const t = useT()
   const { checkAndAward } = useAchievements()
   const [form, setForm] = useState({
     first_name: profile?.first_name || '',
@@ -101,63 +103,63 @@ function PersonalDataModal({ profile, user, onClose, onSaved }) {
   }
 
   const ACTIVITY = [
-    { val: 'sedentario', label: 'Sedentario' },
-    { val: 'leggero', label: 'Leggero (1-2 giorni/sett)' },
-    { val: 'moderato', label: 'Moderato (3-5 giorni/sett)' },
-    { val: 'attivo', label: 'Attivo (6-7 giorni/sett)' },
-    { val: 'molto_attivo', label: 'Molto attivo' },
+    { val: 'sedentario', label: t('profile.activity_sedentary', 'Sedentario') },
+    { val: 'leggero', label: t('profile.activity_light', 'Leggero (1-2 giorni/sett)') },
+    { val: 'moderato', label: t('profile.activity_moderate', 'Moderato (3-5 giorni/sett)') },
+    { val: 'attivo', label: t('profile.activity_active', 'Attivo (6-7 giorni/sett)') },
+    { val: 'molto_attivo', label: t('profile.activity_very_active', 'Molto attivo') },
   ]
 
   return (
-    <Modal title="Dati personali" onClose={onClose}>
+    <Modal title={t('profile.personal_data', 'Dati personali')} onClose={onClose}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div className="input-group">
-            <label className="input-label" htmlFor="pd-first-name">Nome</label>
-            <input id="pd-first-name" className="input-field" value={form.first_name} onChange={set('first_name')} placeholder="Mario" />
+            <label className="input-label" htmlFor="pd-first-name">{t('profile.first_name', 'Nome')}</label>
+            <input id="pd-first-name" className="input-field" value={form.first_name} onChange={set('first_name')} placeholder={t('profile.first_name_placeholder', 'Mario')} />
           </div>
           <div className="input-group">
-            <label className="input-label" htmlFor="pd-last-name">Cognome</label>
-            <input id="pd-last-name" className="input-field" value={form.last_name} onChange={set('last_name')} placeholder="Rossi" />
+            <label className="input-label" htmlFor="pd-last-name">{t('profile.last_name', 'Cognome')}</label>
+            <input id="pd-last-name" className="input-field" value={form.last_name} onChange={set('last_name')} placeholder={t('profile.last_name_placeholder', 'Rossi')} />
           </div>
         </div>
         <div className="input-group">
-          <label className="input-label" htmlFor="pd-birth-date">Data di nascita</label>
+          <label className="input-label" htmlFor="pd-birth-date">{t('profile.date_of_birth', 'Data di nascita')}</label>
           <input id="pd-birth-date" type="date" className="input-field" value={form.birth_date} onChange={set('birth_date')} />
         </div>
         <div className="input-group">
-          <label className="input-label">Sesso</label>
-          <div role="group" aria-label="Sesso" style={{ display: 'flex', gap: 10 }}>
+          <label className="input-label">{t('profile.gender', 'Sesso')}</label>
+          <div role="group" aria-label={t('profile.gender', 'Sesso')} style={{ display: 'flex', gap: 10 }}>
             {['M', 'F'].map(g => (
               <button key={g} onClick={() => setForm(f => ({ ...f, gender: g }))} aria-pressed={form.gender === g} style={{ flex: 1, padding: '11px', borderRadius: 12, background: form.gender === g ? 'var(--green-main)' : 'var(--surface-2)', color: form.gender === g ? 'white' : 'var(--text-secondary)', border: `1.5px solid ${form.gender === g ? 'transparent' : 'var(--border)'}`, font: 'inherit', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
-                {g === 'M' ? '♂ Maschio' : '♀ Femmina'}
+                {g === 'M' ? t('profile.gender_male_option', '♂ Maschio') : t('profile.gender_female_option', '♀ Femmina')}
               </button>
             ))}
           </div>
         </div>
         <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div className="input-group">
-            <label className="input-label" htmlFor="pd-height">Altezza (cm)</label>
+            <label className="input-label" htmlFor="pd-height">{t('profile.height', 'Altezza (cm)')}</label>
             <input id="pd-height" type="number" className="input-field" value={form.height_cm} onChange={set('height_cm')} placeholder="170" inputMode="decimal" />
           </div>
           <div className="input-group">
-            <label className="input-label" htmlFor="pd-current-weight">Peso attuale (kg)</label>
-            <input id="pd-current-weight" type="number" className="input-field" value={currentWeight} onChange={e => setCurrentWeight(e.target.value)} placeholder="es. 72" inputMode="decimal" step="0.1" />
+            <label className="input-label" htmlFor="pd-current-weight">{t('profile.current_weight', 'Peso attuale (kg)')}</label>
+            <input id="pd-current-weight" type="number" className="input-field" value={currentWeight} onChange={e => setCurrentWeight(e.target.value)} placeholder={t('profile.current_weight_placeholder', 'es. 72')} inputMode="decimal" step="0.1" />
           </div>
         </div>
         <div className="input-group">
-          <label className="input-label" htmlFor="pd-target-weight">Peso obiettivo (kg)</label>
+          <label className="input-label" htmlFor="pd-target-weight">{t('profile.target_weight', 'Peso obiettivo (kg)')}</label>
           <input id="pd-target-weight" type="number" className="input-field" value={form.target_weight} onChange={set('target_weight')} placeholder="70" inputMode="decimal" step="0.1" />
         </div>
         <div className="input-group">
-          <label className="input-label" htmlFor="pd-activity-level">Livello attività fisica</label>
+          <label className="input-label" htmlFor="pd-activity-level">{t('profile.activity_level_full', 'Livello attività fisica')}</label>
           <select id="pd-activity-level" className="input-field" value={form.activity_level} onChange={set('activity_level')}>
-            <option value="">Seleziona…</option>
+            <option value="">{t('profile.select_placeholder', 'Seleziona…')}</option>
             {ACTIVITY.map(a => <option key={a.val} value={a.val}>{a.label}</option>)}
           </select>
         </div>
         <button className="btn btn-primary btn-full" onClick={save} disabled={saving || saved} style={{ marginTop: 6 }}>
-          {saved ? <><Check size={16} /> Salvato!</> : saving ? 'Salvataggio…' : 'Salva dati'}
+          {saved ? <><Check size={16} /> {t('profile.saved_exclaim', 'Salvato!')}</> : saving ? t('profile.saving_ellipsis', 'Salvataggio…') : t('profile.personal_data_save', 'Salva dati')}
         </button>
       </div>
     </Modal>
@@ -166,20 +168,21 @@ function PersonalDataModal({ profile, user, onClose, onSaved }) {
 
 // ─── Intolerances & allergies modal ──────────────────────────────────────────
 function IntolerancesModal({ profile, user, onClose, onSaved }) {
+  const t = useT()
   const ITEMS = [
-    'Glutine (frumento, orzo, segale)',
-    'Lattosio',
-    'Uova',
-    'Arachidi',
-    'Frutta a guscio (noci, mandorle, nocciole…)',
-    'Pesce',
-    'Crostacei e molluschi',
-    'Soia',
-    'Sedano',
-    'Sesamo',
-    'Senape',
-    'Lupini',
-    'Anidride solforosa e solfiti',
+    t('profile.intol_gluten', 'Glutine (frumento, orzo, segale)'),
+    t('profile.intol_lactose', 'Lattosio'),
+    t('profile.intol_eggs', 'Uova'),
+    t('profile.intol_peanuts', 'Arachidi'),
+    t('profile.intol_treenuts', 'Frutta a guscio (noci, mandorle, nocciole…)'),
+    t('profile.intol_fish', 'Pesce'),
+    t('profile.intol_shellfish', 'Crostacei e molluschi'),
+    t('profile.intol_soy', 'Soia'),
+    t('profile.intol_celery', 'Sedano'),
+    t('profile.intol_sesame', 'Sesamo'),
+    t('profile.intol_mustard', 'Senape'),
+    t('profile.intol_lupin', 'Lupini'),
+    t('profile.intol_sulphites', 'Anidride solforosa e solfiti'),
   ]
   const initial = Array.isArray(profile?.intolerances) ? profile.intolerances : safeParseArray(profile?.intolerances)
   const [selected, setSelected] = useState(initial)
@@ -204,10 +207,10 @@ function IntolerancesModal({ profile, user, onClose, onSaved }) {
   }
 
   return (
-    <Modal title="Intolleranze e allergie" onClose={onClose}>
+    <Modal title={t('profile.intolerances', 'Intolleranze e allergie')} onClose={onClose}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
         <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
-          Seleziona le tue intolleranze o allergie alimentari.
+          {t('profile.intolerances_select_text', 'Seleziona le tue intolleranze o allergie alimentari.')}
         </p>
         {ITEMS.map((item, i) => (
           <div key={item} onClick={() => toggle(item)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 0', borderBottom: i < ITEMS.length - 1 ? '1px solid var(--border-light)' : 'none', cursor: 'pointer' }}>
@@ -218,11 +221,11 @@ function IntolerancesModal({ profile, user, onClose, onSaved }) {
           </div>
         ))}
         <div className="input-group" style={{ marginTop: 16 }}>
-          <label className="input-label">Altre intolleranze / allergie</label>
-          <input className="input-field" value={other} onChange={e => setOther(e.target.value)} placeholder="es. nichel, istamina…" />
+          <label className="input-label">{t('profile.intolerances_other_label', 'Altre intolleranze / allergie')}</label>
+          <input className="input-field" value={other} onChange={e => setOther(e.target.value)} placeholder={t('profile.intolerances_other_placeholder', 'es. nichel, istamina…')} />
         </div>
         <button className="btn btn-primary btn-full" onClick={save} disabled={saving || saved} style={{ marginTop: 18 }}>
-          {saved ? <><Check size={16} /> Salvato!</> : saving ? 'Salvataggio…' : 'Salva'}
+          {saved ? <><Check size={16} /> {t('profile.saved_exclaim', 'Salvato!')}</> : saving ? t('profile.saving_ellipsis', 'Salvataggio…') : t('common.save', 'Salva')}
         </button>
       </div>
     </Modal>
@@ -231,16 +234,17 @@ function IntolerancesModal({ profile, user, onClose, onSaved }) {
 
 // ─── Food preferences modal ───────────────────────────────────────────────────
 function FoodPrefsModal({ profile, user, onClose, onSaved }) {
+  const t = useT()
   const DIETS = [
-    { val: 'onnivoro', label: '🍖 Onnivoro', desc: 'Nessuna restrizione' },
-    { val: 'vegetariano', label: '🥗 Vegetariano', desc: 'No carne e pesce' },
-    { val: 'vegano', label: '🌱 Vegano', desc: 'No prodotti animali' },
-    { val: 'pescetariano', label: '🐟 Pescetariano', desc: 'No carne, sì pesce' },
-    { val: 'flexitariano', label: '🥦 Flexitariano', desc: 'Prevalentemente vegetale' },
+    { val: 'onnivoro', label: t('profile.diet_omnivore_label', '🍖 Onnivoro'), desc: t('profile.diet_omnivore_desc', 'Nessuna restrizione') },
+    { val: 'vegetariano', label: t('profile.diet_vegetarian_label', '🥗 Vegetariano'), desc: t('profile.diet_vegetarian_desc', 'No carne e pesce') },
+    { val: 'vegano', label: t('profile.diet_vegan_label', '🌱 Vegano'), desc: t('profile.diet_vegan_desc', 'No prodotti animali') },
+    { val: 'pescetariano', label: t('profile.diet_pescetarian_label', '🐟 Pescetariano'), desc: t('profile.diet_pescetarian_desc', 'No carne, sì pesce') },
+    { val: 'flexitariano', label: t('profile.diet_flexitarian_label', '🥦 Flexitariano'), desc: t('profile.diet_flexitarian_desc', 'Prevalentemente vegetale') },
   ]
   const EXTRAS = [
-    'Senza glutine', 'Senza lattosio', 'Low carb', 'Keto', 'Paleo',
-    'Senza zucchero aggiunto', 'Dieta mediterranea', 'Halal', 'Kosher',
+    t('profile.diet_glutenfree', 'Senza glutine'), t('profile.extra_lactosefree', 'Senza lattosio'), t('profile.extra_lowcarb', 'Low carb'), t('profile.extra_keto', 'Keto'), t('profile.extra_paleo', 'Paleo'),
+    t('profile.extra_no_added_sugar', 'Senza zucchero aggiunto'), t('profile.extra_mediterranean', 'Dieta mediterranea'), t('profile.extra_halal', 'Halal'), t('profile.extra_kosher', 'Kosher'),
   ]
   const initial = Array.isArray(profile?.food_preferences) ? profile.food_preferences : safeParseArray(profile?.food_preferences)
   const currentDiet = DIETS.find(d => initial.includes(d.val))?.val || 'onnivoro'
@@ -262,10 +266,10 @@ function FoodPrefsModal({ profile, user, onClose, onSaved }) {
   }
 
   return (
-    <Modal title="Preferenze alimentari" onClose={onClose}>
+    <Modal title={t('profile.food_prefs', 'Preferenze alimentari')} onClose={onClose}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <div>
-          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 10 }}>Tipo di dieta</p>
+          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 10 }}>{t('profile.diet_type', 'Tipo di dieta')}</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {DIETS.map(d => (
               <button key={d.val} onClick={() => setDiet(d.val)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, border: `1.5px solid ${diet === d.val ? 'var(--green-main)' : 'var(--border)'}`, background: diet === d.val ? 'var(--green-pale)' : 'var(--surface)', cursor: 'pointer', font: 'inherit', textAlign: 'left', transition: 'all 0.15s' }}>
@@ -279,7 +283,7 @@ function FoodPrefsModal({ profile, user, onClose, onSaved }) {
           </div>
         </div>
         <div>
-          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 10 }}>Restrizioni aggiuntive</p>
+          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 10 }}>{t('profile.food_prefs_extra_restrictions', 'Restrizioni aggiuntive')}</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {EXTRAS.map(item => {
               const on = extras.includes(item)
@@ -292,7 +296,7 @@ function FoodPrefsModal({ profile, user, onClose, onSaved }) {
           </div>
         </div>
         <button className="btn btn-primary btn-full" onClick={save} disabled={saving || saved}>
-          {saved ? <><Check size={16} /> Salvato!</> : saving ? 'Salvataggio…' : 'Salva preferenze'}
+          {saved ? <><Check size={16} /> {t('profile.saved_exclaim', 'Salvato!')}</> : saving ? t('profile.saving_ellipsis', 'Salvataggio…') : t('profile.food_prefs_save', 'Salva preferenze')}
         </button>
       </div>
     </Modal>
@@ -301,6 +305,7 @@ function FoodPrefsModal({ profile, user, onClose, onSaved }) {
 
 // ─── Change password modal ────────────────────────────────────────────────────
 function SecurityModal({ onClose }) {
+  const t = useT()
   const [form, setForm] = useState({ current: '', newPass: '', confirm: '' })
   const [show, setShow] = useState(false)
   const [status, setStatus] = useState(null)
@@ -309,20 +314,20 @@ function SecurityModal({ onClose }) {
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
 
   async function changePassword() {
-    if (form.newPass !== form.confirm) return setStatus('error'), setMsg('Le password non coincidono')
-    if (form.newPass.length < 8) return setStatus('error'), setMsg('La password deve avere almeno 8 caratteri')
+    if (form.newPass !== form.confirm) return setStatus('error'), setMsg(t('profile.password_mismatch', 'Le password non coincidono'))
+    if (form.newPass.length < 8) return setStatus('error'), setMsg(t('profile.password_too_short', 'La password deve avere almeno 8 caratteri'))
     setLoading(true)
     const { error } = await supabase.auth.updateUser({ password: form.newPass })
     setLoading(false)
     if (error) { setStatus('error'); setMsg(error.message) }
-    else { setStatus('success'); setMsg('Password aggiornata con successo!'); setTimeout(onClose, 1500) }
+    else { setStatus('success'); setMsg(t('profile.password_updated_success', 'Password aggiornata con successo!')); setTimeout(onClose, 1500) }
   }
 
   return (
-    <Modal title="Privacy e sicurezza" onClose={onClose}>
+    <Modal title={t('profile.security_title', 'Privacy e sicurezza')} onClose={onClose}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-          Cambia la password del tuo account. Usa una password di almeno 8 caratteri.
+          {t('profile.security_description', 'Cambia la password del tuo account. Usa una password di almeno 8 caratteri.')}
         </p>
         {status && (
           <div style={{ padding: '12px 14px', borderRadius: 10, background: status === 'success' ? 'var(--green-pale)' : 'rgba(220,74,74,0.08)', color: status === 'success' ? 'var(--green-dark)' : 'var(--red)', fontSize: 14 }}>
@@ -331,11 +336,11 @@ function SecurityModal({ onClose }) {
         )}
         {['newPass', 'confirm'].map((k, i) => (
           <div key={k} className="input-group">
-            <label className="input-label">{i === 0 ? 'Nuova password' : 'Conferma password'}</label>
+            <label className="input-label">{i === 0 ? t('profile.new_password', 'Nuova password') : t('profile.confirm_password_short', 'Conferma password')}</label>
             <div style={{ position: 'relative' }}>
               <input type={show ? 'text' : 'password'} className="input-field" value={form[k]} onChange={set(k)} placeholder="••••••••" style={{ paddingRight: 44 }} />
               {i === 0 && (
-                <button type="button" onClick={() => setShow(v => !v)} aria-label={show ? 'Nascondi password' : 'Mostra password'} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
+                <button type="button" onClick={() => setShow(v => !v)} aria-label={show ? t('profile.hide_password', 'Nascondi password') : t('profile.show_password', 'Mostra password')} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
                   {show ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               )}
@@ -343,7 +348,7 @@ function SecurityModal({ onClose }) {
           </div>
         ))}
         <button className="btn btn-primary btn-full" onClick={changePassword} disabled={loading || !form.newPass || !form.confirm} style={{ marginTop: 6 }}>
-          {loading ? 'Aggiornamento…' : 'Aggiorna password'}
+          {loading ? t('profile.updating_ellipsis', 'Aggiornamento…') : t('profile.update_password_button', 'Aggiorna password')}
         </button>
       </div>
     </Modal>
@@ -367,26 +372,33 @@ function Toggle({ on, onClick, label }) {
   )
 }
 
-const WEEK_DAYS = [
-  { val: 1, label: 'Lunedì' },
-  { val: 2, label: 'Martedì' },
-  { val: 3, label: 'Mercoledì' },
-  { val: 4, label: 'Giovedì' },
-  { val: 5, label: 'Venerdì' },
-  { val: 6, label: 'Sabato' },
-  { val: 0, label: 'Domenica' },
-]
+function getWeekDays(t) {
+  return [
+    { val: 1, label: t('profile.day_monday', 'Lunedì') },
+    { val: 2, label: t('profile.day_tuesday', 'Martedì') },
+    { val: 3, label: t('profile.day_wednesday', 'Mercoledì') },
+    { val: 4, label: t('profile.day_thursday', 'Giovedì') },
+    { val: 5, label: t('profile.day_friday', 'Venerdì') },
+    { val: 6, label: t('profile.day_saturday', 'Sabato') },
+    { val: 0, label: t('profile.day_sunday', 'Domenica') },
+  ]
+}
 
-const WATER_INTERVALS = [
-  { val: 0.5, label: 'Ogni 30 min' },
-  { val: 1, label: 'Ogni ora' },
-  { val: 1.5, label: 'Ogni 1h 30min' },
-  { val: 2, label: 'Ogni 2 ore' },
-  { val: 3, label: 'Ogni 3 ore' },
-  { val: 4, label: 'Ogni 4 ore' },
-]
+function getWaterIntervals(t) {
+  return [
+    { val: 0.5, label: t('profile.water_interval_30min', 'Ogni 30 min') },
+    { val: 1, label: t('profile.water_interval_1h', 'Ogni ora') },
+    { val: 1.5, label: t('profile.water_interval_1h30', 'Ogni 1h 30min') },
+    { val: 2, label: t('profile.water_interval_2h', 'Ogni 2 ore') },
+    { val: 3, label: t('profile.water_interval_3h', 'Ogni 3 ore') },
+    { val: 4, label: t('profile.water_interval_4h', 'Ogni 4 ore') },
+  ]
+}
 
 function NotificationsModal({ user, onClose }) {
+  const t = useT()
+  const WEEK_DAYS = getWeekDays(t)
+  const WATER_INTERVALS = getWaterIntervals(t)
   const [prefs, setPrefs] = useState(loadPrefs)
   const [permStatus, setPermStatus] = useState(getPermissionStatus)
   const [requesting, setRequesting] = useState(false)
@@ -434,29 +446,29 @@ function NotificationsModal({ user, onClose }) {
   const inputStyle = { background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 10, padding: '8px 12px', fontSize: 16, color: 'var(--text-primary)', font: 'inherit', width: '100%' }
 
   return (
-    <Modal title="Notifiche e promemoria" onClose={onClose}>
+    <Modal title={t('profile.notifications_title', 'Notifiche e promemoria')} onClose={onClose}>
       {/* Permission banner */}
       {!permGranted && !notSupported && (
         <div style={{ background: permDenied ? '#fff0f0' : 'var(--green-pale)', border: `1.5px solid ${permDenied ? '#ffd4d4' : 'var(--green-light)'}`, borderRadius: 14, padding: '14px 16px', marginBottom: 20 }}>
           {permDenied ? (
             <>
               <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--red)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <BellOff size={16} /> Notifiche bloccate
+                <BellOff size={16} /> {t('profile.notifications_blocked_title', 'Notifiche bloccate')}
               </p>
               <p style={{ fontSize: 13, color: '#c0392b', lineHeight: 1.6 }}>
-                Hai bloccato le notifiche. Per attivarle vai nelle impostazioni del browser e concedi il permesso a questo sito.
+                {t('profile.notifications_blocked_desc', 'Hai bloccato le notifiche. Per attivarle vai nelle impostazioni del browser e concedi il permesso a questo sito.')}
               </p>
             </>
           ) : (
             <>
               <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--green-dark)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <BellRing size={16} /> Attiva le notifiche
+                <BellRing size={16} /> {t('profile.notifications_enable_title', 'Attiva le notifiche')}
               </p>
               <p style={{ fontSize: 13, color: 'var(--green-dark)', lineHeight: 1.6, marginBottom: 10 }}>
-                Permetti all'app di mostrare notifiche per ricevere promemoria e avvisi.
+                {t('profile.notifications_enable_desc', "Permetti all'app di mostrare notifiche per ricevere promemoria e avvisi.")}
               </p>
               <button onClick={handleRequestPermission} disabled={requesting} className="btn btn-primary" style={{ fontSize: 14, padding: '10px 18px', gap: 6 }}>
-                <Bell size={15} />{requesting ? 'In attesa…' : 'Attiva notifiche'}
+                <Bell size={15} />{requesting ? t('profile.waiting_ellipsis', 'In attesa…') : t('profile.enable_notifications_button', 'Attiva notifiche')}
               </button>
             </>
           )}
@@ -465,18 +477,18 @@ function NotificationsModal({ user, onClose }) {
 
       {notSupported && (
         <div style={{ background: '#fff4e6', border: '1.5px solid #f0922b', borderRadius: 14, padding: '14px 16px', marginBottom: 20 }}>
-          <p style={{ fontSize: 13, color: '#b45309', lineHeight: 1.6 }}>⚠️ Il tuo browser non supporta le notifiche push. Installa l'app per ricevere le notifiche.</p>
+          <p style={{ fontSize: 13, color: '#b45309', lineHeight: 1.6 }}>{t('profile.notifications_not_supported', "⚠️ Il tuo browser non supporta le notifiche push. Installa l'app per ricevere le notifiche.")}</p>
         </div>
       )}
 
       {/* ── Event-based notifications ───────────────────────────── */}
       <div style={sectionStyle}>
-        <p style={sectionHeaderStyle}>Avvisi dal dietista</p>
+        <p style={sectionHeaderStyle}>{t('profile.notifications_dietitian_section', 'Avvisi dal dietista')}</p>
 
         {[
-          { key: 'newMessage', label: 'Nuovo messaggio', desc: 'Avvisami quando il dietista ti scrive' },
-          { key: 'newDocument', label: 'Nuovo documento condiviso', desc: 'Avvisami quando viene aggiunto un documento' },
-          { key: 'dietUpdate', label: 'Aggiornamento piano alimentare', desc: 'Avvisami quando la dieta viene modificata' },
+          { key: 'newMessage', label: t('profile.notif_new_message_label', 'Nuovo messaggio'), desc: t('profile.notif_new_message_desc', 'Avvisami quando il dietista ti scrive') },
+          { key: 'newDocument', label: t('profile.notif_new_document_label', 'Nuovo documento condiviso'), desc: t('profile.notif_new_document_desc', 'Avvisami quando viene aggiunto un documento') },
+          { key: 'dietUpdate', label: t('profile.notif_diet_update_label', 'Aggiornamento piano alimentare'), desc: t('profile.notif_diet_update_desc', 'Avvisami quando la dieta viene modificata') },
         ].map(item => (
           <div key={item.key} style={rowStyle}>
             <div style={{ flex: 1 }}>
@@ -490,22 +502,29 @@ function NotificationsModal({ user, onClose }) {
 
       {/* ── Meal reminders ─────────────────────────────────────── */}
       <div style={sectionStyle}>
-        <p style={sectionHeaderStyle}>Promemoria pasti</p>
+        <p style={sectionHeaderStyle}>{t('profile.meal_reminders_section', 'Promemoria pasti')}</p>
         <div style={{ ...rowStyle, borderBottom: prefs.mealReminder ? '1px solid var(--border-light)' : 'none' }}>
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 14, fontWeight: 500 }}>Promemoria pasti</p>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Notifica per ogni pasto configurato</p>
+            <p style={{ fontSize: 14, fontWeight: 500 }}>{t('profile.meal_reminders_section', 'Promemoria pasti')}</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('profile.meal_reminders_desc', 'Notifica per ogni pasto configurato')}</p>
           </div>
-          <Toggle on={prefs.mealReminder} onClick={() => update({ mealReminder: !prefs.mealReminder })} label="Promemoria pasti" />
+          <Toggle on={prefs.mealReminder} onClick={() => update({ mealReminder: !prefs.mealReminder })} label={t('profile.meal_reminders_section', 'Promemoria pasti')} />
         </div>
         {prefs.mealReminder && (
           <div style={{ padding: '10px 0 4px' }}>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>Configura orario e nome per ogni pasto</p>
-            {prefs.mealTimes.map((t, i) => {
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>{t('profile.meal_config_hint', 'Configura orario e nome per ogni pasto')}</p>
+            {prefs.mealTimes.map((mt, i) => {
               const labels = prefs.mealLabels || []
               const label = labels[i] || ''
-              const defaultLabels = ['Colazione','Spuntino mattina','Pranzo','Spuntino pomeriggio','Cena','Spuntino sera']
-              const placeholder = defaultLabels[i] || `Pasto ${i+1}`
+              const defaultLabels = [
+                t('profile.meal_breakfast', 'Colazione'),
+                t('profile.meal_morning_snack', 'Spuntino mattina'),
+                t('profile.meal_lunch', 'Pranzo'),
+                t('profile.meal_afternoon_snack', 'Spuntino pomeriggio'),
+                t('profile.meal_dinner', 'Cena'),
+                t('profile.meal_evening_snack', 'Spuntino sera'),
+              ]
+              const placeholder = defaultLabels[i] || t('profile.meal_number', { n: i + 1 }, 'Pasto {{n}}')
               return (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                   <input
@@ -521,7 +540,7 @@ function NotificationsModal({ user, onClose }) {
                   />
                   <input
                     type="time"
-                    value={t}
+                    value={mt}
                     onChange={e => updateMealTime(i, e.target.value)}
                     style={{ ...inputStyle, flex: 1 }}
                   />
@@ -531,7 +550,7 @@ function NotificationsModal({ user, onClose }) {
                       labels.splice(i, 1)
                       update({ mealLabels: labels })
                       removeMealTime(i)
-                    }} aria-label={`Rimuovi ${placeholder}`} style={{ background: '#fff0f0', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)', cursor: 'pointer', flexShrink: 0 }}>
+                    }} aria-label={t('profile.remove_meal_aria', { meal: placeholder }, 'Rimuovi {{meal}}')} style={{ background: '#fff0f0', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)', cursor: 'pointer', flexShrink: 0 }}>
                       <Trash2 size={15} />
                     </button>
                   )}
@@ -540,7 +559,7 @@ function NotificationsModal({ user, onClose }) {
             })}
             {prefs.mealTimes.length < 6 && (
               <button onClick={addMealTime} style={{ background: 'var(--green-pale)', border: '1.5px dashed var(--green-light)', borderRadius: 10, width: '100%', padding: '9px', fontSize: 13, color: 'var(--green-main)', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, font: 'inherit', marginTop: 2 }}>
-                <Plus size={14} />Aggiungi pasto
+                <Plus size={14} />{t('profile.add_meal_button', 'Aggiungi pasto')}
               </button>
             )}
           </div>
@@ -549,17 +568,17 @@ function NotificationsModal({ user, onClose }) {
 
       {/* ── Water reminders ────────────────────────────────────── */}
       <div style={sectionStyle}>
-        <p style={sectionHeaderStyle}>Promemoria acqua</p>
+        <p style={sectionHeaderStyle}>{t('profile.water_reminders_section', 'Promemoria acqua')}</p>
         <div style={{ ...rowStyle, borderBottom: prefs.waterReminder ? '1px solid var(--border-light)' : 'none' }}>
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 14, fontWeight: 500 }}>Promemoria acqua</p>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Ricordami di bere durante la giornata</p>
+            <p style={{ fontSize: 14, fontWeight: 500 }}>{t('profile.water_reminders_section', 'Promemoria acqua')}</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('profile.water_reminders_desc', 'Ricordami di bere durante la giornata')}</p>
           </div>
-          <Toggle on={prefs.waterReminder} onClick={() => update({ waterReminder: !prefs.waterReminder })} label="Promemoria idratazione" />
+          <Toggle on={prefs.waterReminder} onClick={() => update({ waterReminder: !prefs.waterReminder })} label={t('profile.water_reminders_aria', 'Promemoria idratazione')} />
         </div>
         {prefs.waterReminder && (
           <div style={{ padding: '10px 0 4px' }}>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>Frequenza</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>{t('profile.frequency_label', 'Frequenza')}</p>
             <select
               value={prefs.waterIntervalHours}
               onChange={e => update({ waterIntervalHours: parseFloat(e.target.value) })}
@@ -575,18 +594,18 @@ function NotificationsModal({ user, onClose }) {
 
       {/* ── Weigh-in reminder ──────────────────────────────────── */}
       <div style={sectionStyle}>
-        <p style={sectionHeaderStyle}>Promemoria pesarsi</p>
+        <p style={sectionHeaderStyle}>{t('profile.weigh_reminders_section', 'Promemoria pesarsi')}</p>
         <div style={{ ...rowStyle, borderBottom: prefs.weighReminder ? '1px solid var(--border-light)' : 'none' }}>
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 14, fontWeight: 500 }}>Promemoria settimanale</p>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Ricordami di pesarmi una volta a settimana</p>
+            <p style={{ fontSize: 14, fontWeight: 500 }}>{t('profile.weigh_reminder_weekly_label', 'Promemoria settimanale')}</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('profile.weigh_reminder_weekly_desc', 'Ricordami di pesarmi una volta a settimana')}</p>
           </div>
-          <Toggle on={prefs.weighReminder} onClick={() => update({ weighReminder: !prefs.weighReminder })} label="Promemoria pesata settimanale" />
+          <Toggle on={prefs.weighReminder} onClick={() => update({ weighReminder: !prefs.weighReminder })} label={t('profile.weigh_reminder_weekly_aria', 'Promemoria pesata settimanale')} />
         </div>
         {prefs.weighReminder && (
           <div className="form-grid-2" style={{ padding: '10px 0 4px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>Giorno</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>{t('profile.day_label', 'Giorno')}</p>
               <select
                 value={prefs.weighDay}
                 onChange={e => update({ weighDay: parseInt(e.target.value) })}
@@ -596,7 +615,7 @@ function NotificationsModal({ user, onClose }) {
               </select>
             </div>
             <div>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>Orario</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>{t('profile.time_label', 'Orario')}</p>
               <input type="time" value={prefs.weighTime} onChange={e => update({ weighTime: e.target.value })} style={inputStyle} />
             </div>
           </div>
@@ -605,22 +624,22 @@ function NotificationsModal({ user, onClose }) {
 
       {/* ── Appointment reminder ───────────────────────────────── */}
       <div style={sectionStyle}>
-        <p style={sectionHeaderStyle}>Promemoria appuntamento</p>
+        <p style={sectionHeaderStyle}>{t('profile.appointment_reminder_section', 'Promemoria appuntamento')}</p>
         <div style={{ ...rowStyle, borderBottom: prefs.appointmentReminder ? '1px solid var(--border-light)' : 'none' }}>
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 14, fontWeight: 500 }}>Promemoria visita</p>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Avvisami 1 ora prima dell'appuntamento</p>
+            <p style={{ fontSize: 14, fontWeight: 500 }}>{t('profile.appointment_reminder_visit_label', 'Promemoria visita')}</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('profile.appointment_reminder_desc', "Avvisami 1 ora prima dell'appuntamento")}</p>
           </div>
-          <Toggle on={prefs.appointmentReminder} onClick={() => update({ appointmentReminder: !prefs.appointmentReminder })} label="Promemoria appuntamenti" />
+          <Toggle on={prefs.appointmentReminder} onClick={() => update({ appointmentReminder: !prefs.appointmentReminder })} label={t('profile.appointment_reminder_aria', 'Promemoria appuntamenti')} />
         </div>
         {prefs.appointmentReminder && (
           <div className="form-grid-2" style={{ padding: '10px 0 4px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>Data visita</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>{t('profile.appointment_date_label', 'Data visita')}</p>
               <input type="date" value={prefs.appointmentDate} onChange={e => update({ appointmentDate: e.target.value })} style={inputStyle} min={new Date().toISOString().split('T')[0]} />
             </div>
             <div>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>Orario</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>{t('profile.time_label', 'Orario')}</p>
               <input type="time" value={prefs.appointmentTime} onChange={e => update({ appointmentTime: e.target.value })} style={inputStyle} />
             </div>
           </div>
@@ -628,7 +647,7 @@ function NotificationsModal({ user, onClose }) {
       </div>
 
       <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 20, lineHeight: 1.6 }}>
-        ℹ️ I promemoria schedulati (pasti, acqua, pesata) funzionano quando l'app è aperta o installata come PWA.
+        {t('profile.notifications_footer_info', "ℹ️ I promemoria schedulati (pasti, acqua, pesata) funzionano quando l'app è aperta o installata come PWA.")}
       </p>
     </Modal>
   )
@@ -636,16 +655,17 @@ function NotificationsModal({ user, onClose }) {
 
 // ─── Appearance & Accessibility modal ────────────────────────────────────────
 function AppearanceModal({ onClose }) {
+  const t = useT()
   const { settings, update } = useAppSettings()
 
   const textSizes = [
-    { val: 'normal', label: 'Normale' },
-    { val: 'large', label: 'Grande' },
-    { val: 'xlarge', label: 'Extra grande' },
+    { val: 'normal', label: t('profile.normal', 'Normale') },
+    { val: 'large', label: t('profile.large', 'Grande') },
+    { val: 'xlarge', label: t('profile.xlarge', 'Extra grande') },
   ]
 
   return (
-    <Modal title="Aspetto e accessibilità" onClose={onClose}>
+    <Modal title={t('profile.appearance_title', 'Aspetto e accessibilità')} onClose={onClose}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
         {/* Dark mode */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 0', borderBottom: '1px solid var(--border-light)' }}>
@@ -653,10 +673,10 @@ function AppearanceModal({ onClose }) {
             {settings.darkMode ? <Moon size={18} color="var(--text-secondary)" /> : <Sun size={18} color="var(--orange)" />}
           </div>
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 14, fontWeight: 500 }}>Modalità scura</p>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Riduci l'affaticamento degli occhi</p>
+            <p style={{ fontSize: 14, fontWeight: 500 }}>{t('profile.dark_mode', 'Modalità scura')}</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{t('profile.dark_mode_desc', "Riduci l'affaticamento degli occhi")}</p>
           </div>
-          <button onClick={() => update({ darkMode: !settings.darkMode })} role="switch" aria-checked={settings.darkMode} aria-label="Modalità scura" style={{
+          <button onClick={() => update({ darkMode: !settings.darkMode })} role="switch" aria-checked={settings.darkMode} aria-label={t('profile.dark_mode', 'Modalità scura')} style={{
             width: 48, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer',
             background: settings.darkMode ? 'var(--green-main)' : 'var(--border)',
             transition: 'background 0.2s', position: 'relative', flexShrink: 0
@@ -676,10 +696,10 @@ function AppearanceModal({ onClose }) {
             <Contrast size={18} color="var(--text-secondary)" />
           </div>
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 14, fontWeight: 500 }}>Alto contrasto</p>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Migliora la leggibilità del testo</p>
+            <p style={{ fontSize: 14, fontWeight: 500 }}>{t('profile.high_contrast', 'Alto contrasto')}</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{t('profile.high_contrast_desc', 'Migliora la leggibilità del testo')}</p>
           </div>
-          <button onClick={() => update({ highContrast: !settings.highContrast })} role="switch" aria-checked={settings.highContrast} aria-label="Alto contrasto" style={{
+          <button onClick={() => update({ highContrast: !settings.highContrast })} role="switch" aria-checked={settings.highContrast} aria-label={t('profile.high_contrast', 'Alto contrasto')} style={{
             width: 48, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer',
             background: settings.highContrast ? 'var(--green-main)' : 'var(--border)',
             transition: 'background 0.2s', position: 'relative', flexShrink: 0
@@ -700,8 +720,8 @@ function AppearanceModal({ onClose }) {
               <Type size={18} color="var(--text-secondary)" />
             </div>
             <div>
-              <p style={{ fontSize: 14, fontWeight: 500 }}>Dimensione testo</p>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Adatta la leggibilità</p>
+              <p style={{ fontSize: 14, fontWeight: 500 }}>{t('profile.text_size', 'Dimensione testo')}</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{t('profile.text_size_desc', 'Adatta la leggibilità')}</p>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -762,6 +782,7 @@ function LanguageModal({ onClose }) {
 
 // ─── Biometric modal ──────────────────────────────────────────────────────────
 function BiometricModal({ user, onClose }) {
+  const t = useT()
   const [available, setAvailable] = useState(null) // null=checking, true, false
   const [hasCredential, setHasCredential] = useState(false)
   const [status, setStatus] = useState(null) // 'success'|'error'|null
@@ -778,10 +799,10 @@ function BiometricModal({ user, onClose }) {
     setStatus(null); setLoading(true)
     try {
       const ok = await registerBiometric(user.id, user.email)
-      if (ok) { setHasCredential(true); setStatus('success'); setMsg('Face ID / Touch ID attivato!') }
-      else setStatus('error'), setMsg('Registrazione annullata o non supportata.')
+      if (ok) { setHasCredential(true); setStatus('success'); setMsg(t('profile.biometric_activated', 'Face ID / Touch ID attivato!')) }
+      else setStatus('error'), setMsg(t('profile.biometric_registration_cancelled', 'Registrazione annullata o non supportata.'))
     } catch (e) {
-      setStatus('error'); setMsg(e?.message || 'Errore durante la registrazione.')
+      setStatus('error'); setMsg(e?.message || t('profile.biometric_registration_error', 'Errore durante la registrazione.'))
     } finally {
       setLoading(false)
     }
@@ -790,7 +811,7 @@ function BiometricModal({ user, onClose }) {
   function handleRemove() {
     clearBiometricCredential()
     setHasCredential(false)
-    setStatus('success'); setMsg('Autenticazione biometrica rimossa.')
+    setStatus('success'); setMsg(t('profile.biometric_removed', 'Autenticazione biometrica rimossa.'))
   }
 
   return (
@@ -800,19 +821,19 @@ function BiometricModal({ user, onClose }) {
           <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
             <Fingerprint size={36} color="var(--green-main)" />
           </div>
-          <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Accesso rapido biometrico</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>{t('profile.biometric_quick_access_title', 'Accesso rapido biometrico')}</h3>
           <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-            Usa Face ID, Touch ID o impronta digitale per accedere senza digitare la password.
+            {t('profile.biometric_description', 'Usa Face ID, Touch ID o impronta digitale per accedere senza digitare la password.')}
           </p>
         </div>
 
         {available === null && (
-          <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 14 }}>Verifica disponibilità…</p>
+          <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 14 }}>{t('profile.biometric_checking', 'Verifica disponibilità…')}</p>
         )}
 
         {available === false && (
           <div style={{ background: '#fff4e6', border: '1px solid #fed7aa', borderRadius: 10, padding: '12px 14px', fontSize: 14, color: '#92400e' }}>
-            Il tuo dispositivo o browser non supporta l'autenticazione biometrica.
+            {t('profile.biometric_not_supported', "Il tuo dispositivo o browser non supporta l'autenticazione biometrica.")}
           </div>
         )}
 
@@ -828,13 +849,13 @@ function BiometricModal({ user, onClose }) {
               ? <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
               : <Fingerprint size={18} />
             }
-            {loading ? 'Registrazione…' : 'Attiva Face ID / Touch ID'}
+            {loading ? t('profile.biometric_registering', 'Registrazione…') : t('profile.biometric_activate_button', 'Attiva Face ID / Touch ID')}
           </button>
         )}
 
         {available === true && hasCredential && (
           <button className="btn btn-danger btn-full" onClick={handleRemove}>
-            Rimuovi autenticazione biometrica
+            {t('profile.biometric_remove_button', 'Rimuovi autenticazione biometrica')}
           </button>
         )}
       </div>
@@ -844,6 +865,7 @@ function BiometricModal({ user, onClose }) {
 
 // ─── Backup & Restore modal ───────────────────────────────────────────────────
 function BackupModal({ user, onClose }) {
+  const t = useT()
   const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
   const [status, setStatus] = useState(null)
@@ -882,9 +904,9 @@ function BackupModal({ user, onClose }) {
       a.download = `nutriplan-backup-${new Date().toISOString().slice(0, 10)}.json`
       a.click()
       URL.revokeObjectURL(url)
-      setStatus('success'); setMsg('Backup esportato con successo!')
+      setStatus('success'); setMsg(t('profile.backup_export_success', 'Backup esportato con successo!'))
     } catch (e) {
-      setStatus('error'); setMsg(e?.message || 'Errore durante l\'esportazione.')
+      setStatus('error'); setMsg(e?.message || t('profile.backup_export_error', "Errore durante l'esportazione."))
     } finally {
       setExporting(false)
     }
@@ -897,7 +919,7 @@ function BackupModal({ user, onClose }) {
     try {
       const text = await file.text()
       const backup = JSON.parse(text)
-      if (!backup.data || backup.version !== 1) throw new Error('File di backup non valido.')
+      if (!backup.data || backup.version !== 1) throw new Error(t('profile.backup_invalid_file', 'File di backup non valido.'))
 
       const { profile, dietLogs, waterLogs, measurements } = backup.data
 
@@ -910,9 +932,9 @@ function BackupModal({ user, onClose }) {
       const results = await Promise.all(ops)
       const firstError = results.find(r => r.error)?.error
       if (firstError) throw firstError
-      setStatus('success'); setMsg('Ripristino completato!')
+      setStatus('success'); setMsg(t('profile.backup_restore_success', 'Ripristino completato!'))
     } catch (e) {
-      setStatus('error'); setMsg(e?.message || 'Errore durante il ripristino.')
+      setStatus('error'); setMsg(e?.message || t('profile.backup_restore_error', 'Errore durante il ripristino.'))
     } finally {
       setImporting(false)
       e.target.value = ''
@@ -920,10 +942,10 @@ function BackupModal({ user, onClose }) {
   }
 
   return (
-    <Modal title="Backup e ripristino" onClose={onClose}>
+    <Modal title={t('profile.backup_title', 'Backup e ripristino')} onClose={onClose}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-          Esporta tutti i tuoi dati (profilo, diario alimentare, acqua, misurazioni) in un file JSON. Puoi reimportarlo in qualsiasi momento.
+          {t('profile.backup_description', 'Esporta tutti i tuoi dati (profilo, diario alimentare, acqua, misurazioni) in un file JSON. Puoi reimportarlo in qualsiasi momento.')}
         </p>
 
         {status && (
@@ -937,12 +959,12 @@ function BackupModal({ user, onClose }) {
             ? <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
             : <Download size={18} />
           }
-          {exporting ? 'Esportazione…' : 'Esporta backup'}
+          {exporting ? t('profile.backup_exporting', 'Esportazione…') : t('profile.backup_export_button', 'Esporta backup')}
         </button>
 
         <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 16 }}>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>
-            Ripristina da un backup precedente:
+            {t('profile.backup_restore_hint', 'Ripristina da un backup precedente:')}
           </p>
           <label style={{ display: 'block' }}>
             <input type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} />
@@ -951,13 +973,13 @@ function BackupModal({ user, onClose }) {
                 ? <span style={{ width: 16, height: 16, border: '2px solid var(--green-main)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
                 : <Upload size={18} />
               }
-              {importing ? 'Ripristino…' : 'Importa backup'}
+              {importing ? t('profile.backup_restoring', 'Ripristino…') : t('profile.backup_import_button', 'Importa backup')}
             </span>
           </label>
         </div>
 
         <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-          ⚠️ Il ripristino sovrascrive i dati esistenti con quelli del file selezionato.
+          {t('profile.backup_restore_warning', '⚠️ Il ripristino sovrascrive i dati esistenti con quelli del file selezionato.')}
         </p>
       </div>
     </Modal>
@@ -966,6 +988,7 @@ function BackupModal({ user, onClose }) {
 
 // ─── Delete account modal ─────────────────────────────────────────────────────
 function DeleteAccountModal({ user, onClose, onDeleted }) {
+  const t = useT()
   const [confirmText, setConfirmText] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
@@ -978,7 +1001,7 @@ function DeleteAccountModal({ user, onClose, onDeleted }) {
       if (rpcErr) throw rpcErr
       onDeleted()
     } catch {
-      setError("Errore nell'eliminazione. Contatta il supporto.")
+      setError(t('profile.delete_account_error', "Errore nell'eliminazione. Contatta il supporto."))
       setDeleting(false)
     }
   }
@@ -986,17 +1009,17 @@ function DeleteAccountModal({ user, onClose, onDeleted }) {
   const canDelete = confirmText === 'ELIMINA'
 
   return (
-    <Modal title="Elimina account" onClose={onClose}>
+    <Modal title={t('profile.delete_account', 'Elimina account')} onClose={onClose}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ background: '#fee2e2', border: '1.5px solid #fca5a5', borderRadius: 12, padding: '14px 16px' }}>
-          <p style={{ fontSize: 14, fontWeight: 700, color: '#dc2626', marginBottom: 4 }}>⚠️ Azione irreversibile</p>
+          <p style={{ fontSize: 14, fontWeight: 700, color: '#dc2626', marginBottom: 4 }}>{t('profile.delete_account_warning_title', '⚠️ Azione irreversibile')}</p>
           <p style={{ fontSize: 13, color: '#991b1b', lineHeight: 1.6 }}>
-            Questa azione eliminerà definitivamente il tuo account e tutti i tuoi dati (pasti, progressi, messaggi, ecc.). Non è possibile annullare questa operazione.
+            {t('profile.delete_account_warning_desc', 'Questa azione eliminerà definitivamente il tuo account e tutti i tuoi dati (pasti, progressi, messaggi, ecc.). Non è possibile annullare questa operazione.')}
           </p>
         </div>
 
         <div className="input-group">
-          <label className="input-label" style={{ color: '#dc2626' }}>Scrivi ELIMINA per confermare</label>
+          <label className="input-label" style={{ color: '#dc2626' }}>{t('profile.delete_account_confirm_label', { word: 'ELIMINA' }, 'Scrivi {{word}} per confermare')}</label>
           <input
             className="input-field"
             value={confirmText}
@@ -1022,11 +1045,11 @@ function DeleteAccountModal({ user, onClose, onDeleted }) {
             width: '100%', transition: 'background 0.2s',
           }}
         >
-          {deleting ? 'Eliminazione in corso…' : 'Conferma eliminazione'}
+          {deleting ? t('profile.delete_account_deleting', 'Eliminazione in corso…') : t('profile.delete_account_confirm_button', 'Conferma eliminazione')}
         </button>
 
         <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
-          Conforme al GDPR Art. 17 – Diritto alla cancellazione.
+          {t('profile.delete_account_gdpr_notice', 'Conforme al GDPR Art. 17 – Diritto alla cancellazione.')}
         </p>
       </div>
     </Modal>
@@ -1082,7 +1105,7 @@ export default function ProfilePage() {
     const file = e.target.files?.[0]
     if (!file) return
     const maxSize = 5 * 1024 * 1024 // 5 MB
-    if (file.size > maxSize) { setAvatarError('La foto è troppo grande. Massimo 5 MB.'); return }
+    if (file.size > maxSize) { setAvatarError(t('profile.avatar_too_large', 'La foto è troppo grande. Massimo 5 MB.')); return }
     setAvatarError('')
     setAvatarUploading(true)
     try {
@@ -1096,7 +1119,7 @@ export default function ProfilePage() {
       await refreshProfile()
     } catch (err) {
       console.error('Avatar upload error:', err)
-      setAvatarError('Errore nel caricamento. Riprova.')
+      setAvatarError(t('profile.avatar_upload_error', 'Errore nel caricamento. Riprova.'))
     } finally {
       setAvatarUploading(false)
       e.target.value = ''
@@ -1130,12 +1153,12 @@ export default function ProfilePage() {
               {avatarUploading ? (
                 <div style={{ width: 24, height: 24, border: '3px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
               ) : avatarUrl ? (
-                <img src={avatarUrl} alt="Foto profilo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src={avatarUrl} alt={t('profile.avatar_alt', 'Foto profilo')} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
                 firstName[0]?.toUpperCase()
               )}
             </div>
-            <button onClick={() => fileInputRef.current?.click()} aria-label="Cambia foto profilo" style={{ position: 'absolute', bottom: 0, right: 0, width: 26, height: 26, borderRadius: '50%', background: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.25)' }}>
+            <button onClick={() => fileInputRef.current?.click()} aria-label={t('profile.change_avatar_aria', 'Cambia foto profilo')} style={{ position: 'absolute', bottom: 0, right: 0, width: 26, height: 26, borderRadius: '50%', background: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.25)' }}>
               <Camera size={13} color="var(--green-dark)" />
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarChange} />
@@ -1207,10 +1230,10 @@ export default function ProfilePage() {
             </div>
             <div style={{ flex: 1, textAlign: 'left' }}>
               <p style={{ color: 'white', fontWeight: 700, fontSize: 14, margin: '0 0 2px' }}>
-                {isPro ? '⭐ Piano Pro attivo' : 'Scopri NutriPlan Pro'}
+                {isPro ? t('profile.pro_active_badge', '⭐ Piano Pro attivo') : t('profile.pro_discover_badge', 'Scopri NutriPlan Pro')}
               </p>
               <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11.5, margin: 0 }}>
-                {isPro ? 'Tutte le funzioni avanzate sbloccate' : '8 funzioni esclusive · €5,99/mese'}
+                {isPro ? t('profile.pro_active_desc', 'Tutte le funzioni avanzate sbloccate') : t('profile.pro_discover_desc', '8 funzioni esclusive · €5,99/mese')}
               </p>
             </div>
             <ChevronRight size={16} color="rgba(255,255,255,0.55)" />
@@ -1219,25 +1242,25 @@ export default function ProfilePage() {
           {/* Inline password change */}
           <div className="card" style={{ padding: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showPwSection ? 12 : 0 }}>
-              <p style={{ fontSize: 13, fontWeight: 700 }}>🔑 Cambia password</p>
+              <p style={{ fontSize: 13, fontWeight: 700 }}>{t('profile.change_password_section_title', '🔑 Cambia password')}</p>
               <button onClick={() => { setShowPwSection(v => !v); setPwMsg('') }} style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--green-main)', fontWeight: 600, cursor: 'pointer' }}>
-                {showPwSection ? 'Chiudi' : 'Modifica'}
+                {showPwSection ? t('common.close', 'Chiudi') : t('common.edit', 'Modifica')}
               </button>
             </div>
             {showPwSection && (
               <>
-                <input type="password" placeholder="Nuova password (min 8 caratteri)" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="input-field" style={{ marginBottom: 8 }} />
-                <input type="password" placeholder="Conferma nuova password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="input-field" style={{ marginBottom: 12 }} />
+                <input type="password" placeholder={t('profile.new_password_placeholder', 'Nuova password (min 8 caratteri)')} value={newPassword} onChange={e => setNewPassword(e.target.value)} className="input-field" style={{ marginBottom: 8 }} />
+                <input type="password" placeholder={t('profile.confirm_new_password', 'Conferma nuova password')} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="input-field" style={{ marginBottom: 12 }} />
                 <button className="btn btn-primary" onClick={async () => {
-                  if (newPassword.length < 8) { setPwMsg('La password deve essere almeno 8 caratteri'); return }
-                  if (newPassword !== confirmPassword) { setPwMsg('Le password non corrispondono'); return }
+                  if (newPassword.length < 8) { setPwMsg(t('profile.password_min_length_error', 'La password deve essere almeno 8 caratteri')); return }
+                  if (newPassword !== confirmPassword) { setPwMsg(t('profile.passwords_no_match', 'Le password non corrispondono')); return }
                   setPwLoading(true)
                   const { error } = await supabase.auth.updateUser({ password: newPassword })
                   setPwLoading(false)
-                  setPwMsg(error ? 'Errore: ' + error.message : '✅ Password aggiornata con successo')
+                  setPwMsg(error ? t('profile.error_prefix', 'Errore: ') + error.message : t('profile.password_updated_success_check', '✅ Password aggiornata con successo'))
                   if (!error) { setNewPassword(''); setConfirmPassword('') }
                 }} disabled={pwLoading} style={{ width: '100%', justifyContent: 'center' }}>
-                  {pwLoading ? '...' : 'Aggiorna password'}
+                  {pwLoading ? '...' : t('profile.update_password_button', 'Aggiorna password')}
                 </button>
                 {pwMsg && <p style={{ fontSize: 12, marginTop: 8, color: pwMsg.includes('✅') ? 'var(--green-main)' : 'var(--red)' }}>{pwMsg}</p>}
               </>
@@ -1246,13 +1269,13 @@ export default function ProfilePage() {
 
           {/* Notification prefs quick toggles */}
           <div className="card" style={{ padding: 16 }}>
-            <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>🔔 Preferenze notifiche</p>
+            <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>{t('profile.notification_prefs_section_title', '🔔 Preferenze notifiche')}</p>
             {[
-              { key: 'mealReminder', label: '📊 Promemoria pasti' },
-              { key: 'waterReminder', label: '💧 Promemoria acqua' },
-              { key: 'weeklyReport', label: '📈 Report settimanale' },
-              { key: 'dietitianMessages', label: '💬 Messaggi dal dietista' },
-              { key: 'activityReminder', label: '🏃 Promemoria attività fisica' },
+              { key: 'mealReminder', label: t('profile.quick_meal_reminder', '📊 Promemoria pasti') },
+              { key: 'waterReminder', label: t('profile.quick_water_reminder', '💧 Promemoria acqua') },
+              { key: 'weeklyReport', label: t('profile.quick_weekly_report', '📈 Report settimanale') },
+              { key: 'dietitianMessages', label: t('profile.quick_dietitian_messages', '💬 Messaggi dal dietista') },
+              { key: 'activityReminder', label: t('profile.quick_activity_reminder', '🏃 Promemoria attività fisica') },
             ].map(item => (
               <div key={item.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border-light)' }}>
                 <p style={{ fontSize: 13 }}>{item.label}</p>
@@ -1277,21 +1300,21 @@ export default function ProfilePage() {
 
           {/* App info */}
           <div className="card" style={{ padding: '14px 16px', textAlign: 'center' }}>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>NutriPlan Paziente · v1.0.0</p>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('profile.app_info_version', 'NutriPlan Paziente · v1.0.0')}</p>
             <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Powered by NutriPlan Pro</p>
           </div>
 
           {/* Danger zone */}
           <div className="card" style={{ padding: 16, border: '1.5px solid #fca5a5', background: '#fff5f5' }}>
-            <p style={{ fontSize: 13, fontWeight: 700, color: '#dc2626', marginBottom: 6 }}>⚠️ Zona Pericolosa</p>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#dc2626', marginBottom: 6 }}>{t('profile.danger_zone_title', '⚠️ Zona Pericolosa')}</p>
             <p style={{ fontSize: 12, color: '#991b1b', lineHeight: 1.6, marginBottom: 12 }}>
-              Elimina definitivamente il tuo account e tutti i dati associati. Questa azione non può essere annullata.
+              {t('profile.danger_zone_desc', 'Elimina definitivamente il tuo account e tutti i dati associati. Questa azione non può essere annullata.')}
             </p>
             <button
               onClick={() => setModal('deleteaccount')}
               style={{ background: 'none', border: '1.5px solid #dc2626', borderRadius: 10, padding: '10px 16px', color: '#dc2626', fontSize: 13, fontWeight: 600, cursor: 'pointer', font: 'inherit' }}
             >
-              Elimina account
+              {t('profile.delete_account', 'Elimina account')}
             </button>
           </div>
 

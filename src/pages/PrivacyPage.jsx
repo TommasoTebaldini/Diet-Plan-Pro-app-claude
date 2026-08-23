@@ -22,7 +22,7 @@ export default function PrivacyPage() {
   return (
     <div style={S.page}>
       <Link to="/login" style={S.back}>{t('privacy.back', '← Torna al login')}</Link>
-      <h1 style={S.h1}>{t('privacy.title', 'Informativa sulla Privacy')}</h1>
+      <h1 style={S.h1}>{t('privacy.page_title', 'Informativa sulla Privacy')}</h1>
       <p style={S.subtitle}>{t('privacy.subtitle', 'Ai sensi degli artt. 13-14 GDPR — App pazienti NutriPlan')}</p>
 
       <div style={S.banner}>

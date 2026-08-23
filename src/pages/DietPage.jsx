@@ -9,7 +9,7 @@ import { searchFoodsLocal } from '../lib/foodSearch'
 const r1 = v => Math.round((+v || 0) * 10) / 10
 const r0 = v => Math.round(+v || 0)
 
-const DAYS = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
+const DAY_KEYS = ['days_mon', 'days_tue', 'days_wed', 'days_thu', 'days_fri', 'days_sat', 'days_sun']
 
 const MEAL_META_STATIC = {
   colazione: { icon: '☀️', time: '07:00–08:30', accent: '#f59e0b', pale: '#fffbeb' },
@@ -52,16 +52,16 @@ function DailyNutritionSummary({ meals, diet }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <TrendingUp size={16} color="var(--green-main)" />
-          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Riepilogo giornaliero</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{t('diet.daily_summary', 'Riepilogo giornaliero')}</span>
         </div>
         {kcalPct !== null && (
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--green-main)' }}>{kcalPct}% obiettivo</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--green-main)' }}>{kcalPct}{t('diet.pct_goal', '% obiettivo')}</span>
         )}
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         {[
-          { label: 'Kcal', val: r0(total.kcal), color: '#f0922b' },
+          { label: t('diet.kcal_label', 'Kcal'), val: r0(total.kcal), color: '#f0922b' },
           { label: t('diet.proteins'), val: r1(total.proteins) + 'g', color: '#3b82f6' },
           { label: t('diet.carbs'), val: r1(total.carbs) + 'g', color: '#f0922b' },
           { label: t('diet.fats'), val: r1(total.fats) + 'g', color: '#e05a5a' },
@@ -111,6 +111,7 @@ function buildFoodSubs(food) {
 }
 
 function FoodItem({ food, overrideKey, override, onOverride }) {
+  const t = useT()
   const dietSubs = buildFoodSubs(food)
 
   // Smart-Swap: alternative generate on-demand dall'AI (oltre a quelle fisse
@@ -142,7 +143,7 @@ function FoodItem({ food, overrideKey, override, onOverride }) {
       }
 
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('Sessione scaduta')
+      if (!session) throw new Error(t('diet.session_expired', 'Sessione scaduta'))
 
       const res = await fetch('/api/food-swap', {
         method: 'POST',
@@ -160,7 +161,7 @@ function FoodItem({ food, overrideKey, override, onOverride }) {
         ai: true,
       })))
     } catch (e) {
-      setAiError(e.message || 'Errore nella generazione delle alternative')
+      setAiError(e.message || t('diet.ai_swap_error', 'Errore nella generazione delle alternative'))
     }
     setAiLoading(false)
   }
@@ -190,7 +191,7 @@ function FoodItem({ food, overrideKey, override, onOverride }) {
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
           <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'var(--font-b)' }}>{displayName}</span>
           {activeSub && (
-            <span style={{ fontSize: 10, color: 'var(--green-main)', fontWeight: 700, background: 'var(--green-pale)', padding: '1px 6px', borderRadius: 100 }}>sostituto</span>
+            <span style={{ fontSize: 10, color: 'var(--green-main)', fontWeight: 700, background: 'var(--green-pale)', padding: '1px 6px', borderRadius: 100 }}>{t('diet.substitute_badge', 'sostituto')}</span>
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -216,7 +217,7 @@ function FoodItem({ food, overrideKey, override, onOverride }) {
           <button
             onClick={() => onOverride(overrideKey, null)}
             style={{ padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none', background: selectedSubIdx == null ? 'var(--green-main)' : 'var(--surface-3)', color: selectedSubIdx == null ? 'white' : 'var(--text-muted)' }}
-          >Originale</button>
+          >{t('diet.original', 'Originale')}</button>
           {subs.map((sub, i) => (
             <button
               key={i}
@@ -234,21 +235,21 @@ function FoodItem({ food, overrideKey, override, onOverride }) {
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text-muted)' }}>
               <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} style={{ display: 'flex' }}>
                 <Loader2 size={12} />
-              </motion.div> Generazione alternative...
+              </motion.div> {t('diet.generating_alternatives', 'Generazione alternative...')}
             </span>
           ) : aiSubs.length > 0 ? (
             <button
               onClick={fetchAiSwap}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: '1px dashed var(--border)', background: 'none', color: 'var(--text-muted)' }}
             >
-              <RefreshCw size={11} /> Rigenera alternative AI
+              <RefreshCw size={11} /> {t('diet.regenerate_ai_alt', 'Rigenera alternative AI')}
             </button>
           ) : (
             <button
               onClick={fetchAiSwap}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none', background: 'var(--green-pale)', color: 'var(--green-main)' }}
             >
-              <Sparkles size={11} /> Non ho questo alimento — sostituisci con AI
+              <Sparkles size={11} /> {t('diet.no_food_ai_swap', 'Non ho questo alimento — sostituisci con AI')}
             </button>
           )}
           {aiError && (
@@ -268,10 +269,11 @@ const MEAL_LABELS_IT = {
 }
 
 function MealFeedbackModal({ meal, user, onClose }) {
+  const t = useT()
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
-  const mealLabel = meal.nome || MEAL_LABELS_IT[meal.meal_type] || meal.meal_type
+  const mealLabel = meal.nome || t(`meal.${meal.meal_type}`, MEAL_LABELS_IT[meal.meal_type] || meal.meal_type)
 
   async function send() {
     if (!text.trim()) return
@@ -296,21 +298,21 @@ function MealFeedbackModal({ meal, user, onClose }) {
       <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', padding: '20px 20px 24px', width: '100%', boxShadow: '0 -8px 32px rgba(0,0,0,0.2)', maxHeight: '85dvh', overflowY: 'auto', boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div>
-            <p style={{ fontSize: 15, fontWeight: 700 }}>💬 Feedback al dietista</p>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Pasto: {mealLabel}</p>
+            <p style={{ fontSize: 15, fontWeight: 700 }}>{t('diet.feedback_title', '💬 Feedback al dietista')}</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{t('diet.feedback_meal_label', { meal: mealLabel }, 'Pasto: {{meal}}')}</p>
           </div>
-          <button onClick={onClose} aria-label="Chiudi" style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <button onClick={onClose} aria-label={t('common.close', 'Chiudi')} style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <X size={16} color="var(--text-muted)" />
           </button>
         </div>
         {sent ? (
-          <div style={{ textAlign: 'center', padding: '12px 0', color: 'var(--green-main)', fontWeight: 600, fontSize: 15 }}>✅ Feedback inviato!</div>
+          <div style={{ textAlign: 'center', padding: '12px 0', color: 'var(--green-main)', fontWeight: 600, fontSize: 15 }}>{t('diet.feedback_sent', '✅ Feedback inviato!')}</div>
         ) : (
           <>
             <textarea
               value={text}
               onChange={e => setText(e.target.value)}
-              placeholder="Es: questo pranzo era troppo pesante, posso ridurre i carboidrati?"
+              placeholder={t('diet.feedback_placeholder', 'Es: questo pranzo era troppo pesante, posso ridurre i carboidrati?')}
               rows={3}
               style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1.5px solid var(--border)', fontFamily: 'inherit', fontSize: 14, resize: 'none', outline: 'none', boxSizing: 'border-box', marginBottom: 12 }}
               autoFocus
@@ -320,7 +322,7 @@ function MealFeedbackModal({ meal, user, onClose }) {
               disabled={!text.trim() || sending}
               style={{ width: '100%', background: text.trim() ? 'var(--green-main)' : 'var(--border)', color: 'white', border: 'none', borderRadius: 12, padding: '13px', fontSize: 15, fontWeight: 700, cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit' }}
             >
-              <Send size={16} />{sending ? 'Invio...' : 'Invia al dietista'}
+              <Send size={16} />{sending ? t('diet.sending', 'Invio...') : t('diet.send_to_dietitian', 'Invia al dietista')}
             </button>
           </>
         )}
@@ -363,7 +365,7 @@ function MealCard({ meal, completed, onToggleComplete, user, foodOverrides, onFo
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-b)' }}>{meta.label}</p>
               {completed && (
-                <span style={{ fontSize: 10, color: 'var(--green-main)', fontWeight: 700, background: 'var(--green-pale)', padding: '2px 8px', borderRadius: 100 }}>✓ Completato</span>
+                <span style={{ fontSize: 10, color: 'var(--green-main)', fontWeight: 700, background: 'var(--green-pale)', padding: '2px 8px', borderRadius: 100 }}>{t('diet.completed', '✓ Completato')}</span>
               )}
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 3, flexWrap: 'wrap' }}>
@@ -375,13 +377,13 @@ function MealCard({ meal, completed, onToggleComplete, user, foodOverrides, onFo
         <button
           onClick={() => onToggleComplete(meal.id)}
           style={{ padding: '14px 14px 14px 4px', background: 'none', border: 'none', cursor: 'pointer', color: completed ? 'var(--green-main)' : 'var(--border)', display: 'flex', alignItems: 'center', transition: 'color 0.2s' }}
-          title={completed ? 'Segna come non completato' : 'Segna come completato'}
+          title={completed ? t('diet.mark_incomplete', 'Segna come non completato') : t('diet.mark_complete', 'Segna come completato')}
         >
           {completed ? <CheckCircle2 size={22} /> : <Circle size={22} />}
         </button>
         <button
           onClick={() => setShowFeedback(true)}
-          title="Invia feedback al dietista su questo pasto"
+          title={t('diet.send_feedback_title', 'Invia feedback al dietista su questo pasto')}
           style={{ padding: '14px 8px 14px 0', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', transition: 'color 0.2s' }}
         >
           <MessageSquare size={18} />
@@ -419,9 +421,9 @@ function MealCard({ meal, completed, onToggleComplete, user, foodOverrides, onFo
           {meal.kcal && (
             <div style={{ display: 'flex', gap: 8, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-light)' }}>
               {[
-                { label: 'Proteine', val: r1(meal.proteins), color: '#3b82f6' },
-                { label: 'Carboidrati', val: r1(meal.carbs), color: '#f0922b' },
-                { label: 'Grassi', val: r1(meal.fats), color: '#e05a5a' },
+                { label: t('diet.proteins'), val: r1(meal.proteins), color: '#3b82f6' },
+                { label: t('diet.carbs'), val: r1(meal.carbs), color: '#f0922b' },
+                { label: t('diet.fats'), val: r1(meal.fats), color: '#e05a5a' },
               ].filter(m => m.val).map(m => (
                 <div key={m.label} style={{ flex: 1, textAlign: 'center', padding: '8px 4px', background: 'var(--surface-2)', borderRadius: 10, border: '1px solid var(--border-light)' }}>
                   <p style={{ fontSize: 14, fontWeight: 700, color: m.color, fontFamily: 'var(--font-b)' }}>{m.val}g</p>
@@ -455,7 +457,7 @@ function HistoryDietCard({ diet, onSelect, selected, meals }) {
           <Calendar size={16} color="var(--text-muted)" />
         </div>
         <div style={{ flex: 1 }}>
-          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{diet.name || 'Piano alimentare'}</p>
+          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{diet.name || t('diet.plan_name_fallback', 'Piano alimentare')}</p>
           <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
             {new Date(diet.created_at).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })}
             {diet.kcal_target ? ` · ${diet.kcal_target} kcal` : ''}
@@ -468,27 +470,27 @@ function HistoryDietCard({ diet, onSelect, selected, meals }) {
       {selected && (
         <div style={{ borderTop: '1px solid var(--border-light)', padding: '12px 16px 16px' }}>
           {meals.length === 0 ? (
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '8px 0' }}>Nessun pasto registrato per questo piano</p>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '8px 0' }}>{t('diet.no_meals_for_plan', 'Nessun pasto registrato per questo piano')}</p>
           ) : (
             <>
               {hasWeekly && (
                 <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 10, WebkitOverflowScrolling: 'touch' }}>
-                  {DAYS.map((d, i) => (
-                    <button key={d} onClick={() => setHistoryTab(i)} style={{
+                  {DAY_KEYS.map((dk, i) => (
+                    <button key={dk} onClick={() => setHistoryTab(i)} style={{
                       flexShrink: 0, padding: '6px 12px', borderRadius: 100,
                       background: historyTab === i ? 'var(--green-main)' : 'var(--surface)',
                       color: historyTab === i ? 'white' : 'var(--text-secondary)',
                       border: `1.5px solid ${historyTab === i ? 'transparent' : 'var(--border)'}`,
                       font: 'inherit', fontSize: 12, cursor: 'pointer'
                     }}>
-                      {d.slice(0, 3)}
+                      {t(`diet.${dk}`).slice(0, 3)}
                     </button>
                   ))}
                 </div>
               )}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {dayMeals.length === 0 ? (
-                  <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '8px 0' }}>Nessun pasto per questo giorno</p>
+                  <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '8px 0' }}>{t('diet.no_meals_for_day', 'Nessun pasto per questo giorno')}</p>
                 ) : dayMeals.map((m, i) => {
                   const meta = mealLabels[m.meal_type] || { label: m.meal_type, icon: '🍴', accent: 'var(--green-main)', pale: 'var(--green-pale)' }
                   return (
@@ -548,6 +550,7 @@ function MacroChip({ val, label, color, bg }) {
 
 function PianoAlimentareContent({ piano }) {
   const { user } = useAuth()
+  const t = useT()
   const today = new Date().toISOString().split('T')[0]
   const [copyState, setCopyState] = useState({ dayIdx: null, date: today, busy: false, doneIdx: null })
   const [feedbackMeal, setFeedbackMeal] = useState(null)
@@ -620,13 +623,13 @@ function PianoAlimentareContent({ piano }) {
       const { error: insertError } = await supabase.from('food_logs').insert(inserts)
       if (insertError) {
         setCopyState({ dayIdx: null, date: today, busy: false, doneIdx: null })
-        alert('Errore durante la copia del piano nel diario. Riprova.')
+        alert(t('diet.copy_error', 'Errore durante la copia del piano nel diario. Riprova.'))
         return
       }
       const { data: allFoods } = await supabase.from('food_logs').select('kcal,proteins,carbs,fats').eq('user_id', user.id).eq('date', targetDate)
       if (allFoods) {
-        const t = allFoods.reduce((a, r) => ({ kcal: a.kcal + (r.kcal || 0), proteins: a.proteins + (r.proteins || 0), carbs: a.carbs + (r.carbs || 0), fats: a.fats + (r.fats || 0) }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
-        const { error: dailyError } = await supabase.from('daily_logs').upsert({ user_id: user.id, date: targetDate, ...t }, { onConflict: 'user_id,date' })
+        const dayTotals = allFoods.reduce((a, r) => ({ kcal: a.kcal + (r.kcal || 0), proteins: a.proteins + (r.proteins || 0), carbs: a.carbs + (r.carbs || 0), fats: a.fats + (r.fats || 0) }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
+        const { error: dailyError } = await supabase.from('daily_logs').upsert({ user_id: user.id, date: targetDate, ...dayTotals }, { onConflict: 'user_id,date' })
         if (dailyError) console.warn('daily_logs upsert failed:', dailyError.message)
       }
     }
@@ -637,7 +640,7 @@ function PianoAlimentareContent({ piano }) {
   if (!days.length) return (
     <div style={{ textAlign: 'center', padding: '28px 24px', color: 'var(--text-muted)' }}>
       <ImageOff size={32} style={{ opacity: 0.3, marginBottom: 10 }} />
-      <p style={{ fontSize: 14 }}>Il dietista non ha ancora aggiunto il dettaglio dei pasti.</p>
+      <p style={{ fontSize: 14 }}>{t('diet.no_meal_detail', 'Il dietista non ha ancora aggiunto il dettaglio dei pasti.')}</p>
     </div>
   )
 
@@ -666,11 +669,11 @@ function PianoAlimentareContent({ piano }) {
             <div style={{ background: 'linear-gradient(135deg, var(--green-dark), var(--green-main))', borderRadius: 14, padding: '12px 16px', marginBottom: 10, boxShadow: '0 2px 8px rgba(26,127,90,.2)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: hasDayMacros ? 8 : 0 }}>
                 <span style={{ fontSize: 16 }}>📅</span>
-                <span style={{ fontWeight: 800, fontSize: 15, color: 'white', flex: 1, letterSpacing: '0.01em' }}>{day.nome || `Giorno ${di + 1}`}</span>
+                <span style={{ fontWeight: 800, fontSize: 15, color: 'white', flex: 1, letterSpacing: '0.01em' }}>{day.nome || t('diet.day_number', { n: di + 1 }, 'Giorno {{n}}')}</span>
                 {/* Copy button */}
                 {copyState.doneIdx === di ? (
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, background: 'rgba(255,255,255,.25)', borderRadius: 20, padding: '4px 10px', color: 'white', fontWeight: 700 }}>
-                    <Check size={11} /> Copiato!
+                    <Check size={11} /> {t('diet.copied', 'Copiato!')}
                   </span>
                 ) : copyState.dayIdx === di ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }} onClick={e => e.stopPropagation()}>
@@ -680,7 +683,7 @@ function PianoAlimentareContent({ piano }) {
                     />
                     <button onClick={() => copyDayToDiary(day, di)} disabled={copyState.busy}
                       style={{ padding: '4px 12px', borderRadius: 20, border: 'none', background: 'white', color: 'var(--green-dark)', fontSize: 12, fontWeight: 800, cursor: 'pointer', opacity: copyState.busy ? 0.6 : 1 }}>
-                      {copyState.busy ? '⏳' : '✓ Copia'}
+                      {copyState.busy ? '⏳' : t('diet.copy_confirm', '✓ Copia')}
                     </button>
                     <button onClick={() => setCopyState(s => ({ ...s, dayIdx: null }))}
                       style={{ padding: '4px 8px', borderRadius: 20, border: 'none', background: 'rgba(0,0,0,.25)', color: 'white', fontSize: 12, cursor: 'pointer' }}>✕</button>
@@ -688,18 +691,18 @@ function PianoAlimentareContent({ piano }) {
                 ) : (
                   <button onClick={() => setCopyState(s => ({ ...s, dayIdx: di, date: today }))}
                     style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 12px', borderRadius: 20, border: '1.5px solid rgba(255,255,255,.5)', background: 'rgba(255,255,255,.15)', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', backdropFilter: 'blur(4px)' }}>
-                    <ClipboardCopy size={11} /> Copia nel diario
+                    <ClipboardCopy size={11} /> {t('diet.copy_to_diary', 'Copia nel diario')}
                   </button>
                 )}
               </div>
               {/* Day macro summary */}
               {dayTot && displayMode !== 'semplice' && (
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 11, background: 'rgba(255,255,255,.18)', color: 'white', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>🔥 {Math.round(dayTot.kcal)} kcal</span>
+                  <span style={{ fontSize: 11, background: 'rgba(255,255,255,.18)', color: 'white', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>{t('diet.day_kcal', { val: Math.round(dayTot.kcal) }, '🔥 {{val}} kcal')}</span>
                   {displayMode !== 'compatta' && <>
-                    <span style={{ fontSize: 11, background: 'rgba(96,165,250,.3)', color: '#dbeafe', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>💪 {Math.round(dayTot.prot * 10) / 10}g prot</span>
-                    <span style={{ fontSize: 11, background: 'rgba(251,191,36,.3)', color: '#fef3c7', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>🍞 {Math.round(dayTot.carb * 10) / 10}g carbo</span>
-                    <span style={{ fontSize: 11, background: 'rgba(248,113,113,.3)', color: '#fee2e2', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>🧈 {Math.round(dayTot.fat * 10) / 10}g grassi</span>
+                    <span style={{ fontSize: 11, background: 'rgba(96,165,250,.3)', color: '#dbeafe', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>{t('diet.day_prot', { val: Math.round(dayTot.prot * 10) / 10 }, '💪 {{val}}g prot')}</span>
+                    <span style={{ fontSize: 11, background: 'rgba(251,191,36,.3)', color: '#fef3c7', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>{t('diet.day_carbo', { val: Math.round(dayTot.carb * 10) / 10 }, '🍞 {{val}}g carbo')}</span>
+                    <span style={{ fontSize: 11, background: 'rgba(248,113,113,.3)', color: '#fee2e2', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>{t('diet.day_grassi', { val: Math.round(dayTot.fat * 10) / 10 }, '🧈 {{val}}g grassi')}</span>
                   </>}
                 </div>
               )}
@@ -709,7 +712,10 @@ function PianoAlimentareContent({ piano }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {(day.meals || []).map((meal, mi) => {
                 const mealKey = meal.id || meal.tipo || ''
-                const meta = MEAL_PRINT_LABELS[mealKey] || { label: meal.nome || meal.id || 'Pasto', emoji: '🍴' }
+                const metaFallback = MEAL_PRINT_LABELS[mealKey]
+                const meta = metaFallback
+                  ? { ...metaFallback, label: t(`meal.${mealKey}`, metaFallback.label) }
+                  : { label: meal.nome || meal.id || t('diet.meal_fallback', 'Pasto'), emoji: '🍴' }
                 const foods = meal.items || meal.foods || meal.alimenti || []
                 const mealEmoji = meal.emoji || meta.emoji
                 const mealLabel = meal.nome || meta.label
@@ -743,7 +749,7 @@ function PianoAlimentareContent({ piano }) {
                       ) : null}
                       <button
                         onClick={() => setFeedbackMeal({ meal_type: meal.id || meal.tipo || 'pasto', nome: mealLabel })}
-                        title="Invia feedback al dietista su questo pasto"
+                        title={t('diet.send_feedback_title', 'Invia feedback al dietista su questo pasto')}
                         style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', flexShrink: 0 }}
                       >
                         <MessageSquare size={16} />
@@ -787,7 +793,9 @@ function PianoAlimentareContent({ piano }) {
                                     <span style={{ fontSize: 14 }}>📋</span>
                                     <span style={{ fontSize: 14, fontWeight: 700, color: '#065f46', flex: 1 }}>{hdr.nome}</span>
                                     <span style={{ fontSize: 11, background: '#d1fae5', color: '#065f46', padding: '2px 10px', borderRadius: 20, fontWeight: 700 }}>
-                                      {porzioni} {porzioni === 1 ? 'porzione' : 'porzioni'}
+                                      {porzioni === 1
+                                        ? t('diet.portions_one', { count: porzioni }, '{{count}} porzione')
+                                        : t('diet.portions_other', { count: porzioni }, '{{count}} porzioni')}
                                     </span>
                                   </div>
                                   {/* Ingredient list */}
@@ -808,11 +816,11 @@ function PianoAlimentareContent({ piano }) {
                                         </div>
                                         {hasIngMacros && displayMode !== 'semplice' && ingKcal != null && (
                                           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
-                                            <MacroChip val={ingKcal} label="🔥 Kcal" color="#92400e" bg="#fef3c7" />
+                                            <MacroChip val={ingKcal} label={t('diet.chip_kcal', '🔥 Kcal')} color="#92400e" bg="#fef3c7" />
                                             {displayMode !== 'compatta' && <>
-                                              {ingProt != null && <MacroChip val={`${ingProt}g`} label="💪 Prot" color="#1e40af" bg="#dbeafe" />}
-                                              {ingCarb != null && <MacroChip val={`${ingCarb}g`} label="🍞 Carbo" color="#92400e" bg="#fef9c3" />}
-                                              {ingFat != null && <MacroChip val={`${ingFat}g`} label="🧈 Grassi" color="#991b1b" bg="#fee2e2" />}
+                                              {ingProt != null && <MacroChip val={`${ingProt}g`} label={t('diet.chip_prot', '💪 Prot')} color="#1e40af" bg="#dbeafe" />}
+                                              {ingCarb != null && <MacroChip val={`${ingCarb}g`} label={t('diet.chip_carbo', '🍞 Carbo')} color="#92400e" bg="#fef9c3" />}
+                                              {ingFat != null && <MacroChip val={`${ingFat}g`} label={t('diet.chip_grassi', '🧈 Grassi')} color="#991b1b" bg="#fee2e2" />}
                                             </>}
                                           </div>
                                         )}
@@ -822,11 +830,11 @@ function PianoAlimentareContent({ piano }) {
                                   {/* Recipe totals — only in normale mode */}
                                   {hasIngMacros && displayMode === 'normale' && recTotKcal > 0 && (
                                     <div style={{ padding: '6px 14px', background: '#d1fae5', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                                      <span style={{ fontSize: 10, fontWeight: 700, color: '#065f46', letterSpacing: '.04em' }}>TOTALE RICETTA</span>
-                                      <MacroChip val={recTotKcal} label="🔥 Kcal" color="#92400e" bg="#fef3c7" />
-                                      <MacroChip val={`${Math.round(recTotProt * 10) / 10}g`} label="💪 Prot" color="#1e40af" bg="#dbeafe" />
-                                      <MacroChip val={`${Math.round(recTotCarb * 10) / 10}g`} label="🍞 Carbo" color="#92400e" bg="#fef9c3" />
-                                      <MacroChip val={`${Math.round(recTotFat * 10) / 10}g`} label="🧈 Grassi" color="#991b1b" bg="#fee2e2" />
+                                      <span style={{ fontSize: 10, fontWeight: 700, color: '#065f46', letterSpacing: '.04em' }}>{t('diet.recipe_total', 'TOTALE RICETTA')}</span>
+                                      <MacroChip val={recTotKcal} label={t('diet.chip_kcal', '🔥 Kcal')} color="#92400e" bg="#fef3c7" />
+                                      <MacroChip val={`${Math.round(recTotProt * 10) / 10}g`} label={t('diet.chip_prot', '💪 Prot')} color="#1e40af" bg="#dbeafe" />
+                                      <MacroChip val={`${Math.round(recTotCarb * 10) / 10}g`} label={t('diet.chip_carbo', '🍞 Carbo')} color="#92400e" bg="#fef9c3" />
+                                      <MacroChip val={`${Math.round(recTotFat * 10) / 10}g`} label={t('diet.chip_grassi', '🧈 Grassi')} color="#991b1b" bg="#fee2e2" />
                                     </div>
                                   )}
                                 </div>
@@ -877,25 +885,25 @@ function PianoAlimentareContent({ piano }) {
                                 </div>
                                 {hasMacros && displayMode !== 'semplice' && (kcalItem != null || protItem != null) && (
                                   <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 5 }}>
-                                    <MacroChip val={kcalItem} label="🔥 Kcal" color="#92400e" bg="#fef3c7" />
+                                    <MacroChip val={kcalItem} label={t('diet.chip_kcal', '🔥 Kcal')} color="#92400e" bg="#fef3c7" />
                                     {displayMode !== 'compatta' && <>
-                                      <MacroChip val={protItem != null ? `${protItem}g` : null} label="💪 Prot" color="#1e40af" bg="#dbeafe" />
-                                      <MacroChip val={carbItem != null ? `${carbItem}g` : null} label="🍞 Carbo" color="#92400e" bg="#fef9c3" />
-                                      <MacroChip val={fatItem != null ? `${fatItem}g` : null} label="🧈 Grassi" color="#991b1b" bg="#fee2e2" />
-                                      <MacroChip val={fatSatItem != null ? `${fatSatItem}g` : null} label="🥩 Gr.sat" color="#7c2d12" bg="#fef2e2" />
-                                      <MacroChip val={sugarItem != null ? `${sugarItem}g` : null} label="🍬 Zucch" color="#78350f" bg="#fef9c3" />
-                                      <MacroChip val={saltItem != null ? `${saltItem}g` : null} label="🧂 Sale" color="#374151" bg="#f3f4f6" />
+                                      <MacroChip val={protItem != null ? `${protItem}g` : null} label={t('diet.chip_prot', '💪 Prot')} color="#1e40af" bg="#dbeafe" />
+                                      <MacroChip val={carbItem != null ? `${carbItem}g` : null} label={t('diet.chip_carbo', '🍞 Carbo')} color="#92400e" bg="#fef9c3" />
+                                      <MacroChip val={fatItem != null ? `${fatItem}g` : null} label={t('diet.chip_grassi', '🧈 Grassi')} color="#991b1b" bg="#fee2e2" />
+                                      <MacroChip val={fatSatItem != null ? `${fatSatItem}g` : null} label={t('diet.chip_fatsat', '🥩 Gr.sat')} color="#7c2d12" bg="#fef2e2" />
+                                      <MacroChip val={sugarItem != null ? `${sugarItem}g` : null} label={t('diet.chip_sugar', '🍬 Zucch')} color="#78350f" bg="#fef9c3" />
+                                      <MacroChip val={saltItem != null ? `${saltItem}g` : null} label={t('diet.chip_salt', '🧂 Sale')} color="#374151" bg="#f3f4f6" />
                                     </>}
                                   </div>
                                 )}
                                 {alts.length > 0 && (
                                   <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, marginTop: 6 }}>
-                                    <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '.04em', flexShrink: 0 }}>SOSTITUISCI CON</span>
+                                    <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '.04em', flexShrink: 0 }}>{t('diet.replace_with', 'SOSTITUISCI CON')}</span>
                                     {selectedAlt && (
                                       <button
                                         onClick={() => setSelectedAlts(s => { const n = { ...s }; delete n[altKey]; return n })}
                                         style={{ fontSize: 11, fontWeight: 600, background: 'var(--surface-3)', color: 'var(--text-secondary)', padding: '3px 10px', borderRadius: 20, border: '1.5px solid var(--border-light)', whiteSpace: 'nowrap', cursor: 'pointer' }}
-                                      >↩ Originale</button>
+                                      >{t('diet.original_with_arrow', '↩ Originale')}</button>
                                     )}
                                     {alts.map((a, ai) => (
                                       <button
@@ -939,7 +947,8 @@ function PianoAlimentareContent({ piano }) {
 }
 
 function LatestClinicalPlanCard({ piano }) {
-  const title = piano.nome || 'Piano alimentare'
+  const t = useT()
+  const title = piano.nome || t('diet.plan_name_fallback', 'Piano alimentare')
   const savedStr = piano.saved_at
     ? new Date(piano.saved_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })
     : ''
@@ -955,7 +964,7 @@ function LatestClinicalPlanCard({ piano }) {
           <ClipboardList size={22} color="white" />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 11, color: 'var(--green-dark)', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700, marginBottom: 3 }}>Piano alimentare personalizzato</p>
+          <p style={{ fontSize: 11, color: 'var(--green-dark)', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700, marginBottom: 3 }}>{t('diet.custom_plan_label', 'Piano alimentare personalizzato')}</p>
           <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--green-dark)', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</h3>
           {savedStr && <p style={{ fontSize: 12, color: '#4d7c5a', marginTop: 3 }}>📅 {savedStr}</p>}
         </div>
@@ -966,7 +975,7 @@ function LatestClinicalPlanCard({ piano }) {
             target="_blank"
             rel="noopener noreferrer"
             onClick={e => e.stopPropagation()}
-            title="Scarica immagine"
+            title={t('diet.download_image', 'Scarica immagine')}
             style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 11, background: 'var(--green-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', textDecoration: 'none', boxShadow: '0 2px 6px rgba(26,127,90,0.25)' }}
           >
             <Download size={17} />
@@ -982,7 +991,8 @@ function LatestClinicalPlanCard({ piano }) {
 
 function OlderClinicalPlanCard({ piano }) {
   const [expanded, setExpanded] = useState(false)
-  const title = piano.nome || 'Piano alimentare'
+  const t = useT()
+  const title = piano.nome || t('diet.plan_name_fallback', 'Piano alimentare')
   const savedStr = piano.saved_at
     ? new Date(piano.saved_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })
     : ''
@@ -1239,7 +1249,7 @@ export default function DietPage() {
       if (error) {
         console.error('copy error', error)
         setCopyDiet({ open: false, date: '', busy: false, done: false })
-        alert('Errore durante la copia del piano nel diario. Riprova.')
+        alert(t('diet.copy_error', 'Errore durante la copia del piano nel diario. Riprova.'))
         return
       }
       const { data: allFoods } = await supabase.from('food_logs').select('kcal,proteins,carbs,fats').eq('user_id', user.id).eq('date', targetDate)
@@ -1282,7 +1292,7 @@ export default function DietPage() {
 
       {history.length > 0 && (
         <div>
-          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 12 }}>Piani precedenti</p>
+          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 12 }}>{t('diet.previous_plans', 'Piani precedenti')}</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {history.map(d => (
               <HistoryDietCard
@@ -1314,19 +1324,19 @@ export default function DietPage() {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 2 }}>
-              {diet ? 'Piano attivo' : t('diet.title')}
+              {diet ? t('diet.active_plan', 'Piano attivo') : t('diet.title')}
             </p>
             <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 21, color: 'white', fontWeight: 300, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {diet ? (diet.name || 'Piano personalizzato') : 'Piani alimentari'}
+              {diet ? (diet.name || t('diet.custom_plan_fallback', 'Piano personalizzato')) : t('diet.plans_title_plural', 'Piani alimentari')}
             </h1>
           </div>
         </div>
         {diet && (
           <div style={{ display: 'flex', gap: 8 }}>
             {[
-              { label: `${diet.kcal_target || '–'}`, sub: 'kcal/giorno', icon: '🔥' },
-              { label: `${diet.protein_target || '–'}g`, sub: 'proteine', icon: '💪' },
-              { label: `${diet.duration_weeks || '–'} sett.`, sub: 'durata', icon: '📅' },
+              { label: `${diet.kcal_target || '–'}`, sub: t('diet.stat_kcal_day', 'kcal/giorno'), icon: '🔥' },
+              { label: `${diet.protein_target || '–'}g`, sub: t('diet.stat_protein', 'proteine'), icon: '💪' },
+              { label: `${diet.duration_weeks || '–'} ${t('diet.weeks_short', 'sett.')}`, sub: t('diet.stat_duration', 'durata'), icon: '📅' },
             ].map(s => (
               <div key={s.sub} style={{ flex: 1, background: 'rgba(255,255,255,0.13)', borderRadius: 14, padding: '10px 8px', border: '1px solid rgba(255,255,255,0.18)', textAlign: 'center' }}>
                 <p style={{ fontSize: 9, marginBottom: 2 }}>{s.icon}</p>
@@ -1344,9 +1354,9 @@ export default function DietPage() {
           <div style={{ background: '#fefce8', border: '1.5px solid #fbbf24', borderRadius: 14, padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
             <span style={{ fontSize: 20, flexShrink: 0, lineHeight: 1 }}>⚠️</span>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: '#92400e', marginBottom: 3 }}>Attenzione alle tue intolleranze</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: '#92400e', marginBottom: 3 }}>{t('diet.allergy_warning_title', 'Attenzione alle tue intolleranze')}</p>
               <p style={{ fontSize: 12, color: '#78350f', lineHeight: 1.5 }}>
-                Questo piano contiene alimenti che potrebbero non essere adatti alle tue intolleranze:{' '}
+                {t('diet.allergy_warning_body', 'Questo piano contiene alimenti che potrebbero non essere adatti alle tue intolleranze:')}{' '}
                 <strong>{allergenWarning.join(', ')}</strong>
               </p>
             </div>
@@ -1358,7 +1368,7 @@ export default function DietPage() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
               <ClipboardList size={15} color="var(--green-main)" />
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Piano dal dietista</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('diet.from_dietitian', 'Piano dal dietista')}</span>
             </div>
 
             {/* Latest plan shown directly */}
@@ -1372,7 +1382,7 @@ export default function DietPage() {
                   style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', color: 'var(--text-secondary)' }}
                 >
                   <History size={16} />
-                  <span style={{ fontSize: 14, fontWeight: 600 }}>Piani precedenti ({clinicalPlans.length - 1})</span>
+                  <span style={{ fontSize: 14, fontWeight: 600 }}>{t('diet.previous_plans', 'Piani precedenti')} ({clinicalPlans.length - 1})</span>
                   {showOlderPlans ? <ChevronUp size={16} style={{ marginLeft: 'auto' }} /> : <ChevronDown size={16} style={{ marginLeft: 'auto' }} />}
                 </button>
                 {showOlderPlans && (
@@ -1392,15 +1402,15 @@ export default function DietPage() {
             {/* Day tabs */}
             {hasWeekly && (
               <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, WebkitOverflowScrolling: 'touch' }}>
-                {DAYS.map((d, i) => (
-                  <button key={d} onClick={() => setTab(i)} style={{
+                {DAY_KEYS.map((dk, i) => (
+                  <button key={dk} onClick={() => setTab(i)} style={{
                     flexShrink: 0, padding: '8px 16px', borderRadius: 100,
                     background: tab === i ? 'var(--green-main)' : 'var(--surface)',
                     color: tab === i ? 'white' : 'var(--text-secondary)',
                     border: `1.5px solid ${tab === i ? 'transparent' : 'var(--border)'}`,
                     font: 'inherit', fontSize: 13, fontWeight: 500, cursor: 'pointer'
                   }}>
-                    {d.slice(0, 3)}
+                    {t(`diet.${dk}`).slice(0, 3)}
                   </button>
                 ))}
               </div>
@@ -1425,7 +1435,7 @@ export default function DietPage() {
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
                     <span style={{ fontSize: 13, color: allDone ? 'var(--green-dark)' : 'var(--text-secondary)', fontWeight: 600, fontFamily: 'var(--font-b)' }}>
-                      {allDone ? '🎉 Tutti i pasti completati!' : 'Avanzamento pasti'}
+                      {allDone ? t('diet.all_meals_completed', '🎉 Tutti i pasti completati!') : t('diet.meal_progress', 'Avanzamento pasti')}
                     </span>
                     <span style={{ fontSize: 13, fontWeight: 700, color: allDone ? 'var(--green-main)' : 'var(--text-muted)', fontFamily: 'var(--font-b)' }}>{completedCount}/{dayMeals.length}</span>
                   </div>
@@ -1442,11 +1452,11 @@ export default function DietPage() {
                 {copyDiet.done ? (
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--green-pale)', borderRadius: 12, border: '1px solid var(--green-light)' }}>
                     <Check size={16} color="var(--green-main)" />
-                    <span style={{ fontSize: 13, color: 'var(--green-dark)', fontWeight: 600 }}>Aggiunto al diario!</span>
+                    <span style={{ fontSize: 13, color: 'var(--green-dark)', fontWeight: 600 }}>{t('diet.added_to_diary', 'Aggiunto al diario!')}</span>
                   </div>
                 ) : copyDiet.open ? (
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 12, border: '1px solid var(--border)' }}>
-                    <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600, flexShrink: 0 }}>📋 Copia in data:</span>
+                    <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600, flexShrink: 0 }}>{t('diet.copy_to_date', '📋 Copia in data:')}</span>
                     <input
                       type="date"
                       value={copyDiet.date || today}
@@ -1457,7 +1467,7 @@ export default function DietPage() {
                       onClick={() => copyDayMealsToLog(copyDiet.date || today)}
                       disabled={copyDiet.busy}
                       style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'var(--green-main)', color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: copyDiet.busy ? 0.6 : 1, flexShrink: 0 }}
-                    >{copyDiet.busy ? '⏳' : 'Copia'}</button>
+                    >{copyDiet.busy ? '⏳' : t('diet.copy_action', 'Copia')}</button>
                     <button onClick={() => setCopyDiet(s => ({ ...s, open: false }))} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-muted)' }}>✕</button>
                   </div>
                 ) : (
@@ -1466,7 +1476,7 @@ export default function DietPage() {
                     style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 12, border: '1.5px dashed var(--border)', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}
                   >
                     <ClipboardCopy size={15} />
-                    Copia questo giorno nel diario alimentare
+                    {t('diet.copy_day_to_diary', 'Copia questo giorno nel diario alimentare')}
                   </button>
                 )}
               </div>
@@ -1491,14 +1501,14 @@ export default function DietPage() {
                   />
                 </motion.div>
               ))
-              : <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)' }}>Nessun pasto per questo giorno</div>
+              : <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)' }}>{t('diet.no_meals_for_day', 'Nessun pasto per questo giorno')}</div>
             }
           </>
         )}
 
         {!diet && clinicalPlans.length > 0 && (
           <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--text-muted)' }}>
-            <p style={{ fontSize: 13 }}>Non è presente un piano alimentare dettagliato con i pasti. Consulta i piani del dietista sopra.</p>
+            <p style={{ fontSize: 13 }}>{t('diet.no_detailed_plan', 'Non è presente un piano alimentare dettagliato con i pasti. Consulta i piani del dietista sopra.')}</p>
           </div>
         )}
 
@@ -1510,7 +1520,7 @@ export default function DietPage() {
               style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', color: 'var(--text-secondary)' }}
             >
               <History size={16} />
-              <span style={{ fontSize: 14, fontWeight: 600 }}>Storico piani ({history.length})</span>
+              <span style={{ fontSize: 14, fontWeight: 600 }}>{t('diet.plan_history', 'Storico piani')} ({history.length})</span>
               {showHistory ? <ChevronUp size={16} style={{ marginLeft: 'auto' }} /> : <ChevronDown size={16} style={{ marginLeft: 'auto' }} />}
             </button>
 

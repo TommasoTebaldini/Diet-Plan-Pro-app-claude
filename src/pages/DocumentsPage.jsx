@@ -37,12 +37,22 @@ const TYPE_META = {
   privacy:       { label: 'Informativa Privacy',   icon: <Shield size={18} />,   color: '#64748b', bg: 'var(--icon-bg-gray)' },
 }
 
+// Traduce la label di TYPE_META usando t() — usato nelle chip filtro e nel modal documento
+function typeLabel(t, key) {
+  return t(`docs.type.${key}`, TYPE_META[key]?.label || key)
+}
+
 const DATE_FILTERS = [
   { key: 'all',   label: 'Sempre' },
   { key: 'week',  label: 'Settimana' },
   { key: 'month', label: 'Mese' },
   { key: 'year',  label: 'Anno' },
 ]
+
+function dateFilterLabel(t, key) {
+  const d = DATE_FILTERS.find(f => f.key === key)
+  return t(`docs.datefilter.${key}`, d?.label || key)
+}
 
 const DOCS_EPOCH = '1970-01-01T00:00:00Z'
 
@@ -704,6 +714,11 @@ const PATIENT_SPEC_SUBSECTIONS = {
   ],
 }
 
+// Traduce la label di una sottosezione (mantiene l'emoji iniziale per l'estrazione a valle)
+function subsectionLabel(t, tipo, sub) {
+  return t(`docs.subsection.${tipo}.${sub.key}`, sub.label)
+}
+
 // ─── Genera HTML per una singola sottosezione di un documento specialistico ───
 function buildSubsectionHTML(doc, sectionKey, consigliBase = []) {
   const dati  = doc.dati_raw || {}
@@ -873,6 +888,10 @@ const FOLDER_DEFS = [
   { key: 'paziente_sano', label: 'Paziente Sano',         icon: '🌿', color: '#16A34A', bg: 'var(--icon-bg-lime)',  types: ['paziente_sano', 'paziente-sano'] },
 ]
 
+function folderLabel(t, folder) {
+  return t(`docs.folder.${folder.key}`, folder.label)
+}
+
 // Costruisce l'HTML di patient-view.html con i dati del documento iniettati.
 // Il file è già bundlato in patientViewRaw — nessuna rete, nessun rewrite Vercel.
 function buildPatientViewHtml(doc, withPrint = false) {
@@ -915,10 +934,10 @@ function buildPatientViewHtml(doc, withPrint = false) {
 }
 
 // ─── Stampa: apre una nuova finestra con l'HTML del documento ─────────────────
-async function handlePrint(doc) {
+async function handlePrint(doc, t) {
   // window.open va chiamato subito, in modo sincrono, per non farlo bloccare dal popup blocker
   const win = window.open('', '_blank')
-  if (!win) { alert('Abilita i popup per stampare il documento.'); return }
+  if (!win) { alert(t ? t('docs.enable_popups', 'Abilita i popup per stampare il documento.') : 'Abilita i popup per stampare il documento.'); return }
   try {
     const html = await buildDocumentPrintHTML(doc)
     win.document.write(html)
@@ -931,6 +950,7 @@ async function handlePrint(doc) {
 
 // ─── DocModal: mostra il documento in un iframe (layout identico al sito dietista) ──
 function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
+  const t = useT()
   const [iframeHtml, setIframeHtml] = useState(null)
   const [error, setError]           = useState(null)
   const [imgFailed, setImgFailed]   = useState(false)
@@ -949,7 +969,7 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
         if (html) {
           setIframeHtml(html)
         } else {
-          setError('Documento non disponibile - manca stampa originale dal dietista')
+          setError(t('docs.not_available_error', 'Documento non disponibile - manca stampa originale dal dietista'))
         }
       } catch (err) {
         if (cancelled) return
@@ -961,7 +981,7 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
   }, [doc?.id])
 
   if (!doc) return null
-  const meta = TYPE_META[doc.type] || TYPE_META.document
+  const metaKey = TYPE_META[doc.type] ? doc.type : 'document'
   const printImageUrl = doc.print_image_url || null
   const hasAttachment = !!doc.file_url
 
@@ -985,11 +1005,11 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
       <div style={{ background: 'linear-gradient(160deg, #0d5c3a, #1a7f5a)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,.15)' }}>
         <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', fontSize: 20, flexShrink: 0 }}>←</button>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, margin: 0 }}>{meta.label}</p>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, margin: 0 }}>{typeLabel(t, metaKey)}</p>
           <h2 style={{ color: 'white', fontSize: 17, fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.title}</h2>
         </div>
         {printImageUrl && (
-          <a href={printImageUrl} target="_blank" rel="noopener noreferrer" download={`${doc.title || 'documento'}.png`} title="Scarica immagine"
+          <a href={printImageUrl} target="_blank" rel="noopener noreferrer" download={`${doc.title || 'documento'}.png`} title={t('docs.download_image_title', 'Scarica immagine')}
             style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 10, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0, textDecoration: 'none' }}>
             <Download size={18} />
           </a>
@@ -1010,14 +1030,14 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
                 src={url}
                 loading={i === 0 ? 'eager' : 'lazy'}
                 onError={() => setImgFailed(true)}
-                alt={`${doc.title}${doc.print_image_urls?.length > 1 ? ` — pag. ${i + 1}` : ''}`}
+                alt={`${doc.title}${doc.print_image_urls?.length > 1 ? t('docs.page_suffix', { n: i + 1 }, ' — pag. {{n}}') : ''}`}
                 style={{ display: 'block', width: '100%', maxWidth: 760, height: 'auto', boxShadow: '0 6px 24px rgba(0,0,0,0.15)', borderRadius: 8, background: 'white' }}
               />
             ))}
             {hasAttachment && (
               <a href={doc.file_url} target="_blank" rel="noopener noreferrer" download
                 style={{ background: '#1a7f5a', color: 'white', padding: '10px 20px', borderRadius: 12, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-                <Download size={16} />Scarica file allegato
+                <Download size={16} />{t('docs.download_attachment', 'Scarica file allegato')}
               </a>
             )}
           </div>
@@ -1032,7 +1052,7 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
               {doc.signed_at && (
                 <div style={{ marginTop: 26, padding: '12px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <CheckCircle2 size={16} color="#16a34a" />
-                  <span style={{ fontSize: 13, color: '#15803d', fontWeight: 600 }}>Firmato il {new Date(doc.signed_at).toLocaleDateString('it-IT')}</span>
+                  <span style={{ fontSize: 13, color: '#15803d', fontWeight: 600 }}>{t('docs.signed_on', { date: new Date(doc.signed_at).toLocaleDateString('it-IT') }, 'Firmato il {{date}}')}</span>
                 </div>
               )}
             </div>
@@ -1048,24 +1068,24 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
       ) : hasAttachment ? (
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>📄</div>
-          <p style={{ marginBottom: 16, color: '#666' }}>Documento allegato</p>
+          <p style={{ marginBottom: 16, color: '#666' }}>{t('docs.attached_document', 'Documento allegato')}</p>
           <a href={doc.file_url} target="_blank" rel="noopener noreferrer" download
             style={{ background: '#1a7f5a', color: 'white', padding: '12px 24px', borderRadius: 12, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <Download size={16} />Scarica documento
+            <Download size={16} />{t('docs.download_document', 'Scarica documento')}
           </a>
         </div>
       ) : error ? (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40, textAlign: 'center' }}>
           <div style={{ fontSize: 56, marginBottom: 16 }}>⚠️</div>
-          <h3 style={{ fontSize: 18, fontWeight: 600, color: '#334155', marginBottom: 8 }}>Documento non disponibile</h3>
+          <h3 style={{ fontSize: 18, fontWeight: 600, color: '#334155', marginBottom: 8 }}>{t('docs.not_available_title', 'Documento non disponibile')}</h3>
           <p style={{ color: '#64748b', fontSize: 14, maxWidth: 320, lineHeight: 1.5 }}>{error}</p>
         </div>
       ) : (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40, textAlign: 'center' }}>
           <div style={{ fontSize: 56, marginBottom: 16 }}>⏳</div>
-          <h3 style={{ fontSize: 18, fontWeight: 600, color: '#334155', marginBottom: 8 }}>Documento in fase di aggiornamento</h3>
+          <h3 style={{ fontSize: 18, fontWeight: 600, color: '#334155', marginBottom: 8 }}>{t('docs.updating_title', 'Documento in fase di aggiornamento')}</h3>
           <p style={{ color: '#64748b', fontSize: 14, maxWidth: 320, lineHeight: 1.5 }}>
-            Il tuo dietista sta preparando la versione aggiornata di questo documento. Sarà disponibile a breve.
+            {t('docs.updating_text', 'Il tuo dietista sta preparando la versione aggiornata di questo documento. Sarà disponibile a breve.')}
           </p>
         </div>
       )}
@@ -1260,7 +1280,9 @@ export default function DocumentsPage() {
 
             const titleFromDati = datiParsed?.titolo || datiParsed?.nome || datiParsed?.consiglio_nome || ''
             const titleFromNota = n.nota && n.nota.trim() && n.nota.trim() !== '1' ? n.nota.trim() : ''
-            const title = titleFromNota || titleFromDati || (tipo ? 'Consiglio: ' + tipo.charAt(0).toUpperCase() + tipo.slice(1) : 'Documento')
+            const title = titleFromNota || titleFromDati || (tipo
+              ? t('docs.advice_title_prefix', { tipo: tipo.charAt(0).toUpperCase() + tipo.slice(1) }, 'Consiglio: {{tipo}}')
+              : t('docs.fallback_document', 'Documento'))
 
             allDocs.push(normalizePrintUrl({
               id:          `note_${n.id}`,
@@ -1289,8 +1311,8 @@ export default function DocumentsPage() {
           // 2b. Piani alimentari
           for (const p of piani || []) {
             allDocs.push({
-              id: `piano_${p.id}`, title: p.nome || 'Piano alimentare', type: 'diet', source: 'piano', tipo: 'piano',
-              nota: p.nome || 'Piano alimentare', content: p.data_piano || '', dati_raw: null, meals_data: p.meals, file_url: null,
+              id: `piano_${p.id}`, title: p.nome || t('docs.fallback_diet_plan', 'Piano alimentare'), type: 'diet', source: 'piano', tipo: 'piano',
+              nota: p.nome || t('docs.fallback_diet_plan', 'Piano alimentare'), content: p.data_piano || '', dati_raw: null, meals_data: p.meals, file_url: null,
               print_image_url: p.print_image_url || (p.meals && typeof p.meals === 'object' && (p.meals.print_image_url || p.meals.image_url)) || null,
               tags: [], visible: true, published_at: p.saved_at, created_at: p.saved_at,
             })
@@ -1310,7 +1332,7 @@ export default function DocumentsPage() {
 
           // 2d. Schede valutazione
           for (const s of schede || []) {
-            const titolo = [s.nome, s.cognome].filter(Boolean).join(' ') || 'Scheda Valutazione'
+            const titolo = [s.nome, s.cognome].filter(Boolean).join(' ') || t('docs.fallback_assessment_sheet', 'Scheda Valutazione')
             allDocs.push(normalizePrintUrl({
               id: `val_${s.id}`, title: titolo, type: 'valutazione', source: 'valutazione', tipo: 'valutazione',
               nota: titolo, content: '', file_url: null,
@@ -1477,33 +1499,35 @@ export default function DocumentsPage() {
       <div className="page">
         <div style={{ background: 'linear-gradient(160deg, var(--green-dark), var(--green-main))', padding: 'calc(env(safe-area-inset-top) + 20px) 24px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>Condivisi dal tuo dietista</p>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>{t('docs.subtitle', 'Condivisi dal tuo dietista')}</p>
             {newCount > 0 && (
               <span style={{ background: '#f59e0b', color: 'white', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 100 }}>
-                {newCount} nuov{newCount === 1 ? 'o' : 'i'}
+                {newCount === 1
+                  ? t('docs.new_count_one', { count: newCount }, '{{count}} nuovo')
+                  : t('docs.new_count_other', { count: newCount }, '{{count}} nuovi')}
               </span>
             )}
           </div>
           <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300, marginBottom: 14 }}>{t('docs.title')}</h1>
 
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 10, WebkitOverflowScrolling: 'touch' }}>
-            {types.map(t => (
-              <button key={t} onClick={() => setTypeFilter(t)} style={{
+            {types.map(typ => (
+              <button key={typ} onClick={() => setTypeFilter(typ)} style={{
                 flexShrink: 0, padding: '7px 14px', borderRadius: 100,
-                background: typeFilter === t ? 'white' : 'rgba(255,255,255,0.15)',
-                color:      typeFilter === t ? 'var(--green-main)' : 'white',
+                background: typeFilter === typ ? 'white' : 'rgba(255,255,255,0.15)',
+                color:      typeFilter === typ ? 'var(--green-main)' : 'white',
                 border: 'none', font: 'inherit', fontSize: 13, fontWeight: 500, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 5,
               }}>
-                {t === 'bookmarks' && <Star size={12} fill={typeFilter === 'bookmarks' ? 'var(--green-main)' : 'white'} />}
-                {t === 'all' ? 'Tutti' : t === 'bookmarks' ? 'Preferiti' : TYPE_META[t]?.label || t}
+                {typ === 'bookmarks' && <Star size={12} fill={typeFilter === 'bookmarks' ? 'var(--green-main)' : 'white'} />}
+                {typ === 'all' ? t('docs.filter_all', 'Tutti') : typ === 'bookmarks' ? t('docs.filter_favorites', 'Preferiti') : typeLabel(t, typ)}
               </button>
             ))}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ display: 'flex', gap: 6, overflowX: 'auto', flex: 1, WebkitOverflowScrolling: 'touch' }}>
-              {DATE_FILTERS.map(({ key, label }) => (
+              {DATE_FILTERS.map(({ key }) => (
                 <button key={key} onClick={() => setDateFilter(key)} style={{
                   flexShrink: 0, padding: '5px 12px', borderRadius: 100,
                   background: dateFilter === key ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.1)',
@@ -1511,11 +1535,11 @@ export default function DocumentsPage() {
                   border: `1px solid ${dateFilter === key ? 'transparent' : 'rgba(255,255,255,0.2)'}`,
                   font: 'inherit', fontSize: 12, fontWeight: 500, cursor: 'pointer',
                 }}>
-                  {label}
+                  {dateFilterLabel(t, key)}
                 </button>
               ))}
             </div>
-            <button onClick={reload} aria-label="Ricarica documenti"
+            <button onClick={reload} aria-label={t('docs.reload_aria', 'Ricarica documenti')}
               style={{ flexShrink: 0, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}>
               <RefreshCw size={15} />
             </button>
@@ -1533,7 +1557,9 @@ export default function DocumentsPage() {
               <div style={{ padding: '13px 16px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <PenLine size={18} color="white" />
                 <span style={{ fontSize: 14, fontWeight: 700, color: 'white' }}>
-                  Documento{pendingSignatureDocs.length > 1 ? 'i' : ''} da firmare ({pendingSignatureDocs.length})
+                  {pendingSignatureDocs.length === 1
+                    ? t('docs.to_sign_one', { count: pendingSignatureDocs.length }, 'Documento da firmare ({{count}})')
+                    : t('docs.to_sign_other', { count: pendingSignatureDocs.length }, 'Documenti da firmare ({{count}})')}
                 </span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -1544,7 +1570,7 @@ export default function DocumentsPage() {
                         <FileText size={18} color="#d97706" />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 14, fontWeight: 700, color: '#92400e', marginBottom: 2 }}>{doc.title || 'Documento da firmare'}</p>
+                        <p style={{ fontSize: 14, fontWeight: 700, color: '#92400e', marginBottom: 2 }}>{doc.title || t('docs.sign_fallback_title', 'Documento da firmare')}</p>
                         <p style={{ fontSize: 12, color: '#b45309' }}>
                           {new Date(doc.created_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
                         </p>
@@ -1560,7 +1586,7 @@ export default function DocumentsPage() {
                         style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: 'none', cursor: signingId === doc.id ? 'wait' : 'pointer', background: '#16a34a', color: 'white', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, opacity: signingId === doc.id ? 0.7 : 1, transition: 'opacity .2s' }}
                       >
                         <CheckCircle2 size={16} />
-                        Accetta
+                        {t('docs.accept', 'Accetta')}
                       </button>
                       <button
                         onClick={() => handleSign(doc.id, false)}
@@ -1568,7 +1594,7 @@ export default function DocumentsPage() {
                         style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: '1.5px solid #fca5a5', cursor: signingId === doc.id ? 'wait' : 'pointer', background: 'white', color: '#dc2626', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, opacity: signingId === doc.id ? 0.7 : 1, transition: 'opacity .2s' }}
                       >
                         <XCircle size={16} />
-                        Rifiuta
+                        {t('docs.reject', 'Rifiuta')}
                       </button>
                     </div>
                   </div>
@@ -1593,14 +1619,14 @@ export default function DocumentsPage() {
           ) : loadError ? (
             <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)' }}>
               <FileText size={40} style={{ marginBottom: 12, opacity: 0.3 }} />
-              <p style={{ fontSize: 15, fontWeight: 500 }}>Errore nel caricamento</p>
+              <p style={{ fontSize: 15, fontWeight: 500 }}>{t('docs.load_error', 'Errore nel caricamento')}</p>
               <p style={{ fontSize: 13, marginTop: 4, color: 'var(--red)' }}>{loadError}</p>
             </div>
           ) : filtered.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)' }}>
               {typeFilter === 'bookmarks'
-                ? <><Star size={40} style={{ marginBottom: 12, opacity: 0.3 }} /><p style={{ fontSize: 15, fontWeight: 500 }}>Nessun preferito</p><p style={{ fontSize: 13, marginTop: 4 }}>Tocca ★ su un documento per salvarlo qui.</p></>
-                : <><FileText size={40} style={{ marginBottom: 12, opacity: 0.3 }} /><p style={{ fontSize: 15, fontWeight: 500 }}>Nessun documento</p><p style={{ fontSize: 13, marginTop: 4 }}>Il tuo dietista non ha ancora condiviso documenti.</p></>
+                ? <><Star size={40} style={{ marginBottom: 12, opacity: 0.3 }} /><p style={{ fontSize: 15, fontWeight: 500 }}>{t('docs.empty_favorites_title', 'Nessun preferito')}</p><p style={{ fontSize: 13, marginTop: 4 }}>{t('docs.empty_favorites_text', 'Tocca ★ su un documento per salvarlo qui.')}</p></>
+                : <><FileText size={40} style={{ marginBottom: 12, opacity: 0.3 }} /><p style={{ fontSize: 15, fontWeight: 500 }}>{t('docs.empty_docs_title', 'Nessun documento')}</p><p style={{ fontSize: 13, marginTop: 4 }}>{t('docs.empty_docs_text', 'Il tuo dietista non ha ancora condiviso documenti.')}</p></>
               }
             </div>
           ) : (() => {
@@ -1626,7 +1652,7 @@ export default function DocumentsPage() {
               const isBookmarked = bookmarks.has(doc.id)
               return (
                 <div key={doc.id} style={{ position: 'relative' }}>
-                  {docIsNew && <span style={{ position: 'absolute', top: -6, left: isNested ? 28 : 14, zIndex: 1, background: '#f59e0b', color: 'white', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100 }}>NUOVO</span>}
+                  {docIsNew && <span style={{ position: 'absolute', top: -6, left: isNested ? 28 : 14, zIndex: 1, background: '#f59e0b', color: 'white', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100 }}>{t('docs.new_badge', 'NUOVO')}</span>}
                   <button onClick={() => setSelected(doc)} style={{
                     width: isNested ? 'calc(100% - 16px)' : '100%', background: 'white',
                     border: `1px solid ${docIsNew ? '#fcd34d' : 'var(--border-light)'}`,
@@ -1669,12 +1695,14 @@ export default function DocumentsPage() {
                 ? doc.dati_raw.stampa_html
                 : buildSubsectionHTML(doc, sub.key, consigliBaseForRender)
               if (!html) return null
-              const emoji = sub.label.match(/^\S+/)?.[0] || '📄'
-              const labelText = sub.label.replace(/^\S+\s*/, '')
+              const tipoForLabel = (doc.tipo || doc.type || '').toLowerCase()
+              const translatedLabel = subsectionLabel(t, tipoForLabel, sub)
+              const emoji = translatedLabel.match(/^\S+/)?.[0] || '📄'
+              const labelText = translatedLabel.replace(/^\S+\s*/, '')
               const virtualDoc = {
                 ...doc,
                 id:       doc.id + '_' + sub.key,
-                title:    sub.label,
+                title:    translatedLabel,
                 dati_raw: { stampa_html: html },
               }
               return (
@@ -1720,11 +1748,13 @@ export default function DocumentsPage() {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: 15, fontWeight: 700, color: folder.color, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {folder.label}
-                        {hasNew && <span style={{ background: '#f59e0b', color: 'white', fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 100 }}>NUOVO</span>}
+                        {folderLabel(t, folder)}
+                        {hasNew && <span style={{ background: '#f59e0b', color: 'white', fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 100 }}>{t('docs.new_badge', 'NUOVO')}</span>}
                       </p>
                       <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                        {folderDocs.length} documento{folderDocs.length !== 1 ? 'i' : ''}
+                        {folderDocs.length === 1
+                          ? t('docs.folder_count_one', { count: folderDocs.length }, '{{count}} documento')
+                          : t('docs.folder_count_other', { count: folderDocs.length }, '{{count}} documenti')}
                       </span>
                     </div>
                     <div style={{ width: 30, height: 30, borderRadius: 8, background: folder.color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', color: folder.color, fontSize: 18, flexShrink: 0, transition: 'transform .2s', transform: isOpen ? 'rotate(90deg)' : 'none' }}>›</div>
@@ -1777,7 +1807,7 @@ export default function DocumentsPage() {
           onClose={() => setSelected(null)}
           bookmarked={bookmarks.has(selected.id)}
           onToggleBookmark={toggleBookmark}
-          onPrint={handlePrint}
+          onPrint={(doc) => handlePrint(doc, t)}
         />
       )}
     </>

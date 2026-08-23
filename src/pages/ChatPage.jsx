@@ -126,11 +126,11 @@ function groupByDate(msgs) {
   return groups
 }
 
-function dayLabel(dateStr) {
+function dayLabel(dateStr, t) {
   const d = new Date(dateStr); const now = new Date()
   const y = new Date(now); y.setDate(now.getDate() - 1)
-  if (d.toDateString() === now.toDateString()) return 'Oggi'
-  if (d.toDateString() === y.toDateString()) return 'Ieri'
+  if (d.toDateString() === now.toDateString()) return t('common.today', 'Oggi')
+  if (d.toDateString() === y.toDateString()) return t('common.yesterday', 'Ieri')
   return d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
@@ -140,19 +140,20 @@ function formatDuration(sec) {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-function lastSeenLabel(ts) {
+function lastSeenLabel(ts, t) {
   if (!ts) return null
   const diff = Date.now() - new Date(ts).getTime()
   if (diff < 5 * 60 * 1000) return null // is online
-  if (diff < 60 * 60 * 1000) return `visto ${Math.floor(diff / 60000)} min fa`
+  if (diff < 60 * 60 * 1000) return t('chat.seen_minutes', { count: Math.floor(diff / 60000) }, 'visto {{count}} min fa')
   if (diff < 24 * 60 * 60 * 1000)
-    return 'visto ' + new Date(ts).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
-  return 'visto ' + new Date(ts).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })
+    return t('chat.seen_at', { value: new Date(ts).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) }, 'visto {{value}}')
+  return t('chat.seen_at', { value: new Date(ts).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }) }, 'visto {{value}}')
 }
 
 // ── AudioPlayer ─────────────────────────────────────────────────────────────
 
 function AudioPlayer({ src, isMe }) {
+  const t = useT()
   const [playing, setPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
   const [duration, setDuration] = useState(0)
@@ -176,7 +177,7 @@ function AudioPlayer({ src, isMe }) {
       />
       <button
         onClick={toggle}
-        aria-label={playing ? 'Pausa messaggio vocale' : 'Riproduci messaggio vocale'}
+        aria-label={playing ? t('chat.pause_voice_aria', 'Pausa messaggio vocale') : t('chat.play_voice_aria', 'Riproduci messaggio vocale')}
         style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', cursor: 'pointer', background: isMe ? 'rgba(255,255,255,0.25)' : 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
       >
         {playing
@@ -198,6 +199,7 @@ function AudioPlayer({ src, isMe }) {
 // ── Signature Modal ──────────────────────────────────────────────────────────
 
 function SignatureModal({ doc, onClose, onSigned }) {
+  const t = useT()
   const canvasRef = useRef(null)
   const [drawing, setDrawing] = useState(false)
   const [hasSignature, setHasSignature] = useState(false)
@@ -290,11 +292,11 @@ function SignatureModal({ doc, onClose, onSigned }) {
               <FileText size={18} color="#856404" />
             </div>
             <div>
-              <p style={{ fontSize: 15, fontWeight: 700 }}>Firma documento</p>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{doc.title || 'Informativa privacy'}</p>
+              <p style={{ fontSize: 15, fontWeight: 700 }}>{t('chat.sign_document', 'Firma documento')}</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{doc.title || t('chat.privacy_doc_default_title', 'Informativa privacy')}</p>
             </div>
           </div>
-          <button onClick={onClose} aria-label="Chiudi" style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <button onClick={onClose} aria-label={t('common.close', 'Chiudi')} style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <X size={16} />
           </button>
         </div>
@@ -307,10 +309,10 @@ function SignatureModal({ doc, onClose, onSigned }) {
 
           {/* Mode toggle */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-            {[{ key: 'canvas', label: '✍️ Firma manuale' }, { key: 'typed', label: '⌨️ Firma con nome' }].map(t => (
-              <button key={t.key} onClick={() => { setMode(t.key); clearCanvas(); setHasSignature(false) }}
-                style={{ flex: 1, padding: '9px 6px', borderRadius: 10, fontSize: 13, fontWeight: 500, border: `1.5px solid ${mode === t.key ? 'var(--green-main)' : 'var(--border)'}`, background: mode === t.key ? 'var(--green-pale)' : 'var(--surface-2)', color: mode === t.key ? 'var(--green-dark)' : 'var(--text-secondary)', cursor: 'pointer' }}>
-                {t.label}
+            {[{ key: 'canvas', label: t('chat.sign_manual', '✍️ Firma manuale') }, { key: 'typed', label: t('chat.sign_name', '⌨️ Firma con nome') }].map(opt => (
+              <button key={opt.key} onClick={() => { setMode(opt.key); clearCanvas(); setHasSignature(false) }}
+                style={{ flex: 1, padding: '9px 6px', borderRadius: 10, fontSize: 13, fontWeight: 500, border: `1.5px solid ${mode === opt.key ? 'var(--green-main)' : 'var(--border)'}`, background: mode === opt.key ? 'var(--green-pale)' : 'var(--surface-2)', color: mode === opt.key ? 'var(--green-dark)' : 'var(--text-secondary)', cursor: 'pointer' }}>
+                {opt.label}
               </button>
             ))}
           </div>
@@ -320,14 +322,14 @@ function SignatureModal({ doc, onClose, onSigned }) {
               <input
                 type="text"
                 className="input-field"
-                placeholder="Il tuo nome e cognome"
+                placeholder={t('chat.your_full_name', 'Il tuo nome e cognome')}
                 value={typedName}
                 onChange={e => setTypedName(e.target.value)}
                 style={{ flex: 1 }}
               />
               <button onClick={applyTypedSignature} disabled={!typedName.trim()}
                 style={{ padding: '0 16px', background: 'var(--green-main)', color: 'white', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: typedName.trim() ? 1 : 0.5 }}>
-                Applica
+                {t('chat.apply', 'Applica')}
               </button>
             </div>
           )}
@@ -335,7 +337,7 @@ function SignatureModal({ doc, onClose, onSigned }) {
           {/* Canvas */}
           <div style={{ position: 'relative', marginBottom: 12 }}>
             <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
-              {mode === 'canvas' ? 'Disegna la tua firma qui sotto:' : 'Anteprima firma:'}
+              {mode === 'canvas' ? t('chat.draw_signature_hint', 'Disegna la tua firma qui sotto:') : t('chat.signature_preview_hint', 'Anteprima firma:')}
             </p>
             <canvas
               ref={canvasRef}
@@ -347,7 +349,7 @@ function SignatureModal({ doc, onClose, onSigned }) {
             />
             {hasSignature && (
               <button onClick={clearCanvas} style={{ position: 'absolute', top: 28, right: 8, background: 'rgba(255,255,255,0.9)', border: '1px solid var(--border)', borderRadius: 8, padding: '3px 10px', fontSize: 11, color: 'var(--text-muted)', cursor: 'pointer' }}>
-                Cancella
+                {t('chat.clear', 'Cancella')}
               </button>
             )}
           </div>
@@ -361,7 +363,7 @@ function SignatureModal({ doc, onClose, onSigned }) {
             className="btn btn-primary btn-full"
             style={{ opacity: hasSignature && !signing ? 1 : 0.5 }}
           >
-            {signing ? 'Salvataggio…' : '✅ Firma e conferma'}
+            {signing ? t('chat.saving', 'Salvataggio…') : t('chat.sign_confirm', '✅ Firma e conferma')}
           </button>
         </div>
       </div>
@@ -372,15 +374,16 @@ function SignatureModal({ doc, onClose, onSigned }) {
 
 // ── Chat list (dietitian thread + group threads) ──────────────────────────────
 
-function profileLabel(p) {
-  return p.full_name || `${p.nome || ''} ${p.cognome || ''}`.trim() || p.email || 'Utente'
+function profileLabel(p, t) {
+  return p.full_name || `${p.nome || ''} ${p.cognome || ''}`.trim() || p.email || t('chat.default_user', 'Utente')
 }
 
 function ChatListView({ dietitianName, dietitianOnline, dietitianPreview, dietitianUnread, notLinked, groups, onOpenDietitian, onOpenGroup }) {
+  const t = useT()
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--surface-2)' }}>
       <div style={{ background: 'linear-gradient(160deg, var(--green-dark), var(--green-main))', padding: 'calc(env(safe-area-inset-top) + 16px) 20px 20px', flexShrink: 0 }}>
-        <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 22, color: 'white', fontWeight: 300 }}>Chat</h1>
+        <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 22, color: 'white', fontWeight: 300 }}>{t('chat.header', 'Chat')}</h1>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px calc(90px + env(safe-area-inset-bottom))' }}>
         {!notLinked && (
@@ -393,7 +396,7 @@ function ChatListView({ dietitianName, dietitianOnline, dietitianPreview, dietit
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: 14.5, fontWeight: 600 }}>{dietitianName}</p>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dietitianPreview || 'Il tuo dietista'}</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dietitianPreview || t('chat.default_dietitian_name', 'Il tuo dietista')}</p>
             </div>
             {dietitianUnread && <span style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--red)', flexShrink: 0 }} />}
           </div>
@@ -403,13 +406,13 @@ function ChatListView({ dietitianName, dietitianOnline, dietitianPreview, dietit
             <div style={{ width: 46, height: 46, borderRadius: '50%', background: g.color || '#0F766E', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>👥</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: 14.5, fontWeight: 600 }}>{g.name}</p>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.lastMsg ? (g.lastMsg.type === 'voice' ? '🎤 Messaggio vocale' : g.lastMsg.content) : 'Nessun messaggio'}</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.lastMsg ? (g.lastMsg.type === 'voice' ? t('chat.voice_message_preview', '🎤 Messaggio vocale') : g.lastMsg.content) : t('chat.no_message_preview', 'Nessun messaggio')}</p>
             </div>
             {g.unread && <span style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--red)', flexShrink: 0 }} />}
           </div>
         ))}
         {notLinked && groups.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: 13.5 }}>Nessuna chat disponibile.</div>
+          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: 13.5 }}>{t('chat.no_chats_available', 'Nessuna chat disponibile.')}</div>
         )}
       </div>
     </div>
@@ -417,6 +420,7 @@ function ChatListView({ dietitianName, dietitianOnline, dietitianPreview, dietit
 }
 
 function GroupThreadView({ group, user, onBack }) {
+  const t = useT()
   const [messages, setMessages] = useState([])
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
@@ -445,7 +449,7 @@ function GroupThreadView({ group, user, onBack }) {
       if (ids.length) {
         const { data: profiles } = await supabase.from('profiles').select('id,nome,cognome,full_name,email,role').in('id', ids)
         const map = {}
-        ;(profiles || []).forEach(p => { map[p.id] = { name: profileLabel(p), role: p.role } })
+        ;(profiles || []).forEach(p => { map[p.id] = { name: profileLabel(p, t), role: p.role } })
         if (!cancelled) setMemberProfiles(map)
       }
       if (!cancelled) {
@@ -487,7 +491,7 @@ function GroupThreadView({ group, user, onBack }) {
       clearInterval(recordingTimerRef.current)
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.ondataavailable = null
-        mediaRecorderRef.current.onstop = () => { mediaRecorderRef.current.stream?.getTracks().forEach(t => t.stop()) }
+        mediaRecorderRef.current.onstop = () => { mediaRecorderRef.current.stream?.getTracks().forEach(track => track.stop()) }
         mediaRecorderRef.current.stop()
       }
     }
@@ -527,7 +531,7 @@ function GroupThreadView({ group, user, onBack }) {
       audioChunksRef.current = []
       recorder.ondataavailable = e => { if (e.data.size > 0) audioChunksRef.current.push(e.data) }
       recorder.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop())
+        stream.getTracks().forEach(track => track.stop())
         const blob = new Blob(audioChunksRef.current, { type: mimeType })
         // recorder.onstop is assigned once here and never recreated, so closing
         // over the recordingDuration state variable directly always reads its
@@ -548,7 +552,7 @@ function GroupThreadView({ group, user, onBack }) {
         setRecordingDuration(recordingSecondsRef.current)
       }, 1000)
     } catch {
-      alert('Impossibile accedere al microfono.')
+      alert(t('chat.mic_access_error', 'Impossibile accedere al microfono.'))
     }
   }
 
@@ -557,7 +561,7 @@ function GroupThreadView({ group, user, onBack }) {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       if (cancel) {
         mediaRecorderRef.current.ondataavailable = null
-        mediaRecorderRef.current.onstop = () => { mediaRecorderRef.current.stream?.getTracks().forEach(t => t.stop()) }
+        mediaRecorderRef.current.onstop = () => { mediaRecorderRef.current.stream?.getTracks().forEach(track => track.stop()) }
       }
       mediaRecorderRef.current.stop()
     }
@@ -595,29 +599,29 @@ function GroupThreadView({ group, user, onBack }) {
   return (
     <div className="chat-fullscreen">
       <div style={{ background: `linear-gradient(160deg, ${group.color || '#157A4A'}, ${group.color || '#1a9f60'})`, padding: 'calc(env(safe-area-inset-top) + 14px) 16px 16px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-        <button onClick={onBack} aria-label="Torna indietro" style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+        <button onClick={onBack} aria-label={t('chat.back', 'Torna indietro')} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
           <ArrowLeft size={17} color="white" />
         </button>
         <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>👥</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ color: 'white', fontSize: 16, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{group.name}</p>
-          <p style={{ color: 'rgba(255,255,255,0.72)', fontSize: 11 }}>{Object.keys(memberProfiles).length || ''} membri</p>
+          <p style={{ color: 'rgba(255,255,255,0.72)', fontSize: 11 }}>{Object.keys(memberProfiles).length || ''} {Object.keys(memberProfiles).length === 1 ? t('chat.members_one', 'membro') : t('chat.members_other', 'membri')}</p>
         </div>
       </div>
 
       <div ref={messagesContainerRef} className="chat-messages" style={{ flex: 1, overflowY: 'auto', padding: '12px 14px 0', WebkitOverflowScrolling: 'touch' }}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)', fontSize: 13 }}>Caricamento…</div>
+          <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)', fontSize: 13 }}>{t('chat.loading', 'Caricamento…')}</div>
         ) : messages.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '50px 20px' }}>
             <div style={{ fontSize: 44, marginBottom: 12 }}>💬</div>
-            <p style={{ fontSize: 15, fontWeight: 500 }}>Inizia la conversazione di gruppo</p>
+            <p style={{ fontSize: 15, fontWeight: 500 }}>{t('chat.group_start', 'Inizia la conversazione di gruppo')}</p>
           </div>
         ) : (
           Object.entries(dayGroups).map(([day, msgs]) => (
             <div key={day}>
               <div style={{ textAlign: 'center', margin: '10px 0' }}>
-                <span style={{ background: 'var(--border)', color: 'var(--text-muted)', fontSize: 11, padding: '3px 10px', borderRadius: 100 }}>{dayLabel(day)}</span>
+                <span style={{ background: 'var(--border)', color: 'var(--text-muted)', fontSize: 11, padding: '3px 10px', borderRadius: 100 }}>{dayLabel(day, t)}</span>
               </div>
               {msgs.map(msg => {
                 const isMe = msg.sender_id === user.id
@@ -628,9 +632,9 @@ function GroupThreadView({ group, user, onBack }) {
                     <div style={{ maxWidth: '78%', background: isMe ? 'linear-gradient(135deg, var(--green-main), var(--green-mid))' : 'var(--surface-3)', color: isMe ? 'white' : 'var(--text-primary)', padding: '8px 13px', borderRadius: isMe ? '16px 16px 3px 16px' : '16px 16px 16px 3px', border: isMe ? 'none' : '1px solid var(--border-light)' }}>
                       {!isMe && (
                         <p style={{ fontSize: 11, fontWeight: 700, marginBottom: 2, color: isDietitian ? '#7C3AED' : 'var(--green-main)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                          {info?.name || 'Utente'}
+                          {info?.name || t('chat.default_user', 'Utente')}
                           <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 20, background: isDietitian ? '#EDE9FE' : '#DCFCE7', color: isDietitian ? '#6D28D9' : '#15803D' }}>
-                            {isDietitian ? 'Dietista/Nutrizionista' : 'Paziente'}
+                            {isDietitian ? t('chat.role_dietitian', 'Dietista/Nutrizionista') : t('chat.role_patient', 'Paziente')}
                           </span>
                         </p>
                       )}
@@ -656,7 +660,7 @@ function GroupThreadView({ group, user, onBack }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 4px' }}>
             <button
               onClick={() => stopRecording(true)}
-              aria-label="Annulla registrazione vocale"
+              aria-label={t('chat.cancel_recording_aria', 'Annulla registrazione vocale')}
               style={{ width: 38, height: 38, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#fff0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
             >
               <X size={16} color="var(--red)" />
@@ -664,11 +668,11 @@ function GroupThreadView({ group, user, onBack }) {
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--red)', animation: 'pulse 1s infinite', flexShrink: 0 }} />
               <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--red)' }}>{formatDuration(recordingDuration)}</span>
-              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Registrazione…</span>
+              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('chat.recording', 'Registrazione…')}</span>
             </div>
             <button
               onClick={() => stopRecording(false)}
-              aria-label="Invia messaggio vocale"
+              aria-label={t('chat.send_voice_aria', 'Invia messaggio vocale')}
               style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'var(--green-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(21,122,74,0.35)' }}
             >
               <Send size={17} color="white" style={{ marginLeft: 2 }} />
@@ -681,12 +685,12 @@ function GroupThreadView({ group, user, onBack }) {
                 ref={inputRef} value={text}
                 onChange={e => setText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
-                placeholder="Scrivi al gruppo…" rows={1}
+                placeholder={t('chat.group_placeholder', 'Scrivi al gruppo…')} rows={1}
                 style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontFamily: 'var(--font-b)', fontSize: 15, color: 'var(--text-primary)', resize: 'none', maxHeight: 100, lineHeight: 1.5 }}
               />
             </div>
             {canSendText ? (
-              <button type="submit" aria-label="Invia messaggio" style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: 'var(--green-main)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(26,127,90,0.3)' }}>
+              <button type="submit" aria-label={t('chat.send_aria', 'Invia messaggio')} style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: 'var(--green-main)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(26,127,90,0.3)' }}>
                 <Send size={17} color="white" style={{ marginLeft: 2 }} />
               </button>
             ) : (
@@ -695,7 +699,7 @@ function GroupThreadView({ group, user, onBack }) {
                 onMouseDown={startRecording}
                 onTouchStart={e => { e.preventDefault(); startRecording() }}
                 disabled={sending}
-                aria-label="Registra messaggio vocale"
+                aria-label={t('chat.record_voice_aria', 'Registra messaggio vocale')}
                 style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: sending ? 'var(--border)' : 'var(--surface-3)', border: 'none', cursor: sending ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: sending ? 0.5 : 1 }}
               >
                 <Mic size={19} color="var(--text-muted)" />
@@ -918,7 +922,7 @@ export default function ChatPage() {
       dietitianIdRef.current = dId
     }
 
-    const dietitianProfile = profileRes.data || { full_name: 'Il tuo dietista' }
+    const dietitianProfile = profileRes.data || { full_name: t('chat.default_dietitian_name', 'Il tuo dietista') }
     setDietitian(dietitianProfile)
     dietitianRef.current = dietitianProfile
     setDietitianLastSeen(profileRes.data?.last_seen_at || null)
@@ -972,10 +976,10 @@ export default function ChatPage() {
     // so the state closure would stay stuck on its initial (null) value forever.
     const d = dietitianRef.current
     const dName = d?.full_name ||
-      `${d?.first_name || ''} ${d?.last_name || ''}`.trim() || 'Dietista'
-    const body = msg.message_type === 'image' ? '📷 Foto' :
-      msg.message_type === 'audio' ? '🎤 Messaggio vocale' : msg.content
-    new Notification(`Nuovo messaggio da ${dName}`, { body, icon: '/icons/icon-192x192.png' })
+      `${d?.first_name || ''} ${d?.last_name || ''}`.trim() || t('chat.dietitian', 'Dietista')
+    const body = msg.message_type === 'image' ? t('chat.photo_message_preview', '📷 Foto') :
+      msg.message_type === 'audio' ? t('chat.voice_message_preview', '🎤 Messaggio vocale') : msg.content
+    new Notification(t('chat.new_message_from', { name: dName }, 'Nuovo messaggio da {{name}}'), { body, icon: '/icons/icon-192x192.png' })
   }
 
   // ── Send text message ───────────────────────────────────────────────────
@@ -1076,7 +1080,7 @@ export default function ChatPage() {
       audioChunksRef.current = []
       recorder.ondataavailable = e => { if (e.data.size > 0) audioChunksRef.current.push(e.data) }
       recorder.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop())
+        stream.getTracks().forEach(track => track.stop())
         const blob = new Blob(audioChunksRef.current, { type: mimeType })
         // Same fix as the other chat view's startRecording(): onstop is
         // assigned once and never recreated, so reading recordingDuration
@@ -1097,7 +1101,7 @@ export default function ChatPage() {
         setRecordingDuration(recordingSecondsRef.current)
       }, 1000)
     } catch {
-      alert('Impossibile accedere al microfono.')
+      alert(t('chat.mic_access_error', 'Impossibile accedere al microfono.'))
     }
   }
 
@@ -1107,7 +1111,7 @@ export default function ChatPage() {
       if (cancel) {
         mediaRecorderRef.current.ondataavailable = null
         mediaRecorderRef.current.onstop = () => {
-          mediaRecorderRef.current.stream?.getTracks().forEach(t => t.stop())
+          mediaRecorderRef.current.stream?.getTracks().forEach(track => track.stop())
         }
       }
       mediaRecorderRef.current.stop()
@@ -1155,13 +1159,13 @@ export default function ChatPage() {
 
   // ── Derived values ──────────────────────────────────────────────────────
   const dietitianName = dietitian?.full_name ||
-    `${dietitian?.first_name || ''} ${dietitian?.last_name || ''}`.trim() || 'Il tuo dietista'
+    `${dietitian?.first_name || ''} ${dietitian?.last_name || ''}`.trim() || t('chat.default_dietitian_name', 'Il tuo dietista')
 
   const isOnline = dietitianLastSeen
     ? (Date.now() - new Date(dietitianLastSeen).getTime()) < 5 * 60 * 1000
     : false
 
-  const seenLabel = isOnline ? 'Online' : lastSeenLabel(dietitianLastSeen)
+  const seenLabel = isOnline ? t('chat.online', 'Online') : lastSeenLabel(dietitianLastSeen, t)
 
   const canSendText = text.trim().length > 0 && !sending && !isRecording
 
@@ -1179,7 +1183,7 @@ export default function ChatPage() {
       <ChatListView
         dietitianName={dietitianName}
         dietitianOnline={isOnline}
-        dietitianPreview={messages[messages.length - 1]?.content || 'Il tuo dietista'}
+        dietitianPreview={messages[messages.length - 1]?.content || t('chat.default_dietitian_name', 'Il tuo dietista')}
         dietitianUnread={messages.some(m => m.sender_role === 'dietitian' && !m.read_at)}
         notLinked={notLinked}
         groups={groups}
@@ -1203,21 +1207,21 @@ export default function ChatPage() {
   if (!loading && notLinked) return (
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--surface-2)' }}>
       <div style={{ background: 'linear-gradient(160deg, var(--green-dark), var(--green-main))', padding: 'calc(env(safe-area-inset-top) + 16px) 20px 20px' }}>
-        <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 22, color: 'white', fontWeight: 300 }}>Chat</h1>
+        <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 22, color: 'white', fontWeight: 300 }}>{t('chat.header', 'Chat')}</h1>
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', textAlign: 'center' }}>
         <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
           <MessageCircle size={32} color="var(--green-main)" />
         </div>
         <h2 style={{ fontFamily: 'var(--font-d)', fontSize: 22, fontWeight: 300, marginBottom: 10 }}>
-          Nessun dietista collegato
+          {t('chat.no_dietitian', 'Nessun dietista collegato')}
         </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.7, maxWidth: 300 }}>
-          Per usare la chat, il tuo dietista deve collegarti al suo profilo dalla piattaforma professionale.
+          {t('chat.not_linked_desc', 'Per usare la chat, il tuo dietista deve collegarti al suo profilo dalla piattaforma professionale.')}
         </p>
         <div style={{ marginTop: 24, background: 'var(--green-pale)', borderRadius: 14, padding: '16px 20px', maxWidth: 320 }}>
           <p style={{ fontSize: 13, color: 'var(--green-dark)', lineHeight: 1.6 }}>
-            💡 Chiedi al tuo dietista di cercare la tua email (<strong>{user.email}</strong>) nella sezione "Collega paziente" della sua app.
+            {t('chat.link_hint_before', '💡 Chiedi al tuo dietista di cercare la tua email (')}<strong>{user.email}</strong>{t('chat.link_hint_after', ') nella sezione "Collega paziente" della sua app.')}
           </p>
         </div>
       </div>
@@ -1242,7 +1246,7 @@ export default function ChatPage() {
         {groups.length > 0 && (
           <button
             onClick={() => setActiveThread('list')}
-            aria-label="Torna alla lista chat"
+            aria-label={t('chat.back_to_list', 'Torna alla lista chat')}
             style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
           >
             <ArrowLeft size={17} color="white" />
@@ -1265,15 +1269,15 @@ export default function ChatPage() {
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ color: 'white', fontSize: 16, fontWeight: 600 }}>{dietitianName}</p>
           <p style={{ color: 'rgba(255,255,255,0.72)', fontSize: 11 }}>
-            {seenLabel || 'Dietista'}
+            {seenLabel || t('chat.dietitian', 'Dietista')}
           </p>
         </div>
         {/* Video call button */}
         {dietitianId && (
           <button
             onClick={startVideoCall}
-            title="Avvia videochiamata"
-            aria-label="Avvia videochiamata"
+            title={t('chat.video_call_aria', 'Avvia videochiamata')}
+            aria-label={t('chat.video_call_aria', 'Avvia videochiamata')}
             style={{ background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <Video size={18} color="white" />
@@ -1283,8 +1287,8 @@ export default function ChatPage() {
         {typeof Notification !== 'undefined' && (
           <button
             onClick={requestNotifications}
-            title={notifPermission === 'granted' ? 'Notifiche attive' : 'Attiva notifiche'}
-            aria-label={notifPermission === 'granted' ? 'Notifiche attive' : 'Attiva notifiche'}
+            title={notifPermission === 'granted' ? t('chat.notif_active', 'Notifiche attive') : t('chat.notif_enable', 'Attiva notifiche')}
+            aria-label={notifPermission === 'granted' ? t('chat.notif_active', 'Notifiche attive') : t('chat.notif_enable', 'Attiva notifiche')}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 10, minWidth: 44, minHeight: 44, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: notifPermission === 'granted' ? 1 : 0.55 }}
           >
             {notifPermission === 'granted'
@@ -1301,21 +1305,21 @@ export default function ChatPage() {
             <AlertTriangle size={16} color="var(--alert-warning-text)" style={{ flexShrink: 0, marginTop: 2 }} />
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--alert-warning-text)', marginBottom: 4 }}>
-                {unsignedDocs.length === 1 ? 'Documento da firmare' : `${unsignedDocs.length} documenti da firmare`}
+                {unsignedDocs.length === 1 ? t('chat.to_sign_singular', 'Documento da firmare') : t('chat.to_sign_plural', { count: unsignedDocs.length }, '{{count}} documenti da firmare')}
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 {unsignedDocs.map(doc => (
                   <div key={doc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <FileText size={13} color="var(--alert-warning-text)" />
-                      <span style={{ fontSize: 13, color: 'var(--alert-warning-text)' }}>{doc.title || 'Informativa privacy'}</span>
+                      <span style={{ fontSize: 13, color: 'var(--alert-warning-text)' }}>{doc.title || t('chat.privacy_doc_default_title', 'Informativa privacy')}</span>
                     </div>
                     <button
                       onClick={() => setSigningDoc(doc)}
                       style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--alert-warning-text)', color: 'white', border: 'none', borderRadius: 8, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
                     >
                       <PenLine size={12} />
-                      Firma
+                      {t('chat.sign', 'Firma')}
                     </button>
                   </div>
                 ))}
@@ -1339,8 +1343,8 @@ export default function ChatPage() {
         ) : messages.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '50px 20px' }}>
             <div style={{ fontSize: 44, marginBottom: 12 }}>💬</div>
-            <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 6 }}>Inizia la conversazione</p>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>Scrivi un messaggio a {dietitianName}<br />per domande o aggiornamenti.</p>
+            <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 6 }}>{t('chat.start_conversation', 'Inizia la conversazione')}</p>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>{t('chat.write_to', { name: dietitianName }, 'Scrivi un messaggio a {{name}}')}<br />{t('chat.write_to_suffix', 'per domande o aggiornamenti.')}</p>
           </div>
         ) : (
           <>
@@ -1351,14 +1355,14 @@ export default function ChatPage() {
                   disabled={loadingMore}
                   style={{ fontSize: 12, color: 'var(--green-main)', background: 'var(--green-pale)', border: '1.5px solid var(--border-light)', borderRadius: 20, padding: '7px 16px', cursor: loadingMore ? 'default' : 'pointer', fontWeight: 600, opacity: loadingMore ? 0.6 : 1 }}
                 >
-                  {loadingMore ? 'Caricamento…' : '↑ Carica messaggi precedenti'}
+                  {loadingMore ? t('chat.loading', 'Caricamento…') : t('chat.load_older', '↑ Carica messaggi precedenti')}
                 </button>
               </div>
             )}
             {Object.entries(dayGroups).map(([day, msgs]) => (
             <div key={day}>
               <div style={{ textAlign: 'center', margin: '10px 0' }}>
-                <span style={{ background: 'var(--border)', color: 'var(--text-muted)', fontSize: 11, padding: '3px 10px', borderRadius: 100 }}>{dayLabel(day)}</span>
+                <span style={{ background: 'var(--border)', color: 'var(--text-muted)', fontSize: 11, padding: '3px 10px', borderRadius: 100 }}>{dayLabel(day, t)}</span>
               </div>
               {msgs.map((msg, i) => {
                 const isMe = msg.sender_role === 'patient'
@@ -1378,7 +1382,7 @@ export default function ChatPage() {
                       {type === 'image' && msg.file_url && (
                         <div>
                           <img
-                            src={msg.file_url} alt="Foto"
+                            src={msg.file_url} alt={t('chat.photo_alt', 'Foto')}
                             style={{ display: 'block', maxWidth: 220, maxHeight: 220, borderRadius: 12, objectFit: 'cover', cursor: 'pointer' }}
                             onClick={() => window.open(msg.file_url, '_blank')}
                           />
@@ -1391,7 +1395,7 @@ export default function ChatPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <Video size={16} color={isMe ? 'white' : 'var(--green-main)'} />
                           <span style={{ fontSize: 13.5, fontWeight: 500 }}>
-                            {isMe ? 'Hai avviato una videochiamata' : 'Videochiamata in corso'}
+                            {isMe ? t('chat.call_started_by_me', 'Hai avviato una videochiamata') : t('chat.call_in_progress', 'Videochiamata in corso')}
                           </span>
                           <button
                             onClick={() => setCallRoom(msg.content)}
@@ -1401,7 +1405,7 @@ export default function ChatPage() {
                               padding: '4px 11px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', flexShrink: 0,
                             }}
                           >
-                            Partecipa
+                            {t('chat.join_call', 'Partecipa')}
                           </button>
                         </div>
                       )}
@@ -1446,7 +1450,7 @@ export default function ChatPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 4px' }}>
             <button
               onClick={() => stopRecording(true)}
-              aria-label="Annulla registrazione vocale"
+              aria-label={t('chat.cancel_recording_aria', 'Annulla registrazione vocale')}
               style={{ width: 38, height: 38, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#fff0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
             >
               <X size={16} color="var(--red)" />
@@ -1456,11 +1460,11 @@ export default function ChatPage() {
               <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--red)' }}>
                 {formatDuration(recordingDuration)}
               </span>
-              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Registrazione…</span>
+              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('chat.recording', 'Registrazione…')}</span>
             </div>
             <button
               onClick={() => stopRecording(false)}
-              aria-label="Invia messaggio vocale"
+              aria-label={t('chat.send_voice_aria', 'Invia messaggio vocale')}
               style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'var(--green-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(21,122,74,0.35)' }}
             >
               <Send size={17} color="white" style={{ marginLeft: 2 }} />
@@ -1474,7 +1478,7 @@ export default function ChatPage() {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={sending}
-              aria-label="Allega foto"
+              aria-label={t('chat.attach_photo_aria', 'Allega foto')}
               style={{ width: 38, height: 38, borderRadius: '50%', border: 'none', cursor: sending ? 'default' : 'pointer', background: 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: sending ? 0.5 : 1 }}
             >
               <ImagePlus size={18} color="var(--text-muted)" />
@@ -1495,7 +1499,7 @@ export default function ChatPage() {
             {canSendText ? (
               <button
                 type="submit"
-                aria-label="Invia messaggio"
+                aria-label={t('chat.send_aria', 'Invia messaggio')}
                 style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: 'var(--green-main)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(26,127,90,0.3)' }}
               >
                 <Send size={17} color="white" style={{ marginLeft: 2 }} />
@@ -1506,7 +1510,7 @@ export default function ChatPage() {
                 onMouseDown={startRecording}
                 onTouchStart={e => { e.preventDefault(); startRecording() }}
                 disabled={sending}
-                aria-label="Registra messaggio vocale"
+                aria-label={t('chat.record_voice_aria', 'Registra messaggio vocale')}
                 style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: sending ? 'var(--border)' : 'var(--surface-3)', border: 'none', cursor: sending ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: sending ? 0.5 : 1 }}
               >
                 <Mic size={19} color="var(--text-muted)" />

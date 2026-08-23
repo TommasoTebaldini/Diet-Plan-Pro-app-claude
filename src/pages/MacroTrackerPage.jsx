@@ -47,6 +47,7 @@ function gramsFromUnit(qty, unitKey) {
 // affollare il flusso normale di aggiunta rapida.
 function HandPortionPicker({ category, onPick }) {
   const [open, setOpen] = useState(false)
+  const t = useT()
   return (
     <div style={{ marginBottom: 6 }}>
       <button
@@ -54,7 +55,7 @@ function HandPortionPicker({ category, onPick }) {
         onClick={() => setOpen(v => !v)}
         style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', padding: 0, color: 'var(--text-muted)', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}
       >
-        🍽️ Fuori casa? Stima senza bilancia {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        🍽️ {t('macro.handPortion.toggle', 'Fuori casa? Stima senza bilancia')} {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
       </button>
       {open && (
         <div style={{ marginTop: 6 }}>
@@ -71,7 +72,7 @@ function HandPortionPicker({ category, onPick }) {
               </button>
             ))}
           </div>
-          <p style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 5 }}>Stima approssimativa basata sul tipo di alimento — usa la bilancia quando disponibile.</p>
+          <p style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 5 }}>{t('macro.handPortion.hint', 'Stima approssimativa basata sul tipo di alimento — usa la bilancia quando disponibile.')}</p>
         </div>
       )}
     </div>
@@ -289,7 +290,7 @@ export default function MacroTrackerPage() {
   const t = useT()
   const MEALS = MEALS_STATIC.map(m => ({
     ...m,
-    label: m.key === 'extra' ? 'Extra' : t(`meal.${m.key}`),
+    label: m.key === 'extra' ? t('meal.extra', 'Extra') : t(`meal.${m.key}`),
   }))
   const todayStr = localDateStr()
   const [date, setDate] = useState(todayStr)
@@ -584,7 +585,7 @@ export default function MacroTrackerPage() {
         setBarcodeFoodModal({ food, grams: String(getDefaultServingSize(food)), meal: autoMealFromTime() })
       }
     } else {
-      setBarcodeError(`Prodotto con codice "${barcode}" non trovato. Prova la ricerca manuale.`)
+      setBarcodeError(t('macro.err.barcodeNotFound', { barcode }, 'Prodotto con codice "{{barcode}}" non trovato. Prova la ricerca manuale.'))
       setTimeout(() => setBarcodeError(''), 5000)
     }
   }
@@ -693,11 +694,12 @@ export default function MacroTrackerPage() {
 
       if (error) {
         console.error('Errore salvataggio alimento:', error)
-        setSaveError(`Errore nel salvare l'alimento: ${error.message || 'errore sconosciuto'}. Riprova.`)
+        const errMsg = error.message || t('macro.err.unknown', 'errore sconosciuto')
+        setSaveError(t('macro.err.saveFoodDetailed', { message: errMsg }, "Errore nel salvare l'alimento: {{message}}. Riprova."))
         return
       }
       if (!data) {
-        setSaveError("Errore nel salvare l'alimento. Riprova.")
+        setSaveError(t('macro.err.saveFood', "Errore nel salvare l'alimento. Riprova."))
         return
       }
       setLog(l => [...l, data])
@@ -708,7 +710,7 @@ export default function MacroTrackerPage() {
       setSelectedUnit('g'); setUnitQty('100')
     } catch (e) {
       console.error('Errore imprevisto salvataggio:', e)
-      setSaveError("Errore imprevisto nel salvare l'alimento. Riprova.")
+      setSaveError(t('macro.err.saveFoodUnexpected', "Errore imprevisto nel salvare l'alimento. Riprova."))
     } finally {
       setSaving(false)
     }
@@ -792,7 +794,7 @@ export default function MacroTrackerPage() {
       setShowSaveMealModal(false)
       setSaveMealName('')
     } else if (error) {
-      alert('Errore durante il salvataggio del pasto. Riprova.')
+      alert(t('macro.err.saveMeal', 'Errore durante il salvataggio del pasto. Riprova.'))
     }
     setSavingMeal(false)
   }
@@ -817,7 +819,7 @@ export default function MacroTrackerPage() {
     if (!error && data) {
       setLog(l => [...l, ...data])
       await updateDailyLog()
-      setAddedFood(`Pasto "${customMeal.name}" caricato`)
+      setAddedFood(t('macro.mealLoaded', { name: customMeal.name }, 'Pasto "{{name}}" caricato'))
       setTimeout(() => setAddedFood(null), 2500)
     }
     setLoadingMeal(null)
@@ -917,7 +919,7 @@ export default function MacroTrackerPage() {
     const { error } = await supabase.from('food_logs').delete().eq('id', id)
     if (error) {
       if (removed) setLog(l => [...l, removed])
-      alert('Errore durante l\'eliminazione. Riprova.')
+      alert(t('macro.err.delete', "Errore durante l'eliminazione. Riprova."))
       return
     }
     await updateDailyLog()
@@ -1055,39 +1057,39 @@ export default function MacroTrackerPage() {
           <button
             onClick={() => changeDate(-1)}
             disabled={atFreeLimit}
-            title={atFreeLimit ? `Piano Free: storico limitato a ${FREE_HISTORY_DAYS} giorni` : undefined}
+            title={atFreeLimit ? t('macro.freeLimitTooltip', { days: FREE_HISTORY_DAYS }, 'Piano Free: storico limitato a {{days}} giorni') : undefined}
             style={{ background: atFreeLimit ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: atFreeLimit ? 'default' : 'pointer', color: atFreeLimit ? 'rgba(255,255,255,0.35)' : 'white', flexShrink: 0 }}>
             {atFreeLimit ? <Lock size={15} /> : <ChevronLeft size={18} />}
           </button>
 
           <div style={{ textAlign: 'center', flex: 1 }}>
-            <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>Diario alimentare</p>
+            <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>{t('macro.diaryLabel', 'Diario alimentare')}</p>
             <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 18, color: 'white', fontWeight: 300, lineHeight: 1.2 }}>
-              {isToday ? 'Oggi · ' : ''}{displayDate.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}
+              {isToday ? t('macro.todayPrefix', 'Oggi · ') : ''}{displayDate.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}
             </h1>
           </div>
 
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
             <button
               onClick={() => setShowPhotoAnalyzer(true)}
-              title="Analizza foto pasto con AI"
-              aria-label="Analizza foto pasto con AI"
+              title={t('macro.action.photoAnalyze', 'Analizza foto pasto con AI')}
+              aria-label={t('macro.action.photoAnalyze', 'Analizza foto pasto con AI')}
               style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}
             >
               <Camera size={18} />
             </button>
             <button
               onClick={() => setShowTextAnalyzer(true)}
-              title="Racconta a voce o per iscritto cosa hai mangiato"
-              aria-label="Racconta a voce o per iscritto cosa hai mangiato"
+              title={t('macro.action.textAnalyze', 'Racconta a voce o per iscritto cosa hai mangiato')}
+              aria-label={t('macro.action.textAnalyze', 'Racconta a voce o per iscritto cosa hai mangiato')}
               style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}
             >
               <Mic size={18} />
             </button>
             <button
               onClick={() => setShowScanner(true)}
-              title="Scansiona codice a barre"
-              aria-label="Scansiona codice a barre"
+              title={t('macro.action.scanBarcode', 'Scansiona codice a barre')}
+              aria-label={t('macro.action.scanBarcode', 'Scansiona codice a barre')}
               style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}
             >
               {scanningBarcode
@@ -1095,7 +1097,7 @@ export default function MacroTrackerPage() {
                 : <ScanLine size={18} />
               }
             </button>
-            <button onClick={() => changeDate(1)} title="Pianifica un giorno futuro" aria-label="Pianifica un giorno futuro" style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}>
+            <button onClick={() => changeDate(1)} title={t('macro.action.planFuture', 'Pianifica un giorno futuro')} aria-label={t('macro.action.planFuture', 'Pianifica un giorno futuro')} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}>
               <ChevronRight size={18} />
             </button>
           </div>
@@ -1104,10 +1106,10 @@ export default function MacroTrackerPage() {
         {/* Macro totals con barre di avanzamento */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
           {[
-            { label: 'Kcal',   value: totals.kcal,                target: diet?.kcal_target,    color: '#fcd34d', unit: ''  },
-            { label: 'Prot.',  value: Math.round(totals.proteins), target: diet?.protein_target, color: '#93c5fd', unit: 'g' },
-            { label: 'Carbo',  value: Math.round(totals.carbs),    target: diet?.carbs_target,   color: '#fde68a', unit: 'g' },
-            { label: 'Grassi', value: Math.round(totals.fats),     target: diet?.fats_target,    color: '#fca5a5', unit: 'g' },
+            { label: t('macro.label.kcal', 'Kcal'),   value: totals.kcal,                target: diet?.kcal_target,    color: '#fcd34d', unit: ''  },
+            { label: t('macro.label.protShort', 'Prot.'),  value: Math.round(totals.proteins), target: diet?.protein_target, color: '#93c5fd', unit: 'g' },
+            { label: t('macro.label.carbsShort', 'Carbo'),  value: Math.round(totals.carbs),    target: diet?.carbs_target,   color: '#fde68a', unit: 'g' },
+            { label: t('macro.label.fats', 'Grassi'), value: Math.round(totals.fats),     target: diet?.fats_target,    color: '#fca5a5', unit: 'g' },
           ].map((s, i) => {
             const pct = s.target ? Math.min(100, Math.round(s.value / s.target * 100)) : 0
             return (
@@ -1134,12 +1136,12 @@ export default function MacroTrackerPage() {
         {log.filter(f => f.food_name !== '__note__').length > 0 && (
           <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
             {[
-              { emoji: '🌾', val: r1(microTotals.fiber),   unit: 'g',  label: 'fibra',  ok: microTotals.fiber >= 25  },
-              { emoji: '🦴', val: r0(microTotals.calcium), unit: 'mg', label: 'Ca',     ok: microTotals.calcium >= 800 },
-              { emoji: '🩸', val: r1(microTotals.iron),    unit: 'mg', label: 'Fe',     ok: microTotals.iron >= 10  },
-              ...(microTotals.fatSat > 0 ? [{ emoji: '🥩', val: r1(microTotals.fatSat), unit: 'g', label: 'gr.sat', ok: false }] : []),
-              ...(microTotals.sugar  > 0 ? [{ emoji: '🍬', val: r1(microTotals.sugar),  unit: 'g', label: 'zucch',  ok: false }] : []),
-              ...(microTotals.salt   > 0 ? [{ emoji: '🧂', val: r1(microTotals.salt),   unit: 'g', label: 'sale',   ok: false }] : []),
+              { emoji: '🌾', val: r1(microTotals.fiber),   unit: 'g',  label: t('macro.microBadge.fiber', 'fibra'),  ok: microTotals.fiber >= 25  },
+              { emoji: '🦴', val: r0(microTotals.calcium), unit: 'mg', label: t('macro.microBadge.calcium', 'Ca'),     ok: microTotals.calcium >= 800 },
+              { emoji: '🩸', val: r1(microTotals.iron),    unit: 'mg', label: t('macro.microBadge.iron', 'Fe'),     ok: microTotals.iron >= 10  },
+              ...(microTotals.fatSat > 0 ? [{ emoji: '🥩', val: r1(microTotals.fatSat), unit: 'g', label: t('macro.microBadge.satFat', 'gr.sat'), ok: false }] : []),
+              ...(microTotals.sugar  > 0 ? [{ emoji: '🍬', val: r1(microTotals.sugar),  unit: 'g', label: t('macro.microBadge.sugar', 'zucch'),  ok: false }] : []),
+              ...(microTotals.salt   > 0 ? [{ emoji: '🧂', val: r1(microTotals.salt),   unit: 'g', label: t('macro.microBadge.salt', 'sale'),   ok: false }] : []),
             ].map(({ emoji, val, unit, label, ok }) => (
               <div key={label} style={{ background: 'rgba(255,255,255,.1)', borderRadius: 8, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5 }}>
                 <span style={{ fontSize: 13 }}>{emoji}</span>
@@ -1153,10 +1155,10 @@ export default function MacroTrackerPage() {
 
         {/* Mood row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, flexShrink: 0 }}>Umore:</span>
+          <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, flexShrink: 0 }}>{t('macro.moodLabel', 'Umore:')}</span>
           <div style={{ display: 'flex', gap: 4 }}>
             {MOOD_OPTIONS.map(m => (
-              <button key={m.value} onClick={() => saveMood(m.value)} title={m.label} style={{
+              <button key={m.value} onClick={() => saveMood(m.value)} title={t(`macro.mood.${m.value}`, m.label)} style={{
                 background: mood === m.value ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.08)',
                 border: `1.5px solid ${mood === m.value ? 'rgba(255,255,255,0.7)' : 'transparent'}`,
                 borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1169,7 +1171,7 @@ export default function MacroTrackerPage() {
           </div>
           {mood && (
             <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, marginLeft: 2 }}>
-              {MOOD_OPTIONS.find(m => m.value === mood)?.label}
+              {(() => { const mo = MOOD_OPTIONS.find(m => m.value === mood); return mo ? t(`macro.mood.${mo.value}`, mo.label) : null })()}
             </span>
           )}
         </div>
@@ -1183,10 +1185,10 @@ export default function MacroTrackerPage() {
             <Lock size={15} color="#92400e" style={{ flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: 12.5, fontWeight: 600, color: '#92400e', margin: 0 }}>
-                Storico limitato a {FREE_HISTORY_DAYS} giorni nel piano Free
+                {t('macro.freeLimitBanner.title', { days: FREE_HISTORY_DAYS }, 'Storico limitato a {{days}} giorni nel piano Free')}
               </p>
               <p style={{ fontSize: 11.5, color: '#78350f', margin: '2px 0 0' }}>
-                Passa al Pro per accedere a tutto lo storico del diario.
+                {t('macro.freeLimitBanner.body', 'Passa al Pro per accedere a tutto lo storico del diario.')}
               </p>
             </div>
           </div>
@@ -1195,7 +1197,7 @@ export default function MacroTrackerPage() {
         {/* ── Feature 5: Meal pie chart ── */}
         {log.filter(f => f.food_name !== '__note__').length > 0 && (
           <div className="card" style={{ padding: 14 }}>
-            <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Distribuzione calorica per pasto</p>
+            <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>{t('macro.pieChartTitle', 'Distribuzione calorica per pasto')}</p>
             <MealPieChart log={log} meals={MEALS} />
           </div>
         )}
@@ -1203,7 +1205,7 @@ export default function MacroTrackerPage() {
         {/* ── Feature 3: Favorites section ── */}
         {favoriteFoods.length > 0 && (
           <div className="card" style={{ padding: 14 }}>
-            <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>⭐ Preferiti</p>
+            <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>⭐ {t('macro.favoritesTitle', 'Preferiti')}</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {favoriteFoods.map((r, i) => {
                 const fd = r.food_data || {}
@@ -1232,7 +1234,7 @@ export default function MacroTrackerPage() {
         {/* ── Feature 2: Saved meals section ── */}
         {savedMeals.length > 0 && (
           <div className="card" style={{ padding: 14 }}>
-            <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>📋 Pasti salvati</p>
+            <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>📋 {t('macro.savedMealsTitle', 'Pasti salvati')}</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {savedMeals.map(cm => {
                 const ings = cm.ingredients || []
@@ -1241,7 +1243,9 @@ export default function MacroTrackerPage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cm.name}</p>
                       <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                        {ings.length} alimenti · {cm.kcal_total || 0} kcal
+                        {ings.length === 1
+                          ? t('macro.savedMealFoods_one', { count: ings.length, kcal: cm.kcal_total || 0 }, '{{count}} alimento · {{kcal}} kcal')
+                          : t('macro.savedMealFoods_other', { count: ings.length, kcal: cm.kcal_total || 0 }, '{{count}} alimenti · {{kcal}} kcal')}
                       </p>
                     </div>
                     <button
@@ -1249,7 +1253,7 @@ export default function MacroTrackerPage() {
                       disabled={loadingMeal === cm.id}
                       style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 8, background: 'var(--green-pale)', border: '1px solid var(--green-main)', cursor: 'pointer', fontSize: 12, color: 'var(--green-main)', fontFamily: 'var(--font-b)', fontWeight: 600 }}
                     >
-                      {loadingMeal === cm.id ? '…' : 'Carica'}
+                      {loadingMeal === cm.id ? '…' : t('macro.load', 'Carica')}
                     </button>
                   </div>
                 )
@@ -1301,7 +1305,7 @@ export default function MacroTrackerPage() {
                   whileTap={{ scale: 0.88, rotate: isSearching ? -90 : 90 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 18 }}
                   onClick={() => { if (isSearching) { closeSearch() } else { openMealSearch(m.key); setExpandedMeal(m.key) } }}
-                  title={`Aggiungi a ${m.label}`}
+                  title={t('macro.addToMeal', { meal: m.label }, 'Aggiungi a {{meal}}')}
                   style={{ flexShrink: 0, minWidth: 44, minHeight: 44, borderRadius: 8, background: isSearching ? (m.accent || 'var(--green-main)') : (m.pale || 'var(--green-pale)'), border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isSearching ? 'white' : (m.accent || 'var(--green-main)') }}
                 >
                   {isSearching ? <X size={14} /> : <Plus size={14} />}
@@ -1337,21 +1341,21 @@ export default function MacroTrackerPage() {
                             {f.food_data?.fatSat_100g > 0 && <span style={{ fontSize: 11, fontWeight: 600, color: '#7f1d1d', background: '#fef2f2', padding: '2px 7px', borderRadius: 6 }}>Sat {r1(f.food_data.fatSat_100g * (f.grams || 0) / 100)}g</span>}
                             {f.food_data?.sugar_100g > 0 && <span style={{ fontSize: 11, fontWeight: 600, color: '#5b21b6', background: '#f5f3ff', padding: '2px 7px', borderRadius: 6 }}>Zucc {r1(f.food_data.sugar_100g * (f.grams || 0) / 100)}g</span>}
                             {f.food_data?.salt_100g > 0 && <span style={{ fontSize: 11, fontWeight: 600, color: '#075985', background: '#f0f9ff', padding: '2px 7px', borderRadius: 6 }}>Sale {Math.round(f.food_data.salt_100g * (f.grams || 0) / 100 * 100) / 100}g</span>}
-                            {f._pending && <span style={{ fontSize: 10, color: '#d97706', display: 'flex', alignItems: 'center', gap: 3 }}><WifiOff size={9} style={{ display: 'inline', verticalAlign: 'middle' }} /> in coda</span>}
+                            {f._pending && <span style={{ fontSize: 10, color: '#d97706', display: 'flex', alignItems: 'center', gap: 3 }}><WifiOff size={9} style={{ display: 'inline', verticalAlign: 'middle' }} /> {t('macro.pendingSync', 'in coda')}</span>}
                           </div>
                         </div>
                         {/* Feature 3: Favorite star */}
                         <button
                           onClick={() => toggleFavorite(f)}
                           disabled={togglingFav === f.id}
-                          title={f.is_favorite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}
+                          title={f.is_favorite ? t('macro.removeFavorite', 'Rimuovi dai preferiti') : t('macro.addFavorite', 'Aggiungi ai preferiti')}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', color: f.is_favorite ? '#f59e0b' : 'var(--text-muted)', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Star size={13} fill={f.is_favorite ? '#f59e0b' : 'none'} />
                         </button>
-                        <button onClick={() => { setEditingFood(f.id); setEditGrams(String(f.grams || 100)) }} aria-label={`Modifica quantità di ${f.nome || 'alimento'}`} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <button onClick={() => { setEditingFood(f.id); setEditGrams(String(f.grams || 100)) }} aria-label={t('macro.editQtyOf', { name: f.nome || t('macro.genericFood', 'alimento') }, 'Modifica quantità di {{name}}')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Pencil size={13} />
                         </button>
-                        <button onClick={() => removeFood(f.id)} aria-label={`Rimuovi ${f.nome || 'alimento'} dal diario`} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <button onClick={() => removeFood(f.id)} aria-label={t('macro.removeFromDiary', { name: f.nome || t('macro.genericFood', 'alimento') }, 'Rimuovi {{name}} dal diario')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -1368,7 +1372,7 @@ export default function MacroTrackerPage() {
                           <button onClick={() => updateFoodGrams(f)} disabled={editSaving} style={{ background: 'var(--green-main)', border: 'none', borderRadius: 8, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
                             {editSaving ? <span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'block' }} /> : <Check size={14} color="white" />}
                           </button>
-                          <button onClick={() => setEditingFood(null)} aria-label="Annulla modifica" style={{ background: 'var(--surface-3)', border: 'none', borderRadius: 8, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                          <button onClick={() => setEditingFood(null)} aria-label={t('macro.cancelEdit', 'Annulla modifica')} style={{ background: 'var(--surface-3)', border: 'none', borderRadius: 8, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
                             <X size={14} color="var(--text-muted)" />
                           </button>
                         </div>
@@ -1389,7 +1393,7 @@ export default function MacroTrackerPage() {
                       <>
                         {mealFoods.length > 1 && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', padding: '8px 12px', background: m.pale || 'var(--green-pale)', borderRadius: 10, marginBottom: 8, borderLeft: `3px solid ${m.accent || 'var(--green-main)'}` }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', marginRight: 2 }}>Subtotale</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', marginRight: 2 }}>{t('macro.subtotal', 'Subtotale')}</span>
                             <span style={{ fontSize: 11.5, fontWeight: 800, color: '#9a3412', background: 'rgba(255,255,255,0.7)', padding: '2px 8px', borderRadius: 20 }}>🔥 {r0(st.kcal)} kcal</span>
                             <span style={{ fontSize: 11, fontWeight: 700, color: '#1e40af', background: 'rgba(255,255,255,0.7)', padding: '2px 7px', borderRadius: 20 }}>P {r1(st.proteins)}g</span>
                             <span style={{ fontSize: 11, fontWeight: 700, color: '#92400e', background: 'rgba(255,255,255,0.7)', padding: '2px 7px', borderRadius: 20 }}>C {r1(st.carbs)}g</span>
@@ -1420,7 +1424,7 @@ export default function MacroTrackerPage() {
                       <div key={n.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 6, padding: '7px 10px', background: '#fffbeb', borderRadius: 8, border: '1px dashed #fde68a' }}>
                         <span style={{ fontSize: 15, lineHeight: 1.4 }}>📝</span>
                         <p style={{ flex: 1, fontSize: 12.5, color: '#78350f', lineHeight: 1.5, margin: 0 }}>{noteText}</p>
-                        <button onClick={() => removeFood(n.id)} aria-label="Rimuovi nota" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b45309', padding: '2px 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <button onClick={() => removeFood(n.id)} aria-label={t('macro.removeNote', 'Rimuovi nota')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b45309', padding: '2px 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Trash2 size={12} />
                         </button>
                       </div>
@@ -1429,7 +1433,7 @@ export default function MacroTrackerPage() {
 
                   {mealFoods.length === 0 && mealNotes.length === 0 && !isSearching && (
                     <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '8px 0' }}>
-                      Nessun alimento — tocca + per aggiungere
+                      {t('macro.emptyMeal', 'Nessun alimento — tocca + per aggiungere')}
                     </p>
                   )}
 
@@ -1440,7 +1444,7 @@ export default function MacroTrackerPage() {
                       style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'none', border: '1px dashed var(--border)', borderRadius: 9, padding: '7px 11px', cursor: 'pointer', font: 'inherit', fontSize: 12, color: 'var(--text-muted)', width: '100%', marginBottom: 6 }}
                     >
                       <BookmarkPlus size={13} />
-                      Salva come modello
+                      {t('macro.saveAsTemplate', 'Salva come modello')}
                     </button>
                   )}
 
@@ -1449,7 +1453,7 @@ export default function MacroTrackerPage() {
                     <div style={{ marginTop: (mealFoods.length > 0 || mealNotes.length > 0) ? 6 : 0, display: 'flex', gap: 6 }}>
                       <input
                         type="text"
-                        placeholder="📝 Aggiungi nota al pasto…"
+                        placeholder={t('macro.notePlaceholder', '📝 Aggiungi nota al pasto…')}
                         value={mealNoteInputs[m.key] || ''}
                         onChange={e => setMealNoteInputs(prev => ({ ...prev, [m.key]: e.target.value }))}
                         onKeyDown={e => { if (e.key === 'Enter' && mealNoteInputs[m.key]?.trim()) saveNote(m.key) }}
@@ -1473,12 +1477,12 @@ export default function MacroTrackerPage() {
                       {/* Success confirmation */}
                       {addedFood && (
                         <div className="animate-popIn" style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--green-pale)', borderRadius: 10, padding: '9px 12px', marginBottom: 10, color: 'var(--green-dark)', fontSize: 13, fontWeight: 500 }}>
-                          <span>✅</span> <span>"{addedFood}" aggiunto!</span>
+                          <span>✅</span> <span>{t('macro.foodAdded', { name: addedFood }, '"{{name}}" aggiunto!')}</span>
                         </div>
                       )}
                       {offlineSaved && (
                         <div className="animate-popIn" style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fef3c7', borderRadius: 10, padding: '9px 12px', marginBottom: 10, color: '#92400e', fontSize: 13, fontWeight: 500, border: '1px solid #fde68a' }}>
-                          <WifiOff size={14} /> <span>Salvato offline — verrà sincronizzato alla prossima connessione</span>
+                          <WifiOff size={14} /> <span>{t('macro.offlineSaved', 'Salvato offline — verrà sincronizzato alla prossima connessione')}</span>
                         </div>
                       )}
                       {/* Error feedback */}
@@ -1494,7 +1498,7 @@ export default function MacroTrackerPage() {
                           <input
                             type="text"
                             className="input-field"
-                            placeholder="Cerca alimento (es. pollo, pasta, mela…)"
+                            placeholder={t('macro.searchPlaceholder', 'Cerca alimento (es. pollo, pasta, mela…)')}
                             value={query}
                             onChange={e => { setQuery(e.target.value); setSelected(null); setSaveError('') }}
                             autoComplete="off"
@@ -1506,7 +1510,7 @@ export default function MacroTrackerPage() {
                           <button
                             type="button"
                             onClick={() => setShowScanner(true)}
-                            title="Scansiona codice a barre"
+                            title={t('macro.action.scanBarcode', 'Scansiona codice a barre')}
                             style={{ flexShrink: 0, width: 42, height: 42, background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)' }}
                           >
                             <ScanLine size={18} />
@@ -1539,7 +1543,7 @@ export default function MacroTrackerPage() {
                             {searching && results.length === 0 && (
                               <div style={{ padding: '12px 14px', color: 'var(--text-muted)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <span style={{ width: 12, height: 12, border: '2px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block', flexShrink: 0 }} />
-                                Ricerca in corso…
+                                {t('macro.searching', 'Ricerca in corso…')}
                               </div>
                             )}
                             {results.map((f, i) => (
@@ -1586,7 +1590,7 @@ export default function MacroTrackerPage() {
 
                         {!selected && !searching && query.trim().length >= 2 && results.length === 0 && (
                           <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-muted)', padding: '10px 0' }}>
-                            Nessun risultato per "{query}". Prova con un termine diverso.
+                            {t('macro.noResults', { query }, 'Nessun risultato per "{{query}}". Prova con un termine diverso.')}
                           </p>
                         )}
                       </div>
@@ -1595,7 +1599,7 @@ export default function MacroTrackerPage() {
                       {!selected && !query.trim() && (recentByMeal[m.key] || []).length > 0 && (
                         <div style={{ marginBottom: 8 }}>
                           <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>
-                            Recenti in {m.label}
+                            {t('macro.recentIn', { meal: m.label }, 'Recenti in {{meal}}')}
                           </p>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                             {(recentByMeal[m.key] || []).map((r, idx) => {
@@ -1643,20 +1647,20 @@ export default function MacroTrackerPage() {
                                 <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--green-dark)', lineHeight: 1.25 }}>{selected.name}</p>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
                                   {selected.category && <span style={{ fontSize: 10, background: 'rgba(26,127,90,.12)', color: 'var(--green-dark)', padding: '1px 7px', borderRadius: 20, fontWeight: 700 }}>{selected.category}</span>}
-                                  <span style={{ fontSize: 10, color: 'var(--green-dark)', opacity: 0.7 }}>per {grams || 100}g</span>
+                                  <span style={{ fontSize: 10, color: 'var(--green-dark)', opacity: 0.7 }}>{t('macro.per', { grams: grams || 100 }, 'per {{grams}}g')}</span>
                                 </div>
                               </div>
-                              <button onClick={() => { setSelected(null); setQuery('') }} aria-label="Deseleziona alimento" style={{ background: 'rgba(0,0,0,.08)', border: 'none', cursor: 'pointer', width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--green-dark)' }}><X size={13} /></button>
+                              <button onClick={() => { setSelected(null); setQuery('') }} aria-label={t('macro.deselectFood', 'Deseleziona alimento')} style={{ background: 'rgba(0,0,0,.08)', border: 'none', cursor: 'pointer', width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--green-dark)' }}><X size={13} /></button>
                             </div>
                             {/* Macro grid */}
                             {preview && (
                               <div style={{ padding: '10px 12px', background: 'var(--surface)' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: (preview.fatSat != null || preview.sugar != null) ? 6 : 0 }}>
                                   {[
-                                    { e: '🔥', l: 'Kcal',      v: preview.kcal,     c: '#ea580c', bg: '#fff7ed' },
-                                    { e: '💪', l: 'Proteine',  v: `${preview.proteins}g`, c: '#1d4ed8', bg: '#dbeafe' },
-                                    { e: '🍞', l: 'Carboidrati', v: `${preview.carbs}g`, c: '#d97706', bg: '#fef9c3' },
-                                    { e: '🧈', l: 'Grassi',    v: `${preview.fats}g`,  c: '#dc2626', bg: '#fee2e2' },
+                                    { e: '🔥', l: t('macro.label.kcal', 'Kcal'),      v: preview.kcal,     c: '#ea580c', bg: '#fff7ed' },
+                                    { e: '💪', l: t('macro.label.proteins', 'Proteine'),  v: `${preview.proteins}g`, c: '#1d4ed8', bg: '#dbeafe' },
+                                    { e: '🍞', l: t('macro.label.carbs', 'Carboidrati'), v: `${preview.carbs}g`, c: '#d97706', bg: '#fef9c3' },
+                                    { e: '🧈', l: t('macro.label.fats', 'Grassi'),    v: `${preview.fats}g`,  c: '#dc2626', bg: '#fee2e2' },
                                   ].map(n => (
                                     <div key={n.l} style={{ background: n.bg, borderRadius: 10, padding: '7px 4px', textAlign: 'center' }}>
                                       <div style={{ fontSize: 15, lineHeight: 1 }}>{n.e}</div>
@@ -1672,7 +1676,7 @@ export default function MacroTrackerPage() {
                                         <span style={{ fontSize: 14 }}>⚠️</span>
                                         <div>
                                           <div style={{ fontSize: 12, fontWeight: 700, color: '#b91c1c' }}>{preview.fatSat}g</div>
-                                          <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Gr. saturi</div>
+                                          <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{t('macro.label.satFatFull', 'Gr. saturi')}</div>
                                         </div>
                                       </div>
                                     )}
@@ -1681,7 +1685,7 @@ export default function MacroTrackerPage() {
                                         <span style={{ fontSize: 14 }}>🍬</span>
                                         <div>
                                           <div style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed' }}>{preview.sugar}g</div>
-                                          <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Zuccheri</div>
+                                          <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{t('macro.label.sugarFull', 'Zuccheri')}</div>
                                         </div>
                                       </div>
                                     )}
@@ -1690,7 +1694,7 @@ export default function MacroTrackerPage() {
                                         <span style={{ fontSize: 14 }}>🧂</span>
                                         <div>
                                           <div style={{ fontSize: 12, fontWeight: 700, color: '#0369a1' }}>{preview.salt}g</div>
-                                          <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Sale</div>
+                                          <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{t('macro.label.saltFull', 'Sale')}</div>
                                         </div>
                                       </div>
                                     )}
@@ -1707,7 +1711,7 @@ export default function MacroTrackerPage() {
                             return (
                               <div style={{ margin: '0 0 10px', padding: '10px 12px', borderRadius: 10, background: conflicts.length ? '#FEF2F2' : '#FFFBEB', border: `1.5px solid ${conflicts.length ? '#FCA5A5' : '#FDE68A'}` }}>
                                 <div style={{ fontSize: 12, fontWeight: 700, color: conflicts.length ? '#B91C1C' : '#92400E', marginBottom: 5 }}>
-                                  {conflicts.length ? '⚠️ Contiene allergeni a te segnalati!' : 'ℹ️ Allergeni presenti:'}
+                                  {conflicts.length ? t('macro.allergen.conflict', '⚠️ Contiene allergeni a te segnalati!') : t('macro.allergen.present', 'ℹ️ Allergeni presenti:')}
                                 </div>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                                   {all.map(a => {
@@ -1725,7 +1729,7 @@ export default function MacroTrackerPage() {
                           <HandPortionPicker category={selected.category} onPick={g => { setSelectedUnit('g'); setGrams(String(g)) }} />
                           {/* Feature 6: Unit selector */}
                           <div className="input-group" style={{ marginBottom: 6 }}>
-                            <label className="input-label">Unità di misura</label>
+                            <label className="input-label">{t('macro.unitLabel', 'Unità di misura')}</label>
                             <select
                               value={selectedUnit}
                               onChange={e => {
@@ -1740,14 +1744,14 @@ export default function MacroTrackerPage() {
                               }}
                               style={{ cursor: 'pointer', width: '100%', padding: '6px 10px', border: '1.5px solid var(--border)', borderRadius: 10, background: 'var(--surface-2)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', fontFamily: 'var(--font-b)' }}
                             >
-                              {UNIT_OPTIONS.map(u => <option key={u.key} value={u.key}>{u.label}</option>)}
+                              {UNIT_OPTIONS.map(u => <option key={u.key} value={u.key}>{t(`macro.unit.${u.key}`, u.label)}</option>)}
                             </select>
                           </div>
                           <div style={{ display: 'flex', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
                             {selectedUnit === 'g' ? (
                               <>
                                 <div className="input-group" style={{ flex: '1 1 80px' }}>
-                                  <label className="input-label">Porzioni</label>
+                                  <label className="input-label">{t('macro.portionsLabel', 'Porzioni')}</label>
                                   <input type="number" className="input-field"
                                     value={parseFloat(grams) > 0 ? Math.round(parseFloat(grams) / getDefaultServingSize(selected) * 100) / 100 : ''}
                                     onChange={e => {
@@ -1758,13 +1762,13 @@ export default function MacroTrackerPage() {
                                     min={0} step="any" inputMode="decimal" />
                                 </div>
                                 <div className="input-group" style={{ flex: '1 1 80px' }}>
-                                  <label className="input-label">Quantità (g)</label>
+                                  <label className="input-label">{t('macro.qtyGramsLabel', 'Quantità (g)')}</label>
                                   <input type="number" className="input-field" value={grams} onChange={e => setGrams(e.target.value)} min={1} inputMode="decimal" />
                                 </div>
                               </>
                             ) : (
                               <div className="input-group" style={{ flex: '1 1 80px' }}>
-                                <label className="input-label">Quantità ({UNIT_OPTIONS.find(u => u.key === selectedUnit)?.label.split(' ')[0]})</label>
+                                <label className="input-label">{t('macro.qtyUnitLabel', { unit: t(`macro.unit.short.${selectedUnit}`, UNIT_OPTIONS.find(u => u.key === selectedUnit)?.label.split(' ')[0]) }, 'Quantità ({{unit}})')}</label>
                                 <input type="number" className="input-field"
                                   value={unitQty}
                                   onChange={e => { setUnitQty(e.target.value); setGrams(String(gramsFromUnit(e.target.value, selectedUnit))) }}
@@ -1772,7 +1776,7 @@ export default function MacroTrackerPage() {
                               </div>
                             )}
                             <div className="input-group" style={{ flex: '1 1 80px' }}>
-                              <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={11} />Orario</label>
+                              <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={11} />{t('macro.timeLabel', 'Orario')}</label>
                               <select value={mealTime} onChange={e => setMealTime(e.target.value)} style={{ cursor: 'pointer', width: '100%', padding: '6px 10px', border: '1.5px solid var(--border)', borderRadius: 10, background: 'var(--surface-2)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none', fontFamily: 'var(--font-b)' }}>
                                 {Array.from({ length: 38 }, (_, i) => {
                                   const h = Math.floor(i / 2) + 5
@@ -1789,7 +1793,7 @@ export default function MacroTrackerPage() {
                             </p>
                           )}
                           <button className="btn btn-primary btn-full" onClick={addFood} disabled={saving}>
-                            {saving ? '…' : 'Aggiungi al diario'}
+                            {saving ? '…' : t('macro.addToDiary', 'Aggiungi al diario')}
                           </button>
                         </div>
                       )}
@@ -1808,27 +1812,27 @@ export default function MacroTrackerPage() {
             style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 12, padding: '10px 14px', cursor: 'pointer', font: 'inherit', fontSize: 13, color: 'var(--text-secondary)', width: '100%' }}
           >
             <ClipboardCopy size={15} />
-            Copia questa giornata in un altro giorno
+            {t('macro.copyDayButton', 'Copia questa giornata in un altro giorno')}
           </button>
         )}
 
         {/* Micronutrient section — Pro only */}
-        <ProGate feature="Micronutrienti" teaser="Monitora vitamine, minerali e fibre con il piano Pro">
+        <ProGate feature={t('macro.micro.feature', 'Micronutrienti')} teaser={t('macro.micro.teaser', 'Monitora vitamine, minerali e fibre con il piano Pro')}>
           <div className="card" style={{ padding: 16 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>🔬 Micronutrienti del giorno</h3>
+            <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>🔬 {t('macro.micro.title', 'Micronutrienti del giorno')}</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               {[
-                { label: 'Fibra', val: microTotals.fiber > 0 ? `${Math.round(microTotals.fiber * 10) / 10}` : '–', unit: 'g', icon: '🌾' },
-                { label: 'Sodio', val: microTotals.sodium > 0 ? `${Math.round(microTotals.sodium)}` : '–', unit: 'mg', icon: '🧂' },
-                { label: 'Calcio', val: microTotals.calcium > 0 ? `${Math.round(microTotals.calcium)}` : '–', unit: 'mg', icon: '🦴' },
-                { label: 'Ferro', val: microTotals.iron > 0 ? `${Math.round(microTotals.iron * 10) / 10}` : '–', unit: 'mg', icon: '🔴' },
-                { label: 'Zuccheri semplici', val: microTotals.sugar > 0 ? `${Math.round(microTotals.sugar * 10) / 10}` : '–', unit: 'g', icon: '🍬' },
-                { label: 'Grassi saturi', val: microTotals.fatSat > 0 ? `${Math.round(microTotals.fatSat * 10) / 10}` : '–', unit: 'g', icon: '🫒' },
-                { label: 'Magnesio', val: microTotals.magnesium > 0 ? `${Math.round(microTotals.magnesium)}` : '–', unit: 'mg', icon: '🥬' },
-                { label: 'Potassio', val: microTotals.potassium > 0 ? `${Math.round(microTotals.potassium)}` : '–', unit: 'mg', icon: '🍌' },
-                { label: 'Zinco', val: microTotals.zinc > 0 ? `${Math.round(microTotals.zinc * 10) / 10}` : '–', unit: 'mg', icon: '⚙️' },
-                { label: 'Folati', val: microTotals.folate > 0 ? `${Math.round(microTotals.folate)}` : '–', unit: 'µg', icon: '🥦' },
-                { label: 'Selenio', val: microTotals.selenium > 0 ? `${Math.round(microTotals.selenium)}` : '–', unit: 'µg', icon: '🐟' },
+                { label: t('macro.micro.fiber', 'Fibra'), val: microTotals.fiber > 0 ? `${Math.round(microTotals.fiber * 10) / 10}` : '–', unit: 'g', icon: '🌾' },
+                { label: t('macro.micro.sodium', 'Sodio'), val: microTotals.sodium > 0 ? `${Math.round(microTotals.sodium)}` : '–', unit: 'mg', icon: '🧂' },
+                { label: t('macro.micro.calcium', 'Calcio'), val: microTotals.calcium > 0 ? `${Math.round(microTotals.calcium)}` : '–', unit: 'mg', icon: '🦴' },
+                { label: t('macro.micro.iron', 'Ferro'), val: microTotals.iron > 0 ? `${Math.round(microTotals.iron * 10) / 10}` : '–', unit: 'mg', icon: '🔴' },
+                { label: t('macro.micro.sugar', 'Zuccheri semplici'), val: microTotals.sugar > 0 ? `${Math.round(microTotals.sugar * 10) / 10}` : '–', unit: 'g', icon: '🍬' },
+                { label: t('macro.micro.satFat', 'Grassi saturi'), val: microTotals.fatSat > 0 ? `${Math.round(microTotals.fatSat * 10) / 10}` : '–', unit: 'g', icon: '🫒' },
+                { label: t('macro.micro.magnesium', 'Magnesio'), val: microTotals.magnesium > 0 ? `${Math.round(microTotals.magnesium)}` : '–', unit: 'mg', icon: '🥬' },
+                { label: t('macro.micro.potassium', 'Potassio'), val: microTotals.potassium > 0 ? `${Math.round(microTotals.potassium)}` : '–', unit: 'mg', icon: '🍌' },
+                { label: t('macro.micro.zinc', 'Zinco'), val: microTotals.zinc > 0 ? `${Math.round(microTotals.zinc * 10) / 10}` : '–', unit: 'mg', icon: '⚙️' },
+                { label: t('macro.micro.folate', 'Folati'), val: microTotals.folate > 0 ? `${Math.round(microTotals.folate)}` : '–', unit: 'µg', icon: '🥦' },
+                { label: t('macro.micro.selenium', 'Selenio'), val: microTotals.selenium > 0 ? `${Math.round(microTotals.selenium)}` : '–', unit: 'µg', icon: '🐟' },
               ].map(n => (
                 <div key={n.label} style={{ background: 'var(--surface-2)', borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 18 }}>{n.icon}</span>
@@ -1840,7 +1844,7 @@ export default function MacroTrackerPage() {
               ))}
             </div>
             <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 10, textAlign: 'center' }}>
-              Fibra, zuccheri semplici e grassi saturi calcolati dagli alimenti aggiunti oggi.
+              {t('macro.micro.footnote', 'Fibra, zuccheri semplici e grassi saturi calcolati dagli alimenti aggiunti oggi.')}
             </p>
           </div>
         </ProGate>
@@ -1882,15 +1886,15 @@ export default function MacroTrackerPage() {
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 20, width: '100%', maxWidth: 400, maxHeight: '85dvh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700 }}>Salva pasto come modello</h3>
-              <button onClick={() => { setShowSaveMealModal(false); setSaveMealName('') }} aria-label="Chiudi" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+              <h3 style={{ fontSize: 16, fontWeight: 700 }}>{t('macro.modal.saveMealTitle', 'Salva pasto come modello')}</h3>
+              <button onClick={() => { setShowSaveMealModal(false); setSaveMealName('') }} aria-label={t('common.close', 'Chiudi')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
             </div>
             <div className="input-group" style={{ marginBottom: 14 }}>
-              <label className="input-label">Nome del pasto</label>
+              <label className="input-label">{t('macro.modal.mealNameLabel', 'Nome del pasto')}</label>
               <input
                 type="text"
                 className="input-field"
-                placeholder="Es. Pranzo proteico, Colazione sana…"
+                placeholder={t('macro.modal.mealNamePlaceholder', 'Es. Pranzo proteico, Colazione sana…')}
                 value={saveMealName}
                 onChange={e => setSaveMealName(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && saveMealName.trim()) saveCurrentMealAsCustom() }}
@@ -1898,10 +1902,15 @@ export default function MacroTrackerPage() {
               />
             </div>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14 }}>
-              Verranno salvati {log.filter(f => f.meal_type === activeMealAdd && f.food_name !== '__note__').length} alimenti del pasto corrente.
+              {(() => {
+                const cnt = log.filter(f => f.meal_type === activeMealAdd && f.food_name !== '__note__').length
+                return cnt === 1
+                  ? t('macro.saveMealCount_one', { count: cnt }, 'Verrà salvato {{count}} alimento del pasto corrente.')
+                  : t('macro.saveMealCount_other', { count: cnt }, 'Verranno salvati {{count}} alimenti del pasto corrente.')
+              })()}
             </p>
             <button className="btn btn-primary btn-full" onClick={saveCurrentMealAsCustom} disabled={savingMeal || !saveMealName.trim()}>
-              {savingMeal ? '…' : '💾 Salva pasto'}
+              {savingMeal ? '…' : `💾 ${t('macro.modal.saveMealButton', 'Salva pasto')}`}
             </button>
           </div>
         </div>
@@ -1912,26 +1921,33 @@ export default function MacroTrackerPage() {
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 20, width: '100%', maxWidth: 400, maxHeight: '85dvh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700 }}>Copia giornata alimentare</h3>
-              <button onClick={() => { setShowCopyModal(false); setCopyTargetDate('') }} aria-label="Chiudi" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+              <h3 style={{ fontSize: 16, fontWeight: 700 }}>{t('macro.modal.copyDayTitle', 'Copia giornata alimentare')}</h3>
+              <button onClick={() => { setShowCopyModal(false); setCopyTargetDate('') }} aria-label={t('common.close', 'Chiudi')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
             </div>
             {copyDone !== null ? (
               <div style={{ textAlign: 'center', padding: '20px 0' }}>
                 <p style={{ fontSize: 20, marginBottom: 8 }}>✅</p>
                 <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--green-dark)' }}>
-                  {copyDone} {copyDone === 1 ? 'alimento copiato' : 'alimenti copiati'}!
+                  {copyDone === 1
+                    ? t('macro.copyDone_one', { count: copyDone }, '{{count}} alimento copiato!')
+                    : t('macro.copyDone_other', { count: copyDone }, '{{count}} alimenti copiati!')}
                 </p>
                 <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-                  Giornata copiata al {new Date(copyTargetDate + 'T12:00:00').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  {t('macro.modal.copiedTo', { date: new Date(copyTargetDate + 'T12:00:00').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }) }, 'Giornata copiata al {{date}}')}
                 </p>
               </div>
             ) : (
               <>
                 <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14 }}>
-                  Scegli il giorno di destinazione. Verranno copiati {log.filter(f => f.food_name !== '__note__').length} alimenti.
+                  {(() => {
+                    const cnt = log.filter(f => f.food_name !== '__note__').length
+                    return cnt === 1
+                      ? t('macro.copyCount_one', { count: cnt }, 'Scegli il giorno di destinazione. Verrà copiato {{count}} alimento.')
+                      : t('macro.copyCount_other', { count: cnt }, 'Scegli il giorno di destinazione. Verranno copiati {{count}} alimenti.')
+                  })()}
                 </p>
                 <div className="input-group" style={{ marginBottom: 14 }}>
-                  <label className="input-label">Giorno di destinazione</label>
+                  <label className="input-label">{t('macro.modal.targetDayLabel', 'Giorno di destinazione')}</label>
                   <input
                     type="date"
                     className="input-field"
@@ -1945,7 +1961,7 @@ export default function MacroTrackerPage() {
                   onClick={copyCurrentDay}
                   disabled={copying || !copyTargetDate || copyTargetDate === date}
                 >
-                  {copying ? '…' : '📋 Copia'}
+                  {copying ? '…' : `📋 ${t('macro.modal.copyButton', 'Copia')}`}
                 </button>
               </>
             )}
@@ -1963,8 +1979,8 @@ export default function MacroTrackerPage() {
           <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
             <div className="animate-slideUp" style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', padding: 20, paddingBottom: 'calc(20px + env(safe-area-inset-bottom))', maxHeight: '90dvh', overflowY: 'auto', boxSizing: 'border-box' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <h3 style={{ fontSize: 16, fontWeight: 700 }}>Aggiungi alimento</h3>
-                <button onClick={() => setRecentFoodPicker(null)} aria-label="Chiudi" style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700 }}>{t('macro.modal.addFoodTitle', 'Aggiungi alimento')}</h3>
+                <button onClick={() => setRecentFoodPicker(null)} aria-label={t('common.close', 'Chiudi')} style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                   <X size={16} />
                 </button>
               </div>
@@ -1973,10 +1989,10 @@ export default function MacroTrackerPage() {
                 <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>{recentFoodPicker.food_name}</p>
                 <div style={{ display: 'flex', gap: 14 }}>
                   {[
-                    { label: 'Kcal', val: pickerPreview.kcal },
-                    { label: 'Prot.', val: `${pickerPreview.proteins}g` },
-                    { label: 'Carbo', val: `${pickerPreview.carbs}g` },
-                    { label: 'Grassi', val: `${pickerPreview.fats}g` },
+                    { label: t('macro.label.kcal', 'Kcal'), val: pickerPreview.kcal },
+                    { label: t('macro.label.protShort', 'Prot.'), val: `${pickerPreview.proteins}g` },
+                    { label: t('macro.label.carbsShort', 'Carbo'), val: `${pickerPreview.carbs}g` },
+                    { label: t('macro.label.fats', 'Grassi'), val: `${pickerPreview.fats}g` },
                   ].map(s => (
                     <div key={s.label} style={{ textAlign: 'center' }}>
                       <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--green-dark)' }}>{s.val}</p>
@@ -1989,7 +2005,7 @@ export default function MacroTrackerPage() {
               <div style={{ marginBottom: 14 }}>
                 <HandPortionPicker category={fd.category} onPick={g => setPickerGrams(String(g))} />
                 <div className="input-group" style={{ marginBottom: 8 }}>
-                  <label className="input-label">Quantità (g)</label>
+                  <label className="input-label">{t('macro.qtyGramsLabel', 'Quantità (g)')}</label>
                   <input
                     type="number"
                     className="input-field"
@@ -2015,7 +2031,7 @@ export default function MacroTrackerPage() {
               </div>
 
               <button className="btn btn-primary btn-full" onClick={confirmRecentPicker} disabled={saving || !pickerGrams || parseFloat(pickerGrams) <= 0}>
-                {saving ? '…' : 'Aggiungi al diario'}
+                {saving ? '…' : t('macro.addToDiary', 'Aggiungi al diario')}
               </button>
             </div>
           </div>
@@ -2029,8 +2045,8 @@ export default function MacroTrackerPage() {
           <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
             <div className="animate-slideUp" style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', padding: 20, paddingBottom: 'calc(20px + env(safe-area-inset-bottom))', maxHeight: '90dvh', overflowY: 'auto', boxSizing: 'border-box' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <h3 style={{ fontSize: 16, fontWeight: 700 }}>🛒 Alimento trovato</h3>
-                <button onClick={() => setBarcodeFoodModal(null)} aria-label="Chiudi" style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700 }}>🛒 {t('macro.modal.foodFoundTitle', 'Alimento trovato')}</h3>
+                <button onClick={() => setBarcodeFoodModal(null)} aria-label={t('common.close', 'Chiudi')} style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                   <X size={16} />
                 </button>
               </div>
@@ -2041,10 +2057,10 @@ export default function MacroTrackerPage() {
                 {food.brand && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>{food.brand}</p>}
                 <div style={{ display: 'flex', gap: 14 }}>
                   {[
-                    { label: 'Kcal', val: r0(food.kcal_100g) },
-                    { label: 'Prot.', val: `${r1(food.proteins_100g)}g` },
-                    { label: 'Carbo', val: `${r1(food.carbs_100g)}g` },
-                    { label: 'Grassi', val: `${r1(food.fats_100g)}g` },
+                    { label: t('macro.label.kcal', 'Kcal'), val: r0(food.kcal_100g) },
+                    { label: t('macro.label.protShort', 'Prot.'), val: `${r1(food.proteins_100g)}g` },
+                    { label: t('macro.label.carbsShort', 'Carbo'), val: `${r1(food.carbs_100g)}g` },
+                    { label: t('macro.label.fats', 'Grassi'), val: `${r1(food.fats_100g)}g` },
                   ].map(s => (
                     <div key={s.label} style={{ textAlign: 'center' }}>
                       <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--green-dark)' }}>{s.val}</p>
@@ -2052,19 +2068,19 @@ export default function MacroTrackerPage() {
                     </div>
                   ))}
                 </div>
-                <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>valori per 100 g</p>
+                <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>{t('macro.per100g', 'valori per 100 g')}</p>
               </div>
 
               {/* Meal + grams */}
               <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
                 <div className="input-group" style={{ flex: 1 }}>
-                  <label className="input-label">Pasto</label>
+                  <label className="input-label">{t('macro.mealLabel', 'Pasto')}</label>
                   <select className="input-field" value={bMeal} onChange={e => setBarcodeFoodModal(m => ({ ...m, meal: e.target.value }))}>
                     {MEALS.map(m => <option key={m.key} value={m.key}>{m.emoji} {m.label}</option>)}
                   </select>
                 </div>
                 <div className="input-group" style={{ width: 110 }}>
-                  <label className="input-label">Quantità (g)</label>
+                  <label className="input-label">{t('macro.qtyGramsLabel', 'Quantità (g)')}</label>
                   <input type="number" className="input-field" value={bGrams} onChange={e => setBarcodeFoodModal(m => ({ ...m, grams: e.target.value }))} min={1} inputMode="decimal" />
                 </div>
               </div>
@@ -2072,10 +2088,10 @@ export default function MacroTrackerPage() {
               {/* Macro preview */}
               <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
                 {[
-                  { label: 'Kcal', val: bPreview.kcal },
-                  { label: 'Proteine', val: `${bPreview.proteins}g` },
-                  { label: 'Carboidrati', val: `${bPreview.carbs}g` },
-                  { label: 'Grassi', val: `${bPreview.fats}g` },
+                  { label: t('macro.label.kcal', 'Kcal'), val: bPreview.kcal },
+                  { label: t('macro.label.proteins', 'Proteine'), val: `${bPreview.proteins}g` },
+                  { label: t('macro.label.carbs', 'Carboidrati'), val: `${bPreview.carbs}g` },
+                  { label: t('macro.label.fats', 'Grassi'), val: `${bPreview.fats}g` },
                 ].map(s => (
                   <div key={s.label} style={{ flex: 1, background: 'var(--surface-2)', borderRadius: 8, padding: '7px 4px', textAlign: 'center', border: '1px solid var(--border-light)' }}>
                     <p style={{ fontSize: 13, fontWeight: 700 }}>{s.val}</p>
@@ -2085,7 +2101,7 @@ export default function MacroTrackerPage() {
               </div>
 
               <button className="btn btn-primary btn-full" onClick={addBarcodeFood} disabled={saving}>
-                {saving ? '…' : 'Aggiungi al diario'}
+                {saving ? '…' : t('macro.addToDiary', 'Aggiungi al diario')}
               </button>
             </div>
           </div>
