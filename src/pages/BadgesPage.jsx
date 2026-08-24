@@ -167,7 +167,7 @@ export default function BadgesPage() {
                           lineHeight: 1.3,
                           marginBottom: '4px',
                         }}>
-                          {ach.name}
+                          {t(ach.nameKey, ach.name)}
                         </div>
 
                         {/* Description */}
@@ -176,7 +176,7 @@ export default function BadgesPage() {
                           color: 'var(--text-muted)',
                           lineHeight: 1.35,
                         }}>
-                          {ach.description}
+                          {t(ach.descKey, ach.description)}
                         </div>
 
                         {/* Earned date */}

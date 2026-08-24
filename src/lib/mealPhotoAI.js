@@ -7,6 +7,7 @@
 //   3. supabase functions deploy analyze-meal
 
 import { supabase } from './supabase'
+import { t } from '../i18n'
 
 async function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -18,9 +19,9 @@ async function fileToBase64(file) {
 }
 
 function getMimeType(file) {
-  const t = file.type
-  if (t === 'image/png') return 'image/png'
-  if (t === 'image/webp') return 'image/webp'
+  const fileType = file.type
+  if (fileType === 'image/png') return 'image/png'
+  if (fileType === 'image/webp') return 'image/webp'
   return 'image/jpeg'
 }
 
@@ -37,7 +38,7 @@ export async function analyzeMealPhoto(file) {
   })
 
   if (error) {
-    throw new Error(error.message || 'Errore Edge Function')
+    throw new Error(error.message || t('common.err_edge_function', 'Errore Edge Function'))
   }
 
   if (data?.error) {
@@ -45,7 +46,7 @@ export async function analyzeMealPhoto(file) {
   }
 
   if (!Array.isArray(data?.foods)) {
-    throw new Error('Risposta non valida dal server')
+    throw new Error(t('common.err_invalid_server_response', 'Risposta non valida dal server'))
   }
 
   return {

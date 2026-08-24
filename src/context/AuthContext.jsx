@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
+import { t } from '../i18n'
 
 const AuthContext = createContext({})
 
@@ -162,7 +163,7 @@ export function AuthProvider({ children }) {
   // vedi MealPhotoAnalyzer.jsx. Semplice UPDATE diretto: l'utente è già
   // autenticato a questo punto, protetto dalla policy profiles_update_own.
   const recordAiPhotoConsent = useCallback(async () => {
-    if (!user) return { error: new Error('Utente non autenticato') }
+    if (!user) return { error: new Error(t('common.err_not_authenticated', 'Utente non autenticato')) }
     const now = new Date().toISOString()
     const { error } = await supabase.from('profiles').update({ ai_photo_consent_at: now }).eq('id', user.id)
     if (!error) {
@@ -177,7 +178,7 @@ export function AuthProvider({ children }) {
   // distinto dal consenso foto pasto (fornitore diverso, funzione diversa).
   // Richiesto prima del primo utilizzo, vedi CoachAiPage.jsx.
   const recordCoachAiConsent = useCallback(async () => {
-    if (!user) return { error: new Error('Utente non autenticato') }
+    if (!user) return { error: new Error(t('common.err_not_authenticated', 'Utente non autenticato')) }
     const now = new Date().toISOString()
     const { error } = await supabase.from('profiles').update({ coach_ai_consent_at: now }).eq('id', user.id)
     if (!error) {

@@ -64,11 +64,11 @@ function HandPortionPicker({ category, onPick }) {
               <button
                 key={h.key}
                 type="button"
-                title={h.hint}
+                title={t(`macro.handPortion.${h.key}_hint`, h.hint)}
                 onClick={() => onPick(estimateHandPortionGrams(h.key, category))}
                 style={{ padding: '6px 10px', borderRadius: 9, background: 'var(--surface-2)', border: '1.5px solid var(--border)', cursor: 'pointer', fontSize: 12, color: 'var(--text-secondary)' }}
               >
-                {h.label}
+                {t(`macro.handPortion.${h.key}_label`, h.label)}
               </button>
             ))}
           </div>

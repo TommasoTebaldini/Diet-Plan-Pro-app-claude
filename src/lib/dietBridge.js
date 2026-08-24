@@ -9,6 +9,7 @@
  *      solo se visible_to_patient = true o patient_id è impostato).
  */
 import { supabase } from './supabase'
+import { t } from '../i18n'
 
 // ── Calcolo macro da ncpt.intervento ─────────────────────────────────────────
 function _parseInterventoMacros(ncptRow) {
@@ -102,7 +103,7 @@ export async function fetchDietFromPiani(patientId) {
 
   return {
     id:             piano?.id ?? cid,
-    name:           piano?.nome || 'Piano alimentare',
+    name:           piano?.nome || t('diet.plan_name_fallback', 'Piano alimentare'),
     kcal_target:    macros.kcal_target    ?? null,
     protein_target: macros.protein_target ?? null,
     carbs_target:   macros.carbs_target   ?? null,

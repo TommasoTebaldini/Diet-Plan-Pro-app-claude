@@ -2,10 +2,12 @@ import { createContext, useContext, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { loadPrefs, initScheduledNotifications, showNotification, scheduleMedicationReminders } from '../lib/notifications'
 import { checkMealAndNotify, checkStreakAtRiskAndNotify } from '../lib/smartNotifications'
+import { useT } from '../i18n'
 
 const NotificationContext = createContext({})
 
 export function NotificationProvider({ children, user }) {
+  const t = useT()
   const channelsRef = useRef([])
   const prefsRef = useRef(loadPrefs())
 
@@ -40,7 +42,7 @@ export function NotificationProvider({ children, user }) {
         { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `patient_id=eq.${user.id}` },
         payload => {
           if (payload.new?.sender_role === 'dietitian' && prefsRef.current.newMessage) {
-            showNotification('💬 Nuovo messaggio dal dietista', payload.new.content?.slice(0, 80) || '', 'chat-msg')
+            showNotification(t('notif.new_chat_message_title', '💬 Nuovo messaggio dal dietista'), payload.new.content?.slice(0, 80) || '', 'chat-msg')
           }
         },
       )
@@ -51,9 +53,9 @@ export function NotificationProvider({ children, user }) {
           const prefs = prefsRef.current
           if (payload.new?.visible && prefs.newDocument) {
             if (payload.new?.requires_signature) {
-              showNotification('🔏 Firma richiesta', payload.new.title || 'Il tuo dietista ha condiviso un documento da firmare', 'doc-sign')
+              showNotification(t('notif.doc_signature_required_title', '🔏 Firma richiesta'), payload.new.title || t('notif.doc_signature_required_body', 'Il tuo dietista ha condiviso un documento da firmare'), 'doc-sign')
             } else {
-              showNotification('📄 Nuovo documento condiviso', payload.new.title || 'Il tuo dietista ha condiviso un documento', 'doc-new')
+              showNotification(t('notif.new_document_title', '📄 Nuovo documento condiviso'), payload.new.title || t('notif.new_document_body', 'Il tuo dietista ha condiviso un documento'), 'doc-new')
             }
           }
         },
@@ -63,7 +65,7 @@ export function NotificationProvider({ children, user }) {
         { event: 'INSERT', schema: 'public', table: 'diet_plans', filter: `patient_id=eq.${user.id}` },
         () => {
           if (prefsRef.current.dietUpdate) {
-            showNotification('🥗 Piano alimentare aggiornato', 'Il tuo dietista ha aggiornato la tua dieta', 'diet-update')
+            showNotification(t('notif.diet_updated_title', '🥗 Piano alimentare aggiornato'), t('notif.diet_created_body', 'Il tuo dietista ha aggiornato la tua dieta'), 'diet-update')
           }
         },
       )
@@ -72,7 +74,7 @@ export function NotificationProvider({ children, user }) {
         { event: 'UPDATE', schema: 'public', table: 'diet_plans', filter: `patient_id=eq.${user.id}` },
         () => {
           if (prefsRef.current.dietUpdate) {
-            showNotification('🥗 Piano alimentare aggiornato', 'Il tuo dietista ha modificato la tua dieta', 'diet-update')
+            showNotification(t('notif.diet_updated_title', '🥗 Piano alimentare aggiornato'), t('notif.diet_modified_body', 'Il tuo dietista ha modificato la tua dieta'), 'diet-update')
           }
         },
       )

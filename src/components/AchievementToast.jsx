@@ -50,8 +50,8 @@ export default function AchievementToast({ achievement, onDismiss }) {
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: '#b45309', marginBottom: 2 }}>{t('achtoast.unlocked', 'Badge sbloccato!')}</div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{achievement.name}</div>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{achievement.description}</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{t(achievement.nameKey, achievement.name)}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t(achievement.descKey, achievement.description)}</div>
       </div>
 
       {/* Progress bar via CSS animation */}

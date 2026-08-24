@@ -1,3 +1,5 @@
+import { t } from '../i18n'
+
 // ─── Notification preferences ─────────────────────────────────────────────────
 export const PREFS_KEY = 'nutriplan_notif_prefs'
 
@@ -153,11 +155,15 @@ export function initScheduledNotifications(prefs) {
     // (cena) fired as "Pranzo". Extra slots beyond index 2 fall back to the
     // generic `Pasto ${i+1}` below — there's no reliable way to guess their
     // meal type from position alone once the user adds custom times.
-    const defaultLabels = ['Colazione','Pranzo','Cena']
+    const defaultLabels = [t('meal.colazione'), t('meal.pranzo'), t('meal.cena')]
     p.mealTimes.forEach((time, i) => {
-      const label = (p.mealLabels && p.mealLabels[i]) || defaultLabels[i] || `Pasto ${i+1}`
+      const label = (p.mealLabels && p.mealLabels[i]) || defaultLabels[i] || t('profile.meal_number', { n: i + 1 }, 'Pasto {{n}}')
       _scheduleDaily(
-        () => showNotification(`🍽️ ${label}`, `Hai registrato ${label.toLowerCase()}? Apri l'app per il diario pasti.`, `meal-${i}`),
+        () => showNotification(
+          `🍽️ ${label}`,
+          t('notif.meal_reminder_body', { meal: label.toLowerCase() }, "Hai registrato {{meal}}? Apri l'app per il diario pasti."),
+          `meal-${i}`,
+        ),
         time,
       )
     })
@@ -167,7 +173,11 @@ export function initScheduledNotifications(prefs) {
   if (p.waterReminder && p.waterIntervalHours > 0) {
     const ms = p.waterIntervalHours * 60 * 60 * 1000
     _scheduleRepeating(
-      () => showNotification('💧 Ricordati di bere!', "Bevi un bicchiere d'acqua per mantenerti idratato", 'water'),
+      () => showNotification(
+        t('notif.water_title', '💧 Ricordati di bere!'),
+        t('notif.water_body', "Bevi un bicchiere d'acqua per mantenerti idratato"),
+        'water',
+      ),
       ms,
     )
   }
@@ -175,7 +185,11 @@ export function initScheduledNotifications(prefs) {
   // Weigh-in reminder
   if (p.weighReminder) {
     _scheduleWeekly(
-      () => showNotification('⚖️ Giorno della bilancia!', 'Ricordati di pesarti e registrare il peso', 'weigh'),
+      () => showNotification(
+        t('notif.weigh_title', '⚖️ Giorno della bilancia!'),
+        t('notif.weigh_body', 'Ricordati di pesarti e registrare il peso'),
+        'weigh',
+      ),
       Number(p.weighDay),
       p.weighTime,
     )
@@ -187,7 +201,11 @@ export function initScheduledNotifications(prefs) {
     const delay = appt - Date.now() - 60 * 60 * 1000 // 1 hour before
     if (delay > 0) {
       const id = setTimeout(
-        () => showNotification('📅 Appuntamento tra 1 ora!', `Hai una visita dal dietista alle ${p.appointmentTime}`, 'appointment'),
+        () => showNotification(
+          t('notif.appt_title', '📅 Appuntamento tra 1 ora!'),
+          t('notif.appt_body', { time: p.appointmentTime }, 'Hai una visita dal dietista alle {{time}}'),
+          'appointment',
+        ),
         delay,
       )
       _timers.push(id)
@@ -222,7 +240,9 @@ export function scheduleMedicationReminders(meds) {
       const tick = () => {
         showNotification(
           '💊 ' + med.name,
-          med.dosage ? `Dose: ${med.dosage}` : 'È ora di prendere il farmaco',
+          med.dosage
+            ? t('notif.med_dose', { dosage: med.dosage }, 'Dose: {{dosage}}')
+            : t('notif.med_time', 'È ora di prendere il farmaco'),
           `med-${med.id}-${time}`,
         )
         const id = setTimeout(tick, 24 * 60 * 60 * 1000)

@@ -6,6 +6,7 @@
 // ingredienti si risolvono con la stessa resolveSharedIngredient già usata
 // in RecipesPage.jsx per le ricette condivise dal dietista.
 import { supabase } from './supabase'
+import { t } from '../i18n'
 
 async function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -17,9 +18,9 @@ async function fileToBase64(file) {
 }
 
 function getMimeType(file) {
-  const t = file.type
-  if (t === 'image/png') return 'image/png'
-  if (t === 'image/webp') return 'image/webp'
+  const fileType = file.type
+  if (fileType === 'image/png') return 'image/png'
+  if (fileType === 'image/webp') return 'image/webp'
   return 'image/jpeg'
 }
 
@@ -32,7 +33,7 @@ function htmlToText(html) {
 
 async function authHeader() {
   const { data: { session } } = await supabase.auth.getSession()
-  if (!session) throw new Error('Sessione scaduta')
+  if (!session) throw new Error(t('macro.session_expired', 'Sessione scaduta'))
   return { Authorization: `Bearer ${session.access_token}` }
 }
 
@@ -47,7 +48,7 @@ async function fetchPageText(url) {
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
     const text = htmlToText(data.contents || '')
-    if (text.length < 40) throw new Error('La pagina non contiene testo sufficiente per riconoscere una ricetta.')
+    if (text.length < 40) throw new Error(t('recipes.page_no_text', 'La pagina non contiene testo sufficiente per riconoscere una ricetta.'))
     return text
   } finally {
     clearTimeout(timer)
@@ -56,10 +57,10 @@ async function fetchPageText(url) {
 
 function invokeExtract(body) {
   return supabase.functions.invoke('extract-recipe', { body }).then(({ data, error }) => {
-    if (error) throw new Error(error.message || 'Errore Edge Function')
+    if (error) throw new Error(error.message || t('common.err_edge_function', 'Errore Edge Function'))
     if (data?.error) throw new Error(data.error)
     if (!Array.isArray(data?.ingredienti) || !data.ingredienti.length) {
-      throw new Error('Nessuna ricetta riconosciuta.')
+      throw new Error(t('recipes.no_recipe_recognized', 'Nessuna ricetta riconosciuta.'))
     }
     return data
   })

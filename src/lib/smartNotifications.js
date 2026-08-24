@@ -1,6 +1,7 @@
 // Smart contextual notifications — call these at key moments in the app
 // (e.g. after logging water, on app focus, on Sunday evening)
 import { showNotification } from './notifications'
+import { t } from '../i18n'
 
 /**
  * Call after each water log. Shows a smart reminder if the user is behind their daily goal.
@@ -20,14 +21,15 @@ export function checkWaterAndNotify(currentMl, goalMl) {
 
   if (remaining > 500 && hour >= 15) {
     showNotification(
-      '💧 Idratazione',
-      `Sono le ${hour}:00 — hai bevuto ${currentMl}ml, ti restano ${remaining}ml (circa ${mlPerHour}ml/ora fino alle 21:00)`,
+      t('notif.hydration_title', '💧 Idratazione'),
+      t('notif.hydration_body', { hour, currentMl, remaining, mlPerHour },
+        "Sono le {{hour}}:00 — hai bevuto {{currentMl}}ml, ti restano {{remaining}}ml (circa {{mlPerHour}}ml/ora fino alle 21:00)"),
       'water-smart',
     )
   } else if (remaining > 200 && hour >= 19) {
     showNotification(
-      '💧 Quasi ci sei!',
-      `Ti mancano solo ${remaining}ml per raggiungere il tuo obiettivo di oggi.`,
+      t('notif.almost_there_title', '💧 Quasi ci sei!'),
+      t('notif.almost_there_body', { remaining }, 'Ti mancano solo {{remaining}}ml per raggiungere il tuo obiettivo di oggi.'),
       'water-smart-evening',
     )
   }
@@ -43,10 +45,10 @@ export async function checkMealAndNotify(userId) {
   const todayStr = now.toISOString().split('T')[0]
 
   const mealWindows = [
-    { start: 7,  end: 10, meal: 'colazione',         label: 'colazione' },
-    { start: 12, end: 15, meal: 'pranzo',             label: 'pranzo' },
-    { start: 15, end: 17, meal: 'spuntino_pomeriggio', label: 'merenda' },
-    { start: 19, end: 22, meal: 'cena',               label: 'cena' },
+    { start: 7,  end: 10, meal: 'colazione',         label: t('notif.mealwindow_colazione', 'la colazione') },
+    { start: 12, end: 15, meal: 'pranzo',             label: t('notif.mealwindow_pranzo', 'il pranzo') },
+    { start: 15, end: 17, meal: 'spuntino_pomeriggio', label: t('notif.mealwindow_merenda', 'la merenda') },
+    { start: 19, end: 22, meal: 'cena',               label: t('notif.mealwindow_cena', 'la cena') },
   ]
 
   const window = mealWindows.find(w => hour >= w.start && hour < w.end)
@@ -67,8 +69,8 @@ export async function checkMealAndNotify(userId) {
 
     if (count === 0) {
       showNotification(
-        `🍽️ Hai già mangiato?`,
-        `Ricordati di registrare la ${window.label} per tenere traccia dei macro!`,
+        t('notif.meal_check_title', '🍽️ Hai già mangiato?'),
+        t('notif.meal_check_body', { meal: window.label }, 'Ricordati di registrare {{meal}} per tenere traccia dei macro!'),
         `meal-smart-${window.meal}`,
       )
       localStorage.setItem(lastKey, '1')
@@ -130,8 +132,8 @@ export async function checkStreakAtRiskAndNotify(userId) {
     if (streak < 3) return // non vale la pena avvisare per 1-2 giorni
 
     showNotification(
-      '🔥 Streak a rischio!',
-      `Hai un streak di ${streak} giorni consecutivi: registra un pasto prima di mezzanotte per non perderlo.`,
+      t('notif.streak_risk_title', '🔥 Streak a rischio!'),
+      t('notif.streak_risk_body', { streak }, 'Hai un streak di {{streak}} giorni consecutivi: registra un pasto prima di mezzanotte per non perderlo.'),
       'streak-risk',
     )
     localStorage.setItem(lastKey, '1')
@@ -160,12 +162,12 @@ export async function sendWeeklyProgressNotification(userId) {
 
     const emoji = daysLogged >= 6 ? '🏆' : daysLogged >= 4 ? '💪' : '📊'
     const msg = daysLogged >= 6
-      ? 'Settimana perfetta! Continua così.'
+      ? t('notif.week_perfect', 'Settimana perfetta! Continua così.')
       : daysLogged >= 4
-        ? `Hai registrato ${daysLogged}/7 giorni. Ottimo impegno!`
-        : `Hai registrato solo ${daysLogged}/7 giorni. Puoi fare meglio la prossima settimana!`
+        ? t('notif.week_good', { days: daysLogged }, 'Hai registrato {{days}}/7 giorni. Ottimo impegno!')
+        : t('notif.week_low', { days: daysLogged }, 'Hai registrato solo {{days}}/7 giorni. Puoi fare meglio la prossima settimana!')
 
-    showNotification(`${emoji} Riepilogo settimanale`, msg, 'weekly-summary')
+    showNotification(`${emoji} ${t('notif.week_summary_title', 'Riepilogo settimanale')}`, msg, 'weekly-summary')
   } catch {
     // Fail silently
   }

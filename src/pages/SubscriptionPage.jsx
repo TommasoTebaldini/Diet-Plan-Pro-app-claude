@@ -361,7 +361,7 @@ export default function SubscriptionPage() {
               }}>
                 <Zap size={14} color="var(--green-main)" />
               </div>
-              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{f}</span>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{t(f.key, f.label)}</span>
             </div>
           ))}
         </div>

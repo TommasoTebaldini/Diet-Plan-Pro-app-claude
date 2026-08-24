@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { t as translate } from '../i18n'
 
 // ─── Shared food database (same as dietitian site: CREA + BDA + ONS + APROTEICI + FLAVIS + UPF) ──
 // Every keystroke used to re-run f.name.toLowerCase() over all ~3400 entries
@@ -29,7 +30,7 @@ export async function browseFoods() {
     .slice()
     .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it'))
     .map(f => ({
-      ...f, brand: `${f.src} — ${f.category || 'Generico'}`, source: 'public',
+      ...f, brand: `${f.src} — ${f.category || translate('foodsearch.category_generic', 'Generico')}`, source: 'public',
     }))
 }
 
@@ -57,7 +58,7 @@ async function searchAllFoods(query) {
   })
   return matches.slice(0, 50).map(i => {
     const f = ALL_FOODS[i]
-    return { ...f, brand: `${f.src || 'CREA'} — ${f.category || 'Generico'}`, source: 'public' }
+    return { ...f, brand: `${f.src || 'CREA'} — ${f.category || translate('foodsearch.category_generic', 'Generico')}`, source: 'public' }
   })
 }
 
@@ -74,8 +75,8 @@ async function searchPublicFoods(query) {
       // Static foods (CREA, BDA, UPF, …) have no source_id; custom dietitian foods do
       const isStatic = !f.source_id
       const srcLabel = isStatic
-        ? `${f.src || 'CREA'} — ${f.category || 'Generico'}`
-        : '🥗 Aggiunto dal dietista'
+        ? `${f.src || 'CREA'} — ${f.category || translate('foodsearch.category_generic', 'Generico')}`
+        : translate('foodsearch.source_added_by_dietitian', '🥗 Aggiunto dal dietista')
       return {
         id: `public_${f.id}`,
         name: f.name,
@@ -157,7 +158,7 @@ async function searchDietMealFoods(query) {
         seen.add(name)
         results.push({
           id: `diet_${name}`,
-          name, brand: '🥗 Dal tuo piano',
+          name, brand: translate('foodsearch.source_from_your_plan', '🥗 Dal tuo piano'),
           kcal_100g: food.kcal_100g || food.calorie || 0,
           proteins_100g: food.proteins_100g || food.proteine || 0,
           carbs_100g: food.carbs_100g || food.carboidrati || 0,
@@ -198,7 +199,7 @@ async function searchRicette(query) {
       const porzG = r.peso_totale_g && r.porzioni ? Math.round(r.peso_totale_g / r.porzioni) : null
       return {
         id: `ricetta_${r.id}`, name: r.nome || '',
-        brand: '🍳 Ricetta',
+        brand: translate('foodsearch.source_recipe', '🍳 Ricetta'),
         kcal_100g: r.kcal_100g || 0,
         proteins_100g: r.proteins_100g || 0,
         carbs_100g: r.carbs_100g || 0,
@@ -206,7 +207,7 @@ async function searchRicette(query) {
         fiber_100g: r.fibra || 0,
         source: 'recipe',
         serving_size_g: porzG || null,
-        serving_size_label: 'porzione',
+        serving_size_label: translate('foodsearch.serving_size_portion', 'porzione'),
       }
     }).filter(r => r.name)
   } catch { return [] }
@@ -226,7 +227,7 @@ async function searchCustomMeals(query) {
       return {
         id: `meal_${m.id}`,
         name: m.name,
-        brand: '🍽️ Pasto personalizzato',
+        brand: translate('foodsearch.source_custom_meal', '🍽️ Pasto personalizzato'),
         kcal_100g: w > 0 ? Math.round(m.kcal_total / w * 100) : 0,
         proteins_100g: w > 0 ? Math.round(m.proteins_total / w * 1000) / 10 : 0,
         carbs_100g: w > 0 ? Math.round(m.carbs_total / w * 1000) / 10 : 0,
@@ -332,20 +333,25 @@ export async function searchOpenFoodFacts(query) {
 // prefisso già presente in "brand", invece di un generico "DB" — prima
 // venivano taggati source:'dietitian', che li appiattiva tutti sulla stessa
 // etichetta "DB" indipendentemente dalla fonte vera.
+// Label translation key + colors per source — the label itself is resolved
+// via translate() at call time (not at module load) so it always reflects
+// the language currently selected, even if the user switches language
+// without a full page reload.
 const SOURCE_BADGES = {
-  recent:      ['Recente', 'var(--icon-bg-orange)', 'var(--alert-warning-text)'],
-  diet:        ['Piano', 'var(--green-pale)', 'var(--green-main)'],
-  recipe:      ['Ricetta', 'var(--icon-bg-orange)', 'var(--alert-warning-text)'],
-  custom_meal: ['Pasto', 'var(--icon-bg-green)', 'var(--green-dark)'],
-  custom:      ['Personale', 'var(--icon-bg-purple)', '#7c3aed'],
-  openfoodfacts: ['OFF', 'var(--surface-3)', 'var(--text-muted)'],
+  recent:      ['foodsearch.badge_recent', 'Recente', 'var(--icon-bg-orange)', 'var(--alert-warning-text)'],
+  diet:        ['foodsearch.badge_plan', 'Piano', 'var(--green-pale)', 'var(--green-main)'],
+  recipe:      ['foodsearch.badge_recipe', 'Ricetta', 'var(--icon-bg-orange)', 'var(--alert-warning-text)'],
+  custom_meal: ['foodsearch.badge_meal', 'Pasto', 'var(--icon-bg-green)', 'var(--green-dark)'],
+  custom:      ['foodsearch.badge_custom', 'Personale', 'var(--icon-bg-purple)', '#7c3aed'],
+  openfoodfacts: [null, 'OFF', 'var(--surface-3)', 'var(--text-muted)'],
 }
 export function sourceBadge(source, brand) {
   if (source === 'public') {
-    const label = brand && brand.includes(' — ') ? brand.split(' — ')[0] : 'DB'
+    const label = brand && brand.includes(' — ') ? brand.split(' — ')[0] : translate('foodsearch.badge_db', 'DB')
     return [label, 'var(--icon-bg-green)', 'var(--green-dark)']
   }
-  return SOURCE_BADGES[source] || SOURCE_BADGES.openfoodfacts
+  const [key, fallback, bg, color] = SOURCE_BADGES[source] || SOURCE_BADGES.openfoodfacts
+  return [key ? translate(key, fallback) : fallback, bg, color]
 }
 
 function _dedup(results, seen) {
