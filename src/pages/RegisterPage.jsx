@@ -24,7 +24,7 @@ export default function RegisterPage() {
     setError('')
     if (form.password !== form.confirm) return setError(t('auth.error_passwords_mismatch'))
     if (form.password.length < 8) return setError(t('auth.error_password_short'))
-    if (!consent) return setError('Devi accettare Termini di Servizio e Informativa Privacy per registrarti.')
+    if (!consent) return setError(t('auth.error_consent_required', 'Devi accettare Termini di Servizio e Informativa Privacy per registrarti.'))
     setLoading(true)
     const { error } = await signUp(form.email, form.password, {
       full_name: `${form.name} ${form.surname}`,
@@ -53,8 +53,8 @@ export default function RegisterPage() {
       <p style={{ color: 'var(--text-secondary)', marginBottom: 8 }}>{t('auth.register_check_email')}</p>
       {dietitianRef ? (
         <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '12px 16px', marginBottom: 24, textAlign: 'left' }}>
-          <p style={{ fontSize: 13, color: '#166534', fontWeight: 600 }}>✅ Registrazione tramite link del tuo dietista</p>
-          <p style={{ fontSize: 12, color: '#15803d', marginTop: 4 }}>Dopo aver confermato l'email e fatto il login, il tuo account sarà collegato automaticamente al tuo dietista.</p>
+          <p style={{ fontSize: 13, color: '#166534', fontWeight: 600 }}>{t('auth.register_via_dietitian_link', '✅ Registrazione tramite link del tuo dietista')}</p>
+          <p style={{ fontSize: 12, color: '#15803d', marginTop: 4 }}>{t('auth.register_via_dietitian_link_desc', "Dopo aver confermato l'email e fatto il login, il tuo account sarà collegato automaticamente al tuo dietista.")}</p>
         </div>
       ) : (
         <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 32 }}>{t('auth.register_dietitian_note')}</p>
@@ -93,17 +93,17 @@ export default function RegisterPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div className="input-group">
                 <label className="input-label">{t('profile.first_name')}</label>
-                <input type="text" className="input-field" placeholder="Mario" value={form.name} onChange={set('name')} required />
+                <input type="text" className="input-field" placeholder={t('profile.first_name_placeholder', 'Mario')} value={form.name} onChange={set('name')} required />
               </div>
               <div className="input-group">
                 <label className="input-label">{t('profile.last_name')}</label>
-                <input type="text" className="input-field" placeholder="Rossi" value={form.surname} onChange={set('surname')} required />
+                <input type="text" className="input-field" placeholder={t('profile.last_name_placeholder', 'Rossi')} value={form.surname} onChange={set('surname')} required />
               </div>
             </div>
 
             <div className="input-group">
               <label className="input-label">{t('auth.email')}</label>
-              <input type="email" className="input-field" placeholder="mario@email.com" value={form.email} onChange={set('email')} required autoComplete="email" />
+              <input type="email" className="input-field" placeholder={t('auth.register_email_placeholder', 'mario@email.com')} value={form.email} onChange={set('email')} required autoComplete="email" />
             </div>
 
             <div className="input-group">
@@ -124,10 +124,10 @@ export default function RegisterPage() {
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, color: 'var(--text-secondary)', margin: '2px 0 4px', cursor: 'pointer', lineHeight: 1.4 }}>
               <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} style={{ marginTop: 2, flexShrink: 0 }} />
               <span>
-                Dichiaro di aver letto e di accettare i{' '}
-                <Link to="/termini" target="_blank" style={{ color: 'var(--green-main)', fontWeight: 600 }}>Termini di Servizio</Link>
-                {' '}e l'{' '}
-                <Link to="/privacy" target="_blank" style={{ color: 'var(--green-main)', fontWeight: 600 }}>Informativa Privacy</Link>.
+                {t('auth.consent_pre', 'Dichiaro di aver letto e di accettare i')}{' '}
+                <Link to="/termini" target="_blank" style={{ color: 'var(--green-main)', fontWeight: 600 }}>{t('auth.consent_terms_label', 'Termini di Servizio')}</Link>
+                {' '}{t('auth.consent_mid', "e l'")}{' '}
+                <Link to="/privacy" target="_blank" style={{ color: 'var(--green-main)', fontWeight: 600 }}>{t('auth.consent_privacy_label', 'Informativa Privacy')}</Link>.
               </span>
             </label>
 

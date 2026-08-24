@@ -124,29 +124,29 @@ export default function BottomNav() {
     { to: '/dieta', icon: Utensils, label: t('nav.diet') },
     { to: '/macro', icon: BookOpen, label: t('nav.diary') },
     { to: '/ricette', icon: ChefHat, label: t('nav.recipes'), badge: newShared },
-    { to: '/acqua', icon: Droplets, label: 'Acqua' },
-    { to: '/lista-spesa', icon: ShoppingCart, label: 'Lista spesa' },
-    { to: '/digiuno', icon: Timer, label: 'Digiuno IF' },
-    { to: '/alimenti', icon: BookOpen, label: 'Alimenti' },
+    { to: '/acqua', icon: Droplets, label: t('nav.water', 'Acqua') },
+    { to: '/lista-spesa', icon: ShoppingCart, label: t('nav.shopping_list', 'Lista spesa') },
+    { to: '/digiuno', icon: Timer, label: t('nav.fasting', 'Digiuno IF') },
+    { to: '/alimenti', icon: BookOpen, label: t('nav.foods', 'Alimenti') },
     { to: '/chat', icon: MessageCircle, label: t('nav.chat'), badge: unreadChat },
-    ...(COACH_AI_ENABLED ? [{ to: '/coach-ai', icon: Bot, label: 'Coach AI' }] : []),
-    { to: '/pagamenti', icon: CreditCard, label: 'Pagamenti' },
+    ...(COACH_AI_ENABLED ? [{ to: '/coach-ai', icon: Bot, label: t('nav.coach_ai', 'Coach AI') }] : []),
+    { to: '/pagamenti', icon: CreditCard, label: t('nav.payments', 'Pagamenti') },
     { to: '/documenti', icon: FileText, label: t('nav.documents'), badge: newDocs },
     { to: '/dietisti', icon: Users, label: t('nav.dietitians') },
-    ...(hasSpecial ? [{ to: '/speciale', icon: Sparkles, label: 'Speciale' }] : []),
+    ...(hasSpecial ? [{ to: '/speciale', icon: Sparkles, label: t('nav.special', 'Speciale') }] : []),
     { to: '/progressi', icon: TrendingUp, label: t('nav.progress') },
-    { to: '/settimana', icon: CalendarCheck, label: 'Settimana' },
-    { to: '/sfide', icon: Trophy, label: 'Sfide' },
+    { to: '/settimana', icon: CalendarCheck, label: t('nav.week', 'Settimana') },
+    { to: '/sfide', icon: Trophy, label: t('nav.challenges', 'Sfide') },
     { to: '/attivita', icon: Activity, label: t('nav.activities') },
     { to: '/statistiche', icon: BarChart2, label: t('nav.report') },
     { to: '/benessere', icon: Heart, label: t('nav.wellness') },
-    ...(showCycle ? [{ to: '/ciclo', icon: Flower2, label: 'Ciclo' }] : []),
-    { to: '/farmaci', icon: Pill, label: 'Farmaci' },
+    ...(showCycle ? [{ to: '/ciclo', icon: Flower2, label: t('nav.cycle', 'Ciclo') }] : []),
+    { to: '/farmaci', icon: Pill, label: t('nav.medications', 'Farmaci') },
     { to: '/profilo', icon: User, label: t('nav.profile') },
-    { to: '/quiz', icon: Brain, label: 'Quiz' },
-    { to: '/badge', icon: Award, label: 'Badge' },
+    { to: '/quiz', icon: Brain, label: t('nav.quiz', 'Quiz') },
+    { to: '/badge', icon: Award, label: t('nav.badge', 'Badge') },
     { to: '/pro', icon: Star, label: isPro ? '⭐ Pro' : '🔓 Pro' },
-    ...(PAYMENTS_ACTIVE ? [{ to: '/abbonamento', icon: Star, label: 'Abbonamento' }] : []),
+    ...(PAYMENTS_ACTIVE ? [{ to: '/abbonamento', icon: Star, label: t('nav.subscription', 'Abbonamento') }] : []),
   ]
 
   // Sub-section sheet state — declared before the desktop early-return so hook
@@ -168,7 +168,7 @@ export default function BottomNav() {
     return (
       <>
         {!sidebarOpen && (
-          <button onClick={toggleSidebar} aria-label="Espandi menu laterale" style={{
+          <button onClick={toggleSidebar} aria-label={t('nav.expand_sidebar', 'Espandi menu laterale')} style={{
             position: 'fixed', top: '50%', transform: 'translateY(-50%)', left: 0, zIndex: 1001,
             width: 22, height: 48, borderRadius: '0 8px 8px 0',
             border: '1px solid var(--border-light)', borderLeft: 'none',
@@ -189,9 +189,9 @@ export default function BottomNav() {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.1, whiteSpace: 'nowrap' }}>Diet Plan</p>
-              <p style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Dashboard</p>
+              <p style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{t('nav.sidebar_subtitle', 'Dashboard')}</p>
             </div>
-            <button onClick={toggleSidebar} aria-label="Comprimi menu laterale" style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid var(--border-light)', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, color: 'var(--text-muted)', fontSize: 13, fontWeight: 700 }}>←</button>
+            <button onClick={toggleSidebar} aria-label={t('nav.collapse_sidebar', 'Comprimi menu laterale')} style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid var(--border-light)', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, color: 'var(--text-muted)', fontSize: 13, fontWeight: 700 }}>←</button>
           </div>
 
           <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '10px 8px', minWidth: 220 }}>
@@ -238,49 +238,49 @@ export default function BottomNav() {
   // friendly regardless of how many sections exist inside each group. ───────
   const GROUPS = {
     nutrizione: {
-      label: 'Nutrizione', icon: Utensils, color: 'var(--green-main)', bg: 'var(--icon-bg-green)',
+      label: t('nav.section_nutrition', 'Nutrizione'), icon: Utensils, color: 'var(--green-main)', bg: 'var(--icon-bg-green)',
       items: [
         { to: '/dieta', icon: Utensils, label: t('nav.diet'), color: 'var(--green-main)', bg: 'var(--icon-bg-green)' },
         { to: '/macro', icon: BookOpen, label: t('nav.diary'), color: 'var(--blue)', bg: 'var(--icon-bg-blue)' },
         { to: '/ricette', icon: ChefHat, label: t('nav.recipes'), badge: newShared, color: 'var(--orange)', bg: 'var(--icon-bg-orange)' },
-        { to: '/acqua', icon: Droplets, label: 'Acqua', color: '#0891B2', bg: 'var(--icon-bg-cyan)' },
-        { to: '/lista-spesa', icon: ShoppingCart, label: 'Lista spesa', color: 'var(--purple)', bg: 'var(--icon-bg-purple)' },
-        { to: '/digiuno', icon: Timer, label: 'Digiuno IF', color: '#DB2777', bg: 'var(--icon-bg-pink)' },
-        { to: '/alimenti', icon: BookOpen, label: 'Alimenti', color: '#0D9488', bg: 'var(--icon-bg-teal)' },
+        { to: '/acqua', icon: Droplets, label: t('nav.water', 'Acqua'), color: '#0891B2', bg: 'var(--icon-bg-cyan)' },
+        { to: '/lista-spesa', icon: ShoppingCart, label: t('nav.shopping_list', 'Lista spesa'), color: 'var(--purple)', bg: 'var(--icon-bg-purple)' },
+        { to: '/digiuno', icon: Timer, label: t('nav.fasting', 'Digiuno IF'), color: '#DB2777', bg: 'var(--icon-bg-pink)' },
+        { to: '/alimenti', icon: BookOpen, label: t('nav.foods', 'Alimenti'), color: '#0D9488', bg: 'var(--icon-bg-teal)' },
       ],
     },
     professionisti: {
-      label: 'Professionisti', icon: Users, color: 'var(--blue)', bg: 'var(--icon-bg-blue)',
+      label: t('nav.section_professionals', 'Professionisti'), icon: Users, color: 'var(--blue)', bg: 'var(--icon-bg-blue)',
       items: [
         { to: '/chat', icon: MessageCircle, label: t('nav.chat'), badge: unreadChat, color: 'var(--blue)', bg: 'var(--icon-bg-blue)' },
-        ...(COACH_AI_ENABLED ? [{ to: '/coach-ai', icon: Bot, label: 'Coach AI', color: '#7C3AED', bg: 'var(--icon-bg-purple)' }] : []),
-        { to: '/pagamenti', icon: CreditCard, label: 'Pagamenti', color: 'var(--green-main)', bg: 'var(--icon-bg-green)' },
+        ...(COACH_AI_ENABLED ? [{ to: '/coach-ai', icon: Bot, label: t('nav.coach_ai', 'Coach AI'), color: '#7C3AED', bg: 'var(--icon-bg-purple)' }] : []),
+        { to: '/pagamenti', icon: CreditCard, label: t('nav.payments', 'Pagamenti'), color: 'var(--green-main)', bg: 'var(--icon-bg-green)' },
         { to: '/documenti', icon: FileText, label: t('nav.documents'), badge: newDocs, color: 'var(--text-secondary)', bg: 'var(--icon-bg-gray)' },
         { to: '/dietisti', icon: Users, label: t('nav.dietitians'), color: 'var(--green-main)', bg: 'var(--icon-bg-green)' },
-        ...(hasSpecial ? [{ to: '/speciale', icon: Sparkles, label: 'Speciale', color: 'var(--purple)', bg: 'var(--icon-bg-purple)' }] : []),
+        ...(hasSpecial ? [{ to: '/speciale', icon: Sparkles, label: t('nav.special', 'Speciale'), color: 'var(--purple)', bg: 'var(--icon-bg-purple)' }] : []),
       ],
     },
     monitoraggio: {
-      label: 'Monitoraggio', icon: TrendingUp, color: 'var(--orange)', bg: 'var(--icon-bg-orange)',
+      label: t('nav.section_monitoring', 'Monitoraggio'), icon: TrendingUp, color: 'var(--orange)', bg: 'var(--icon-bg-orange)',
       items: [
         { to: '/progressi', icon: TrendingUp, label: t('nav.progress'), color: 'var(--orange)', bg: 'var(--icon-bg-orange)' },
-        { to: '/settimana', icon: CalendarCheck, label: 'Settimana', color: 'var(--blue)', bg: 'var(--icon-bg-blue)' },
-        { to: '/sfide', icon: Trophy, label: 'Sfide', color: '#D97706', bg: 'var(--icon-bg-amber)' },
+        { to: '/settimana', icon: CalendarCheck, label: t('nav.week', 'Settimana'), color: 'var(--blue)', bg: 'var(--icon-bg-blue)' },
+        { to: '/sfide', icon: Trophy, label: t('nav.challenges', 'Sfide'), color: '#D97706', bg: 'var(--icon-bg-amber)' },
         { to: '/attivita', icon: Activity, label: t('nav.activities'), color: 'var(--green-main)', bg: 'var(--icon-bg-green)' },
         { to: '/benessere', icon: Heart, label: t('nav.wellness'), color: '#DB2777', bg: 'var(--icon-bg-pink)' },
-        ...(showCycle ? [{ to: '/ciclo', icon: Flower2, label: 'Ciclo', color: '#DB2777', bg: 'var(--icon-bg-pink)' }] : []),
-        { to: '/farmaci', icon: Pill, label: 'Farmaci', color: 'var(--red)', bg: 'var(--icon-bg-red)' },
+        ...(showCycle ? [{ to: '/ciclo', icon: Flower2, label: t('nav.cycle', 'Ciclo'), color: '#DB2777', bg: 'var(--icon-bg-pink)' }] : []),
+        { to: '/farmaci', icon: Pill, label: t('nav.medications', 'Farmaci'), color: 'var(--red)', bg: 'var(--icon-bg-red)' },
         { to: '/statistiche', icon: BarChart2, label: t('nav.report'), color: 'var(--purple)', bg: 'var(--icon-bg-purple)' },
       ],
     },
     profilo: {
-      label: 'Profilo', icon: User, color: 'var(--green-main)', bg: 'var(--icon-bg-green)',
+      label: t('nav.section_profile', 'Profilo'), icon: User, color: 'var(--green-main)', bg: 'var(--icon-bg-green)',
       items: [
         { to: '/profilo', icon: User, label: t('nav.profile'), color: 'var(--green-main)', bg: 'var(--icon-bg-green)' },
-        { to: '/quiz', icon: Brain, label: 'Quiz', color: 'var(--purple)', bg: 'var(--icon-bg-purple)' },
-        { to: '/badge', icon: Award, label: 'Badge', color: '#D97706', bg: 'var(--icon-bg-amber)' },
+        { to: '/quiz', icon: Brain, label: t('nav.quiz', 'Quiz'), color: 'var(--purple)', bg: 'var(--icon-bg-purple)' },
+        { to: '/badge', icon: Award, label: t('nav.badge', 'Badge'), color: '#D97706', bg: 'var(--icon-bg-amber)' },
         { to: '/pro', icon: Star, label: isPro ? '⭐ Pro' : '🔓 Pro', color: '#D97706', bg: 'var(--icon-bg-amber)' },
-        ...(PAYMENTS_ACTIVE ? [{ to: '/abbonamento', icon: Star, label: 'Abbonamento', color: 'var(--blue)', bg: 'var(--icon-bg-blue)' }] : []),
+        ...(PAYMENTS_ACTIVE ? [{ to: '/abbonamento', icon: Star, label: t('nav.subscription', 'Abbonamento'), color: 'var(--blue)', bg: 'var(--icon-bg-blue)' }] : []),
       ],
     },
   }
@@ -320,7 +320,7 @@ export default function BottomNav() {
           <div style={{ width: 38, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, background: pathname === '/' ? 'var(--green-pale)' : 'transparent', transition: 'background 0.2s' }}>
             <Home size={20} strokeWidth={pathname === '/' ? 2.2 : 1.8} />
           </div>
-          <span style={{ fontSize: 9.5, fontWeight: pathname === '/' ? 600 : 400, letterSpacing: '0.01em' }}>Home</span>
+          <span style={{ fontSize: 9.5, fontWeight: pathname === '/' ? 600 : 400, letterSpacing: '0.01em' }}>{t('nav.dashboard', 'Home')}</span>
         </Link>
 
         {GROUP_KEYS.map(key => {

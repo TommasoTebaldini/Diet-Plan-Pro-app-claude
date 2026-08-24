@@ -82,7 +82,7 @@ export default function DietitianProfilePage() {
   async function handlePhotoChange(e) {
     const file = e.target.files?.[0]
     if (!file) return
-    if (file.size > 5 * 1024 * 1024) { setError('La foto non deve superare 5 MB.'); return }
+    if (file.size > 5 * 1024 * 1024) { setError(t('dietitian_profile.error_photo_too_large', 'La foto non deve superare 5 MB.')); return }
     setUploadingPhoto(true)
     setError('')
     const ext = file.name.split('.').pop().toLowerCase() || 'jpg'
@@ -91,7 +91,7 @@ export default function DietitianProfilePage() {
       .from('dietitian-avatars')
       .upload(path, file, { upsert: true, contentType: file.type })
     if (uploadErr) {
-      setError('Errore nel caricamento della foto. Verifica che il bucket "dietitian-avatars" esista.')
+      setError(t('dietitian_profile.error_photo_upload', 'Errore nel caricamento della foto. Verifica che il bucket "dietitian-avatars" esista.'))
       setUploadingPhoto(false)
       return
     }
@@ -102,7 +102,7 @@ export default function DietitianProfilePage() {
   }
 
   async function saveProfile() {
-    if (!form.nome.trim()) { setError('Il nome è obbligatorio.'); return }
+    if (!form.nome.trim()) { setError(t('dietitian_profile.error_name_required', 'Il nome è obbligatorio.')); return }
     setSaving(true)
     setError('')
     const { error: err } = await supabase
@@ -115,7 +115,7 @@ export default function DietitianProfilePage() {
         updated_at: new Date().toISOString(),
       }, { onConflict: 'dietitian_id' })
     setSaving(false)
-    if (err) { setError('Errore nel salvataggio. Riprova.'); return }
+    if (err) { setError(t('dietitian_profile.error_save', 'Errore nel salvataggio. Riprova.')); return }
     setSaved(true)
     setTimeout(() => setSaved(false), 3000)
   }
@@ -149,7 +149,7 @@ export default function DietitianProfilePage() {
             {t('dietitian.profile')}
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12 }}>
-            Visibile ai pazienti nell'app
+            {t('dietitian_profile.subtitle', "Visibile ai pazienti nell'app")}
           </p>
         </div>
       </div>
@@ -158,13 +158,13 @@ export default function DietitianProfilePage() {
 
         {/* Preview card */}
         <div className="card" style={{ padding: 16 }}>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Anteprima profilo</p>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('dietitian_profile.preview_title', 'Anteprima profilo')}</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: form.descrizione ? 10 : 0 }}>
             {/* Avatar with upload */}
             <div style={{ position: 'relative', flexShrink: 0 }}>
               {form.avatar_url ? (
                 <img
-                  src={form.avatar_url} alt="Foto profilo"
+                  src={form.avatar_url} alt={t('dietitian_profile.photo_alt', 'Foto profilo')}
                   style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border-light)' }}
                 />
               ) : (
@@ -185,7 +185,7 @@ export default function DietitianProfilePage() {
                   borderRadius: '50%', background: 'var(--green-main)', border: '2px solid white',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
                 }}
-                title="Cambia foto"
+                title={t('dietitian_profile.change_photo', 'Cambia foto')}
               >
                 {uploadingPhoto
                   ? <span style={{ width: 9, height: 9, border: '1.5px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'block' }} />
@@ -196,7 +196,7 @@ export default function DietitianProfilePage() {
             </div>
             <div>
               <p style={{ fontSize: 16, fontWeight: 700 }}>
-                {[form.nome, form.cognome].filter(Boolean).join(' ') || 'Il tuo nome'}
+                {[form.nome, form.cognome].filter(Boolean).join(' ') || t('dietitian_profile.your_name_placeholder', 'Il tuo nome')}
               </p>
               {form.titoli && <p style={{ fontSize: 12, color: 'var(--green-main)', fontWeight: 500, marginTop: 2 }}>{form.titoli}</p>}
               {form.citta && (
@@ -216,17 +216,17 @@ export default function DietitianProfilePage() {
           {/* Visibility badge */}
           <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
             {form.visible
-              ? <><Eye size={13} color="var(--green-main)" /><span style={{ fontSize: 12, color: 'var(--green-main)', fontWeight: 500 }}>Profilo pubblico — visibile ai pazienti</span></>
-              : <><EyeOff size={13} color="var(--text-muted)" /><span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Profilo nascosto — non visibile ai pazienti</span></>
+              ? <><Eye size={13} color="var(--green-main)" /><span style={{ fontSize: 12, color: 'var(--green-main)', fontWeight: 500 }}>{t('dietitian_profile.status_public', 'Profilo pubblico — visibile ai pazienti')}</span></>
+              : <><EyeOff size={13} color="var(--text-muted)" /><span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('dietitian_profile.status_hidden', 'Profilo nascosto — non visibile ai pazienti')}</span></>
             }
           </div>
         </div>
 
         {/* Foto profilo */}
         <div className="card" style={{ padding: 16 }}>
-          <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Foto profilo</p>
+          <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{t('dietitian_profile.photo_section_title', 'Foto profilo')}</p>
           <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
-            La foto sarà visibile ai pazienti nella lista e sulla tua pagina profilo. Formato consigliato: quadrato, max 5 MB.
+            {t('dietitian_profile.photo_section_desc', 'La foto sarà visibile ai pazienti nella lista e sulla tua pagina profilo. Formato consigliato: quadrato, max 5 MB.')}
           </p>
           <button
             onClick={() => fileInputRef.current?.click()}
@@ -239,46 +239,46 @@ export default function DietitianProfilePage() {
             }}
           >
             <Camera size={15} />
-            {uploadingPhoto ? 'Caricamento…' : form.avatar_url ? 'Cambia foto' : 'Carica foto'}
+            {uploadingPhoto ? t('dietitian_profile.photo_uploading', 'Caricamento…') : form.avatar_url ? t('dietitian_profile.change_photo', 'Cambia foto') : t('dietitian_profile.photo_upload_btn', 'Carica foto')}
           </button>
         </div>
 
         {/* Personal info */}
         <div className="card" style={{ padding: 16 }}>
-          <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Informazioni personali</p>
+          <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>{t('dietitian_profile.personal_info_title', 'Informazioni personali')}</p>
           <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <Field label="Nome *" icon={User}>
-              <input className="input-field" value={form.nome} onChange={set('nome')} placeholder="es. Marco" />
+            <Field label={t('dietitian_profile.field_name', 'Nome *')} icon={User}>
+              <input className="input-field" value={form.nome} onChange={set('nome')} placeholder={t('dietitian_profile.placeholder_name', 'es. Marco')} />
             </Field>
-            <Field label="Cognome">
-              <input className="input-field" value={form.cognome} onChange={set('cognome')} placeholder="es. Rossi" />
+            <Field label={t('dietitian_profile.field_surname', 'Cognome')}>
+              <input className="input-field" value={form.cognome} onChange={set('cognome')} placeholder={t('dietitian_profile.placeholder_surname', 'es. Rossi')} />
             </Field>
           </div>
-          <Field label="Titoli di studio / qualifiche" icon={GraduationCap}>
+          <Field label={t('dietitian_profile.field_qualifications', 'Titoli di studio / qualifiche')} icon={GraduationCap}>
             <input
               className="input-field"
               value={form.titoli}
               onChange={set('titoli')}
-              placeholder="es. Dietista, Laurea magistrale in Nutrizione Umana"
+              placeholder={t('dietitian_profile.placeholder_qualifications', 'es. Dietista, Laurea magistrale in Nutrizione Umana')}
             />
           </Field>
         </div>
 
         {/* Presentazione */}
         <div className="card" style={{ padding: 16 }}>
-          <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Presentazione</p>
-          <Field label="Descrizione (visibile ai pazienti)">
+          <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>{t('dietitian_profile.presentation_title', 'Presentazione')}</p>
+          <Field label={t('dietitian_profile.field_description', 'Descrizione (visibile ai pazienti)')}>
             <textarea
               className="input-field"
               value={form.descrizione}
               onChange={set('descrizione')}
-              placeholder="Presentati ai tuoi futuri pazienti: la tua esperienza, le tue specializzazioni, il tuo approccio…"
+              placeholder={t('dietitian_profile.placeholder_description', 'Presentati ai tuoi futuri pazienti: la tua esperienza, le tue specializzazioni, il tuo approccio…')}
               rows={5}
               style={{ resize: 'vertical', minHeight: 110 }}
             />
           </Field>
           <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-            {form.descrizione.length} / suggerito max 400 caratteri
+            {t('dietitian_profile.description_char_count', { count: form.descrizione.length }, '{{count}} / suggerito max 400 caratteri')}
           </p>
         </div>
 
@@ -286,14 +286,14 @@ export default function DietitianProfilePage() {
         <div className="card" style={{ padding: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14 }}>
             <Briefcase size={14} color="var(--green-main)" />
-            <p style={{ fontSize: 14, fontWeight: 600 }}>Metodi di lavoro</p>
+            <p style={{ fontSize: 14, fontWeight: 600 }}>{t('dietitian_profile.work_methods_title', 'Metodi di lavoro')}</p>
           </div>
-          <Field label="Come lavori con i pazienti">
+          <Field label={t('dietitian_profile.field_work_methods', 'Come lavori con i pazienti')}>
             <textarea
               className="input-field"
               value={form.metodi_lavoro}
               onChange={set('metodi_lavoro')}
-              placeholder="es. Approccio personalizzato basato sulla bioimpedenziometria, colloqui mensili, supporto continuo via app…"
+              placeholder={t('dietitian_profile.placeholder_work_methods', 'es. Approccio personalizzato basato sulla bioimpedenziometria, colloqui mensili, supporto continuo via app…')}
               rows={4}
               style={{ resize: 'vertical', minHeight: 95 }}
             />
@@ -302,21 +302,21 @@ export default function DietitianProfilePage() {
 
         {/* Location & contacts */}
         <div className="card" style={{ padding: 16 }}>
-          <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Sede e contatti</p>
-          <Field label="Città dove operi" icon={MapPin}>
-            <input className="input-field" value={form.citta} onChange={set('citta')} placeholder="es. Milano" />
+          <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>{t('dietitian_profile.location_title', 'Sede e contatti')}</p>
+          <Field label={t('dietitian_profile.field_city', 'Città dove operi')} icon={MapPin}>
+            <input className="input-field" value={form.citta} onChange={set('citta')} placeholder={t('dietitian_profile.placeholder_city', 'es. Milano')} />
           </Field>
-          <Field label="Indirizzo dello studio (opzionale)" icon={MapPin}>
-            <input className="input-field" value={form.indirizzo} onChange={set('indirizzo')} placeholder="es. Via Roma 12, 20121 Milano" />
+          <Field label={t('dietitian_profile.field_address', 'Indirizzo dello studio (opzionale)')} icon={MapPin}>
+            <input className="input-field" value={form.indirizzo} onChange={set('indirizzo')} placeholder={t('dietitian_profile.placeholder_address', 'es. Via Roma 12, 20121 Milano')} />
           </Field>
-          <Field label="Telefono" icon={Phone}>
-            <input className="input-field" value={form.telefono} onChange={set('telefono')} placeholder="es. +39 02 1234567" type="tel" />
+          <Field label={t('dietitian_profile.field_phone', 'Telefono')} icon={Phone}>
+            <input className="input-field" value={form.telefono} onChange={set('telefono')} placeholder={t('dietitian_profile.placeholder_phone', 'es. +39 02 1234567')} type="tel" />
           </Field>
-          <Field label="Email di contatto" icon={Mail}>
-            <input className="input-field" value={form.email_contatto} onChange={set('email_contatto')} placeholder="es. info@studiodietistico.it" type="email" />
+          <Field label={t('dietitian_profile.field_email', 'Email di contatto')} icon={Mail}>
+            <input className="input-field" value={form.email_contatto} onChange={set('email_contatto')} placeholder={t('dietitian_profile.placeholder_email', 'es. info@studiodietistico.it')} type="email" />
           </Field>
-          <Field label="Sito web (opzionale)" icon={Globe}>
-            <input className="input-field" value={form.sito_web} onChange={set('sito_web')} placeholder="es. www.miostudio.it" />
+          <Field label={t('dietitian_profile.field_website', 'Sito web (opzionale)')} icon={Globe}>
+            <input className="input-field" value={form.sito_web} onChange={set('sito_web')} placeholder={t('dietitian_profile.placeholder_website', 'es. www.miostudio.it')} />
           </Field>
         </div>
 
@@ -324,9 +324,9 @@ export default function DietitianProfilePage() {
         <div className="card" style={{ padding: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <div>
-              <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>Profilo pubblico</p>
+              <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>{t('dietitian_profile.visibility_title', 'Profilo pubblico')}</p>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                Se attivato, il tuo profilo è visibile ai pazienti nella sezione "Trova un Dietista".
+                {t('dietitian_profile.visibility_desc', 'Se attivato, il tuo profilo è visibile ai pazienti nella sezione "Trova un Dietista".')}
               </p>
             </div>
             <button

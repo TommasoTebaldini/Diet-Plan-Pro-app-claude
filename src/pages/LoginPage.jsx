@@ -224,7 +224,7 @@ export default function LoginPage() {
               <label className="input-label">{t('auth.email')}</label>
               <input
                 type="email" className="input-field"
-                placeholder="nome@email.com"
+                placeholder={t('auth.email_placeholder', 'nome@email.com')}
                 value={email} onChange={e => setEmail(e.target.value)}
                 required autoComplete="email"
               />
@@ -270,7 +270,7 @@ export default function LoginPage() {
             <>
               <div style={{ margin: '20px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>or</span>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('auth.or_divider', 'oppure')}</span>
                 <span style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
               </div>
               <button
@@ -306,9 +306,9 @@ export default function LoginPage() {
         </p>
 
         <p style={{ textAlign: 'center', fontSize: 11.5, color: 'var(--text-muted)', marginTop: 10 }}>
-          <Link to="/privacy" style={{ color: 'var(--text-muted)', textDecoration: 'underline' }}>Privacy</Link>
+          <Link to="/privacy" style={{ color: 'var(--text-muted)', textDecoration: 'underline' }}>{t('auth.privacy_link', 'Privacy')}</Link>
           {' · '}
-          <Link to="/termini" style={{ color: 'var(--text-muted)', textDecoration: 'underline' }}>Termini di Servizio</Link>
+          <Link to="/termini" style={{ color: 'var(--text-muted)', textDecoration: 'underline' }}>{t('auth.terms_link', 'Termini di Servizio')}</Link>
         </p>
       </div>
 

@@ -68,7 +68,7 @@ export default function OfflineBar({ onReconnect }) {
         <span>{t('offline.no_connection')}</span>
         {pendingCount > 0 && (
           <span style={{ fontSize: 11, opacity: 0.85, background: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: '2px 8px' }}>
-            {pendingCount} log in attesa
+            {t('offline.pending_count', { count: pendingCount }, '{{count}} log in attesa')}
           </span>
         )}
       </>
@@ -76,7 +76,7 @@ export default function OfflineBar({ onReconnect }) {
   } else if (syncing) {
     message = <><RefreshCw size={15} style={{ animation: 'spin 0.7s linear infinite' }} /> {t('offline.syncing')}</>
   } else if (syncResult && syncResult.synced > 0) {
-    message = <><Wifi size={15} /> ✓ {syncResult.synced} log sincronizzati</>
+    message = <><Wifi size={15} /> ✓ {t('offline.synced_count', { count: syncResult.synced }, '{{count}} log sincronizzati')}</>
   } else {
     message = <><Wifi size={15} /> {t('offline.reconnected')}</>
   }

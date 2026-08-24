@@ -14,13 +14,13 @@ import { loadPrefs, savePrefs, initScheduledNotifications, requestPermission } f
 import { safeWrite } from '../lib/offlineDB'
 import { fetchWaterTarget } from '../lib/dietBridge'
 
-// Quick-add presets: label, icon, ml
+// Quick-add presets: translation key, label (fallback), icon, ml
 const QUICK_PRESETS = [
-  { label: 'Bicchiere', icon: '🥛', ml: 250 },
-  { label: 'Tazza', icon: '☕', ml: 150 },
-  { label: 'Lattina', icon: '🥤', ml: 330 },
-  { label: 'Bottiglia', icon: '🧴', ml: 500 },
-  { label: 'Borraccia', icon: '💧', ml: 750 },
+  { key: 'water.preset_glass', label: 'Bicchiere', icon: '🥛', ml: 250 },
+  { key: 'water.preset_cup', label: 'Tazza', icon: '☕', ml: 150 },
+  { key: 'water.preset_can', label: 'Lattina', icon: '🥤', ml: 330 },
+  { key: 'water.preset_bottle', label: 'Bottiglia', icon: '🧴', ml: 500 },
+  { key: 'water.preset_flask', label: 'Borraccia', icon: '💧', ml: 750 },
 ]
 
 const ACTIVITY_MULTIPLIERS = {
@@ -121,7 +121,7 @@ export default function WaterPage() {
   const total = logs.reduce((s, l) => s + l.amount_ml, 0)
   const pct = Math.min(100, Math.round((total / target) * 100))
   const remaining = Math.max(0, target - total)
-  const statusMsg = pct >= 100 ? `🎉 ${t('water.goal_reached')}` : pct >= 60 ? `👍 ${t('water.well_done')}` : pct >= 30 ? `💧 ${t('water.keep_going')}` : '⚠️ Hai bevuto poco'
+  const statusMsg = pct >= 100 ? `🎉 ${t('water.goal_reached')}` : pct >= 60 ? `👍 ${t('water.well_done')}` : pct >= 30 ? `💧 ${t('water.keep_going')}` : `⚠️ ${t('water.low_intake', 'Hai bevuto poco')}`
 
   async function addWater(ml) {
     setSaveError(null)
@@ -163,7 +163,7 @@ export default function WaterPage() {
     } else {
       const permission = await requestPermission()
       if (permission !== 'granted') {
-        setSaveError('Abilita le notifiche nelle impostazioni del browser.')
+        setSaveError(t('water.enable_notifications_browser', 'Abilita le notifiche nelle impostazioni del browser.'))
         return
       }
       const updated = { ...prefs, waterReminder: true }
@@ -178,7 +178,7 @@ export default function WaterPage() {
       {/* Header */}
       <div style={{ background: 'linear-gradient(160deg, #1e40af 0%, #3b82f6 100%)', padding: 'calc(env(safe-area-inset-top) + 20px) 24px 28px', textAlign: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-          <button onClick={toggleNotifications} title={notifEnabled ? 'Disattiva promemoria' : 'Attiva promemoria'} aria-label={notifEnabled ? 'Disattiva promemoria' : 'Attiva promemoria'} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, padding: '10px 14px', cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, minHeight: 44 }}>
+          <button onClick={toggleNotifications} title={notifEnabled ? t('water.disable_reminder', 'Disattiva promemoria') : t('water.enable_reminder', 'Attiva promemoria')} aria-label={notifEnabled ? t('water.disable_reminder', 'Disattiva promemoria') : t('water.enable_reminder', 'Attiva promemoria')} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, padding: '10px 14px', cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, minHeight: 44 }}>
             {notifEnabled ? <Bell size={15} /> : <BellOff size={15} />}
             {notifEnabled ? 'ON' : 'OFF'}
           </button>
@@ -197,7 +197,7 @@ export default function WaterPage() {
       )}
       {offlineSaved && (
         <div style={{ margin: '12px 20px 0', padding: '10px 14px', background: '#fef3c7', borderRadius: 10, color: '#92400e', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <WifiOff size={14} /> Salvato offline — verrà sincronizzato alla prossima connessione
+          <WifiOff size={14} /> {t('water.offline_saved', 'Salvato offline — verrà sincronizzato alla prossima connessione')}
         </div>
       )}
 
@@ -221,34 +221,34 @@ export default function WaterPage() {
             <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
               <Droplets size={28} color="#3b82f6" />
               <p style={{ fontSize: 28, fontWeight: 700, color: '#1e40af', lineHeight: 1 }}>{pct}%</p>
-              <p style={{ fontSize: 12, color: '#60a5fa' }}>completato</p>
+              <p style={{ fontSize: 12, color: '#60a5fa' }}>{t('water.completed', 'completato')}</p>
             </div>
           </div>
 
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
               <p style={{ fontSize: 18, fontWeight: 700, color: '#3b82f6' }}>{total}</p>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>bevuti (ml)</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('water.drunk_ml', 'bevuti (ml)')}</p>
             </div>
             <div style={{ width: 1, background: 'var(--border)' }} />
             <div style={{ textAlign: 'center' }}>
               <p style={{ fontSize: 18, fontWeight: 700, color: '#94a3b8' }}>{remaining}</p>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>rimanenti (ml)</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('water.remaining_ml', 'rimanenti (ml)')}</p>
             </div>
             <div style={{ width: 1, background: 'var(--border)' }} />
             <div style={{ textAlign: 'center' }}>
               <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{target}</p>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>obiettivo (ml)</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('water.goal_ml', 'obiettivo (ml)')}</p>
             </div>
           </div>
 
           <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: 6 }}>
-            {prescribedTarget ? '👨‍⚕️ Obiettivo indicato dal tuo dietista' : 'Stima in base al tuo peso — chiedi al dietista un obiettivo personalizzato'}
+            {prescribedTarget ? t('water.prescribed_target', '👨‍⚕️ Obiettivo indicato dal tuo dietista') : t('water.estimated_target', 'Stima in base al tuo peso — chiedi al dietista un obiettivo personalizzato')}
           </p>
 
           {profile?.activity_level && (
             <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 10 }}>
-              Obiettivo calcolato su peso e livello attività
+              {t('water.goal_description', 'Obiettivo calcolato su peso e livello attività')}
             </p>
           )}
         </motion.div>
@@ -261,7 +261,7 @@ export default function WaterPage() {
           style={{ padding: '18px 20px' }}>
           <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>{t('water.add')}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(58px, 1fr))', gap: 8, marginBottom: 14 }}>
-            {QUICK_PRESETS.map(({ label, icon, ml }, i) => (
+            {QUICK_PRESETS.map(({ key, label, icon, ml }, i) => (
               <motion.button key={ml} onClick={() => addWater(ml)} disabled={loading}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -278,7 +278,7 @@ export default function WaterPage() {
               }}>
                 <span style={{ fontSize: 22 }}>{icon}</span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#2563eb' }}>{ml} ml</span>
-                <span style={{ fontSize: 10, color: '#60a5fa', fontWeight: 500 }}>{label}</span>
+                <span style={{ fontSize: 10, color: '#60a5fa', fontWeight: 500 }}>{t(key, label)}</span>
               </motion.button>
             ))}
           </div>
@@ -295,7 +295,7 @@ export default function WaterPage() {
               inputMode="numeric"
               min="1"
             />
-            <button className="btn btn-primary" onClick={() => { const v = parseInt(custom, 10); if (v > 0) addWater(v) }} disabled={!custom || parseInt(custom, 10) <= 0 || loading} aria-label="Aggiungi quantità personalizzata" style={{ padding: '0 16px' }}>
+            <button className="btn btn-primary" onClick={() => { const v = parseInt(custom, 10); if (v > 0) addWater(v) }} disabled={!custom || parseInt(custom, 10) <= 0 || loading} aria-label={t('water.add_custom_amount_aria', 'Aggiungi quantità personalizzata')} style={{ padding: '0 16px' }}>
               <Plus size={18} />
             </button>
           </div>
@@ -334,7 +334,7 @@ export default function WaterPage() {
                       <p style={{ fontSize: 14, fontWeight: 500 }}>{l.amount_ml} ml</p>
                       <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(l.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
-                    <button onClick={() => removeLog(l.id)} aria-label="Rimuovi registrazione acqua" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 12, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <button onClick={() => removeLog(l.id)} aria-label={t('water.remove_log_aria', 'Rimuovi registrazione acqua')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 12, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Trash2 size={15} />
                     </button>
                   </div>
@@ -348,7 +348,7 @@ export default function WaterPage() {
           <div className="card" style={{ padding: '18px 20px' }}>
             <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{t('water.history')}</h3>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
-              Media: {weekData.length ? Math.round(weekData.reduce((s, d) => s + d.total, 0) / weekData.length) : 0} ml/giorno
+              {t('water.avg', 'Media:')} {weekData.length ? Math.round(weekData.reduce((s, d) => s + d.total, 0) / weekData.length) : 0} {t('water.ml_per_day', 'ml/giorno')}
             </p>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={weekData} margin={{ top: 0, right: 4, left: -20, bottom: 0 }} barCategoryGap="25%">
@@ -356,7 +356,7 @@ export default function WaterPage() {
                 <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: '#eff6ff' }} />
-                <ReferenceLine y={target} stroke="#3b82f6" strokeDasharray="4 4" strokeWidth={1.5} label={{ value: 'Obiettivo', position: 'right', fontSize: 10, fill: '#3b82f6' }} />
+                <ReferenceLine y={target} stroke="#3b82f6" strokeDasharray="4 4" strokeWidth={1.5} label={{ value: t('water.chart_goal', 'Obiettivo'), position: 'right', fontSize: 10, fill: '#3b82f6' }} />
                 <Bar dataKey="total" radius={[6, 6, 0, 0]}
                   fill="#60a5fa"
                   label={false}

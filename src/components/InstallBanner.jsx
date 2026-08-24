@@ -62,7 +62,10 @@ export default function InstallBanner() {
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 1 }}>{t('install.title')}</p>
         {isIOS
-          ? <p style={{ fontSize: 12, opacity: 0.8 }} dangerouslySetInnerHTML={{ __html: t('install.ios_hint').replace('Condividi', '<strong>Condividi</strong>').replace('"Aggiungi a schermata Home"', '<strong>"Aggiungi a schermata Home"</strong>') }} />
+          ? <p style={{ fontSize: 12, opacity: 0.8 }} dangerouslySetInnerHTML={{ __html: t('install.ios_hint', {
+              share: `<strong>${t('install.share_word', 'Condividi')}</strong>`,
+              addhome: `<strong>${t('install.addhome_phrase', '"Aggiungi a schermata Home"')}</strong>`,
+            }, 'Tocca {{share}} poi {{addhome}}') }} />
           : <p style={{ fontSize: 12, opacity: 0.8 }}>{t('install.android_hint')}</p>
         }
       </div>
@@ -71,7 +74,7 @@ export default function InstallBanner() {
           {t('install.install_btn')}
         </button>
       )}
-      <button onClick={dismiss} aria-label="Chiudi banner installazione" style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}>
+      <button onClick={dismiss} aria-label={t('install.close_aria', 'Chiudi banner installazione')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}>
         <X size={18} />
       </button>
 
