@@ -15,15 +15,24 @@ const MEALS = [
   { key: 'cena', label: 'Cena', emoji: '🌙' },
 ]
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function patientDisplayName(profile) {
-  const name = `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
-  return name || profile.email || 'Paziente'
+// Translation keys for MEALS labels (kept separate from the italian fallback above)
+const MEAL_LABEL_KEYS = {
+  colazione: 'dchat.meal_colazione',
+  spuntino_mattina: 'dchat.meal_spuntino',
+  pranzo: 'dchat.meal_pranzo',
+  spuntino_pomeriggio: 'dchat.meal_merenda',
+  cena: 'dchat.meal_cena',
 }
 
-function avatarInitials(profile) {
-  const name = patientDisplayName(profile)
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function patientDisplayName(profile, t) {
+  const name = `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
+  return name || profile.email || t('dchat.default_patient_name', 'Paziente')
+}
+
+function avatarInitials(profile, t) {
+  const name = patientDisplayName(profile, t)
   const parts = name.split(/\s+/)
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
   return name.slice(0, 2).toUpperCase()
@@ -37,12 +46,12 @@ function formatTime(ts) {
   return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })
 }
 
-function dayLabel(dateStr) {
+function dayLabel(dateStr, t) {
   const d = new Date(dateStr)
   const now = new Date()
   const y = new Date(now); y.setDate(now.getDate() - 1)
-  if (d.toDateString() === now.toDateString()) return 'Oggi'
-  if (d.toDateString() === y.toDateString()) return 'Ieri'
+  if (d.toDateString() === now.toDateString()) return t('common.today', 'Oggi')
+  if (d.toDateString() === y.toDateString()) return t('common.yesterday', 'Ieri')
   return d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
@@ -59,6 +68,7 @@ function groupByDate(msgs) {
 // ─── Link Patient Modal (2-step flow) ─────────────────────────────────────────
 
 function LinkPatientModal({ dietitianId, onClose, onLinked }) {
+  const t = useT()
   const [step, setStep] = useState(1)
   const [email, setEmail] = useState('')
   const [searching, setSearching] = useState(false)
@@ -88,12 +98,12 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
       .maybeSingle()
 
     if (err) {
-      setError('Errore nella ricerca.')
+      setError(t('dchat.search_error', 'Errore nella ricerca.'))
       setSearching(false)
       return
     }
     if (!data) {
-      setError('Nessun paziente trovato con questa email.')
+      setError(t('dchat.patient_not_found', 'Nessun paziente trovato con questa email.'))
       setSearching(false)
       return
     }
@@ -108,7 +118,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
 
     if (existing) {
       if (existing.cartella_id) {
-        setError('Questo paziente è già collegato e ha una cartella associata.')
+        setError(t('dchat.already_linked_with_folder', 'Questo paziente è già collegato e ha una cartella associata.'))
       } else {
         // Already linked but no cartella – go to step 2
         setFoundPatient(data)
@@ -137,8 +147,8 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
 
     if (err) {
       setError(err.message.includes('duplicate')
-        ? 'Questo paziente è già collegato.'
-        : 'Errore nel collegamento: ' + err.message)
+        ? t('dchat.already_linked', 'Questo paziente è già collegato.')
+        : t('dchat.link_error', { message: err.message }, 'Errore nel collegamento: {{message}}'))
       setLinking(false)
       return
     }
@@ -156,7 +166,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
       .select('id, nome, cognome, codice_fiscale')
       .order('cognome', { ascending: true })
     if (err) {
-      setError('Errore nel caricamento delle cartelle.')
+      setError(t('dchat.folders_load_error', 'Errore nel caricamento delle cartelle.'))
       setCartelleLoading(false)
       return
     }
@@ -176,7 +186,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
       .eq('dietitian_id', dietitianId)
 
     if (err) {
-      setError('Errore nel salvataggio della cartella: ' + err.message)
+      setError(t('dchat.folder_save_error', { message: err.message }, 'Errore nel salvataggio della cartella: {{message}}'))
       setSaving(false)
       return
     }
@@ -243,10 +253,10 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
               : <FolderOpen size={18} color="white" />
             }
             <span style={{ color: 'white', fontSize: 16, fontWeight: 600 }}>
-              {step === 1 ? 'Collega paziente' : 'Seleziona cartella'}
+              {step === 1 ? t('dchat.link_patient_title', 'Collega paziente') : t('dchat.select_folder_title', 'Seleziona cartella')}
             </span>
           </div>
-          <button onClick={onClose} aria-label="Chiudi" style={{
+          <button onClick={onClose} aria-label={t('common.close', 'Chiudi')} style={{
             background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8,
             width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer',
@@ -260,7 +270,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
             <>
               {/* Step 1: Search and link */}
               <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 14, lineHeight: 1.5 }}>
-                Cerca il paziente tramite email per collegarlo al tuo profilo.
+                {t('dchat.link_patient_intro', 'Cerca il paziente tramite email per collegarlo al tuo profilo.')}
               </p>
               <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                 <div style={{ flex: 1, position: 'relative' }}>
@@ -269,7 +279,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
                     value={email}
                     onChange={e => { setEmail(e.target.value); setError(''); setFoundPatient(null) }}
                     onKeyDown={e => { if (e.key === 'Enter') searchPatient() }}
-                    placeholder="Email del paziente…"
+                    placeholder={t('dchat.patient_email_placeholder', 'Email del paziente…')}
                     style={inputStyle}
                   />
                 </div>
@@ -281,7 +291,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
                   flexShrink: 0,
                 }}>
                   <Search size={14} />
-                  {searching ? 'Cerco…' : 'Cerca'}
+                  {searching ? t('dchat.searching', 'Cerco…') : t('dchat.search_button', 'Cerca')}
                 </button>
               </div>
 
@@ -294,7 +304,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
               {foundPatient && (
                 <div style={{ background: 'var(--green-pale)', borderRadius: 12, padding: '14px 16px', marginBottom: 14 }}>
                   <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
-                    Paziente trovato
+                    {t('dchat.patient_found', 'Paziente trovato')}
                   </p>
                   <p style={{ fontSize: 14, fontWeight: 500 }}>
                     {foundPatient.first_name || ''} {foundPatient.last_name || ''}
@@ -311,7 +321,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
                   opacity: linking ? 0.7 : 1,
                 }}>
                   <UserPlus size={15} />
-                  {linking ? 'Collegamento…' : 'Collega paziente'}
+                  {linking ? t('dchat.linking', 'Collegamento…') : t('dchat.link_patient_title', 'Collega paziente')}
                 </button>
               )}
             </>
@@ -321,7 +331,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
               <div style={{ background: 'var(--green-pale)', borderRadius: 12, padding: '12px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green-main)', flexShrink: 0 }} />
                 <div>
-                  <p style={{ fontSize: 13, fontWeight: 600 }}>✓ Paziente collegato</p>
+                  <p style={{ fontSize: 13, fontWeight: 600 }}>{t('dchat.patient_linked_check', '✓ Paziente collegato')}</p>
                   <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                     {foundPatient?.first_name || ''} {foundPatient?.last_name || ''} — {foundPatient?.email}
                   </p>
@@ -329,7 +339,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
               </div>
 
               <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
-                Seleziona la cartella del paziente dalla tabella cartelle.
+                {t('dchat.select_folder_intro', 'Seleziona la cartella del paziente dalla tabella cartelle.')}
               </p>
 
               {/* Search field for cartelle */}
@@ -339,7 +349,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
                   type="text"
                   value={cartellaSearch}
                   onChange={e => setCartellaSearch(e.target.value)}
-                  placeholder="Cerca per nome, cognome o codice fiscale…"
+                  placeholder={t('dchat.folder_search_placeholder', 'Cerca per nome, cognome o codice fiscale…')}
                   style={{ ...inputStyle, paddingLeft: 34 }}
                 />
               </div>
@@ -353,13 +363,13 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
               {cartelleLoading ? (
                 <div style={{ textAlign: 'center', padding: 30 }}>
                   <div style={{ width: 22, height: 22, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto 8px' }} />
-                  <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Caricamento cartelle…</p>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('dchat.loading_folders', 'Caricamento cartelle…')}</p>
                 </div>
               ) : filteredCartelle.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>
                   <FolderOpen size={28} style={{ marginBottom: 6, opacity: 0.3 }} />
                   <p style={{ fontSize: 13 }}>
-                    {cartellaSearch ? 'Nessuna cartella trovata' : 'Nessuna cartella disponibile'}
+                    {cartellaSearch ? t('dchat.no_folder_found', 'Nessuna cartella trovata') : t('dchat.no_folder_available', 'Nessuna cartella disponibile')}
                   </p>
                 </div>
               ) : (
@@ -387,7 +397,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
                           </p>
                           {c.codice_fiscale && (
                             <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                              CF: {c.codice_fiscale}
+                              {t('dchat.cf_prefix', 'CF:')} {c.codice_fiscale}
                             </p>
                           )}
                         </div>
@@ -403,11 +413,11 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
                 cursor: !selectedCartella || saving ? 'default' : 'pointer',
               }}>
                 <FolderOpen size={15} />
-                {saving ? 'Salvataggio…' : 'Salva cartella'}
+                {saving ? t('dchat.saving_folder', 'Salvataggio…') : t('dchat.save_folder', 'Salva cartella')}
               </button>
 
               <button onClick={skipCartella} style={btnSecondary}>
-                Salta per ora
+                {t('dchat.skip_for_now', 'Salta per ora')}
               </button>
             </>
           )}
@@ -463,13 +473,13 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkP
       <div style={{ flexShrink: 0, borderBottom: '1px solid var(--border-light)', padding: '12px 14px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
           <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Profilo pubblico
+            {t('dchat.public_profile_title', 'Profilo pubblico')}
           </p>
           <button
             onClick={() => navigate('/dietitian/profilo')}
             style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--green-pale)', border: 'none', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--green-main)', fontFamily: 'var(--font-b)' }}
           >
-            <Pencil size={11} /> Modifica
+            <Pencil size={11} /> {t('common.edit', 'Modifica')}
           </button>
         </div>
         {profileLoading ? (
@@ -483,7 +493,7 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkP
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {dietitianProfile?.avatar_url ? (
-              <img src={dietitianProfile.avatar_url} alt="Foto profilo" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid var(--border-light)' }} />
+              <img src={dietitianProfile.avatar_url} alt={t('dchat.profile_photo_alt', 'Foto profilo')} style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid var(--border-light)' }} />
             ) : (
               <div style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg, var(--green-main), var(--green-mid))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, color: 'white' }}>
                 {profileInitials}
@@ -493,7 +503,7 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkP
               {dietitianProfile ? (
                 <>
                   <p style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {[dietitianProfile.nome, dietitianProfile.cognome].filter(Boolean).join(' ') || 'Imposta il tuo nome'}
+                    {[dietitianProfile.nome, dietitianProfile.cognome].filter(Boolean).join(' ') || t('dchat.set_your_name', 'Imposta il tuo nome')}
                   </p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
                     {dietitianProfile.citta && (
@@ -507,15 +517,15 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkP
                     )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                       {dietitianProfile.visible
-                        ? <><Eye size={10} color="var(--green-main)" /><span style={{ fontSize: 11, color: 'var(--green-main)', fontWeight: 500 }}>Pubblico</span></>
-                        : <><EyeOff size={10} color="var(--text-muted)" /><span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Nascosto</span></>
+                        ? <><Eye size={10} color="var(--green-main)" /><span style={{ fontSize: 11, color: 'var(--green-main)', fontWeight: 500 }}>{t('dchat.public_status', 'Pubblico')}</span></>
+                        : <><EyeOff size={10} color="var(--text-muted)" /><span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('dchat.hidden_status', 'Nascosto')}</span></>
                       }
                     </div>
                   </div>
                 </>
               ) : (
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                  Configura il tuo profilo per essere trovato dai pazienti.
+                  {t('dchat.configure_profile_desc', 'Configura il tuo profilo per essere trovato dai pazienti.')}
                 </p>
               )}
             </div>
@@ -526,7 +536,7 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkP
       {/* ── Pazienti section ── */}
       <div style={{ padding: '10px 14px 6px', flexShrink: 0 }}>
         <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          Pazienti
+          {t('dchat.patients_section_title', 'Pazienti')}
         </p>
       </div>
 
@@ -546,7 +556,7 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkP
             </p>
           </div>
         ) : patients.map(p => {
-          const name = patientDisplayName(p.profile)
+          const name = patientDisplayName(p.profile, t)
           const isActive = p.id === selected
           return (
             <button key={p.id} onClick={() => onSelect(p.id)} style={{
@@ -563,7 +573,7 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkP
                 fontSize: 14, fontWeight: 700,
                 color: isActive ? 'white' : 'var(--green-main)',
               }}>
-                {avatarInitials(p.profile)}
+                {avatarInitials(p.profile, t)}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6, marginBottom: 2 }}>
@@ -583,8 +593,8 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkP
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
                   <p style={{ fontSize: 12, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                     {p.lastMsg
-                      ? (p.lastMsg.sender_role === 'dietitian' ? 'Tu: ' : '') + p.lastMsg.content
-                      : 'Nessun messaggio'}
+                      ? (p.lastMsg.sender_role === 'dietitian' ? t('chat.you', 'Tu') + ': ' : '') + p.lastMsg.content
+                      : t('chat.no_message_preview', 'Nessun messaggio')}
                   </p>
                   {p.unread > 0 && (
                     <span style={{
@@ -609,6 +619,7 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkP
 // ─── Patient Diary view ───────────────────────────────────────────────────────
 
 function PatientDiary({ patientId }) {
+  const t = useT()
   const todayStr = new Date().toISOString().split('T')[0]
   const [date, setDate] = useState(todayStr)
   const [foodLog, setFoodLog] = useState([])
@@ -656,11 +667,11 @@ function PatientDiary({ patientId }) {
         </button>
         <div style={{ textAlign: 'center' }}>
           <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-            {isToday ? 'Oggi · ' : ''}{displayDate.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
+            {isToday ? t('common.today', 'Oggi') + ' · ' : ''}{displayDate.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
           {foodLog.length > 0 && (
             <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-              {totals.kcal} kcal · P:{Math.round(totals.proteins)}g · C:{Math.round(totals.carbs)}g · G:{Math.round(totals.fats)}g
+              {t('mealtext.macroSummary', { kcal: totals.kcal, p: Math.round(totals.proteins), c: Math.round(totals.carbs), g: Math.round(totals.fats) }, '{{kcal}} kcal · P:{{p}}g · C:{{c}}g · G:{{g}}g')}
             </p>
           )}
         </div>
@@ -672,13 +683,13 @@ function PatientDiary({ patientId }) {
       {loading ? (
         <div style={{ textAlign: 'center', padding: 40 }}>
           <div style={{ width: 22, height: 22, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto 10px' }} />
-          <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Caricamento…</p>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('dchat.loading_generic', 'Caricamento…')}</p>
         </div>
       ) : foodLog.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
           <Apple size={36} style={{ marginBottom: 10, opacity: 0.2 }} />
-          <p style={{ fontSize: 14, fontWeight: 500 }}>Nessun alimento registrato</p>
-          <p style={{ fontSize: 12, marginTop: 4 }}>Il paziente non ha registrato pasti per questa data.</p>
+          <p style={{ fontSize: 14, fontWeight: 500 }}>{t('dchat.no_food_logged', 'Nessun alimento registrato')}</p>
+          <p style={{ fontSize: 12, marginTop: 4 }}>{t('dchat.no_food_logged_desc', 'Il paziente non ha registrato pasti per questa data.')}</p>
         </div>
       ) : (
         MEALS.map(m => {
@@ -689,7 +700,7 @@ function PatientDiary({ patientId }) {
             <div key={m.key} className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 10 }}>
               <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8, background: 'var(--green-pale)', borderBottom: '1px solid var(--border-light)' }}>
                 <span style={{ fontSize: 18 }}>{m.emoji}</span>
-                <span style={{ fontSize: 14, fontWeight: 600, flex: 1 }}>{m.label}</span>
+                <span style={{ fontSize: 14, fontWeight: 600, flex: 1 }}>{t(MEAL_LABEL_KEYS[m.key], m.label)}</span>
                 <span style={{ fontSize: 12, color: 'var(--green-dark)', fontWeight: 500 }}>{mealKcal} kcal</span>
               </div>
               <div style={{ padding: '8px 14px 10px' }}>
@@ -701,7 +712,7 @@ function PatientDiary({ patientId }) {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.food_name}</p>
                       <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                        {f.grams}g · {f.kcal} kcal · P:{f.proteins}g · C:{f.carbs}g · G:{f.fats}g
+                        {t('dchat.food_macro_summary', { grams: f.grams, kcal: f.kcal, p: f.proteins, c: f.carbs, g: f.fats }, '{{grams}}g · {{kcal}} kcal · P:{{p}}g · C:{{c}}g · G:{{g}}g')}
                         {f.food_data?.meal_time && <> · <Clock size={9} style={{ display: 'inline', verticalAlign: 'middle' }} /> {f.food_data.meal_time}</>}
                       </p>
                     </div>
@@ -736,24 +747,24 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
             background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10,
             width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', color: 'white', flexShrink: 0,
-          }} aria-label="Torna alla lista">
+          }} aria-label={t('dchat.back_to_list_aria', 'Torna alla lista')}>
             <ArrowLeft size={18} />
           </button>
           {currentPatient ? (
             <>
               <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'white', flexShrink: 0, border: '2px solid rgba(255,255,255,0.3)' }}>
-                {avatarInitials(currentPatient.profile)}
+                {avatarInitials(currentPatient.profile, t)}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ color: 'white', fontSize: 16, fontWeight: 600 }}>
-                  {patientDisplayName(currentPatient.profile)}
+                  {patientDisplayName(currentPatient.profile, t)}
                 </p>
                 <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>{t('dchat.patient_label')}</p>
               </div>
               <button
                 onClick={onStartCall}
-                title="Avvia videochiamata"
-                aria-label="Avvia videochiamata"
+                title={t('chat.video_call_aria', 'Avvia videochiamata')}
+                aria-label={t('chat.video_call_aria', 'Avvia videochiamata')}
                 style={{ background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer', padding: 9, minWidth: 40, minHeight: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
               >
                 <Video size={17} color="white" />
@@ -803,7 +814,7 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
                 <div style={{ fontSize: 44, marginBottom: 12 }}>💬</div>
                 <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 6 }}>{t('dchat.no_messages')}</p>
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                  {t('dchat.no_messages_desc', { name: patientDisplayName(currentPatient.profile) })}
+                  {t('dchat.no_messages_desc', { name: patientDisplayName(currentPatient.profile, t) })}
                 </p>
               </div>
             ) : (
@@ -811,7 +822,7 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
                 <div key={day}>
                   <div style={{ textAlign: 'center', margin: '10px 0' }}>
                     <span style={{ background: 'var(--border)', color: 'var(--text-muted)', fontSize: 11, padding: '3px 10px', borderRadius: 100 }}>
-                      {dayLabel(day)}
+                      {dayLabel(day, t)}
                     </span>
                   </div>
                   {msgs.map((msg, i) => {
@@ -821,7 +832,7 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
                       <div key={msg.id} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start', marginBottom: 5, alignItems: 'flex-end', gap: 6 }}>
                         {!isMe && (
                           <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'var(--green-main)', flexShrink: 0, visibility: showAvatar ? 'visible' : 'hidden' }}>
-                            {avatarInitials(currentPatient.profile)[0]}
+                            {avatarInitials(currentPatient.profile, t)[0]}
                           </div>
                         )}
                         <div style={{ maxWidth: '75%', background: isMe ? 'linear-gradient(135deg, var(--green-main), var(--green-mid))' : 'white', color: isMe ? 'white' : 'var(--text-primary)', padding: '9px 13px', borderRadius: isMe ? '16px 16px 3px 16px' : '16px 16px 16px 3px', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', border: isMe ? 'none' : '1px solid var(--border-light)' }}>
@@ -829,7 +840,7 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               <Video size={16} color={isMe ? 'white' : 'var(--green-main)'} />
                               <span style={{ fontSize: 13.5, fontWeight: 500 }}>
-                                {isMe ? 'Hai avviato una videochiamata' : 'Videochiamata in corso'}
+                                {isMe ? t('chat.call_started_by_me', 'Hai avviato una videochiamata') : t('chat.call_in_progress', 'Videochiamata in corso')}
                               </span>
                               <button
                                 onClick={() => onJoinCall(msg.content)}
@@ -839,7 +850,7 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
                                   padding: '4px 11px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', flexShrink: 0,
                                 }}
                               >
-                                Partecipa
+                                {t('chat.join_call', 'Partecipa')}
                               </button>
                             </div>
                           ) : (
@@ -874,7 +885,7 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
                   style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontFamily: 'var(--font-body)', fontSize: 15, color: 'var(--text-primary)', resize: 'none', maxHeight: 100, lineHeight: 1.5 }}
                 />
               </div>
-              <button type="submit" disabled={!text.trim() || sending} aria-label="Invia messaggio" style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: text.trim() ? 'var(--green-main)' : 'var(--border)', border: 'none', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.15s', boxShadow: text.trim() ? '0 2px 8px rgba(26,127,90,0.3)' : 'none' }}>
+              <button type="submit" disabled={!text.trim() || sending} aria-label={t('chat.send_aria', 'Invia messaggio')} style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: text.trim() ? 'var(--green-main)' : 'var(--border)', border: 'none', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.15s', boxShadow: text.trim() ? '0 2px 8px rgba(26,127,90,0.3)' : 'none' }}>
                 <Send size={17} color="white" style={{ marginLeft: 2 }} />
               </button>
             </form>
@@ -891,6 +902,7 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function DietitianChatPage() {
+  const t = useT()
   const { user, signOut } = useAuth()
   const [patients, setPatients] = useState([])
   const [selected, setSelected] = useState(null)
@@ -1068,7 +1080,7 @@ export default function DietitianChatPage() {
   const currentPatient = patients.find(p => p.id === selected) ?? null
 
   const listProps = { patients, loading: loadingList, selected, onSelect: openChat, onSignOut: signOut, onLinkPatient: () => setShowLinkModal(true), dietitianProfile, profileLoading }
-  const chatProps = { currentPatient, messages, text, setText, sending, bottomRef, inputRef, onSend: sendMessage, onBack: () => setMobilePanel('list'), callRoom, onStartCall: startVideoCall, onJoinCall: setCallRoom, onCloseCall: () => setCallRoom(null), dietitianName: dietitianProfile?.full_name || 'Dietista' }
+  const chatProps = { currentPatient, messages, text, setText, sending, bottomRef, inputRef, onSend: sendMessage, onBack: () => setMobilePanel('list'), callRoom, onStartCall: startVideoCall, onJoinCall: setCallRoom, onCloseCall: () => setCallRoom(null), dietitianName: dietitianProfile?.full_name || t('chat.dietitian', 'Dietista') }
 
   return (
     <>

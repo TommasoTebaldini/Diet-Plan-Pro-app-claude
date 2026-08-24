@@ -60,6 +60,7 @@ function SkeletonCard() {
 }
 
 function DietitianCard({ profile, onClick, index }) {
+  const t = useT()
   const fullName = [profile.nome, profile.cognome].filter(Boolean).join(' ')
 
   return (
@@ -131,14 +132,14 @@ function DietitianCard({ profile, onClick, index }) {
             )}
             {profile.email_contatto && (
               <a href={`mailto:${profile.email_contatto}`} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--green-dark)', textDecoration: 'none', background: 'var(--green-pale)', padding: '6px 12px', borderRadius: 8, border: '1px solid var(--alert-success-border)' }}>
-                <Mail size={12} /> Email
+                <Mail size={12} /> {t('dietitian.email_button', 'Email')}
               </a>
             )}
             {profile.sito_web && (
               <a href={profile.sito_web.startsWith('http') ? profile.sito_web : `https://${profile.sito_web}`}
                 target="_blank" rel="noopener noreferrer"
                 style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textDecoration: 'none', background: 'var(--surface-3)', padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border-light)' }}>
-                <Globe size={12} /> Sito web
+                <Globe size={12} /> {t('dietitian.website', 'Sito web')}
               </a>
             )}
           </div>
@@ -186,7 +187,7 @@ export default function DietitianProfilesPage() {
   }
 
   async function detectMyLocation() {
-    if (!navigator.geolocation) { setLocError('Geolocalizzazione non supportata.'); return }
+    if (!navigator.geolocation) { setLocError(t('dietitian.geo_not_supported', 'Geolocalizzazione non supportata.')); return }
     setLocating(true); setLocError('')
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
@@ -202,7 +203,7 @@ export default function DietitianProfilesPage() {
         } catch {}
         setLocating(false)
       },
-      () => { setLocError('Impossibile rilevare la posizione. Digita la tua città.'); setLocating(false) }
+      () => { setLocError(t('dietitian.geo_detect_failed', 'Impossibile rilevare la posizione. Digita la tua città.')); setLocating(false) }
     )
   }
 
@@ -218,9 +219,9 @@ export default function DietitianProfilesPage() {
       if (data.length > 0) {
         setLocCoords({ lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) })
       } else {
-        setLocError('Luogo non trovato. Prova con una città.')
+        setLocError(t('dietitian.geo_not_found', 'Luogo non trovato. Prova con una città.'))
       }
-    } catch { setLocError('Errore di rete.') }
+    } catch { setLocError(t('dietitian.geo_network_error', 'Errore di rete.')) }
     setLocating(false)
   }
 
@@ -282,7 +283,7 @@ export default function DietitianProfilesPage() {
             </div>
           </div>
           <p style={{ color: 'rgba(255,255,255,0.70)', fontSize: 13, lineHeight: 1.5, marginBottom: 16 }}>
-            Trova il professionista della nutrizione più adatto a te
+            {t('dietitian.subtitle', 'Trova il professionista della nutrizione più adatto a te')}
           </p>
 
           {/* Search bar inside header */}
@@ -290,7 +291,7 @@ export default function DietitianProfilesPage() {
             <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.5)' }} />
             <input
               className="input-field"
-              placeholder="Cerca per nome o specializzazione…"
+              placeholder={t('dietitian.search_placeholder', 'Cerca per nome o specializzazione…')}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               style={{ paddingLeft: 36, paddingRight: searchQuery ? 36 : 14, background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.25)', color: 'white', borderRadius: 12 }}
@@ -308,15 +309,15 @@ export default function DietitianProfilesPage() {
           <div style={{ display: 'flex', gap: 10, marginTop: 14, position: 'relative', zIndex: 1 }}>
             <div style={{ background: 'rgba(255,255,255,0.13)', borderRadius: 10, padding: '8px 14px', flex: 1, textAlign: 'center' }}>
               <p style={{ color: 'white', fontWeight: 800, fontSize: 20, lineHeight: 1 }}>{profiles.length}</p>
-              <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, marginTop: 2 }}>Professionisti</p>
+              <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, marginTop: 2 }}>{t('dietitian.stat_professionals', 'Professionisti')}</p>
             </div>
             <div style={{ background: 'rgba(255,255,255,0.13)', borderRadius: 10, padding: '8px 14px', flex: 1, textAlign: 'center' }}>
               <p style={{ color: 'white', fontWeight: 800, fontSize: 20, lineHeight: 1 }}>{cities.length}</p>
-              <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, marginTop: 2 }}>Città</p>
+              <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, marginTop: 2 }}>{t('dietitian.stat_cities', 'Città')}</p>
             </div>
             <div style={{ background: 'rgba(255,255,255,0.13)', borderRadius: 10, padding: '8px 14px', flex: 1, textAlign: 'center' }}>
               <p style={{ color: 'white', fontWeight: 800, fontSize: 20, lineHeight: 1 }}>100%</p>
-              <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, marginTop: 2 }}>Qualificati</p>
+              <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, marginTop: 2 }}>{t('dietitian.stat_qualified', 'Qualificati')}</p>
             </div>
           </div>
         )}
@@ -356,16 +357,16 @@ export default function DietitianProfilesPage() {
               }}
             >
               <Crosshair size={14} />
-              Vicini a me
+              {t('dietitian.near_me', 'Vicini a me')}
             </button>
           </div>
         ) : (
           <div style={{ background: 'var(--green-pale)', border: '1.5px solid var(--green-main)', borderRadius: 12, padding: '12px 14px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--green-dark)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                <Crosshair size={13} /> Vicini a me
+                <Crosshair size={13} /> {t('dietitian.near_me', 'Vicini a me')}
               </p>
-              <button onClick={toggleNearMode} aria-label="Disattiva modalità Vicini a me" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2 }}>
+              <button onClick={toggleNearMode} aria-label={t('dietitian.near_me_disable_aria', 'Disattiva modalità Vicini a me')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2 }}>
                 <X size={14} />
               </button>
             </div>
@@ -376,7 +377,7 @@ export default function DietitianProfilesPage() {
                 <input
                   ref={locInputRef}
                   className="input-field"
-                  placeholder="La tua città o indirizzo"
+                  placeholder={t('dietitian.location_placeholder', 'La tua città o indirizzo')}
                   value={locQuery}
                   onChange={e => { setLocQuery(e.target.value); setLocError('') }}
                   onKeyDown={e => e.key === 'Enter' && geocodeLocQuery()}
@@ -397,7 +398,7 @@ export default function DietitianProfilesPage() {
                 disabled={locating || !locQuery.trim()}
                 style={{ flexShrink: 0, height: 42, padding: '0 12px', background: 'var(--green-main)', border: 'none', borderRadius: 10, fontSize: 12, fontWeight: 700, color: 'white', cursor: 'pointer', fontFamily: 'var(--font-b)', opacity: (!locQuery.trim() || locating) ? 0.5 : 1 }}
               >
-                Cerca
+                {t('dietitian.search_button', 'Cerca')}
               </button>
             </div>
 
@@ -405,18 +406,20 @@ export default function DietitianProfilesPage() {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <SlidersHorizontal size={12} color="var(--green-dark)" />
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--green-dark)', whiteSpace: 'nowrap' }}>Max distanza</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--green-dark)', whiteSpace: 'nowrap' }}>{t('dietitian.max_distance_label', 'Max distanza')}</span>
               <input type="range" min={5} max={100} step={5} value={maxDistance} onChange={e => setMaxDistance(Number(e.target.value))} style={{ flex: 1, accentColor: 'var(--green-main)' }} />
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--green-main)', minWidth: 48, textAlign: 'right', fontFamily: 'var(--font-b)' }}>{maxDistance} km</span>
             </div>
 
             {locCoords ? (
               <p style={{ fontSize: 11, color: 'var(--green-main)', marginTop: 8, fontWeight: 600 }}>
-                ✓ Posizione rilevata — {filtered.length} dietist{filtered.length === 1 ? 'a' : 'i'} entro {maxDistance} km
+                {filtered.length === 1
+                  ? t('dietitian.found_near_one', { count: filtered.length, km: maxDistance }, '✓ Posizione rilevata — {{count}} dietista entro {{km}} km')
+                  : t('dietitian.found_near_other', { count: filtered.length, km: maxDistance }, '✓ Posizione rilevata — {{count}} dietisti entro {{km}} km')}
               </p>
             ) : (
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-                Inserisci la tua posizione per vedere i dietisti vicini
+                {t('dietitian.location_prompt', 'Inserisci la tua posizione per vedere i dietisti vicini')}
               </p>
             )}
           </div>
@@ -435,18 +438,18 @@ export default function DietitianProfilesPage() {
             <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>{t('common.no_data')}</p>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 280, margin: '0 auto' }}>
               {nearMode && locCoords
-                ? `Nessun dietista trovato entro ${maxDistance} km dalla tua posizione.`
+                ? t('dietitian.no_results_near_km', { km: maxDistance }, 'Nessun dietista trovato entro {{km}} km dalla tua posizione.')
                 : profiles.length === 0 ? t('dietitian.no_dietitian') : t('dietitian.change_filters')
               }
             </p>
             {nearMode && locCoords && (
               <button onClick={() => setMaxDistance(m => Math.min(m + 25, 100))} style={{ marginTop: 16, background: 'var(--green-pale)', border: '1.5px solid var(--green-main)', borderRadius: 12, padding: '10px 20px', cursor: 'pointer', fontSize: 13, color: 'var(--green-main)', fontWeight: 600, fontFamily: 'var(--font-b)' }}>
-                Aumenta il raggio a {Math.min(maxDistance + 25, 100)} km
+                {t('dietitian.increase_radius', { km: Math.min(maxDistance + 25, 100) }, 'Aumenta il raggio a {{km}} km')}
               </button>
             )}
             {(searchQuery || cityFilter) && !nearMode && (
               <button onClick={() => { setSearchQuery(''); setCityFilter('') }} style={{ marginTop: 16, background: 'var(--green-pale)', border: '1.5px solid var(--green-main)', borderRadius: 12, padding: '10px 20px', cursor: 'pointer', fontSize: 13, color: 'var(--green-main)', fontWeight: 600, fontFamily: 'var(--font-b)' }}>
-                Rimuovi filtri
+                {t('common.remove_filters', 'Rimuovi filtri')}
               </button>
             )}
           </div>
@@ -454,8 +457,10 @@ export default function DietitianProfilesPage() {
           <>
             {(searchQuery || cityFilter || (nearMode && locCoords)) && (
               <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
-                {filtered.length} risultat{filtered.length === 1 ? 'o' : 'i'}
-                {nearMode && locCoords ? ` entro ${maxDistance} km` : ''}
+                {filtered.length === 1
+                  ? t('common.results_count_one', { count: filtered.length }, '{{count}} risultato')
+                  : t('common.results_count_other', { count: filtered.length }, '{{count}} risultati')}
+                {nearMode && locCoords ? ` ${t('dietitian.within_km', { km: maxDistance }, 'entro {{km}} km')}` : ''}
               </p>
             )}
             {filtered.map((p, i) => (
@@ -474,10 +479,10 @@ export default function DietitianProfilesPage() {
               </div>
               <div>
                 <p style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
-                  Professionisti verificati
+                  {t('dietitian.trust_title', 'Professionisti verificati')}
                 </p>
                 <p style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                  Tutti i dietisti sono professionisti sanitari abilitati con partita IVA e iscrizione all'Ordine.
+                  {t('dietitian.trust_desc', "Tutti i dietisti sono professionisti sanitari abilitati con partita IVA e iscrizione all'Ordine.")}
                 </p>
               </div>
             </div>

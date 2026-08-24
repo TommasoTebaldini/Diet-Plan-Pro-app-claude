@@ -74,7 +74,7 @@ function IngredientSearch({ onAdd }) {
                 <input type="number" className="input-field" value={pendingGrams} onChange={e => setPendingGrams(e.target.value)} min={1} inputMode="decimal" autoFocus />
               </div>
               <button type="submit" className="btn btn-primary" style={{ flexShrink: 0, height: 42 }}>{t('common.add')}</button>
-              <button type="button" onClick={() => setPending(null)} aria-label="Annulla" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)', height: 42, display: 'flex', alignItems: 'center' }}>
+              <button type="button" onClick={() => setPending(null)} aria-label={t('common.cancel', 'Annulla')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)', height: 42, display: 'flex', alignItems: 'center' }}>
                 <X size={15} />
               </button>
             </div>
@@ -396,7 +396,7 @@ export default function FoodDatabasePage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                     <div className="input-group" style={{ gridColumn: '1 / -1' }}>
                       <label className="input-label">{t('food.food_name')}</label>
-                      <input className="input-field" value={form.name} onChange={set('name')} placeholder="es. Muesli artigianale" />
+                      <input className="input-field" value={form.name} onChange={set('name')} placeholder={t('food.food_name_placeholder', 'es. Muesli artigianale')} />
                     </div>
                     <div className="input-group">
                       <label className="input-label">{t('food.brand')}</label>
@@ -475,7 +475,7 @@ export default function FoodDatabasePage() {
                     ))}
                   </div>
                 </div>
-                <button onClick={() => removeFavorite(f.id)} aria-label="Rimuovi dai preferiti" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 6, flexShrink: 0 }}>
+                <button onClick={() => removeFavorite(f.id)} aria-label={t('food.remove_favorite_aria', 'Rimuovi dai preferiti')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 6, flexShrink: 0 }}>
                   <Trash2 size={16} />
                 </button>
               </div>
@@ -495,7 +495,7 @@ export default function FoodDatabasePage() {
                 <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>{t('food.new_custom_meal')}</p>
                 <div className="input-group" style={{ marginBottom: 12 }}>
                   <label className="input-label">{t('food.meal_name')}</label>
-                  <input className="input-field" value={mealForm.name} onChange={e => setMealForm(f => ({ ...f, name: e.target.value }))} placeholder="es. Colazione proteica" />
+                  <input className="input-field" value={mealForm.name} onChange={e => setMealForm(f => ({ ...f, name: e.target.value }))} placeholder={t('food.meal_name_placeholder', 'es. Colazione proteica')} />
                 </div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8 }}>{t('food.add_ingredients')}</p>
                 <IngredientSearch onAdd={ing => setMealForm(f => ({ ...f, ingredients: [...f.ingredients, ing] }))} />
@@ -507,7 +507,7 @@ export default function FoodDatabasePage() {
                           <p style={{ fontSize: 13, fontWeight: 500 }}>{ing.food_name}</p>
                           <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{ing.grams}g · {ing.kcal} kcal</p>
                         </div>
-                        <button onClick={() => setMealForm(f => ({ ...f, ingredients: f.ingredients.filter((_, i) => i !== idx) }))} aria-label="Rimuovi ingrediente" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
+                        <button onClick={() => setMealForm(f => ({ ...f, ingredients: f.ingredients.filter((_, i) => i !== idx) }))} aria-label={t('food.remove_ingredient_aria', 'Rimuovi ingrediente')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
                           <X size={14} />
                         </button>
                       </div>
@@ -539,10 +539,10 @@ export default function FoodDatabasePage() {
                     <span style={{ fontSize: 22, flexShrink: 0 }}>🍽️</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: 14, fontWeight: 600 }}>{m.name}</p>
-                      <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{m.kcal_total} kcal · {Math.round(m.peso_totale_g)}g · {(m.ingredients || []).length} ingredienti</p>
+                      <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{m.kcal_total} kcal · {Math.round(m.peso_totale_g)}g · {(() => { const c = (m.ingredients || []).length; return c === 1 ? t('food.ingredients_count_one', { count: c }, '{{count}} ingrediente') : t('food.ingredients_count_other', { count: c }, '{{count}} ingredienti') })()}</p>
                     </div>
                     {isOpen ? <ChevronUp size={15} color="var(--text-muted)" /> : <ChevronDown size={15} color="var(--text-muted)" />}
-                    <button onClick={e => { e.stopPropagation(); deleteMeal(m.id) }} aria-label="Elimina pasto" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)', flexShrink: 0 }}>
+                    <button onClick={e => { e.stopPropagation(); deleteMeal(m.id) }} aria-label={t('food.delete_meal_aria', 'Elimina pasto')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)', flexShrink: 0 }}>
                       <Trash2 size={15} />
                     </button>
                   </button>
@@ -580,7 +580,7 @@ export default function FoodDatabasePage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10, marginBottom: 12 }}>
                   <div className="input-group" style={{ gridColumn: '1 / -1' }}>
                     <label className="input-label">{t('food.recipe_name')}</label>
-                    <input className="input-field" value={recForm.nome} onChange={e => setRecForm(f => ({ ...f, nome: e.target.value }))} placeholder="es. Pasta al pomodoro" />
+                    <input className="input-field" value={recForm.nome} onChange={e => setRecForm(f => ({ ...f, nome: e.target.value }))} placeholder={t('food.recipe_name_placeholder', 'es. Pasta al pomodoro')} />
                   </div>
                   <div className="input-group">
                     <label className="input-label">{t('food.recipe_portions')}</label>
@@ -597,7 +597,7 @@ export default function FoodDatabasePage() {
                           <p style={{ fontSize: 13, fontWeight: 500 }}>{ing.food_name}</p>
                           <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{ing.grams}g · {ing.kcal} kcal</p>
                         </div>
-                        <button onClick={() => setRecForm(f => ({ ...f, ingredienti: f.ingredienti.filter((_, i) => i !== idx) }))} aria-label="Rimuovi ingrediente" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
+                        <button onClick={() => setRecForm(f => ({ ...f, ingredienti: f.ingredienti.filter((_, i) => i !== idx) }))} aria-label={t('food.remove_ingredient_aria', 'Rimuovi ingrediente')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
                           <X size={14} />
                         </button>
                       </div>
@@ -609,7 +609,7 @@ export default function FoodDatabasePage() {
                       return (
                         <div style={{ marginTop: 10, background: 'var(--green-pale)', borderRadius: 10, padding: '10px 12px' }}>
                           <p style={{ fontSize: 12, color: 'var(--green-dark)', fontWeight: 600 }}>{t('food.total_label')} ({Math.round(g)}g): {mt.kcal} kcal</p>
-                          <p style={{ fontSize: 11, color: 'var(--green-dark)', marginTop: 3 }}>{t('food.per_portion')} ({porz} pz): {Math.round(mt.kcal / porz)} kcal · P:{Math.round(mt.proteins / porz * 10) / 10}g · C:{Math.round(mt.carbs / porz * 10) / 10}g · G:{Math.round(mt.fats / porz * 10) / 10}g</p>
+                          <p style={{ fontSize: 11, color: 'var(--green-dark)', marginTop: 3 }}>{t('food.per_portion')} {t('food.portions_count_paren', { count: porz }, '({{count}} pz)')}: {Math.round(mt.kcal / porz)} kcal · P:{Math.round(mt.proteins / porz * 10) / 10}g · C:{Math.round(mt.carbs / porz * 10) / 10}g · G:{Math.round(mt.fats / porz * 10) / 10}g</p>
                         </div>
                       )
                     })()}
@@ -617,7 +617,7 @@ export default function FoodDatabasePage() {
                 )}
                 <div className="input-group" style={{ marginTop: 12 }}>
                   <label className="input-label">{t('food.notes_optional')}</label>
-                  <textarea className="input-field" rows={2} value={recForm.note} onChange={e => setRecForm(f => ({ ...f, note: e.target.value }))} placeholder="Preparazione, varianti…" style={{ resize: 'vertical' }} />
+                  <textarea className="input-field" rows={2} value={recForm.note} onChange={e => setRecForm(f => ({ ...f, note: e.target.value }))} placeholder={t('food.recipe_notes_placeholder', 'Preparazione, varianti…')} style={{ resize: 'vertical' }} />
                 </div>
                 <button className="btn btn-primary btn-full" onClick={saveRicetta} disabled={!recForm.nome || recForm.ingredienti.length === 0} style={{ marginTop: 14 }}>
                   {t('food.save_recipe')}
@@ -641,10 +641,10 @@ export default function FoodDatabasePage() {
                     <span style={{ fontSize: 22, flexShrink: 0 }}>🍳</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: 14, fontWeight: 600 }}>{r.nome}</p>
-                      <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.calorie_porzione} kcal/porz · {r.porzioni} porzioni · {(r.ingredienti || []).length} ingredienti</p>
+                      <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('food.kcal_per_portion', { kcal: r.calorie_porzione }, '{{kcal}} kcal/porz')} · {(() => { const p = r.porzioni; return p === 1 ? t('food.portions_count_one', { count: p }, '{{count}} porzione') : t('food.portions_count_other', { count: p }, '{{count}} porzioni') })()} · {(() => { const c = (r.ingredienti || []).length; return c === 1 ? t('food.ingredients_count_one', { count: c }, '{{count}} ingrediente') : t('food.ingredients_count_other', { count: c }, '{{count}} ingredienti') })()}</p>
                     </div>
                     {isOpen ? <ChevronUp size={15} color="var(--text-muted)" /> : <ChevronDown size={15} color="var(--text-muted)" />}
-                    <button onClick={e => { e.stopPropagation(); deleteRicetta(r.id) }} aria-label="Elimina ricetta" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)', flexShrink: 0 }}>
+                    <button onClick={e => { e.stopPropagation(); deleteRicetta(r.id) }} aria-label={t('food.delete_recipe_aria', 'Elimina ricetta')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)', flexShrink: 0 }}>
                       <Trash2 size={15} />
                     </button>
                   </button>

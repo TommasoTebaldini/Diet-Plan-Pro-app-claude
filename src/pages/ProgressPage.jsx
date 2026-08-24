@@ -40,6 +40,30 @@ export default function ProgressPage() {
   const { user, profile } = useAuth()
   const { isPro } = useSubscription()
   const t = useT()
+  const MOOD_LABELS = {
+    1: t('progress.mood.terrible', 'Pessimo'),
+    2: t('progress.mood.bad', 'Non bene'),
+    3: t('progress.mood.normal', 'Nella norma'),
+    4: t('progress.mood.good', 'Bene'),
+    5: t('progress.mood.excellent', 'Ottimo'),
+  }
+  const SYMPTOM_KEY_MAP = {
+    'Stanchezza': 'tiredness', 'Gonfiore': 'bloating', 'Mal di testa': 'headache', 'Insonnia': 'insomnia',
+    'Fame': 'hunger', 'Nausea': 'nausea', 'Energia alta': 'highEnergy', 'Umore positivo': 'positiveMood',
+  }
+  const symptomLabel = (s) => t(`progress.symptom.${SYMPTOM_KEY_MAP[s] || s}`, s)
+  const MEASURE_LABELS = {
+    waist_cm: t('progress.measure.waist', 'Girovita'),
+    hips_cm: t('progress.measure.hips', 'Fianchi'),
+    arm_cm: t('progress.measure.arms', 'Braccia'),
+    thigh_cm: t('progress.measure.thighs', 'Cosce'),
+  }
+  const MEASURE_SHORTS = {
+    waist_cm: t('progress.measure.waistShort', 'Vita'),
+    hips_cm: t('progress.measure.hipsShort', 'Fianchi'),
+    arm_cm: t('progress.measure.armsShort', 'Braccio'),
+    thigh_cm: t('progress.measure.thighsShort', 'Coscia'),
+  }
   const [weights, setWeights] = useState([])
   const [todayLog, setTodayLog] = useState(null)
   const [newWeight, setNewWeight] = useState('')
@@ -120,7 +144,7 @@ export default function ProgressPage() {
 
   async function saveMeasure() {
     if (!waist && !hips && !arms && !thighs) {
-      setMeasureMsg('Inserisci almeno una misura.')
+      setMeasureMsg(t('progress.measureRequired', 'Inserisci almeno una misura.'))
       return
     }
     setSavingMeasure(true)
@@ -136,18 +160,18 @@ export default function ProgressPage() {
       }, { onConflict: 'user_id,date' })
       if (error) {
         if (error.code === '42P01' || String(error.message).includes('does not exist')) {
-          setMeasureMsg('Funzione disponibile dopo aggiornamento database.')
+          setMeasureMsg(t('progress.measureUnavailable', 'Funzione disponibile dopo aggiornamento database.'))
         } else {
-          setMeasureMsg('Errore: ' + error.message)
+          setMeasureMsg(t('progress.measureError', { message: error.message }, 'Errore: {{message}}'))
         }
       } else {
-        setMeasureMsg('✅ Misure salvate!')
+        setMeasureMsg(t('progress.measureSaved', '✅ Misure salvate!'))
         setWaist(''); setHips(''); setArms(''); setThighs('')
         await loadBodyMeasurements()
         setTimeout(() => setMeasureMsg(''), 2500)
       }
     } catch {
-      setMeasureMsg('Funzione disponibile dopo aggiornamento database.')
+      setMeasureMsg(t('progress.measureUnavailable', 'Funzione disponibile dopo aggiornamento database.'))
     } finally {
       setSavingMeasure(false)
     }
@@ -168,7 +192,7 @@ export default function ProgressPage() {
             const { data, error } = await supabase.from('weight_logs')
               .upsert({ user_id: user.id, date: today, weight_kg: w }, { onConflict: 'user_id,date' })
               .select().single()
-            if (error) throw new Error('Errore peso: ' + error.message)
+            if (error) throw new Error(t('progress.weightError', { message: error.message }, 'Errore peso: {{message}}'))
             if (data) setWeights(prev => {
               const filtered = prev.filter(x => x.date !== today)
               return [...filtered, data].sort((a, b) => a.date.localeCompare(b.date))
@@ -195,14 +219,14 @@ export default function ProgressPage() {
         if (isOnline) {
           const { error } = await supabase.from('daily_wellness')
             .upsert(wellnessData, { onConflict: 'user_id,date' })
-          if (error) throw new Error('Errore benessere: ' + error.message)
+          if (error) throw new Error(t('progress.wellnessError', { message: error.message }, 'Errore benessere: {{message}}'))
         } else {
           await safeWrite('daily_wellness', wellnessData)
         }
       }
 
       setSaveOk(true)
-      if (!isOnline) setSaveError('Dati salvati offline — verranno sincronizzati alla prossima connessione.')
+      if (!isOnline) setSaveError(t('progress.offlineSaved', 'Dati salvati offline — verranno sincronizzati alla prossima connessione.'))
       setShowAdd(false)
       setTimeout(() => setSaveOk(false), 3000)
       if (isOnline) loadData()
@@ -245,7 +269,7 @@ export default function ProgressPage() {
       loadSignedUrls(freshList)
       setPhotoNotes('')
     } catch (e) {
-      setPhotoError('Errore nel caricamento. ' + (e?.message || 'Riprova.'))
+      setPhotoError(t('progress.uploadError', 'Errore nel caricamento. ') + (e?.message || t('progress.retry', 'Riprova.')))
     } finally {
       setPhotoUploading(false)
     }
@@ -271,7 +295,7 @@ export default function ProgressPage() {
       <div style={{ background: 'linear-gradient(160deg, var(--green-dark), var(--green-main))', padding: 'calc(env(safe-area-inset-top) + 20px) 24px 28px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Il mio percorso</p>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>{t('progress.subtitle', 'Il mio percorso')}</p>
             <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300 }}>{t('progress.title')}</h1>
           </div>
           <button
@@ -290,8 +314,8 @@ export default function ProgressPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 10 }}>
           {[
             { label: t('progress.weight'), val: latest ? `${latest} kg` : '–', sub: diff ? `${diff > 0 ? '+' : ''}${diff} kg` : '', icon: <Scale size={14} /> },
-            { label: t('progress.trend'), val: totalChange ? `${totalChange > 0 ? '+' : ''}${totalChange} kg` : '–', sub: "dall'inizio", icon: <Activity size={14} /> },
-            { label: t('dash.goal'), val: target ? `${target} kg` : '–', sub: latest && target ? `Mancano ${Math.abs(latest - target).toFixed(1)} kg` : '', icon: <Target size={14} /> },
+            { label: t('progress.trend'), val: totalChange ? `${totalChange > 0 ? '+' : ''}${totalChange} kg` : '–', sub: t('progress.sinceStart', "dall'inizio"), icon: <Activity size={14} /> },
+            { label: t('dash.goal'), val: target ? `${target} kg` : '–', sub: latest && target ? t('progress.remaining', { value: Math.abs(latest - target).toFixed(1) }, 'Mancano {{value}} kg') : '', icon: <Target size={14} /> },
           ].map((s, i) => (
             <motion.div key={s.label}
               initial={{ opacity: 0, scale: 0.88 }}
@@ -313,10 +337,10 @@ export default function ProgressPage() {
         {/* Tab switcher */}
         <div style={{ display: 'flex', gap: 6, background: 'var(--surface-2)', borderRadius: 12, padding: 4 }}>
           {[
-            { key: 'peso', label: '⚖️ Peso' },
-            { key: 'circonferenze', label: '📏 Misure' },
+            { key: 'peso', label: `⚖️ ${t('progress.tab.weight', 'Peso')}` },
+            { key: 'circonferenze', label: `📏 ${t('progress.tab.measurements', 'Misure')}` },
             { key: 'bia', label: '⚡ BIA' },
-            { key: 'foto', label: '📸 Foto' },
+            { key: 'foto', label: `📸 ${t('progress.tab.photos', 'Foto')}` },
           ].map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
               flex: 1, padding: '8px 4px', borderRadius: 9, border: 'none', cursor: 'pointer', font: 'inherit',
@@ -334,14 +358,14 @@ export default function ProgressPage() {
             {/* Success / Error feedback */}
             {saveOk && (
               <div style={{ background: 'var(--alert-success-bg)', border: '1px solid var(--alert-success-border)', borderRadius: 12, padding: '12px 16px', fontSize: 14, color: 'var(--alert-success-text)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                ✅ Dati salvati con successo!
+                ✅ {t('progress.saveSuccess', 'Dati salvati con successo!')}
               </div>
             )}
             {saveError && (
               <div style={{ background: 'var(--alert-error-bg)', border: '1px solid var(--alert-error-border)', borderRadius: 12, padding: '12px 16px', fontSize: 13, color: 'var(--alert-error-text)' }}>
                 ⚠️ {saveError}
                 <p style={{ fontSize: 11, marginTop: 4, opacity: 0.8 }}>
-                  Se l'errore persiste, esegui questo SQL su Supabase:<br />
+                  {t('progress.sqlHint', "Se l'errore persiste, esegui questo SQL su Supabase:")}<br />
                   <code style={{ fontFamily: 'monospace', fontSize: 10 }}>
                     ALTER TABLE daily_wellness ENABLE ROW LEVEL SECURITY;<br />
                     CREATE POLICY "utenti wellness" ON daily_wellness FOR ALL USING (auth.uid() = user_id);
@@ -357,13 +381,13 @@ export default function ProgressPage() {
                   {MOOD_OPTIONS.find(m => m.value === todayLog.mood)?.emoji || '😐'}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>Benessere di oggi registrato</p>
+                  <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>{t('progress.wellnessRegistered', 'Benessere di oggi registrato')}</p>
                   {todayLog.symptoms?.length > 0 && (
-                    <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{todayLog.symptoms.join(', ')}</p>
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{todayLog.symptoms.map(symptomLabel).join(', ')}</p>
                   )}
                 </div>
                 <button onClick={() => setShowAdd(true)} style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, padding: '6px 12px', fontSize: 12, cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                  Modifica
+                  {t('common.edit', 'Modifica')}
                 </button>
               </div>
             )}
@@ -371,36 +395,36 @@ export default function ProgressPage() {
             {/* Add entry panel */}
             {showAdd && (
               <div className="card animate-slideUp" style={{ padding: 20 }}>
-                <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>📝 Aggiorna di oggi</h3>
+                <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>📝 {t('progress.updateToday', 'Aggiorna di oggi')}</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div className="input-group">
                     <label className="input-label">⚖️ {t('progress.weight')}</label>
-                    <input type="number" step="0.1" className="input-field" placeholder="es. 72.5" value={newWeight} onChange={e => setNewWeight(e.target.value)} />
+                    <input type="number" step="0.1" className="input-field" placeholder={t('progress.weightPlaceholder', 'es. 72.5')} value={newWeight} onChange={e => setNewWeight(e.target.value)} />
                   </div>
                   <div>
-                    <p className="input-label" style={{ marginBottom: 10 }}>😊 Come ti senti oggi?</p>
+                    <p className="input-label" style={{ marginBottom: 10 }}>😊 {t('progress.feelingToday', 'Come ti senti oggi?')}</p>
                     <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                       {MOOD_OPTIONS.map(m => (
                         <button key={m.value} onClick={() => setMood(m.value)} style={{ flex: 1, minWidth: 44, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, background: 'none', border: `2px solid ${mood === m.value ? 'var(--green-main)' : 'var(--border)'}`, borderRadius: 14, padding: '10px 8px', cursor: 'pointer', transition: 'all 0.15s', transform: mood === m.value ? 'scale(1.1)' : 'none' }}>
                           <span style={{ fontSize: 24 }}>{m.emoji}</span>
-                          <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{m.label}</span>
+                          <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{MOOD_LABELS[m.value]}</span>
                         </button>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <p className="input-label" style={{ marginBottom: 10 }}>🔍 Sintomi / Note fisiche</p>
+                    <p className="input-label" style={{ marginBottom: 10 }}>🔍 {t('progress.symptomsNotes', 'Sintomi / Note fisiche')}</p>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {SYMPTOM_LIST.map(s => (
                         <button key={s} onClick={() => setSymptoms(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])} style={{ padding: '6px 14px', borderRadius: 100, background: symptoms.includes(s) ? 'var(--green-pale)' : 'var(--surface-2)', color: symptoms.includes(s) ? 'var(--green-main)' : 'var(--text-secondary)', border: `1.5px solid ${symptoms.includes(s) ? 'var(--green-main)' : 'var(--border)'}`, font: 'inherit', fontSize: 13, cursor: 'pointer' }}>
-                          {s}
+                          {symptomLabel(s)}
                         </button>
                       ))}
                     </div>
                   </div>
                   <div className="input-group">
-                    <label className="input-label">📓 Note libere</label>
-                    <textarea className="input-field" rows={3} placeholder="Come è andata oggi? Annotazioni sulla dieta…" value={notes} onChange={e => setNotes(e.target.value)} style={{ resize: 'vertical' }} />
+                    <label className="input-label">📓 {t('progress.freeNotes', 'Note libere')}</label>
+                    <textarea className="input-field" rows={3} placeholder={t('progress.notesPlaceholder', 'Come è andata oggi? Annotazioni sulla dieta…')} value={notes} onChange={e => setNotes(e.target.value)} style={{ resize: 'vertical' }} />
                   </div>
                   <button className="btn btn-primary" onClick={saveEntry} disabled={saving}>
                     {saving ? `${t('common.save')}…` : t('common.save')}
@@ -411,14 +435,14 @@ export default function ProgressPage() {
 
             {/* Chart — Pro only */}
             {weights.length > 1 && (
-              <ProGate feature="Grafico andamento peso" teaser="Visualizza il grafico dell'andamento del tuo peso nel tempo">
+              <ProGate feature={t('progress.chartFeature', 'Grafico andamento peso')} teaser={t('progress.chartTeaser', "Visualizza il grafico dell'andamento del tuo peso nel tempo")}>
               <div className="card" style={{ padding: '18px 12px 12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px', marginBottom: 16 }}>
-                  <h3 style={{ fontSize: 15, fontWeight: 600 }}>Andamento peso</h3>
+                  <h3 style={{ fontSize: 15, fontWeight: 600 }}>{t('progress.weightTrend', 'Andamento peso')}</h3>
                   <div style={{ display: 'flex', gap: 6 }}>
                     {[7, 30, 90].map(r => (
                       <button key={r} onClick={() => setRange(r)} style={{ padding: '4px 10px', borderRadius: 100, background: range === r ? 'var(--green-main)' : 'var(--surface-2)', color: range === r ? 'white' : 'var(--text-muted)', border: `1px solid ${range === r ? 'transparent' : 'var(--border)'}`, font: 'inherit', fontSize: 12, cursor: 'pointer' }}>
-                        {r}g
+                        {r}{t('progress.daySuffix', 'g')}
                       </button>
                     ))}
                   </div>
@@ -430,13 +454,13 @@ export default function ProgressPage() {
                       <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} interval="preserveStartEnd" />
                       <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} domain={['dataMin - 1', 'dataMax + 1']} />
                       <Tooltip content={<CustomTooltip />} />
-                      {target && <ReferenceLine y={target} stroke="var(--orange)" strokeDasharray="4 4" label={{ value: 'Obiettivo', fontSize: 10, fill: 'var(--orange)', position: 'insideTopRight' }} />}
+                      {target && <ReferenceLine y={target} stroke="var(--orange)" strokeDasharray="4 4" label={{ value: t('progress.target', 'Obiettivo'), fontSize: 10, fill: 'var(--orange)', position: 'insideTopRight' }} />}
                       <Line type="monotone" dataKey="peso" stroke="var(--green-main)" strokeWidth={2.5} dot={{ r: 3, fill: 'var(--green-main)' }} activeDot={{ r: 5 }} />
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
                   <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', padding: '0 20px' }}>
-                    Nessuna misurazione negli ultimi {range} giorni.
+                    {t('progress.noMeasurementsRange', { range }, 'Nessuna misurazione negli ultimi {{range}} giorni.')}
                   </div>
                 )}
               </div>
@@ -446,7 +470,7 @@ export default function ProgressPage() {
             {/* History */}
             {weights.length > 0 && (
               <div className="card" style={{ padding: '18px 16px' }}>
-                <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>Storico misurazioni</h3>
+                <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>{t('progress.history', 'Storico misurazioni')}</h3>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {[...weights].reverse().slice(0, isPro ? 10 : 3).map((w, i, arr) => {
                     const prev = arr[i + 1]
@@ -485,7 +509,7 @@ export default function ProgressPage() {
                             <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
                               <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)' }}>{w.weight_kg}</p>
                               <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>kg</p>
-                              {isToday && <span style={{ fontSize: 10, background: 'var(--green-main)', color: 'white', borderRadius: 100, padding: '1px 7px', fontWeight: 700, marginLeft: 2 }}>Oggi</span>}
+                              {isToday && <span style={{ fontSize: 10, background: 'var(--green-main)', color: 'white', borderRadius: 100, padding: '1px 7px', fontWeight: 700, marginLeft: 2 }}>{t('common.today', 'Oggi')}</span>}
                             </div>
                             <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1, textTransform: 'capitalize' }}>
                               {new Date(w.date + 'T12:00:00').toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}
@@ -496,7 +520,7 @@ export default function ProgressPage() {
                                   <div style={{ height: '100%', width: `${distPct}%`, background: 'var(--green-main)', borderRadius: 2, transition: 'width .6s' }} />
                                 </div>
                                 <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                                  {distPct >= 100 ? '✓ obiettivo' : `${Math.abs(w.weight_kg - target).toFixed(1)} kg al goal`}
+                                  {distPct >= 100 ? t('progress.goalReached', '✓ obiettivo') : t('progress.kgToGoal', { value: Math.abs(w.weight_kg - target).toFixed(1) }, '{{value}} kg al goal')}
                                 </span>
                               </div>
                             )}
@@ -520,7 +544,7 @@ export default function ProgressPage() {
                   })}
                 </div>
                 {!isPro && weights.length > 3 && (
-                  <ProGate feature="Storico completo" teaser={`Sblocca tutte le ${weights.length} misurazioni nel piano Pro`}>
+                  <ProGate feature={t('progress.fullHistory', 'Storico completo')} teaser={t('progress.unlockAllMeasurements', { count: weights.length }, 'Sblocca tutte le {{count}} misurazioni nel piano Pro')}>
                     <div />
                   </ProGate>
                 )}
@@ -532,10 +556,10 @@ export default function ProgressPage() {
                 <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                   <Scale size={36} color="var(--green-main)" />
                 </div>
-                <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>Inizia a tracciare i progressi</p>
-                <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 20 }}>Registra il tuo peso ogni settimana per vedere il tuo percorso.</p>
+                <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>{t('progress.startTracking', 'Inizia a tracciare i progressi')}</p>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 20 }}>{t('progress.startTrackingDesc', 'Registra il tuo peso ogni settimana per vedere il tuo percorso.')}</p>
                 <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
-                  <Plus size={16} />Prima misurazione
+                  <Plus size={16} />{t('progress.firstMeasurement', 'Prima misurazione')}
                 </button>
               </div>
             )}
@@ -552,7 +576,7 @@ export default function ProgressPage() {
                 <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--icon-bg-green)', color: 'var(--green-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Ruler size={15} />
                 </div>
-                <h3 style={{ fontSize: 15, fontWeight: 700 }}>Le tue misure</h3>
+                <h3 style={{ fontSize: 15, fontWeight: 700 }}>{t('progress.yourMeasurements', 'Le tue misure')}</h3>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
@@ -565,18 +589,18 @@ export default function ProgressPage() {
                   <div key={m.key}>
                     <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: m.fg, flexShrink: 0 }} />
-                      {m.label} (cm)
+                      {MEASURE_LABELS[m.key]} (cm)
                     </label>
-                    <input type="number" className="input-field" placeholder={`es. ${ph}`} value={val} onChange={e => set(e.target.value)} inputMode="decimal" step="0.1" />
+                    <input type="number" className="input-field" placeholder={t('progress.examplePlaceholder', { value: ph }, 'es. {{value}}')} value={val} onChange={e => set(e.target.value)} inputMode="decimal" step="0.1" />
                   </div>
                 ))}
               </div>
               <div style={{ marginBottom: 10 }}>
-                <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Data</label>
+                <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>{t('progress.dateLabel', 'Data')}</label>
                 <input type="date" className="input-field" value={measureDate} onChange={e => setMeasureDate(e.target.value)} max={new Date().toISOString().split('T')[0]} />
               </div>
               <button className="btn btn-primary btn-full" onClick={saveMeasure} disabled={savingMeasure}>
-                {savingMeasure ? 'Salvataggio...' : 'Salva misure'}
+                {savingMeasure ? t('progress.saving', 'Salvataggio...') : t('progress.saveMeasures', 'Salva misure')}
               </button>
               {measureMsg && (
                 <p style={{ fontSize: 13, marginTop: 8, color: measureMsg.includes('✅') ? 'var(--green-main)' : 'var(--red)' }}>
@@ -587,16 +611,16 @@ export default function ProgressPage() {
               {/* Trend girovita/fianchi */}
               {bodyMeasurements.filter(m => m.waist_cm).length > 1 && (
                 <div style={{ marginTop: 20 }}>
-                  <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Trend girovita{bodyMeasurements.some(m => m.hips_cm) ? ' e fianchi' : ''}</h4>
+                  <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>{bodyMeasurements.some(m => m.hips_cm) ? t('progress.waistHipsTrend', 'Trend girovita e fianchi') : t('progress.waistTrend', 'Trend girovita')}</h4>
                   <ResponsiveContainer width="100%" height={120}>
                     <LineChart data={[...bodyMeasurements].filter(m => m.waist_cm).reverse()} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
                       <XAxis dataKey="date" tick={{ fontSize: 9, fill: 'var(--text-muted)' }} tickFormatter={d => d ? d.slice(5) : ''} />
                       <YAxis tick={{ fontSize: 9, fill: 'var(--text-muted)' }} domain={['dataMin - 2', 'dataMax + 2']} />
                       <Tooltip formatter={(v, n) => [v + ' cm', n]} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
-                      <Line type="monotone" dataKey="waist_cm" name="Girovita" stroke="var(--green-main)" dot={{ r: 3 }} strokeWidth={2} />
+                      <Line type="monotone" dataKey="waist_cm" name={MEASURE_LABELS.waist_cm} stroke="var(--green-main)" dot={{ r: 3 }} strokeWidth={2} />
                       {bodyMeasurements.some(m => m.hips_cm) && (
-                        <Line type="monotone" dataKey="hips_cm" name="Fianchi" stroke="var(--blue)" dot={{ r: 3 }} strokeWidth={2} connectNulls />
+                        <Line type="monotone" dataKey="hips_cm" name={MEASURE_LABELS.hips_cm} stroke="var(--blue)" dot={{ r: 3 }} strokeWidth={2} connectNulls />
                       )}
                     </LineChart>
                   </ResponsiveContainer>
@@ -606,7 +630,7 @@ export default function ProgressPage() {
               {/* Storico */}
               {bodyMeasurements.length > 0 && (
                 <div style={{ marginTop: 16 }}>
-                  <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Ultime misure</h4>
+                  <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{t('progress.lastMeasures', 'Ultime misure')}</h4>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {bodyMeasurements.map((m, i) => (
                       <div key={m.id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 10, fontSize: 12, flexWrap: 'wrap', gap: 6 }}>
@@ -614,7 +638,7 @@ export default function ProgressPage() {
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           {MEASURE_META.map(meta => m[meta.key] ? (
                             <span key={meta.key} style={{ fontSize: 11, background: meta.bg, color: meta.fg, borderRadius: 100, padding: '2px 8px', fontWeight: 500 }}>
-                              {meta.short} {m[meta.key]}
+                              {MEASURE_SHORTS[meta.key]} {m[meta.key]}
                             </span>
                           ) : null)}
                         </div>
@@ -629,14 +653,14 @@ export default function ProgressPage() {
             {!cartellaId ? (
               <div className="card" style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)' }}>
                 <p style={{ fontSize: 28, marginBottom: 8 }}>📏</p>
-                <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Nessun dietista collegato</p>
-                <p style={{ fontSize: 12 }}>Le misure antropometriche vengono inserite dal tuo dietista durante le visite.</p>
+                <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{t('progress.noDietitianLinked', 'Nessun dietista collegato')}</p>
+                <p style={{ fontSize: 12 }}>{t('progress.anthropometricInfo', 'Le misure antropometriche vengono inserite dal tuo dietista durante le visite.')}</p>
               </div>
             ) : schede.length === 0 ? (
               <div className="card" style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)' }}>
                 <p style={{ fontSize: 28, marginBottom: 8 }}>📏</p>
-                <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Nessuna misurazione disponibile</p>
-                <p style={{ fontSize: 12 }}>Il tuo dietista non ha ancora condiviso misure con te.</p>
+                <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{t('progress.noMeasurementsAvailable', 'Nessuna misurazione disponibile')}</p>
+                <p style={{ fontSize: 12 }}>{t('progress.noMeasurementsShared', 'Il tuo dietista non ha ancora condiviso misure con te.')}</p>
               </div>
             ) : (
               <>
@@ -650,15 +674,15 @@ export default function ProgressPage() {
                   }
                   return (
                     <div className="card" style={{ padding: 16 }}>
-                      <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Rilevate dal dietista · {new Date(last.saved_at).toLocaleDateString('it-IT')}</h3>
+                      <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>{t('progress.detectedByDietitian', { date: new Date(last.saved_at).toLocaleDateString('it-IT') }, 'Rilevate dal dietista · {{date}}')}</h3>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: 8 }}>
                         {[
-                          { key: 'vita', label: 'Vita', unit: 'cm', icon: '📐' },
-                          { key: 'fianchi', label: 'Fianchi', unit: 'cm', icon: '📐' },
-                          { key: 'braccio', label: 'Braccio', unit: 'cm', icon: '💪' },
-                          { key: 'plica', label: 'Plica', unit: 'mm', icon: '📏' },
-                          { key: 'massa_grassa_pct', label: '% Grasso', unit: '%', icon: '🔴' },
-                          { key: 'massa_magra', label: 'Massa magra', unit: 'kg', icon: '💪' },
+                          { key: 'vita', label: MEASURE_SHORTS.waist_cm, unit: 'cm', icon: '📐' },
+                          { key: 'fianchi', label: MEASURE_SHORTS.hips_cm, unit: 'cm', icon: '📐' },
+                          { key: 'braccio', label: MEASURE_SHORTS.arm_cm, unit: 'cm', icon: '💪' },
+                          { key: 'plica', label: t('progress.measure.plica', 'Plica'), unit: 'mm', icon: '📏' },
+                          { key: 'massa_grassa_pct', label: t('progress.metric.fatPercent', '% Grasso'), unit: '%', icon: '🔴' },
+                          { key: 'massa_magra', label: t('progress.measure.leanMassKg', 'Massa magra'), unit: 'kg', icon: '💪' },
                         ].filter(m => last[m.key]).map(m => (
                           <div key={m.key} style={{ background: 'var(--surface-2)', borderRadius: 10, padding: '10px 8px', textAlign: 'center' }}>
                             <div style={{ fontSize: 16 }}>{m.icon}</div>
@@ -673,9 +697,9 @@ export default function ProgressPage() {
                 })()}
                 {/* Chart */}
                 {schede.length > 1 && (
-                  <ProGate feature="Grafico circonferenze" teaser="Visualizza l'andamento delle tue misure nel tempo">
+                  <ProGate feature={t('progress.circumferenceChartFeature', 'Grafico circonferenze')} teaser={t('progress.circumferenceChartTeaser', "Visualizza l'andamento delle tue misure nel tempo")}>
                   <div className="card" style={{ padding: '18px 12px 12px' }}>
-                    <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, padding: '0 6px' }}>📏 Andamento circonferenze</h3>
+                    <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, padding: '0 6px' }}>📏 {t('progress.circumferenceTrend', 'Andamento circonferenze')}</h3>
                     <ResponsiveContainer width="100%" height={200}>
                       <LineChart data={schede.map(s => ({
                         data: new Date(s.saved_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }),
@@ -685,9 +709,9 @@ export default function ProgressPage() {
                         <XAxis dataKey="data" tick={{ fontSize: 9, fill: 'var(--text-muted)' }} interval="preserveStartEnd" />
                         <YAxis tick={{ fontSize: 9, fill: 'var(--text-muted)' }} domain={['dataMin - 2', 'dataMax + 2']} />
                         <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid var(--border)' }} />
-                        {schede.some(s => s.vita) && <Line type="monotone" dataKey="vita" name="Vita (cm)" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />}
-                        {schede.some(s => s.fianchi) && <Line type="monotone" dataKey="fianchi" name="Fianchi (cm)" stroke="#ec4899" strokeWidth={2} dot={{ r: 3 }} />}
-                        {schede.some(s => s.braccio) && <Line type="monotone" dataKey="braccio" name="Braccio (cm)" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />}
+                        {schede.some(s => s.vita) && <Line type="monotone" dataKey="vita" name={t('progress.series.waistCm', 'Vita (cm)')} stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />}
+                        {schede.some(s => s.fianchi) && <Line type="monotone" dataKey="fianchi" name={t('progress.series.hipsCm', 'Fianchi (cm)')} stroke="#ec4899" strokeWidth={2} dot={{ r: 3 }} />}
+                        {schede.some(s => s.braccio) && <Line type="monotone" dataKey="braccio" name={t('progress.series.armCm', 'Braccio (cm)')} stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />}
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -695,11 +719,11 @@ export default function ProgressPage() {
                 )}
                 {/* History table */}
                 <div className="card" style={{ padding: '16px' }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Storico misure</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>{t('progress.measureHistory', 'Storico misure')}</h3>
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                       <thead><tr style={{ borderBottom: '1.5px solid var(--border)' }}>
-                        {['Data','Vita','Fianchi','Braccio','Plica','%Grasso'].map(h => (
+                        {[t('progress.dateLabel', 'Data'), MEASURE_SHORTS.waist_cm, MEASURE_SHORTS.hips_cm, MEASURE_SHORTS.arm_cm, t('progress.measure.plica', 'Plica'), t('progress.table.fatPctNoSpace', '%Grasso')].map(h => (
                           <th key={h} style={{ padding: '6px 8px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600, fontSize: 11 }}>{h}</th>
                         ))}
                       </tr></thead>
@@ -729,14 +753,14 @@ export default function ProgressPage() {
             {!cartellaId ? (
               <div className="card" style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)' }}>
                 <p style={{ fontSize: 28, marginBottom: 8 }}>⚡</p>
-                <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Nessun dietista collegato</p>
-                <p style={{ fontSize: 12 }}>I dati BIA vengono inseriti dal tuo dietista durante le visite.</p>
+                <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{t('progress.noDietitianLinked', 'Nessun dietista collegato')}</p>
+                <p style={{ fontSize: 12 }}>{t('progress.bia.info', 'I dati BIA vengono inseriti dal tuo dietista durante le visite.')}</p>
               </div>
             ) : biaData.length === 0 ? (
               <div className="card" style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)' }}>
                 <p style={{ fontSize: 28, marginBottom: 8 }}>⚡</p>
-                <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Nessuna misurazione BIA disponibile</p>
-                <p style={{ fontSize: 12 }}>Il tuo dietista non ha ancora condiviso dati BIA con te.</p>
+                <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{t('progress.bia.noData', 'Nessuna misurazione BIA disponibile')}</p>
+                <p style={{ fontSize: 12 }}>{t('progress.bia.noDataShared', 'Il tuo dietista non ha ancora condiviso dati BIA con te.')}</p>
               </div>
             ) : (
               <>
@@ -746,17 +770,17 @@ export default function ProgressPage() {
                   const r1b = v => v != null ? parseFloat(v).toFixed(1) : null
 
                   const allMetrics = [
-                    { key: 'bf_pct',      label: '% Grasso',    unit: '%',     icon: '🔴', col: '#dc2626', bg: '#fee2e2', good: 'down' },
-                    { key: 'ffm_kg',      label: 'Massa Magra', unit: ' kg',   icon: '💪', col: '#1d4ed8', bg: '#dbeafe', good: 'up' },
-                    { key: 'fm_kg',       label: 'Massa Grassa',unit: ' kg',   icon: '📊', col: '#ea580c', bg: '#fff7ed', good: 'down' },
-                    { key: 'tbw',         label: 'Acqua Tot.',  unit: ' L',    icon: '💧', col: '#0369a1', bg: '#e0f2fe', good: null },
-                    { key: 'icw',         label: 'Intra (ICW)', unit: ' L',    icon: '🫀', col: '#1d4ed8', bg: '#eff6ff', good: null },
-                    { key: 'ecw',         label: 'Extra (ECW)', unit: ' L',    icon: '💦', col: '#0e7490', bg: '#ecfeff', good: null },
+                    { key: 'bf_pct',      label: t('progress.metric.fatPercent', '% Grasso'),    unit: '%',     icon: '🔴', col: '#dc2626', bg: '#fee2e2', good: 'down' },
+                    { key: 'ffm_kg',      label: t('progress.metric.leanMass', 'Massa Magra'), unit: ' kg',   icon: '💪', col: '#1d4ed8', bg: '#dbeafe', good: 'up' },
+                    { key: 'fm_kg',       label: t('progress.metric.fatMass', 'Massa Grassa'),unit: ' kg',   icon: '📊', col: '#ea580c', bg: '#fff7ed', good: 'down' },
+                    { key: 'tbw',         label: t('progress.metric.totalWater', 'Acqua Tot.'),  unit: ' L',    icon: '💧', col: '#0369a1', bg: '#e0f2fe', good: null },
+                    { key: 'icw',         label: t('progress.metric.icw', 'Intra (ICW)'), unit: ' L',    icon: '🫀', col: '#1d4ed8', bg: '#eff6ff', good: null },
+                    { key: 'ecw',         label: t('progress.metric.ecw', 'Extra (ECW)'), unit: ' L',    icon: '💦', col: '#0e7490', bg: '#ecfeff', good: null },
                     { key: 'bcm',         label: 'BCM',         unit: ' kg',   icon: '⚡', col: '#7c3aed', bg: '#f5f3ff', good: 'up' },
-                    { key: 'muscle',      label: 'Muscolo',     unit: ' kg',   icon: '🏋️', col: '#0891b2', bg: '#ecfeff', good: 'up' },
-                    { key: 'bone',        label: 'Massa Ossea', unit: ' kg',   icon: '🦴', col: '#64748b', bg: '#f1f5f9', good: null },
+                    { key: 'muscle',      label: t('progress.metric.muscle', 'Muscolo'),     unit: ' kg',   icon: '🏋️', col: '#0891b2', bg: '#ecfeff', good: 'up' },
+                    { key: 'bone',        label: t('progress.metric.bone', 'Massa Ossea'), unit: ' kg',   icon: '🦴', col: '#64748b', bg: '#f1f5f9', good: null },
                     { key: 'ffmi',        label: 'FFMI',        unit: ' kg/m²',icon: '📐', col: '#059669', bg: '#f0fdf4', good: 'up' },
-                    { key: 'angolo_fase', label: 'Ang. di Fase',unit: '°',     icon: '🎯', col: '#15803d', bg: '#f0fdf4', good: 'up' },
+                    { key: 'angolo_fase', label: t('progress.metric.phaseAngleAbbr', 'Ang. di Fase'),unit: '°',     icon: '🎯', col: '#15803d', bg: '#f0fdf4', good: 'up' },
                   ].filter(m => last[m.key] != null)
 
                   const getDelta = (field) => {
@@ -774,17 +798,17 @@ export default function ProgressPage() {
                   const ecwVal = last.ecw != null ? last.ecw : (last.tbw ? last.tbw * 0.395 : null)
                   const ecwRatio = last.tbw && ecwVal ? ecwVal / last.tbw : null
                   const ecwColor = ecwRatio == null ? '#64748b' : ecwRatio < 0.36 ? '#1d4ed8' : ecwRatio < 0.39 ? '#16a34a' : ecwRatio < 0.41 ? '#f59e0b' : '#dc2626'
-                  const ecwStatus = ecwRatio == null ? '' : ecwRatio < 0.36 ? 'Disidratazione' : ecwRatio < 0.39 ? 'Normale' : ecwRatio < 0.41 ? 'Ritenzione idrica' : 'Edema'
+                  const ecwStatus = ecwRatio == null ? '' : ecwRatio < 0.36 ? t('progress.status.dehydration', 'Disidratazione') : ecwRatio < 0.39 ? t('progress.range.normal', 'Normale') : ecwRatio < 0.41 ? t('progress.status.waterRetention', 'Ritenzione idrica') : t('progress.range.edema', 'Edema')
 
                   return (
                     <>
                       {/* Header */}
                       <div className="card" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
-                          <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>⚡ Ultima BIA</h3>
+                          <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>⚡ {t('progress.bia.latest', 'Ultima BIA')}</h3>
                           <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(last.data_misura).toLocaleDateString('it-IT')}{last.peso ? ` · ${r1b(last.peso)} kg` : ''}</p>
                         </div>
-                        {prev && <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'right' }}>vs. {new Date(prev.data_misura).toLocaleDateString('it-IT')}</p>}
+                        {prev && <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'right' }}>{t('progress.vsLabel', 'vs.')} {new Date(prev.data_misura).toLocaleDateString('it-IT')}</p>}
                       </div>
 
                       {/* Metric tiles */}
@@ -823,7 +847,7 @@ export default function ProgressPage() {
                         const ffmPct = total > 0 ? (ffmVal / total * 100).toFixed(1) : 0
                         return (
                           <div className="card" style={{ padding: 16 }}>
-                            <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>📊 Composizione corporea — {r1b(last.peso)} kg</h3>
+                            <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>📊 {t('progress.bodyComposition', 'Composizione corporea')} — {r1b(last.peso)} kg</h3>
                             <div style={{ height: 26, borderRadius: 13, overflow: 'hidden', display: 'flex', marginBottom: 10 }}>
                               <div style={{ width: `${fmPct}%`, background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 {parseFloat(fmPct) > 10 && <span style={{ fontSize: 9, color: 'white', fontWeight: 700 }}>{fmPct}%</span>}
@@ -833,8 +857,8 @@ export default function ProgressPage() {
                               </div>
                             </div>
                             <div style={{ display: 'flex', gap: 14, fontSize: 11, flexWrap: 'wrap' }}>
-                              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#ef4444', display: 'inline-block' }}/>Massa Grassa {r1b(fmVal)} kg ({fmPct}%)</span>
-                              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#1d4ed8', display: 'inline-block' }}/>Massa Magra {r1b(ffmVal)} kg ({ffmPct}%)</span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#ef4444', display: 'inline-block' }}/>{t('progress.metric.fatMass', 'Massa Grassa')} {r1b(fmVal)} kg ({fmPct}%)</span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#1d4ed8', display: 'inline-block' }}/>{t('progress.metric.leanMass', 'Massa Magra')} {r1b(ffmVal)} kg ({ffmPct}%)</span>
                             </div>
                           </div>
                         )
@@ -843,11 +867,11 @@ export default function ProgressPage() {
                       {/* Water distribution */}
                       {showWater && (
                         <div className="card" style={{ padding: 16 }}>
-                          <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>💧 Distribuzione Idrica — {r1b(last.tbw)} L TBW</h3>
+                          <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>💧 {t('progress.waterDistribution', 'Distribuzione Idrica')} — {r1b(last.tbw)} L TBW</h3>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                             {[
-                              { label: 'ICW — Intracellulare', val: icwVal, col: '#1d4ed8' },
-                              { label: 'ECW — Extracellulare', val: ecwVal, col: ecwRatio > 0.39 ? '#f59e0b' : '#0ea5e9' },
+                              { label: t('progress.icwLabel', 'ICW — Intracellulare'), val: icwVal, col: '#1d4ed8' },
+                              { label: t('progress.ecwLabel', 'ECW — Extracellulare'), val: ecwVal, col: ecwRatio > 0.39 ? '#f59e0b' : '#0ea5e9' },
                             ].map(w => w.val != null && (
                               <div key={w.label}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 3 }}>
@@ -873,14 +897,29 @@ export default function ProgressPage() {
                       {(() => {
                         const sesso = last.sesso || 'F'
                         const isMale = sesso === 'M'
+                        const lblEssential = t('progress.range.essential', 'Essenziale')
+                        const lblAthlete = t('progress.range.athlete', 'Atleta')
+                        const lblFitness = t('progress.range.fitness', 'Fitness')
+                        const lblNormal = t('progress.range.normal', 'Normale')
+                        const lblOverweight = t('progress.range.overweight', 'Sovrappeso')
+                        const lblObesity = t('progress.range.obesity', 'Obesità')
+                        const lblCritical = t('progress.range.critical', 'Critico')
+                        const lblReduced = t('progress.range.reduced', 'Ridotto')
+                        const lblExcellent = t('progress.range.excellent', 'Ottimo')
+                        const lblLow = t('progress.range.low', 'Basso')
+                        const lblGood = t('progress.range.good', 'Buono')
+                        const lblHigh = t('progress.range.high', 'Elevato')
+                        const lblDehydrated = t('progress.range.dehydrated', 'Disidrat.')
+                        const lblRetention = t('progress.range.retention', 'Ritenzione')
+                        const lblEdema = t('progress.range.edema', 'Edema')
                         const bfRanges = isMale
-                          ? [{ from:0,to:6,label:'Essenziale',col:'#7c3aed',bg:'#ede9fe' },{ from:6,to:14,label:'Atleta',col:'#1d4ed8',bg:'#dbeafe' },{ from:14,to:18,label:'Fitness',col:'#16a34a',bg:'#dcfce7' },{ from:18,to:25,label:'Normale',col:'#15803d',bg:'#f0fdf4' },{ from:25,to:30,label:'Sovrappeso',col:'#f59e0b',bg:'#fef3c7' },{ from:30,to:50,label:'Obesità',col:'#dc2626',bg:'#fee2e2' }]
-                          : [{ from:0,to:14,label:'Essenziale',col:'#7c3aed',bg:'#ede9fe' },{ from:14,to:21,label:'Atleta',col:'#1d4ed8',bg:'#dbeafe' },{ from:21,to:25,label:'Fitness',col:'#16a34a',bg:'#dcfce7' },{ from:25,to:32,label:'Normale',col:'#15803d',bg:'#f0fdf4' },{ from:32,to:37,label:'Sovrappeso',col:'#f59e0b',bg:'#fef3c7' },{ from:37,to:55,label:'Obesità',col:'#dc2626',bg:'#fee2e2' }]
-                        const afRanges = [{ from:0,to:4,label:'Critico',col:'#dc2626',bg:'#fee2e2' },{ from:4,to:5,label:'Ridotto',col:'#f59e0b',bg:'#fef3c7' },{ from:5,to:7,label:'Normale',col:'#16a34a',bg:'#dcfce7' },{ from:7,to:12,label:'Ottimo',col:'#1d4ed8',bg:'#dbeafe' }]
+                          ? [{ from:0,to:6,label:lblEssential,col:'#7c3aed',bg:'#ede9fe' },{ from:6,to:14,label:lblAthlete,col:'#1d4ed8',bg:'#dbeafe' },{ from:14,to:18,label:lblFitness,col:'#16a34a',bg:'#dcfce7' },{ from:18,to:25,label:lblNormal,col:'#15803d',bg:'#f0fdf4' },{ from:25,to:30,label:lblOverweight,col:'#f59e0b',bg:'#fef3c7' },{ from:30,to:50,label:lblObesity,col:'#dc2626',bg:'#fee2e2' }]
+                          : [{ from:0,to:14,label:lblEssential,col:'#7c3aed',bg:'#ede9fe' },{ from:14,to:21,label:lblAthlete,col:'#1d4ed8',bg:'#dbeafe' },{ from:21,to:25,label:lblFitness,col:'#16a34a',bg:'#dcfce7' },{ from:25,to:32,label:lblNormal,col:'#15803d',bg:'#f0fdf4' },{ from:32,to:37,label:lblOverweight,col:'#f59e0b',bg:'#fef3c7' },{ from:37,to:55,label:lblObesity,col:'#dc2626',bg:'#fee2e2' }]
+                        const afRanges = [{ from:0,to:4,label:lblCritical,col:'#dc2626',bg:'#fee2e2' },{ from:4,to:5,label:lblReduced,col:'#f59e0b',bg:'#fef3c7' },{ from:5,to:7,label:lblNormal,col:'#16a34a',bg:'#dcfce7' },{ from:7,to:12,label:lblExcellent,col:'#1d4ed8',bg:'#dbeafe' }]
                         const ffmiRanges = isMale
-                          ? [{ from:0,to:18,label:'Basso',col:'#f59e0b',bg:'#fef3c7' },{ from:18,to:20,label:'Normale',col:'#16a34a',bg:'#dcfce7' },{ from:20,to:25,label:'Buono',col:'#15803d',bg:'#f0fdf4' },{ from:25,to:30,label:'Elevato',col:'#1d4ed8',bg:'#dbeafe' }]
-                          : [{ from:0,to:14,label:'Basso',col:'#f59e0b',bg:'#fef3c7' },{ from:14,to:17,label:'Normale',col:'#16a34a',bg:'#dcfce7' },{ from:17,to:20,label:'Buono',col:'#15803d',bg:'#f0fdf4' },{ from:20,to:26,label:'Elevato',col:'#1d4ed8',bg:'#dbeafe' }]
-                        const ecwRanges = [{ from:0,to:36,label:'Disidrat.',col:'#1d4ed8',bg:'#dbeafe' },{ from:36,to:39,label:'Normale',col:'#16a34a',bg:'#dcfce7' },{ from:39,to:41,label:'Ritenzione',col:'#f59e0b',bg:'#fef3c7' },{ from:41,to:60,label:'Edema',col:'#dc2626',bg:'#fee2e2' }]
+                          ? [{ from:0,to:18,label:lblLow,col:'#f59e0b',bg:'#fef3c7' },{ from:18,to:20,label:lblNormal,col:'#16a34a',bg:'#dcfce7' },{ from:20,to:25,label:lblGood,col:'#15803d',bg:'#f0fdf4' },{ from:25,to:30,label:lblHigh,col:'#1d4ed8',bg:'#dbeafe' }]
+                          : [{ from:0,to:14,label:lblLow,col:'#f59e0b',bg:'#fef3c7' },{ from:14,to:17,label:lblNormal,col:'#16a34a',bg:'#dcfce7' },{ from:17,to:20,label:lblGood,col:'#15803d',bg:'#f0fdf4' },{ from:20,to:26,label:lblHigh,col:'#1d4ed8',bg:'#dbeafe' }]
+                        const ecwRanges = [{ from:0,to:36,label:lblDehydrated,col:'#1d4ed8',bg:'#dbeafe' },{ from:36,to:39,label:lblNormal,col:'#16a34a',bg:'#dcfce7' },{ from:39,to:41,label:lblRetention,col:'#f59e0b',bg:'#fef3c7' },{ from:41,to:60,label:lblEdema,col:'#dc2626',bg:'#fee2e2' }]
 
                         const makeGauge = (label, value, unit, ranges, min, max) => {
                           if (value == null) return null
@@ -914,12 +953,12 @@ export default function ProgressPage() {
                         return (
                           <div className="card" style={{ padding: 16 }}>
                             <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
-                              🎯 Posizione rispetto ai valori di riferimento {sesso === 'M' ? '♂' : '♀'}
+                              🎯 {t('progress.referencePosition', 'Posizione rispetto ai valori di riferimento')} {sesso === 'M' ? '♂' : '♀'}
                             </h3>
-                            {makeGauge('Massa Grassa', last.bf_pct, '%', bfRanges, 0, 50)}
-                            {makeGauge('Angolo di Fase', last.angolo_fase, '°', afRanges, 0, 12)}
+                            {makeGauge(t('progress.metric.fatMass', 'Massa Grassa'), last.bf_pct, '%', bfRanges, 0, 50)}
+                            {makeGauge(t('progress.metric.phaseAngle', 'Angolo di Fase'), last.angolo_fase, '°', afRanges, 0, 12)}
                             {last.ffmi != null && makeGauge('FFMI', last.ffmi, ' kg/m²', ffmiRanges, 0, isMale ? 30 : 26)}
-                            {ecwRatio != null && makeGauge('Idratazione ECW/TBW', ecwRatio * 100, '%', ecwRanges, 0, 60)}
+                            {ecwRatio != null && makeGauge(t('progress.metric.hydrationEcwTbw', 'Idratazione ECW/TBW'), ecwRatio * 100, '%', ecwRanges, 0, 60)}
                           </div>
                         )
                       })()}
@@ -937,12 +976,12 @@ export default function ProgressPage() {
                           if (last.bf_pct >= optLow && last.bf_pct <= optHigh) sc = 100
                           else if (last.bf_pct < optLow) sc = Math.max(20, 100 - (optLow - last.bf_pct) * 3)
                           else sc = Math.max(5, 100 - (last.bf_pct - optHigh) / (worst - optHigh) * 95)
-                          rd.push({ subject: '% Grasso', Tu: Math.round(sc), Rif: 80 })
+                          rd.push({ subject: t('progress.metric.fatPercent', '% Grasso'), Tu: Math.round(sc), Rif: 80 })
                         }
 
                         // Angolo di Fase: 7° = 100%
                         if (last.angolo_fase != null) {
-                          rd.push({ subject: 'Ang. Fase', Tu: Math.min(100, Math.max(5, Math.round(last.angolo_fase / 7 * 100))), Rif: 71 })
+                          rd.push({ subject: t('progress.radar.phaseAngle', 'Ang. Fase'), Tu: Math.min(100, Math.max(5, Math.round(last.angolo_fase / 7 * 100))), Rif: 71 })
                         }
 
                         // FFMI: midpoint "Buono" come riferimento
@@ -955,13 +994,13 @@ export default function ProgressPage() {
                         if (last.tbw != null && last.peso) {
                           const tbwPct = last.tbw / last.peso * 100
                           const refTBW = isMale ? 62 : 55
-                          rd.push({ subject: 'Idratazione', Tu: Math.min(100, Math.max(5, Math.round(tbwPct / refTBW * 100))), Rif: 87 })
+                          rd.push({ subject: t('progress.hydration', 'Idratazione'), Tu: Math.min(100, Math.max(5, Math.round(tbwPct / refTBW * 100))), Rif: 87 })
                         }
 
                         // Bilancio idrico ECW/TBW
                         if (ecwRatio != null) {
                           const sc = ecwRatio < 0.36 ? 55 : ecwRatio < 0.39 ? 92 : ecwRatio < 0.41 ? 62 : 30
-                          rd.push({ subject: 'Bil. Idrico', Tu: sc, Rif: 92 })
+                          rd.push({ subject: t('progress.radar.waterBalance', 'Bil. Idrico'), Tu: sc, Rif: 92 })
                         }
 
                         // BCM / FFM qualità cellulare
@@ -971,19 +1010,19 @@ export default function ProgressPage() {
 
                         if (rd.length < 3) return null
                         return (
-                          <ProGate feature="Grafico radar BIA" teaser="Visualizza il tuo profilo corporeo vs popolazione di riferimento">
+                          <ProGate feature={t('progress.radarChartFeature', 'Grafico radar BIA')} teaser={t('progress.radarChartTeaser', 'Visualizza il tuo profilo corporeo vs popolazione di riferimento')}>
                             <div className="card" style={{ padding: '16px 12px 8px' }}>
-                              <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 2, padding: '0 4px' }}>🕸️ Profilo corporeo vs Riferimento {isMale ? '♂' : '♀'}</h3>
+                              <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 2, padding: '0 4px' }}>🕸️ {t('progress.bodyProfileVsReference', 'Profilo corporeo vs Riferimento')} {isMale ? '♂' : '♀'}</h3>
                               <p style={{ fontSize: 10, color: 'var(--text-muted)', padding: '0 4px', marginBottom: 4 }}>
-                                Blu = il tuo profilo · Grigio = adulto sano di riferimento · Scala 0–100
+                                {t('progress.radarLegend', 'Blu = il tuo profilo · Grigio = adulto sano di riferimento · Scala 0–100')}
                               </p>
                               <ResponsiveContainer width="100%" height={270}>
                                 <RadarChart data={rd} margin={{ top: 10, right: 40, bottom: 10, left: 40 }}>
                                   <PolarGrid stroke="var(--border)" />
                                   <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
                                   <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 8, fill: 'var(--text-muted)' }} tickCount={4} />
-                                  <Radar name="Tu" dataKey="Tu" stroke="#1d4ed8" fill="#1d4ed8" fillOpacity={0.22} dot={{ r: 3, fill: '#1d4ed8' }} />
-                                  <Radar name="Riferimento" dataKey="Rif" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.08} strokeDasharray="5 5" />
+                                  <Radar name={t('progress.you', 'Tu')} dataKey="Tu" stroke="#1d4ed8" fill="#1d4ed8" fillOpacity={0.22} dot={{ r: 3, fill: '#1d4ed8' }} />
+                                  <Radar name={t('progress.reference', 'Riferimento')} dataKey="Rif" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.08} strokeDasharray="5 5" />
                                   <Legend iconSize={8} wrapperStyle={{ fontSize: 10 }} />
                                   <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid var(--border)' }} formatter={(v) => [v + ' / 100', '']} />
                                 </RadarChart>
@@ -996,11 +1035,11 @@ export default function ProgressPage() {
                       {/* ── Confronto vs misura precedente ── */}
                       {prev && (() => {
                         const compMetrics = [
-                          { key: 'bf_pct', label: '% Grasso', col: '#dc2626' },
-                          { key: 'ffm_kg', label: 'M.Magra kg', col: '#1d4ed8' },
-                          { key: 'fm_kg', label: 'M.Grassa kg', col: '#ea580c' },
-                          { key: 'tbw', label: 'Acqua L', col: '#0369a1' },
-                          { key: 'angolo_fase', label: 'Ang. Fase°', col: '#15803d' },
+                          { key: 'bf_pct', label: t('progress.metric.fatPercent', '% Grasso'), col: '#dc2626' },
+                          { key: 'ffm_kg', label: t('progress.metric.leanMassKgShort', 'M.Magra kg'), col: '#1d4ed8' },
+                          { key: 'fm_kg', label: t('progress.metric.fatMassKgShort', 'M.Grassa kg'), col: '#ea580c' },
+                          { key: 'tbw', label: t('progress.metric.waterL', 'Acqua L'), col: '#0369a1' },
+                          { key: 'angolo_fase', label: t('progress.metric.phaseAngleDeg', 'Ang. Fase°'), col: '#15803d' },
                         ].filter(m => last[m.key] != null && prev[m.key] != null)
                         if (!compMetrics.length) return null
 
@@ -1011,9 +1050,9 @@ export default function ProgressPage() {
                         }))
 
                         return (
-                          <ProGate feature="Grafico confronto BIA" teaser="Visualizza il confronto grafico tra le misurazioni">
+                          <ProGate feature={t('progress.comparisonChartFeature', 'Grafico confronto BIA')} teaser={t('progress.comparisonChartTeaser', 'Visualizza il confronto grafico tra le misurazioni')}>
                             <div className="card" style={{ padding: '16px 12px 12px' }}>
-                              <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, padding: '0 4px' }}>📊 Confronto con misura precedente</h3>
+                              <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, padding: '0 4px' }}>📊 {t('progress.comparisonWithPrevious', 'Confronto con misura precedente')}</h3>
                               <p style={{ fontSize: 11, color: 'var(--text-muted)', padding: '0 4px', marginBottom: 10 }}>
                                 {new Date(prev.data_misura).toLocaleDateString('it-IT')} → {new Date(last.data_misura).toLocaleDateString('it-IT')}
                               </p>
@@ -1024,8 +1063,8 @@ export default function ProgressPage() {
                                   <YAxis tick={{ fontSize: 9, fill: 'var(--text-muted)' }} />
                                   <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid var(--border)' }} />
                                   <Legend iconSize={8} wrapperStyle={{ fontSize: 10, paddingTop: 4 }} />
-                                  <Bar dataKey="Precedente" fill="#94a3b8" radius={[3,3,0,0]} />
-                                  <Bar dataKey="Attuale" fill="#1d4ed8" radius={[3,3,0,0]} />
+                                  <Bar dataKey="Precedente" name={t('progress.previous', 'Precedente')} fill="#94a3b8" radius={[3,3,0,0]} />
+                                  <Bar dataKey="Attuale" name={t('progress.current', 'Attuale')} fill="#1d4ed8" radius={[3,3,0,0]} />
                                 </BarChart>
                               </ResponsiveContainer>
                             </div>
@@ -1035,26 +1074,26 @@ export default function ProgressPage() {
 
                       {/* ── Trend nel tempo ── */}
                       {biaData.length > 1 && (
-                        <ProGate feature="Grafici BIA nel tempo" teaser="Visualizza l'andamento completo della composizione corporea">
+                        <ProGate feature={t('progress.timeChartFeature', 'Grafici BIA nel tempo')} teaser={t('progress.timeChartTeaser', "Visualizza l'andamento completo della composizione corporea")}>
                           <div className="card" style={{ padding: '16px 12px 12px' }}>
-                            <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, padding: '0 4px' }}>📈 Andamento nel tempo</h3>
+                            <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, padding: '0 4px' }}>📈 {t('progress.trendOverTime', 'Andamento nel tempo')}</h3>
                             <ResponsiveContainer width="100%" height={200}>
                               <LineChart data={biaData.map(b => ({
                                 d: new Date(b.data_misura).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }),
-                                'Grasso %': b.bf_pct != null ? parseFloat(parseFloat(b.bf_pct).toFixed(1)) : null,
-                                'Massa magra kg': b.ffm_kg != null ? parseFloat(parseFloat(b.ffm_kg).toFixed(1)) : null,
-                                'Acqua L': b.tbw != null ? parseFloat(parseFloat(b.tbw).toFixed(1)) : null,
-                                'Ang. Fase°': b.angolo_fase != null ? parseFloat(parseFloat(b.angolo_fase).toFixed(1)) : null,
+                                grassoPct: b.bf_pct != null ? parseFloat(parseFloat(b.bf_pct).toFixed(1)) : null,
+                                massaMagraKg: b.ffm_kg != null ? parseFloat(parseFloat(b.ffm_kg).toFixed(1)) : null,
+                                acquaL: b.tbw != null ? parseFloat(parseFloat(b.tbw).toFixed(1)) : null,
+                                angFaseDeg: b.angolo_fase != null ? parseFloat(parseFloat(b.angolo_fase).toFixed(1)) : null,
                               }))} margin={{ top: 4, right: 4, left: -18, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
                                 <XAxis dataKey="d" tick={{ fontSize: 9, fill: 'var(--text-muted)' }} interval="preserveStartEnd" />
                                 <YAxis tick={{ fontSize: 9, fill: 'var(--text-muted)' }} />
                                 <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid var(--border)' }} />
                                 <Legend iconSize={8} wrapperStyle={{ fontSize: 10 }} />
-                                {biaData.some(b => b.bf_pct != null) && <Line type="monotone" dataKey="Grasso %" stroke="#dc2626" strokeWidth={2} dot={{ r: 3 }} connectNulls />}
-                                {biaData.some(b => b.ffm_kg != null) && <Line type="monotone" dataKey="Massa magra kg" stroke="#1d4ed8" strokeWidth={2} dot={{ r: 3 }} connectNulls />}
-                                {biaData.some(b => b.tbw != null) && <Line type="monotone" dataKey="Acqua L" stroke="#0369a1" strokeWidth={2} dot={{ r: 3 }} connectNulls />}
-                                {biaData.some(b => b.angolo_fase != null) && <Line type="monotone" dataKey="Ang. Fase°" stroke="#15803d" strokeWidth={2} dot={{ r: 3 }} connectNulls />}
+                                {biaData.some(b => b.bf_pct != null) && <Line type="monotone" dataKey="grassoPct" name={t('progress.chart.fatPct', 'Grasso %')} stroke="#dc2626" strokeWidth={2} dot={{ r: 3 }} connectNulls />}
+                                {biaData.some(b => b.ffm_kg != null) && <Line type="monotone" dataKey="massaMagraKg" name={t('progress.chart.leanMassKg', 'Massa magra kg')} stroke="#1d4ed8" strokeWidth={2} dot={{ r: 3 }} connectNulls />}
+                                {biaData.some(b => b.tbw != null) && <Line type="monotone" dataKey="acquaL" name={t('progress.metric.waterL', 'Acqua L')} stroke="#0369a1" strokeWidth={2} dot={{ r: 3 }} connectNulls />}
+                                {biaData.some(b => b.angolo_fase != null) && <Line type="monotone" dataKey="angFaseDeg" name={t('progress.metric.phaseAngleDeg', 'Ang. Fase°')} stroke="#15803d" strokeWidth={2} dot={{ r: 3 }} connectNulls />}
                               </LineChart>
                             </ResponsiveContainer>
                           </div>
@@ -1063,11 +1102,11 @@ export default function ProgressPage() {
 
                       {/* Storico */}
                       <div className="card" style={{ padding: 16 }}>
-                        <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>📋 Storico BIA</h3>
+                        <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>📋 {t('progress.bia.history', 'Storico BIA')}</h3>
                         <div style={{ overflowX: 'auto' }}>
                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
                             <thead><tr style={{ borderBottom: '1.5px solid var(--border)' }}>
-                              {['Data','Peso','%Gr.','M.Magra','M.Grassa','TBW','Ang.°','FFMI'].map(h => (
+                              {[t('progress.dateLabel', 'Data'), t('progress.tab.weight', 'Peso'), t('progress.table.fatPctShort', '%Gr.'), t('progress.table.leanMassShort', 'M.Magra'), t('progress.table.fatMassShort', 'M.Grassa'), 'TBW', t('progress.table.angleShort', 'Ang.°'), 'FFMI'].map(h => (
                                 <th key={h} style={{ padding: '5px 6px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600, fontSize: 10, whiteSpace: 'nowrap' }}>{h}</th>
                               ))}
                             </tr></thead>
@@ -1111,22 +1150,22 @@ export default function ProgressPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Upload card */}
             <div className="card" style={{ padding: 20 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>📸 Carica foto</h3>
-              <p className="input-label" style={{ marginBottom: 8 }}>Tipo di foto</p>
+              <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>📸 {t('progress.uploadPhoto', 'Carica foto')}</h3>
+              <p className="input-label" style={{ marginBottom: 8 }}>{t('progress.photoType', 'Tipo di foto')}</p>
               <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-                {[{ val: 'prima', label: 'Prima' }, { val: 'progresso', label: 'Durante' }, { val: 'dopo', label: 'Dopo' }].map(t => (
-                  <button key={t.val} onClick={() => setPhotoType(t.val)} style={{
+                {[{ val: 'prima', label: t('progress.photoType.before', 'Prima') }, { val: 'progresso', label: t('progress.photoType.during', 'Durante') }, { val: 'dopo', label: t('progress.photoType.after', 'Dopo') }].map(pt => (
+                  <button key={pt.val} onClick={() => setPhotoType(pt.val)} style={{
                     flex: 1, padding: '9px 6px', borderRadius: 10,
-                    border: `2px solid ${photoType === t.val ? 'var(--green-main)' : 'var(--border)'}`,
-                    background: photoType === t.val ? 'var(--green-pale)' : 'var(--surface-2)',
-                    color: photoType === t.val ? 'var(--green-dark)' : 'var(--text-secondary)',
-                    font: 'inherit', fontSize: 13, fontWeight: photoType === t.val ? 700 : 400, cursor: 'pointer',
-                  }}>{t.label}</button>
+                    border: `2px solid ${photoType === pt.val ? 'var(--green-main)' : 'var(--border)'}`,
+                    background: photoType === pt.val ? 'var(--green-pale)' : 'var(--surface-2)',
+                    color: photoType === pt.val ? 'var(--green-dark)' : 'var(--text-secondary)',
+                    font: 'inherit', fontSize: 13, fontWeight: photoType === pt.val ? 700 : 400, cursor: 'pointer',
+                  }}>{pt.label}</button>
                 ))}
               </div>
               <div className="input-group" style={{ marginBottom: 14 }}>
-                <label className="input-label">Note (opzionale)</label>
-                <input className="input-field" placeholder="es. Settimana 4 di dieta…" value={photoNotes} onChange={e => setPhotoNotes(e.target.value)} />
+                <label className="input-label">{t('progress.notesOptional', 'Note (opzionale)')}</label>
+                <input className="input-field" placeholder={t('progress.photoNotesPlaceholder', 'es. Settimana 4 di dieta…')} value={photoNotes} onChange={e => setPhotoNotes(e.target.value)} />
               </div>
               {photoError && (
                 <div style={{ background: 'var(--alert-error-bg)', border: '1px solid var(--alert-error-border)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--alert-error-text)', marginBottom: 12 }}>
@@ -1140,7 +1179,7 @@ export default function ProgressPage() {
                   width: '100%', justifyContent: 'center', display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 0',
                   cursor: photoUploading ? 'wait' : 'pointer', opacity: photoUploading ? 0.7 : 1,
                 }}>
-                  {photoUploading ? 'Caricamento…' : <><Camera size={16} /> Scegli foto</>}
+                  {photoUploading ? t('progress.uploading', 'Caricamento…') : <><Camera size={16} /> {t('progress.choosePhoto', 'Scegli foto')}</>}
                 </span>
               </label>
             </div>
@@ -1149,16 +1188,20 @@ export default function ProgressPage() {
             {photos.length === 0 ? (
               <div className="card" style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
                 <p style={{ fontSize: 48, marginBottom: 8 }}>📷</p>
-                <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Nessuna foto ancora</p>
-                <p style={{ fontSize: 13 }}>Carica la tua prima foto del percorso!</p>
+                <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{t('progress.noPhotosYet', 'Nessuna foto ancora')}</p>
+                <p style={{ fontSize: 13 }}>{t('progress.uploadFirstPhoto', 'Carica la tua prima foto del percorso!')}</p>
               </div>
             ) : (
               <div className="card" style={{ padding: 16 }}>
-                <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>Le tue foto ({photos.length})</h3>
+                <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>{t('progress.yourPhotos', { count: photos.length }, 'Le tue foto ({{count}})')}</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                   {photos.map(photo => {
                     const url = photoUrls[photo.id]
-                    const TYPE_LABELS = { prima: 'Prima', progresso: 'Durante', dopo: 'Dopo' }
+                    const TYPE_LABELS = {
+                      prima: t('progress.photoType.before', 'Prima'),
+                      progresso: t('progress.photoType.during', 'Durante'),
+                      dopo: t('progress.photoType.after', 'Dopo'),
+                    }
                     return (
                       <div key={photo.id} onClick={() => url && setLightboxUrl(url)} style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', aspectRatio: '1', cursor: url ? 'pointer' : 'default', background: 'var(--surface-2)' }}>
                         {url ? (
@@ -1180,7 +1223,7 @@ export default function ProgressPage() {
             {/* Lightbox */}
             {lightboxUrl && (
               <div onClick={() => setLightboxUrl(null)} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-                <img src={lightboxUrl} alt="Foto progressi" style={{ maxWidth: '100%', maxHeight: '90dvh', borderRadius: 12, objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
+                <img src={lightboxUrl} alt={t('progress.progressPhotoAlt', 'Foto progressi')} style={{ maxWidth: '100%', maxHeight: '90dvh', borderRadius: 12, objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
                 <button onClick={() => setLightboxUrl(null)} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.18)', border: 'none', borderRadius: '50%', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', fontSize: 22, lineHeight: 1 }}>×</button>
               </div>
             )}

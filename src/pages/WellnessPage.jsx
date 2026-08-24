@@ -12,52 +12,73 @@ import {
 import { Heart, Zap, Moon, Plus, CheckCircle, Clock, BedDouble, Brain, WifiOff, Lightbulb } from 'lucide-react'
 import { safeWrite } from '../lib/offlineDB'
 
-const MOOD_OPTIONS = [
-  { value: 1, emoji: '😞', label: 'Pessimo' },
-  { value: 2, emoji: '😕', label: 'Non bene' },
-  { value: 3, emoji: '😐', label: 'Normale' },
-  { value: 4, emoji: '😊', label: 'Bene' },
-  { value: 5, emoji: '😄', label: 'Ottimo' },
-]
+function getMoodOptions(t) {
+  return [
+    { value: 1, emoji: '😞', label: t('wellness.mood_pessimo', 'Pessimo') },
+    { value: 2, emoji: '😕', label: t('wellness.mood_nonbene', 'Non bene') },
+    { value: 3, emoji: '😐', label: t('wellness.mood_normale', 'Normale') },
+    { value: 4, emoji: '😊', label: t('wellness.mood_bene', 'Bene') },
+    { value: 5, emoji: '😄', label: t('wellness.mood_ottimo', 'Ottimo') },
+  ]
+}
 
-const ENERGY_OPTIONS = [
-  { value: 1, emoji: '🪫', label: 'Scarica' },
-  { value: 2, emoji: '😴', label: 'Bassa' },
-  { value: 3, emoji: '😐', label: 'Normale' },
-  { value: 4, emoji: '⚡', label: 'Alta' },
-  { value: 5, emoji: '🚀', label: 'Massima' },
-]
+function getEnergyOptions(t) {
+  return [
+    { value: 1, emoji: '🪫', label: t('wellness.energy_scarica', 'Scarica') },
+    { value: 2, emoji: '😴', label: t('wellness.energy_bassa', 'Bassa') },
+    { value: 3, emoji: '😐', label: t('wellness.energy_normale', 'Normale') },
+    { value: 4, emoji: '⚡', label: t('wellness.energy_alta', 'Alta') },
+    { value: 5, emoji: '🚀', label: t('wellness.energy_massima', 'Massima') },
+  ]
+}
 
-const SLEEP_OPTIONS = [
-  { value: 1, emoji: '😫', label: 'Pessima' },
-  { value: 2, emoji: '😔', label: 'Scarsa' },
-  { value: 3, emoji: '😐', label: 'Discreta' },
-  { value: 4, emoji: '😴', label: 'Buona' },
-  { value: 5, emoji: '🌟', label: 'Ottima' },
-]
+function getSleepOptions(t) {
+  return [
+    { value: 1, emoji: '😫', label: t('wellness.sleepq_pessima', 'Pessima') },
+    { value: 2, emoji: '😔', label: t('wellness.sleepq_scarsa', 'Scarsa') },
+    { value: 3, emoji: '😐', label: t('wellness.sleepq_discreta', 'Discreta') },
+    { value: 4, emoji: '😴', label: t('wellness.sleepq_buona', 'Buona') },
+    { value: 5, emoji: '🌟', label: t('wellness.sleepq_ottima', 'Ottima') },
+  ]
+}
 
-const RESTEDNESS_OPTIONS = [
-  { value: 1, emoji: '🥱', label: 'Esausto' },
-  { value: 2, emoji: '😩', label: 'Stanco' },
-  { value: 3, emoji: '😐', label: 'Così così' },
-  { value: 4, emoji: '😌', label: 'Riposato' },
-  { value: 5, emoji: '💪', label: 'Carico' },
-]
+function getRestednessOptions(t) {
+  return [
+    { value: 1, emoji: '🥱', label: t('wellness.rest_esausto', 'Esausto') },
+    { value: 2, emoji: '😩', label: t('wellness.rest_stanco', 'Stanco') },
+    { value: 3, emoji: '😐', label: t('wellness.rest_cosicosi', 'Così così') },
+    { value: 4, emoji: '😌', label: t('wellness.rest_riposato', 'Riposato') },
+    { value: 5, emoji: '💪', label: t('wellness.rest_carico', 'Carico') },
+  ]
+}
 
 // Feature 8: Stress level options
-const STRESS_OPTIONS = [
-  { value: 1, emoji: '😌', label: 'Nullo' },
-  { value: 2, emoji: '🙂', label: 'Lieve' },
-  { value: 3, emoji: '😐', label: 'Moderato' },
-  { value: 4, emoji: '😤', label: 'Alto' },
-  { value: 5, emoji: '😰', label: 'Molto alto' },
-]
+function getStressOptions(t) {
+  return [
+    { value: 1, emoji: '😌', label: t('wellness.stress_nullo', 'Nullo') },
+    { value: 2, emoji: '🙂', label: t('wellness.stress_lieve', 'Lieve') },
+    { value: 3, emoji: '😐', label: t('wellness.stress_moderato', 'Moderato') },
+    { value: 4, emoji: '😤', label: t('wellness.stress_alto', 'Alto') },
+    { value: 5, emoji: '😰', label: t('wellness.stress_moltoalto', 'Molto alto') },
+  ]
+}
 
-const SYMPTOM_LIST = [
-  'Gonfiore', 'Stanchezza', 'Mal di testa', 'Insonnia',
-  'Fame', 'Nausea', 'Energia alta', 'Umore positivo',
-  'Crampi', 'Digestione difficile', 'Ansia', 'Concentrazione',
-]
+function getSymptomList(t) {
+  return [
+    { value: 'Gonfiore', label: t('wellness.symptom_gonfiore', 'Gonfiore') },
+    { value: 'Stanchezza', label: t('wellness.symptom_stanchezza', 'Stanchezza') },
+    { value: 'Mal di testa', label: t('wellness.symptom_maldi_testa', 'Mal di testa') },
+    { value: 'Insonnia', label: t('wellness.symptom_insonnia', 'Insonnia') },
+    { value: 'Fame', label: t('wellness.symptom_fame', 'Fame') },
+    { value: 'Nausea', label: t('wellness.symptom_nausea', 'Nausea') },
+    { value: 'Energia alta', label: t('wellness.symptom_energia_alta', 'Energia alta') },
+    { value: 'Umore positivo', label: t('wellness.symptom_umore_positivo', 'Umore positivo') },
+    { value: 'Crampi', label: t('wellness.symptom_crampi', 'Crampi') },
+    { value: 'Digestione difficile', label: t('wellness.symptom_digestione_difficile', 'Digestione difficile') },
+    { value: 'Ansia', label: t('wellness.symptom_ansia', 'Ansia') },
+    { value: 'Concentrazione', label: t('wellness.symptom_concentrazione', 'Concentrazione') },
+  ]
+}
 
 function ScaleSelector({ options, value, onChange }) {
   return (
@@ -84,39 +105,42 @@ function ScaleSelector({ options, value, onChange }) {
 }
 
 function MoodDot({ value }) {
-  const opt = MOOD_OPTIONS.find(o => o.value === value)
+  const t = useT()
+  const opt = getMoodOptions(t).find(o => o.value === value)
   return opt ? <span style={{ fontSize: 16 }}>{opt.emoji}</span> : <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>–</span>
 }
 
 function CustomMoodTooltip({ active, payload, label }) {
+  const t = useT()
   if (!active || !payload?.length) return null
-  const mood = MOOD_OPTIONS.find(o => o.value === payload[0]?.value)
-  const energy = ENERGY_OPTIONS.find(o => o.value === payload[1]?.value)
-  const sleep = SLEEP_OPTIONS.find(o => o.value === payload[2]?.value)
+  const mood = getMoodOptions(t).find(o => o.value === payload[0]?.value)
+  const energy = getEnergyOptions(t).find(o => o.value === payload[1]?.value)
+  const sleep = getSleepOptions(t).find(o => o.value === payload[2]?.value)
   const sleepHoursVal = payload.find(p => p.dataKey === 'sleepHours')?.value
-  const restedness = RESTEDNESS_OPTIONS.find(o => o.value === payload.find(p => p.dataKey === 'restedness')?.value)
+  const restedness = getRestednessOptions(t).find(o => o.value === payload.find(p => p.dataKey === 'restedness')?.value)
   return (
     <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', boxShadow: 'var(--shadow-md)', fontSize: 12 }}>
       <p style={{ color: 'var(--text-muted)', marginBottom: 6 }}>{label}</p>
-      {mood && <p style={{ marginBottom: 2 }}>{mood.emoji} Umore: <strong>{mood.label}</strong></p>}
-      {energy && <p style={{ marginBottom: 2 }}>{energy.emoji} Energia: <strong>{energy.label}</strong></p>}
-      {sleep && <p style={{ marginBottom: 2 }}>{sleep.emoji} Sonno: <strong>{sleep.label}</strong></p>}
-      {sleepHoursVal != null && <p style={{ marginBottom: 2 }}>🕐 Ore sonno: <strong>{sleepHoursVal}h</strong></p>}
-      {restedness && <p>😴 Riposo: <strong>{restedness.label}</strong></p>}
+      {mood && <p style={{ marginBottom: 2 }}>{mood.emoji} {t('wellness.tooltip_mood', 'Umore:')} <strong>{mood.label}</strong></p>}
+      {energy && <p style={{ marginBottom: 2 }}>{energy.emoji} {t('wellness.tooltip_energy', 'Energia:')} <strong>{energy.label}</strong></p>}
+      {sleep && <p style={{ marginBottom: 2 }}>{sleep.emoji} {t('wellness.tooltip_sleep', 'Sonno:')} <strong>{sleep.label}</strong></p>}
+      {sleepHoursVal != null && <p style={{ marginBottom: 2 }}>🕐 {t('wellness.tooltip_sleephours', 'Ore sonno:')} <strong>{sleepHoursVal}h</strong></p>}
+      {restedness && <p>😴 {t('wellness.tooltip_restedness', 'Riposo:')} <strong>{restedness.label}</strong></p>}
     </div>
   )
 }
 
 function CustomCorrelationTooltip({ active, payload, label }) {
+  const t = useT()
   if (!active || !payload?.length) return null
   const mood = payload.find(p => p.dataKey === 'mood')
   const kcal = payload.find(p => p.dataKey === 'kcal')
-  const moodOpt = mood ? MOOD_OPTIONS.find(o => o.value === mood.value) : null
+  const moodOpt = mood ? getMoodOptions(t).find(o => o.value === mood.value) : null
   return (
     <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', boxShadow: 'var(--shadow-md)', fontSize: 12 }}>
       <p style={{ color: 'var(--text-muted)', marginBottom: 6 }}>{label}</p>
-      {moodOpt && <p style={{ marginBottom: 2 }}>{moodOpt.emoji} Umore: <strong>{moodOpt.label}</strong></p>}
-      {kcal && <p>🔥 Kcal: <strong>{Math.round(kcal.value)}</strong></p>}
+      {moodOpt && <p style={{ marginBottom: 2 }}>{moodOpt.emoji} {t('wellness.tooltip_mood', 'Umore:')} <strong>{moodOpt.label}</strong></p>}
+      {kcal && <p>🔥 {t('wellness.tooltip_kcal', 'Kcal:')} <strong>{Math.round(kcal.value)}</strong></p>}
     </div>
   )
 }
@@ -128,6 +152,12 @@ export default function WellnessPage() {
   const { user } = useAuth()
   const { checkAndAward } = useAchievements()
   const t = useT()
+  const moodOptions = getMoodOptions(t)
+  const energyOptions = getEnergyOptions(t)
+  const sleepOptions = getSleepOptions(t)
+  const restednessOptions = getRestednessOptions(t)
+  const stressOptions = getStressOptions(t)
+  const symptomList = getSymptomList(t)
   const today = new Date().toISOString().split('T')[0]
 
   const [todayLog, setTodayLog] = useState(null)
@@ -230,7 +260,7 @@ export default function WellnessPage() {
       setSaving(false)
       setSaved(true)
       setShowForm(false)
-      setError('Salvato offline — verrà sincronizzato alla prossima connessione.')
+      setError(t('wellness.saved_offline', 'Salvato offline — verrà sincronizzato alla prossima connessione.'))
       setTimeout(() => setSaved(false), 3000)
       return
     }
@@ -272,7 +302,7 @@ export default function WellnessPage() {
       if (updateError) {
         console.error('Wellness update error:', updateError.message, updateError.details, updateError.hint, updateError.code)
         setSaving(false)
-        setError('Errore durante il salvataggio. Riprova.')
+        setError(t('wellness.error_save', 'Errore durante il salvataggio. Riprova.'))
         return
       }
 
@@ -295,7 +325,7 @@ export default function WellnessPage() {
 
       if (opError) {
         console.error('Wellness save error:', opError)
-        setError('Errore durante il salvataggio. Riprova.')
+        setError(t('wellness.error_save', 'Errore durante il salvataggio. Riprova.'))
         return
       }
 
@@ -307,7 +337,7 @@ export default function WellnessPage() {
     } catch (err) {
       console.error('Wellness unexpected error:', err)
       setSaving(false)
-      setError('Errore durante il salvataggio. Riprova.')
+      setError(t('wellness.error_save', 'Errore durante il salvataggio. Riprova.'))
     }
   }
 
@@ -370,10 +400,10 @@ export default function WellnessPage() {
     ? (stressEntries.reduce((s, w) => s + w.stress_level, 0) / stressEntries.length).toFixed(1)
     : null
 
-  const todayMoodOpt = MOOD_OPTIONS.find(o => o.value === (todayLog?.mood))
-  const todayEnergyOpt = ENERGY_OPTIONS.find(o => o.value === (todayLog?.energy))
-  const todaySleepOpt = SLEEP_OPTIONS.find(o => o.value === (todayLog?.sleep_quality))
-  const todayRestednessOpt = RESTEDNESS_OPTIONS.find(o => o.value === (todayLog?.sleep_restedness))
+  const todayMoodOpt = moodOptions.find(o => o.value === (todayLog?.mood))
+  const todayEnergyOpt = energyOptions.find(o => o.value === (todayLog?.energy))
+  const todaySleepOpt = sleepOptions.find(o => o.value === (todayLog?.sleep_quality))
+  const todayRestednessOpt = restednessOptions.find(o => o.value === (todayLog?.sleep_restedness))
 
   // Compute auto insights (min 2 data points per group)
   const MIN_INSIGHT_PTS = 2
@@ -384,28 +414,28 @@ export default function WellnessPage() {
     const al = (longSleep.reduce((s, w) => s + w.mood, 0) / longSleep.length).toFixed(1)
     const as_ = (shortSleep.reduce((s, w) => s + w.mood, 0) / shortSleep.length).toFixed(1)
     const diff = Math.abs(parseFloat(al) - parseFloat(as_))
-    if (diff >= 0.3) insights.push({ positive: parseFloat(al) > parseFloat(as_), text: `Quando dormi ≥7h il tuo umore medio è ${al}/5, vs ${as_}/5 con meno sonno. ${parseFloat(al) > parseFloat(as_) ? '💚 Il riposo conta!' : '🤔 Altri fattori influenzano il tuo umore.'}` })
+    if (diff >= 0.3) insights.push({ positive: parseFloat(al) > parseFloat(as_), text: t('wellness.insight_sleep_mood', { long: al, short: as_, comment: parseFloat(al) > parseFloat(as_) ? t('wellness.insight_rest_counts', '💚 Il riposo conta!') : t('wellness.insight_other_factors', '🤔 Altri fattori influenzano il tuo umore.') }, 'Quando dormi ≥7h il tuo umore medio è {{long}}/5, vs {{short}}/5 con meno sonno. {{comment}}') })
   }
   const goodSleep = history.filter(w => w.sleep_quality >= 4 && w.energy)
   const badSleep = history.filter(w => w.sleep_quality != null && w.sleep_quality <= 2 && w.energy)
   if (goodSleep.length >= MIN_INSIGHT_PTS && badSleep.length >= MIN_INSIGHT_PTS) {
     const ag = (goodSleep.reduce((s, w) => s + w.energy, 0) / goodSleep.length).toFixed(1)
     const ab = (badSleep.reduce((s, w) => s + w.energy, 0) / badSleep.length).toFixed(1)
-    insights.push({ positive: parseFloat(ag) > parseFloat(ab), text: `Con sonno buono (≥4/5) la tua energia media è ${ag}/5, vs ${ab}/5 con sonno scarso. 😴` })
+    insights.push({ positive: parseFloat(ag) > parseFloat(ab), text: t('wellness.insight_sleep_energy', { good: ag, bad: ab }, 'Con sonno buono (≥4/5) la tua energia media è {{good}}/5, vs {{bad}}/5 con sonno scarso. 😴') })
   }
   const hiKcalMoods = correlationData.filter(d => d.kcal > 1800 && d.mood)
   const loKcalMoods = correlationData.filter(d => d.kcal > 0 && d.kcal <= 1800 && d.mood)
   if (hiKcalMoods.length >= MIN_INSIGHT_PTS && loKcalMoods.length >= MIN_INSIGHT_PTS) {
     const ah = (hiKcalMoods.reduce((s, d) => s + d.mood, 0) / hiKcalMoods.length).toFixed(1)
     const al2 = (loKcalMoods.reduce((s, d) => s + d.mood, 0) / loKcalMoods.length).toFixed(1)
-    if (Math.abs(parseFloat(ah) - parseFloat(al2)) >= 0.3) insights.push({ positive: parseFloat(ah) >= parseFloat(al2), text: `Nei giorni con >1800 kcal il tuo umore medio è ${ah}/5, vs ${al2}/5 con meno calorie. 🍽️` })
+    if (Math.abs(parseFloat(ah) - parseFloat(al2)) >= 0.3) insights.push({ positive: parseFloat(ah) >= parseFloat(al2), text: t('wellness.insight_kcal_mood', { high: ah, low: al2 }, 'Nei giorni con >1800 kcal il tuo umore medio è {{high}}/5, vs {{low}}/5 con meno calorie. 🍽️') })
   }
   const loStressSleep = history.filter(w => w.stress_level != null && w.stress_level <= 2 && w.sleep_quality)
   const hiStressSleep = history.filter(w => w.stress_level >= 4 && w.sleep_quality)
   if (loStressSleep.length >= MIN_INSIGHT_PTS && hiStressSleep.length >= MIN_INSIGHT_PTS) {
     const als = (loStressSleep.reduce((s, w) => s + w.sleep_quality, 0) / loStressSleep.length).toFixed(1)
     const ahs = (hiStressSleep.reduce((s, w) => s + w.sleep_quality, 0) / hiStressSleep.length).toFixed(1)
-    insights.push({ positive: parseFloat(als) > parseFloat(ahs), text: `Con stress basso la qualità del sonno è ${als}/5, vs ${ahs}/5 con stress alto. 🧠` })
+    insights.push({ positive: parseFloat(als) > parseFloat(ahs), text: t('wellness.insight_stress_sleep', { low: als, high: ahs }, 'Con stress basso la qualità del sonno è {{low}}/5, vs {{high}}/5 con stress alto. 🧠') })
   }
 
   return (
@@ -417,7 +447,7 @@ export default function WellnessPage() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Come stai?</p>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>{t('wellness.how_are_you', 'Come stai?')}</p>
             <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 24, color: 'white', fontWeight: 300 }}>{t('nav.wellness')}</h1>
           </div>
           <button
@@ -432,12 +462,12 @@ export default function WellnessPage() {
         {/* Stats row */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: 10 }}>
           {[
-            { label: 'Umore medio', val: moodAvg ? `${moodAvg}/5` : '–', icon: <Heart size={14} />, emoji: MOOD_OPTIONS.find(o => o.value === Math.round(Number(moodAvg)))?.emoji },
-            { label: 'Energia media', val: energyAvg ? `${energyAvg}/5` : '–', icon: <Zap size={14} />, emoji: ENERGY_OPTIONS.find(o => o.value === Math.round(Number(energyAvg)))?.emoji },
-            { label: 'Sonno medio', val: sleepAvg ? `${sleepAvg}/5` : '–', icon: <Moon size={14} />, emoji: SLEEP_OPTIONS.find(o => o.value === Math.round(Number(sleepAvg)))?.emoji },
-            { label: 'Ore sonno medie', val: sleepHoursAvg ? `${sleepHoursAvg}h` : '–', icon: <Clock size={14} /> },
-            { label: 'Riposo medio', val: restednessAvg ? `${restednessAvg}/5` : '–', icon: <BedDouble size={14} />, emoji: RESTEDNESS_OPTIONS.find(o => o.value === Math.round(Number(restednessAvg)))?.emoji },
-            { label: 'Stress medio', val: stressAvg ? `${stressAvg}/5` : '–', icon: <Brain size={14} />, emoji: STRESS_OPTIONS.find(o => o.value === Math.round(Number(stressAvg)))?.emoji },
+            { label: t('wellness.avg_mood', 'Umore medio'), val: moodAvg ? `${moodAvg}/5` : '–', icon: <Heart size={14} />, emoji: moodOptions.find(o => o.value === Math.round(Number(moodAvg)))?.emoji },
+            { label: t('wellness.avg_energy', 'Energia media'), val: energyAvg ? `${energyAvg}/5` : '–', icon: <Zap size={14} />, emoji: energyOptions.find(o => o.value === Math.round(Number(energyAvg)))?.emoji },
+            { label: t('wellness.avg_sleep', 'Sonno medio'), val: sleepAvg ? `${sleepAvg}/5` : '–', icon: <Moon size={14} />, emoji: sleepOptions.find(o => o.value === Math.round(Number(sleepAvg)))?.emoji },
+            { label: t('wellness.avg_sleep_hours', 'Ore sonno medie'), val: sleepHoursAvg ? `${sleepHoursAvg}h` : '–', icon: <Clock size={14} /> },
+            { label: t('wellness.avg_rest', 'Riposo medio'), val: restednessAvg ? `${restednessAvg}/5` : '–', icon: <BedDouble size={14} />, emoji: restednessOptions.find(o => o.value === Math.round(Number(restednessAvg)))?.emoji },
+            { label: t('wellness.avg_stress', 'Stress medio'), val: stressAvg ? `${stressAvg}/5` : '–', icon: <Brain size={14} />, emoji: stressOptions.find(o => o.value === Math.round(Number(stressAvg)))?.emoji },
           ].map((s, i) => (
             <motion.div key={s.label}
               initial={{ opacity: 0, scale: 0.85 }}
@@ -476,17 +506,17 @@ export default function WellnessPage() {
         {!showForm && todayLog && (
           <div className="card animate-slideUp" style={{ padding: 18 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 600 }}>Check-in di oggi</h3>
+              <h3 style={{ fontSize: 15, fontWeight: 600 }}>{t('wellness.todays_checkin', 'Check-in di oggi')}</h3>
               <button onClick={() => setShowForm(true)} style={{ fontSize: 12, color: '#7c3aed', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}>{t('common.edit')}</button>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 14 }}>
               {[
-                { label: 'Umore', emoji: todayMoodOpt?.emoji, text: todayMoodOpt?.label },
-                { label: 'Energia', emoji: todayEnergyOpt?.emoji, text: todayEnergyOpt?.label },
-                { label: 'Sonno', emoji: todaySleepOpt?.emoji, text: todaySleepOpt?.label },
-                { label: 'Ore sonno', emoji: '🕐', text: todayLog?.sleep_hours != null ? `${todayLog.sleep_hours}h` : null },
-                { label: 'Riposo', emoji: todayRestednessOpt?.emoji, text: todayRestednessOpt?.label },
-                { label: 'Stress', emoji: STRESS_OPTIONS.find(o => o.value === todayLog?.stress_level)?.emoji, text: STRESS_OPTIONS.find(o => o.value === todayLog?.stress_level)?.label },
+                { label: t('wellness.mood', 'Umore'), emoji: todayMoodOpt?.emoji, text: todayMoodOpt?.label },
+                { label: t('wellness.label_energy', 'Energia'), emoji: todayEnergyOpt?.emoji, text: todayEnergyOpt?.label },
+                { label: t('wellness.label_sleep', 'Sonno'), emoji: todaySleepOpt?.emoji, text: todaySleepOpt?.label },
+                { label: t('wellness.label_sleep_hours', 'Ore sonno'), emoji: '🕐', text: todayLog?.sleep_hours != null ? `${todayLog.sleep_hours}h` : null },
+                { label: t('wellness.label_restedness', 'Riposo'), emoji: todayRestednessOpt?.emoji, text: todayRestednessOpt?.label },
+                { label: t('wellness.label_stress', 'Stress'), emoji: stressOptions.find(o => o.value === todayLog?.stress_level)?.emoji, text: stressOptions.find(o => o.value === todayLog?.stress_level)?.label },
               ].map(item => (
                 <div key={item.label} style={{ background: 'var(--surface-2)', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
                   <p style={{ fontSize: 24, marginBottom: 4 }}>{item.emoji || '–'}</p>
@@ -498,7 +528,7 @@ export default function WellnessPage() {
             {todayLog.symptoms?.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
                 {todayLog.symptoms.map(s => (
-                  <span key={s} className="badge badge-purple" style={{ fontSize: 11 }}>{s}</span>
+                  <span key={s} className="badge badge-purple" style={{ fontSize: 11 }}>{symptomList.find(o => o.value === s)?.label || s}</span>
                 ))}
               </div>
             )}
@@ -511,34 +541,34 @@ export default function WellnessPage() {
         {/* Check-in form */}
         {showForm && (
           <div className="card animate-slideUp" style={{ padding: 20 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 20 }}>📝 Check-in del giorno</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 20 }}>📝 {t('wellness.days_checkin', 'Check-in del giorno')}</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
 
               {/* Mood */}
               <div>
-                <p className="input-label" style={{ marginBottom: 12 }}>😊 Come ti senti oggi?</p>
-                <ScaleSelector options={MOOD_OPTIONS} value={mood} onChange={setMood} />
+                <p className="input-label" style={{ marginBottom: 12 }}>😊 {t('wellness.how_feel', 'Come ti senti oggi?')}</p>
+                <ScaleSelector options={moodOptions} value={mood} onChange={setMood} />
               </div>
 
               {/* Energy */}
               <div>
-                <p className="input-label" style={{ marginBottom: 12 }}>⚡ Livello di energia</p>
-                <ScaleSelector options={ENERGY_OPTIONS} value={energy} onChange={setEnergy} />
+                <p className="input-label" style={{ marginBottom: 12 }}>⚡ {t('wellness.energy_level', 'Livello di energia')}</p>
+                <ScaleSelector options={energyOptions} value={energy} onChange={setEnergy} />
               </div>
 
               {/* Sleep */}
               <div>
-                <p className="input-label" style={{ marginBottom: 12 }}>🌙 Qualità del sonno (notte scorsa)</p>
-                <ScaleSelector options={SLEEP_OPTIONS} value={sleepQuality} onChange={setSleepQuality} />
+                <p className="input-label" style={{ marginBottom: 12 }}>🌙 {t('wellness.sleep_quality', 'Qualità del sonno (notte scorsa)')}</p>
+                <ScaleSelector options={sleepOptions} value={sleepQuality} onChange={setSleepQuality} />
               </div>
 
               {/* Sleep hours */}
               <div>
-                <p className="input-label" style={{ marginBottom: 10 }}>🕐 Quante ore hai dormito?</p>
+                <p className="input-label" style={{ marginBottom: 10 }}>🕐 {t('wellness.sleep_hours', 'Quante ore hai dormito?')}</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <button
                     onClick={() => setSleepHours(h => Math.max(0, (h ?? 7) - 0.5))}
-                    aria-label="Diminuisci ore di sonno"
+                    aria-label={t('wellness.aria_decrease_sleep', 'Diminuisci ore di sonno')}
                     style={{
                       width: 44, height: 44, borderRadius: 10, border: '1.5px solid var(--border)',
                       background: 'var(--surface-2)', cursor: 'pointer', fontSize: 18, fontWeight: 600,
@@ -550,11 +580,11 @@ export default function WellnessPage() {
                     color: sleepHours != null ? '#7c3aed' : 'var(--text-muted)',
                     background: '#f5f3ff', borderRadius: 10, padding: '8px 10px',
                   }}>
-                    {sleepHours != null ? `${sleepHours}h` : 'Tocca +/−'}
+                    {sleepHours != null ? `${sleepHours}h` : t('wellness.tap_hint', 'Tocca +/−')}
                   </span>
                   <button
                     onClick={() => setSleepHours(h => Math.min(24, (h ?? 7) + 0.5))}
-                    aria-label="Aumenta ore di sonno"
+                    aria-label={t('wellness.aria_increase_sleep', 'Aumenta ore di sonno')}
                     style={{
                       width: 44, height: 44, borderRadius: 10, border: '1.5px solid var(--border)',
                       background: 'var(--surface-2)', cursor: 'pointer', fontSize: 18, fontWeight: 600,
@@ -566,32 +596,32 @@ export default function WellnessPage() {
 
               {/* Restedness */}
               <div>
-                <p className="input-label" style={{ marginBottom: 12 }}>😴 Quanto ti senti riposato?</p>
-                <ScaleSelector options={RESTEDNESS_OPTIONS} value={sleepRestedness} onChange={setSleepRestedness} />
+                <p className="input-label" style={{ marginBottom: 12 }}>😴 {t('wellness.restedness', 'Quanto ti senti riposato?')}</p>
+                <ScaleSelector options={restednessOptions} value={sleepRestedness} onChange={setSleepRestedness} />
               </div>
 
               {/* Feature 8: Stress level */}
               <div>
-                <p className="input-label" style={{ marginBottom: 12 }}>🧠 Livello di stress</p>
-                <ScaleSelector options={STRESS_OPTIONS} value={stressLevel} onChange={setStressLevel} />
+                <p className="input-label" style={{ marginBottom: 12 }}>🧠 {t('wellness.form_stress_question', 'Livello di stress')}</p>
+                <ScaleSelector options={stressOptions} value={stressLevel} onChange={setStressLevel} />
               </div>
 
               {/* Symptoms */}
               <div>
-                <p className="input-label" style={{ marginBottom: 10 }}>🔍 Sintomi / sensazioni fisiche</p>
+                <p className="input-label" style={{ marginBottom: 10 }}>🔍 {t('wellness.symptoms_label', 'Sintomi / sensazioni fisiche')}</p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {SYMPTOM_LIST.map(s => (
+                  {symptomList.map(({ value, label }) => (
                     <button
-                      key={s}
-                      onClick={() => toggleSymptom(s)}
+                      key={value}
+                      onClick={() => toggleSymptom(value)}
                       style={{
                         padding: '6px 14px', borderRadius: 100, font: 'inherit', fontSize: 13, cursor: 'pointer',
-                        background: symptoms.includes(s) ? '#f5f3ff' : 'var(--surface-2)',
-                        color: symptoms.includes(s) ? '#7c3aed' : 'var(--text-secondary)',
-                        border: `1.5px solid ${symptoms.includes(s) ? '#7c3aed' : 'var(--border)'}`,
+                        background: symptoms.includes(value) ? '#f5f3ff' : 'var(--surface-2)',
+                        color: symptoms.includes(value) ? '#7c3aed' : 'var(--text-secondary)',
+                        border: `1.5px solid ${symptoms.includes(value) ? '#7c3aed' : 'var(--border)'}`,
                       }}
                     >
-                      {s}
+                      {label}
                     </button>
                   ))}
                 </div>
@@ -599,11 +629,11 @@ export default function WellnessPage() {
 
               {/* Notes */}
               <div className="input-group">
-                <label className="input-label">📓 Note libere</label>
+                <label className="input-label">📓 {t('wellness.free_notes', 'Note libere')}</label>
                 <textarea
                   className="input-field"
                   rows={3}
-                  placeholder="Come è andata oggi? Annotazioni sul benessere, sulla dieta…"
+                  placeholder={t('wellness.form_notes_placeholder', 'Come è andata oggi? Annotazioni sul benessere, sulla dieta…')}
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
                   style={{ resize: 'vertical' }}
@@ -635,10 +665,10 @@ export default function WellnessPage() {
         {!showForm && !todayLog && hasAnyHistory === false && (
           <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)' }}>
             <Heart size={40} style={{ marginBottom: 12, opacity: 0.3 }} />
-            <p style={{ fontSize: 15, fontWeight: 500 }}>Inizia il tuo diario del benessere</p>
-            <p style={{ fontSize: 13, marginTop: 4 }}>Registra umore, energia e qualità del sonno ogni giorno.</p>
+            <p style={{ fontSize: 15, fontWeight: 500 }}>{t('wellness.start_title', 'Inizia il tuo diario del benessere')}</p>
+            <p style={{ fontSize: 13, marginTop: 4 }}>{t('wellness.empty_subtitle', 'Registra umore, energia e qualità del sonno ogni giorno.')}</p>
             <button className="btn btn-primary" onClick={() => setShowForm(true)} style={{ marginTop: 20, background: 'linear-gradient(135deg, #4c1d95, #7c3aed)' }}>
-              <Plus size={16} />Primo check-in
+              <Plus size={16} />{t('wellness.first_checkin', 'Primo check-in')}
             </button>
           </div>
         )}
@@ -652,20 +682,20 @@ export default function WellnessPage() {
             {/* Tab selector */}
             <div style={{ display: 'flex', gap: 8, paddingLeft: 8, marginBottom: 16 }}>
               {[
-                { key: 'trend', label: '📈 Andamento' },
-                { key: 'correlazione', label: '🔗 Correlazione dieta' },
-              ].map(t => (
+                { key: 'trend', label: t('wellness.tab_trend', '📈 Andamento') },
+                { key: 'correlazione', label: t('wellness.tab_correlation', '🔗 Correlazione dieta') },
+              ].map(tab => (
                 <button
-                  key={t.key}
-                  onClick={() => setChartTab(t.key)}
+                  key={tab.key}
+                  onClick={() => setChartTab(tab.key)}
                   style={{
                     padding: '6px 14px', borderRadius: 100, font: 'inherit', fontSize: 12, fontWeight: 500, cursor: 'pointer',
-                    background: chartTab === t.key ? '#7c3aed' : 'var(--surface-2)',
-                    color: chartTab === t.key ? 'white' : 'var(--text-secondary)',
-                    border: `1.5px solid ${chartTab === t.key ? 'transparent' : 'var(--border)'}`,
+                    background: chartTab === tab.key ? '#7c3aed' : 'var(--surface-2)',
+                    color: chartTab === tab.key ? 'white' : 'var(--text-secondary)',
+                    border: `1.5px solid ${chartTab === tab.key ? 'transparent' : 'var(--border)'}`,
                   }}
                 >
-                  {t.label}
+                  {tab.label}
                 </button>
               ))}
             </div>
@@ -683,23 +713,23 @@ export default function WellnessPage() {
                     border: `1px solid ${range === r ? 'transparent' : 'var(--border)'}`,
                   }}
                 >
-                  {r}g
+                  {r}{t('wellness.days_suffix', 'g')}
                 </button>
               ))}
             </div>
 
             {history.length <= 1 ? (
               <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--text-muted)', fontSize: 13 }}>
-                Nessun check-in negli ultimi {range} giorni.
+                {t('wellness.no_checkins_range', { range }, 'Nessun check-in negli ultimi {{range}} giorni.')}
               </div>
             ) : chartTab === 'trend' ? (
               <>
                 <p style={{ fontSize: 11, color: 'var(--text-muted)', paddingLeft: 8, marginBottom: 8 }}>
-                  Scala 1–5 &nbsp;·&nbsp;
-                  <span style={{ color: '#7c3aed' }}>● Umore</span>
-                  {trendData.some(d => d.energy) && <span style={{ color: '#f59e0b' }}> &nbsp;● Energia</span>}
-                  {trendData.some(d => d.sleep) && <span style={{ color: '#06b6d4' }}> &nbsp;● Sonno</span>}
-                  {trendData.some(d => d.restedness) && <span style={{ color: '#10b981' }}> &nbsp;● Riposo</span>}
+                  {t('wellness.scale_label', 'Scala 1–5')} &nbsp;·&nbsp;
+                  <span style={{ color: '#7c3aed' }}>● {t('wellness.mood', 'Umore')}</span>
+                  {trendData.some(d => d.energy) && <span style={{ color: '#f59e0b' }}> &nbsp;● {t('wellness.label_energy', 'Energia')}</span>}
+                  {trendData.some(d => d.sleep) && <span style={{ color: '#06b6d4' }}> &nbsp;● {t('wellness.label_sleep', 'Sonno')}</span>}
+                  {trendData.some(d => d.restedness) && <span style={{ color: '#10b981' }}> &nbsp;● {t('wellness.label_restedness', 'Riposo')}</span>}
                 </p>
                 <ResponsiveContainer width="100%" height={200}>
                   <LineChart data={trendData} margin={{ top: 4, right: 8, left: -22, bottom: 0 }}>
@@ -718,7 +748,7 @@ export default function WellnessPage() {
             ) : correlationData.length > 0 ? (
               <>
                 <p style={{ fontSize: 11, color: 'var(--text-muted)', paddingLeft: 8, marginBottom: 8 }}>
-                  Umore (linea viola) vs Kcal ingerite (barre arancio)
+                  {t('wellness.correlation_desc', 'Umore (linea viola) vs Kcal ingerite (barre arancio)')}
                 </p>
                 <ResponsiveContainer width="100%" height={200}>
                   <ComposedChart data={correlationData} margin={{ top: 4, right: 8, left: -22, bottom: 0 }}>
@@ -734,7 +764,7 @@ export default function WellnessPage() {
               </>
             ) : (
               <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--text-muted)', fontSize: 13 }}>
-                <p>Aggiungi pasti nel diario alimentare per vedere la correlazione umore/dieta.</p>
+                <p>{t('wellness.no_diet_correlation', 'Aggiungi pasti nel diario alimentare per vedere la correlazione umore/dieta.')}</p>
               </div>
             )}
           </div>
@@ -746,11 +776,11 @@ export default function WellnessPage() {
             <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>{t('water.history')}</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[...history].reverse().slice(0, 14).map(entry => {
-                const moodOpt = MOOD_OPTIONS.find(o => o.value === entry.mood)
-                const energyOpt = ENERGY_OPTIONS.find(o => o.value === entry.energy)
-                const sleepOpt = SLEEP_OPTIONS.find(o => o.value === entry.sleep_quality)
-                const restednessOpt = RESTEDNESS_OPTIONS.find(o => o.value === entry.sleep_restedness)
-                const stressOpt = STRESS_OPTIONS.find(o => o.value === entry.stress_level)
+                const moodOpt = moodOptions.find(o => o.value === entry.mood)
+                const energyOpt = energyOptions.find(o => o.value === entry.energy)
+                const sleepOpt = sleepOptions.find(o => o.value === entry.sleep_quality)
+                const restednessOpt = restednessOptions.find(o => o.value === entry.sleep_restedness)
+                const stressOpt = stressOptions.find(o => o.value === entry.stress_level)
                 const isToday = entry.date === today
                 return (
                   <div key={entry.id} style={{ display: 'flex', gap: 12, padding: '10px 12px', background: isToday ? '#f5f3ff' : 'var(--surface-2)', borderRadius: 12, border: isToday ? '1.5px solid #c4b5fd' : '1px solid transparent' }}>
@@ -772,7 +802,7 @@ export default function WellnessPage() {
                       {entry.symptoms?.length > 0 && (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 4 }}>
                           {entry.symptoms.slice(0, 4).map(s => (
-                            <span key={s} style={{ fontSize: 10, background: 'var(--surface)', color: 'var(--text-muted)', borderRadius: 100, padding: '1px 6px', border: '1px solid var(--border-light)' }}>{s}</span>
+                            <span key={s} style={{ fontSize: 10, background: 'var(--surface)', color: 'var(--text-muted)', borderRadius: 100, padding: '1px 6px', border: '1px solid var(--border-light)' }}>{symptomList.find(o => o.value === s)?.label || s}</span>
                           ))}
                           {entry.symptoms.length > 4 && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>+{entry.symptoms.length - 4}</span>}
                         </div>
@@ -792,8 +822,8 @@ export default function WellnessPage() {
         <div className="card" style={{ padding: '18px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: insights.length > 0 ? 14 : 0 }}>
             <Lightbulb size={16} color="#f59e0b" />
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Insight automatici</h3>
-            {history.length > 0 && <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 4 }}>ultimi {history.length} giorni</span>}
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{t('wellness.insights_title', 'Insight automatici')}</h3>
+            {history.length > 0 && <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 4 }}>{t('wellness.insights_range_count', { count: history.length }, 'ultimi {{count}} giorni')}</span>}
           </div>
           {insights.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -806,8 +836,8 @@ export default function WellnessPage() {
           ) : (
             <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 10 }}>
               {history.length < 4
-                ? `Registra ancora qualche giornata (hai ${history.length} su 4 minime) per sbloccare correlazioni personalizzate tra sonno, umore, energia e alimentazione.`
-                : 'Ancora nessuna correlazione rilevante. Continua a registrare il tuo benessere per scoprire i tuoi pattern personali.'}
+                ? t('wellness.insights_need_more', { count: history.length }, 'Registra ancora qualche giornata (hai {{count}} su 4 minime) per sbloccare correlazioni personalizzate tra sonno, umore, energia e alimentazione.')
+                : t('wellness.insights_no_correlation', 'Ancora nessuna correlazione rilevante. Continua a registrare il tuo benessere per scoprire i tuoi pattern personali.')}
             </p>
           )}
         </div>
