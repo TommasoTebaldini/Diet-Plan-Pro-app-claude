@@ -6,6 +6,7 @@ import { useAchievements } from '../context/AchievementsContext'
 import { checkWeightAchievements } from '../lib/achievementTriggers'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { validateImageFile } from '../lib/fileValidation'
 import { useT } from '../i18n'
 import {
   LogOut, User, Mail, ChevronRight, Bell, Shield, X, Check,
@@ -1104,8 +1105,13 @@ export default function ProfilePage() {
   async function handleAvatarChange(e) {
     const file = e.target.files?.[0]
     if (!file) return
-    const maxSize = 5 * 1024 * 1024 // 5 MB
-    if (file.size > maxSize) { setAvatarError(t('profile.avatar_too_large', 'La foto è troppo grande. Massimo 5 MB.')); return }
+    const invalid = validateImageFile(file, { maxBytes: 5 * 1024 * 1024 })
+    if (invalid) {
+      setAvatarError(invalid === 'too_large'
+        ? t('profile.avatar_too_large', 'La foto è troppo grande. Massimo 5 MB.')
+        : t('profile.avatar_invalid_type', 'Formato immagine non supportato. Usa JPEG, PNG, WEBP o GIF.'))
+      return
+    }
     setAvatarError('')
     setAvatarUploading(true)
     try {

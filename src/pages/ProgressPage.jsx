@@ -8,6 +8,7 @@ import { useSubscription } from '../hooks/useSubscription'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts'
 import { TrendingDown, TrendingUp, Minus, Target, Plus, Scale, Activity, Camera, WifiOff, Ruler } from 'lucide-react'
 import { safeWrite } from '../lib/offlineDB'
+import { validateImageFile } from '../lib/fileValidation'
 
 const MEASURE_META = [
   { key: 'waist_cm', label: 'Girovita', short: 'Vita', bg: 'var(--icon-bg-green)', fg: 'var(--green-main)' },
@@ -252,6 +253,13 @@ export default function ProgressPage() {
 
   async function uploadPhoto(file) {
     if (!file) return
+    const invalid = validateImageFile(file)
+    if (invalid) {
+      setPhotoError(invalid === 'too_large'
+        ? t('progress.photoTooLarge', 'Immagine troppo grande (max 8 MB).')
+        : t('progress.photoInvalidType', 'Formato immagine non supportato. Usa JPEG, PNG o WEBP.'))
+      return
+    }
     setPhotoUploading(true)
     setPhotoError('')
     try {

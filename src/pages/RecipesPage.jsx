@@ -9,6 +9,7 @@ import { useSubscription } from '../hooks/useSubscription'
 import { Search, Plus, X, Trash2, ChevronDown, ChevronUp, Globe, Lock, Bookmark, Pencil, Heart, SlidersHorizontal, Camera, Link2 } from 'lucide-react'
 import { useT } from '../i18n'
 import { importRecipeFromUrl, importRecipeFromPhoto } from '../lib/recipeImport'
+import { validateImageFile } from '../lib/fileValidation'
 
 const FREE_RECIPES_LIMIT = 5
 
@@ -1011,9 +1012,16 @@ export default function RecipesPage() {
                 onChange={e => {
                   const f = e.target.files?.[0]
                   if (!f) return
+                  e.target.value = ''
+                  const invalid = validateImageFile(f)
+                  if (invalid) {
+                    showToast(invalid === 'too_large'
+                      ? t('recipes.photo_too_large', 'Immagine troppo grande (max 8 MB).')
+                      : t('recipes.photo_invalid_type', 'Formato immagine non supportato. Usa JPEG, PNG o WEBP.'))
+                    return
+                  }
                   setPhotoFile(f)
                   setPhotoPreview(URL.createObjectURL(f))
-                  e.target.value = ''
                 }}
               />
               {photoPreview || form.photo_url ? (

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import VideoCallModal from '../components/VideoCallModal'
 import { callRoomName } from '../lib/videoCall'
+import { validateImageFile } from '../lib/fileValidation'
 
 // ── Default GDPR privacy document (shown when doc.content is absent) ─────────
 const PRIVACY_DEFAULT = `MODULO DI CONSENSO INFORMATO AL TRATTAMENTO DEI DATI PERSONALI
@@ -1013,7 +1014,7 @@ export default function ChatPage() {
   // ── Start video call ────────────────────────────────────────────────────
   async function startVideoCall() {
     if (!dietitianId) return
-    const room = callRoomName(user.id, dietitianId)
+    const room = callRoomName()
     setCallRoom(room)
     const optimistic = {
       id: `opt_${Date.now()}`, patient_id: user.id,
@@ -1045,6 +1046,13 @@ export default function ChatPage() {
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ''
+    const invalid = validateImageFile(file)
+    if (invalid) {
+      alert(invalid === 'too_large'
+        ? t('chat.photo_too_large', 'Immagine troppo grande (max 8 MB).')
+        : t('chat.photo_invalid_type', 'Formato immagine non supportato. Usa JPEG, PNG, WEBP o GIF.'))
+      return
+    }
     setSending(true)
     const optimistic = {
       id: `opt_${Date.now()}`, patient_id: user.id,

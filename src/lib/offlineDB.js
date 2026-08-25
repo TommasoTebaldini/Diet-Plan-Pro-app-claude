@@ -77,6 +77,27 @@ async function markSynced(id) {
   })
 }
 
+/**
+ * Empties the offline queue entirely. Only meant to be called after a
+ * best-effort syncPendingWrites() (see AuthContext.signOut()) — clearing
+ * first would silently discard any not-yet-synced offline write. Used on
+ * logout so leftover queued data (which can include health-log entries)
+ * doesn't linger in IndexedDB for the next person to use the device.
+ */
+export async function clearQueue() {
+  try {
+    const db = await getDB()
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(QUEUE_STORE, 'readwrite')
+      tx.objectStore(QUEUE_STORE).clear()
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+    })
+  } catch {
+    // IndexedDB non disponibile — niente da pulire
+  }
+}
+
 /** Returns number of unsynced writes waiting in the queue */
 export async function getPendingCount() {
   try {

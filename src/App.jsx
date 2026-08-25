@@ -6,6 +6,7 @@ import LoadingScreen from './components/LoadingScreen'
 import PageSkeleton from './components/PageSkeleton'
 import BottomNav from './components/BottomNav'
 import InstallBanner from './components/InstallBanner'
+import AppLockGate from './components/AppLockGate'
 import { NotificationProvider } from './context/NotificationContext'
 import { AchievementsProvider } from './context/AchievementsContext'
 import OfflineBar from './components/OfflineBar'
@@ -226,6 +227,7 @@ function AppInner() {
     <AchievementsProvider>
       <ScrollToTop />
       <IdlePrefetch />
+      <AppLockGate />
       {user && !isDietitian && <PedometerAutoStart />}
       <OfflineBar onReconnect={handleReconnect} />
       <InstallBanner />

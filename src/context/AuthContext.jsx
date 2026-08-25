@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { t } from '../i18n'
+import { clearSensitiveLocalCaches } from '../lib/clearSensitiveCache'
+import { syncPendingWrites, clearQueue } from '../lib/offlineDB'
 
 const AuthContext = createContext({})
 
@@ -97,14 +99,16 @@ export function AuthProvider({ children }) {
       setUser(u)
       if (u) {
         fetchProfile(u.id)
-        // Auto-link to dietitian if patient registered via invite link
+        // Auto-link to dietitian if patient registered via invite link.
+        // Validated server-side (SEZIONE 93 di supabase_setup.sql): la RPC
+        // verifica che ref sia davvero un dietista con account approvato
+        // prima di collegarlo, non un insert diretto su un UUID qualsiasi.
         if (_event === 'SIGNED_IN') {
           const ref = localStorage.getItem('pending_dietitian_ref')
           if (ref && ref.length > 10) {
-            supabase.from('patient_dietitian')
-              .insert({ patient_id: u.id, dietitian_id: ref })
-              .then(({ error }) => {
-                if (!error) localStorage.removeItem('pending_dietitian_ref')
+            supabase.rpc('link_patient_to_dietitian_via_ref', { p_dietitian_id: ref })
+              .then(({ data, error }) => {
+                if (!error && data === true) localStorage.removeItem('pending_dietitian_ref')
               })
           }
         }
@@ -191,6 +195,15 @@ export function AuthProvider({ children }) {
 
   const signOut = useCallback(async () => {
     clearProfileCache()
+    clearSensitiveLocalCaches()
+    // Best-effort: prova a sincronizzare eventuali scritture offline in coda
+    // prima di svuotare la coda, per non perdere dati non ancora salvati
+    // (es. un peso registrato offline poco prima del logout). Se è tutta
+    // roba già sincronizzata, clearQueue() è comunque necessario: altrimenti
+    // resterebbe in IndexedDB, leggibile dal prossimo utente sullo stesso
+    // dispositivo condiviso.
+    try { await syncPendingWrites() } catch { /* offline o già vuota, si prosegue comunque */ }
+    await clearQueue()
     await supabase.auth.signOut()
   }, [])
 

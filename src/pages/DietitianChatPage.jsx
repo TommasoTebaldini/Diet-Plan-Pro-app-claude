@@ -1062,7 +1062,7 @@ export default function DietitianChatPage() {
 
   async function startVideoCall() {
     if (!selected) return
-    const room = callRoomName(selected, user.id)
+    const room = callRoomName()
     setCallRoom(room)
     const optimistic = {
       id: `opt_${Date.now()}`, patient_id: selected,

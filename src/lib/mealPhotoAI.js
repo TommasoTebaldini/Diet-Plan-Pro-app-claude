@@ -25,11 +25,48 @@ function getMimeType(file) {
   return 'image/jpeg'
 }
 
+const MAX_DIMENSION = 1280 // px, lato più lungo
+const JPEG_QUALITY = 0.82
+
+/**
+ * Ridimensiona/comprime la foto lato client prima di inviarla. Prima, una
+ * foto scattata dalla fotocamera (facilmente 10-20MB in HEIC/JPEG ad alta
+ * risoluzione) veniva mandata all'Edge Function senza alcun limite —
+ * rallentava l'invio e consumava la quota mensile (150 foto/mese) più in
+ * fretta del necessario. L'analisi non ha bisogno di più di ~1280px per
+ * riconoscere gli alimenti nel piatto. Se il canvas fallisce per qualsiasi
+ * motivo (formato non decodificabile dal browser, ecc.), si procede con il
+ * file originale invece di bloccare l'utente.
+ */
+async function compressImage(file) {
+  if (!file.type.startsWith('image/') || file.type === 'image/svg+xml') return file
+  try {
+    const bitmap = await createImageBitmap(file)
+    const scale = Math.min(1, MAX_DIMENSION / Math.max(bitmap.width, bitmap.height))
+    if (scale >= 1 && file.size <= 2 * 1024 * 1024) {
+      bitmap.close?.()
+      return file // già abbastanza piccola, non ricomprimere inutilmente
+    }
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(bitmap.width * scale)
+    canvas.height = Math.round(bitmap.height * scale)
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    bitmap.close?.()
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', JPEG_QUALITY))
+    if (!blob) return file
+    return new File([blob], file.name || 'meal.jpg', { type: 'image/jpeg' })
+  } catch {
+    return file
+  }
+}
+
 export function isMealAIAvailable() {
   return true // always available — key lives on the server
 }
 
-export async function analyzeMealPhoto(file) {
+export async function analyzeMealPhoto(rawFile) {
+  const file = await compressImage(rawFile)
   const image = await fileToBase64(file)
   const mediaType = getMimeType(file)
 
