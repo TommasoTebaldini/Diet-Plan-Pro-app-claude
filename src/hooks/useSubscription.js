@@ -3,6 +3,16 @@ import { useAuth } from '../context/AuthContext'
 // ─── Payments flag ────────────────────────────────────────────────────────────
 // Set to true when Stripe is configured and live.
 // While false: all patients are treated as Pro, all payment UI is hidden.
+//
+// ⚠️ When flipping this to true, also flip the matching public.payments_active()
+// SQL function in NutriPlan-Pro/supabase_setup.sql (SEZIONE 95) from
+// `SELECT false` to `SELECT true` — that function gates the server-side
+// enforcement of the 5-recipe Free-tier limit (trigger on public.ricette).
+// Leaving it out of sync means either (a) still false: paying Pro users can't
+// actually create more than 5 recipes even though the UI says they can, or
+// (b) forgetting this comment's warning in the other direction — flipping the
+// SQL side first would start blocking every current user at 5 recipes while
+// the client still treats everyone as Pro. Flip both together, same deploy.
 export const PAYMENTS_ACTIVE = false
 
 // ─── Plan definitions ─────────────────────────────────────────────────────────

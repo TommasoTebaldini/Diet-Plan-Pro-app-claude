@@ -8,6 +8,7 @@ import { startOfWeek, addWeeks, subWeeks, addDays, format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import { useT } from '../i18n'
+import { matchesAnyKeyword } from '../lib/keywordMatch'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -47,7 +48,7 @@ const CATEGORIZE_KEYWORD_EXCLUSIONS = {
 }
 
 function matchesCategory(n, words) {
-  return words.some(w => !(CATEGORIZE_KEYWORD_EXCLUSIONS[w]?.test(n)) && n.includes(w))
+  return matchesAnyKeyword(n, words, CATEGORIZE_KEYWORD_EXCLUSIONS)
 }
 
 function categorizeFood(name) {
