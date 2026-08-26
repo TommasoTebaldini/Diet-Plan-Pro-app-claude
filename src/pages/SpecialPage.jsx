@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
 import { fetchSpecialSections } from '../lib/specialSections'
-import { SPECIALTIES, FIELD_CONFIG, IDDSI_LEVELS, MEAL_COLUMNS, TIPS, QUICK_LINKS } from '../data/specialtyMeta'
+import { IDDSI_LEVELS, getSpecialties, getTips, getQuickLinks, getIddsiLevelName, getMealColumns, getFieldConfig } from '../data/specialtyMeta'
 import DiabeteCalculator from '../components/specialty/DiabeteCalculator'
 import ChetogenicaCalculator from '../components/specialty/ChetogenicaCalculator'
 import PancreasCalculator from '../components/specialty/PancreasCalculator'
@@ -93,9 +93,10 @@ function FieldRow({ label, value, unit }) {
 }
 
 function MealsTable({ meals }) {
+  const t = useT()
   const rows = (meals || []).filter(m => m && (m.nome || m.alimenti))
   if (!rows.length) return null
-  const cols = MEAL_COLUMNS.filter(c => rows.some(r => hasValue(r[c.key])))
+  const cols = getMealColumns(t).filter(c => rows.some(r => hasValue(r[c.key])))
   return (
     <div style={{ marginTop: 10, overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
@@ -156,7 +157,7 @@ function GroupCard({ group, dati, accent }) {
 
 function TipsCard({ tipo, accent, accentBg }) {
   const t = useT()
-  const tips = TIPS[tipo]
+  const tips = getTips(t, tipo)
   if (!tips?.length) return null
   return (
     <div className="card" style={{ padding: 16 }}>
@@ -189,7 +190,8 @@ function TipsCard({ tipo, accent, accentBg }) {
 }
 
 function QuickLinksRow({ tipo }) {
-  const links = QUICK_LINKS[tipo]
+  const t = useT()
+  const links = getQuickLinks(t, tipo)
   if (!links?.length) return null
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -207,7 +209,7 @@ function QuickLinksRow({ tipo }) {
 
 function NoteDetail({ tipo, dati, accent }) {
   const t = useT()
-  const config = FIELD_CONFIG[tipo]
+  const config = getFieldConfig(t, tipo)
   if (!config) return null
 
   if (config.flatFields) {
@@ -217,8 +219,10 @@ function NoteDetail({ tipo, dati, accent }) {
       <div className="card" style={{ padding: 16 }}>
         {fields.map(f => {
           if (f.format === 'iddsi') {
-            const lvl = IDDSI_LEVELS[dati[f.key]]
-            return <FieldRow key={f.key} label={f.label} value={lvl ? t('special.iddsi_level', { level: dati[f.key], name: lvl.nome }, 'Livello {{level}} — {{name}}') : dati[f.key]} />
+            const level = dati[f.key]
+            const lvl = IDDSI_LEVELS[level]
+            const name = lvl ? getIddsiLevelName(t, level) : null
+            return <FieldRow key={f.key} label={f.label} value={lvl ? t('special.iddsi_level', { level, name }, 'Livello {{level}} — {{name}}') : dati[f.key]} />
           }
           return <FieldRow key={f.key} label={f.label} value={dati[f.key]} unit={f.unit} />
         })}
@@ -246,9 +250,10 @@ export default function SpecialPage() {
     fetchSpecialSections(user.id).then(rows => { setSections(rows); setLoading(false) })
   }, [user?.id])
 
+  const specialties = getSpecialties(t)
   const byKey = Object.fromEntries(sections.map(s => [s.key, s]))
-  const availableSpecialties = SPECIALTIES.filter(s => byKey[s.key])
-  const active = SPECIALTIES.find(s => s.key === activeTipo)
+  const availableSpecialties = specialties.filter(s => byKey[s.key])
+  const active = specialties.find(s => s.key === activeTipo)
   const activeSection = active ? byKey[active.key] : null
   const Tool = active ? TOOLS[active.key] : null
 

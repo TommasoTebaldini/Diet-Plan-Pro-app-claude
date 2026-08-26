@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import patientViewRaw from '../assets/patientViewHtml.js'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { useT } from '../i18n'
+import { useT, t as standaloneT } from '../i18n'
 import { FileText, Download, Calendar, Utensils, Apple, Heart, Bookmark, BookmarkCheck, ArrowUpDown, Star, Printer, BookOpen, PenLine, CheckCircle2, XCircle, RefreshCw, Shield } from 'lucide-react'
 
 // ─── Document type metadata ───────────────────────────────────────────────────
@@ -894,7 +894,10 @@ function folderLabel(t, folder) {
 
 // Costruisce l'HTML di patient-view.html con i dati del documento iniettati.
 // Il file è già bundlato in patientViewRaw — nessuna rete, nessun rewrite Vercel.
-function buildPatientViewHtml(doc, withPrint = false) {
+// patientViewRaw è ora una funzione (t) => html: il documento generato viene aperto
+// in una finestra/iframe isolata senza accesso a React, quindi il testo va già
+// tradotto al momento della generazione della stringa (vedi src/assets/patientViewHtml.js).
+function buildPatientViewHtml(doc, withPrint = false, t = standaloneT) {
   const tipoRaw = (doc.tipo || doc.type || '').toLowerCase().trim()
   let   tipo    = TIPO_MAP[tipoRaw] || tipoRaw
   const nota    = doc.nota || doc.title || ''
@@ -926,7 +929,7 @@ function buildPatientViewHtml(doc, withPrint = false) {
   let   paramsStr = `tipo=${encodeURIComponent(tipo)}&nota=${encodeURIComponent(nota)}&data=${dataB64}`
   if (withPrint) paramsStr += '&print=1'
 
-  const result = patientViewRaw.replace(
+  const result = patientViewRaw(t).replace(
     /const params\s*=\s*new URLSearchParams\(location\.search\)/,
     `const params = new URLSearchParams(${JSON.stringify(paramsStr)})`
   )

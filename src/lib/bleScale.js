@@ -41,7 +41,7 @@ function parseWeightMeasurement(dataView) {
 // standard service / no reading arrives within the timeout.
 export async function connectAndReadWeight({ timeoutMs = 20000 } = {}) {
   if (!isBleScaleSupported()) {
-    throw new Error('Il Bluetooth web non è supportato su questo browser/dispositivo.');
+    throw new Error('BLE_SCALE_UNSUPPORTED');
   }
 
   const device = await navigator.bluetooth.requestDevice({
@@ -56,7 +56,7 @@ export async function connectAndReadWeight({ timeoutMs = 20000 } = {}) {
     const weight = await new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         characteristic.removeEventListener('characteristicvaluechanged', onValue);
-        reject(new Error('Nessuna misurazione ricevuta — sali sulla bilancia e riprova.'));
+        reject(new Error('BLE_SCALE_TIMEOUT'));
       }, timeoutMs);
 
       function onValue(event) {

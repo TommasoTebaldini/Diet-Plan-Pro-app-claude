@@ -14,97 +14,68 @@ import { callRoomName } from '../lib/videoCall'
 import { validateImageFile } from '../lib/fileValidation'
 
 // ── Default GDPR privacy document (shown when doc.content is absent) ─────────
-const PRIVACY_DEFAULT = `MODULO DI CONSENSO INFORMATO AL TRATTAMENTO DEI DATI PERSONALI
-ai sensi del Regolamento UE 2016/679 (GDPR) e del D.Lgs. 196/2003 e ss.mm.ii.
+const PRIVACY_DIVIDER = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TITOLARE DEL TRATTAMENTO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Il titolare del trattamento è il Professionista della Nutrizione che ha attivato il Suo account su questa piattaforma. I suoi dati di contatto sono indicati nel profilo del professionista all'interno dell'applicazione.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. FINALITÀ E BASE GIURIDICA DEL TRATTAMENTO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-I dati personali, inclusi i dati relativi alla salute (categorie particolari ai sensi dell'art. 9 GDPR), vengono trattati per le seguenti finalità:
-
-a) Gestione della cartella nutrizionale e clinica del paziente
-b) Elaborazione e aggiornamento di piani alimentari personalizzati
-c) Monitoraggio dell'andamento nutrizionale, del peso corporeo e del benessere generale
-d) Comunicazioni relative agli appuntamenti e al percorso terapeutico-nutrizionale
-e) Archiviazione di documenti clinici, referti e prescrizioni
-f) Adempimento degli obblighi di legge in materia sanitaria e professionale
-
-La base giuridica del trattamento è:
-- Il consenso esplicito dell'interessato (art. 6, par. 1, lett. a e art. 9, par. 2, lett. a GDPR)
-- L'esecuzione del contratto di prestazione professionale (art. 6, par. 1, lett. b GDPR)
-- Il rispetto di obblighi legali (art. 6, par. 1, lett. c GDPR)
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-2. CATEGORIE DI DATI TRATTATI
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Vengono trattati i seguenti dati personali:
-
-▸ Dati anagrafici e di contatto: nome, cognome, data di nascita, codice fiscale, indirizzo, numero di telefono, indirizzo e-mail
-▸ Dati antropometrici: peso attuale e storico, altezza, indice di massa corporea (BMI), composizione corporea
-▸ Dati sanitari: patologie diagnosticate, farmaci assunti, intolleranze e allergie alimentari, esami del sangue e referti forniti volontariamente, anamnesi alimentare
-▸ Dati relativi alle abitudini di vita: attività fisica svolta, abitudini alimentari, preferenze e restrizioni dietetiche
-▸ Fotografie corporee, se concordato espressamente con il professionista
-▸ Dati di utilizzo dell'applicazione NutriPlan (accessi, alimenti registrati, obiettivi)
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-3. MODALITÀ DI TRATTAMENTO E SICUREZZA
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-I dati sono trattati con strumenti elettronici e/o cartacei, con misure di sicurezza tecniche e organizzative adeguate a prevenire accessi non autorizzati, perdita, distruzione o divulgazione non consentita. La piattaforma NutriPlan utilizza connessioni cifrate (TLS/SSL), autenticazione sicura e infrastrutture cloud conformi al GDPR.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-4. PERIODO DI CONSERVAZIONE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-I dati vengono conservati per il periodo strettamente necessario al raggiungimento delle finalità per cui sono stati raccolti, e comunque:
-- Per tutta la durata del rapporto professionale
-- Per un massimo di 10 anni dalla cessazione del rapporto, salvo obblighi di legge che prevedano conservazione più lunga
-- Per tutta la durata prevista dalla normativa fiscale e contabile applicabile
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-5. COMUNICAZIONE E CONDIVISIONE DEI DATI
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-I dati personali non vengono diffusi a terzi. Possono essere comunicati esclusivamente a:
-▸ Medici curanti e altri specialisti sanitari, previo esplicito consenso dell'interessato
-▸ Personale amministrativo dello studio, nei limiti strettamente necessari
-▸ Fornitori di servizi tecnologici (infrastruttura cloud, applicativi software) vincolati da accordi di riservatezza conformi al GDPR
-▸ Autorità pubbliche, nei casi previsti dalla legge
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-6. TRASFERIMENTO DATI ALL'ESTERO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-I dati potrebbero essere trattati da fornitori di servizi cloud ubicati in Paesi dell'Unione Europea o in Paesi terzi che garantiscono un livello di protezione adeguato ai sensi degli artt. 44-49 GDPR, come gli USA nell'ambito del Data Privacy Framework.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-7. DIRITTI DELL'INTERESSATO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-In qualsiasi momento Lei potrà esercitare i seguenti diritti (artt. 15–22 GDPR), inviando richiesta scritta al Titolare del trattamento:
-
-▸ Diritto di accesso (art. 15): ottenere conferma che i Suoi dati siano trattati e riceverne copia
-▸ Diritto di rettifica (art. 16): correggere dati inesatti o incompleti
-▸ Diritto alla cancellazione / "diritto all'oblio" (art. 17): chiedere la cancellazione dei dati quando non più necessari
-▸ Diritto alla limitazione del trattamento (art. 18): ottenere la sospensione temporanea del trattamento
-▸ Diritto alla portabilità dei dati (art. 20): ricevere i Suoi dati in formato strutturato e leggibile da dispositivo automatico
-▸ Diritto di opposizione (art. 21): opporsi al trattamento in qualsiasi momento
-▸ Diritto di revocare il consenso (art. 7, par. 3): la revoca non pregiudica la liceità del trattamento effettuato prima della stessa
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-8. RECLAMO AL GARANTE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Lei ha il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali qualora ritenga che il trattamento dei Suoi dati personali sia effettuato in violazione del GDPR.
-Sito ufficiale: www.garanteprivacy.it
-Indirizzo: Piazza Venezia 11, 00187 Roma
-E-mail: garante@gpdp.it
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-DICHIARAZIONE DI CONSENSO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Il/La sottoscritto/a dichiara di aver letto integralmente la presente informativa, di averla compresa in ogni sua parte e di prestare il proprio consenso libero, specifico, informato e inequivocabile al trattamento dei propri dati personali, inclusi quelli relativi allo stato di salute, per le finalità sopra indicate.
-
-Data: ${new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })}`
+function buildPrivacyDefault(t) {
+  const dateStr = new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })
+  return [
+    t('chat.privacy_default.title', 'MODULO DI CONSENSO INFORMATO AL TRATTAMENTO DEI DATI PERSONALI\nai sensi del Regolamento UE 2016/679 (GDPR) e del D.Lgs. 196/2003 e ss.mm.ii.'),
+    PRIVACY_DIVIDER + '\n' + t('chat.privacy_default.controller_header', 'TITOLARE DEL TRATTAMENTO') + '\n' + PRIVACY_DIVIDER + '\n' +
+      t('chat.privacy_default.controller_body', "Il titolare del trattamento è il Professionista della Nutrizione che ha attivato il Suo account su questa piattaforma. I suoi dati di contatto sono indicati nel profilo del professionista all'interno dell'applicazione."),
+    PRIVACY_DIVIDER + '\n' + t('chat.privacy_default.s1_header', '1. FINALITÀ E BASE GIURIDICA DEL TRATTAMENTO') + '\n' + PRIVACY_DIVIDER + '\n' +
+      t('chat.privacy_default.s1_intro', "I dati personali, inclusi i dati relativi alla salute (categorie particolari ai sensi dell'art. 9 GDPR), vengono trattati per le seguenti finalità:") + '\n\n' +
+      t('chat.privacy_default.s1_a', 'a) Gestione della cartella nutrizionale e clinica del paziente') + '\n' +
+      t('chat.privacy_default.s1_b', 'b) Elaborazione e aggiornamento di piani alimentari personalizzati') + '\n' +
+      t('chat.privacy_default.s1_c', "c) Monitoraggio dell'andamento nutrizionale, del peso corporeo e del benessere generale") + '\n' +
+      t('chat.privacy_default.s1_d', 'd) Comunicazioni relative agli appuntamenti e al percorso terapeutico-nutrizionale') + '\n' +
+      t('chat.privacy_default.s1_e', 'e) Archiviazione di documenti clinici, referti e prescrizioni') + '\n' +
+      t('chat.privacy_default.s1_f', 'f) Adempimento degli obblighi di legge in materia sanitaria e professionale') + '\n\n' +
+      t('chat.privacy_default.s1_basis_intro', 'La base giuridica del trattamento è:') + '\n' +
+      t('chat.privacy_default.s1_basis_a', '- Il consenso esplicito dell\'interessato (art. 6, par. 1, lett. a e art. 9, par. 2, lett. a GDPR)') + '\n' +
+      t('chat.privacy_default.s1_basis_b', "- L'esecuzione del contratto di prestazione professionale (art. 6, par. 1, lett. b GDPR)") + '\n' +
+      t('chat.privacy_default.s1_basis_c', '- Il rispetto di obblighi legali (art. 6, par. 1, lett. c GDPR)'),
+    PRIVACY_DIVIDER + '\n' + t('chat.privacy_default.s2_header', '2. CATEGORIE DI DATI TRATTATI') + '\n' + PRIVACY_DIVIDER + '\n' +
+      t('chat.privacy_default.s2_intro', 'Vengono trattati i seguenti dati personali:') + '\n\n' +
+      t('chat.privacy_default.s2_li1', '▸ Dati anagrafici e di contatto: nome, cognome, data di nascita, codice fiscale, indirizzo, numero di telefono, indirizzo e-mail') + '\n' +
+      t('chat.privacy_default.s2_li2', '▸ Dati antropometrici: peso attuale e storico, altezza, indice di massa corporea (BMI), composizione corporea') + '\n' +
+      t('chat.privacy_default.s2_li3', '▸ Dati sanitari: patologie diagnosticate, farmaci assunti, intolleranze e allergie alimentari, esami del sangue e referti forniti volontariamente, anamnesi alimentare') + '\n' +
+      t('chat.privacy_default.s2_li4', '▸ Dati relativi alle abitudini di vita: attività fisica svolta, abitudini alimentari, preferenze e restrizioni dietetiche') + '\n' +
+      t('chat.privacy_default.s2_li5', '▸ Fotografie corporee, se concordato espressamente con il professionista') + '\n' +
+      t('chat.privacy_default.s2_li6', '▸ Dati di utilizzo dell\'applicazione NutriPlan (accessi, alimenti registrati, obiettivi)'),
+    PRIVACY_DIVIDER + '\n' + t('chat.privacy_default.s3_header', '3. MODALITÀ DI TRATTAMENTO E SICUREZZA') + '\n' + PRIVACY_DIVIDER + '\n' +
+      t('chat.privacy_default.s3_body', 'I dati sono trattati con strumenti elettronici e/o cartacei, con misure di sicurezza tecniche e organizzative adeguate a prevenire accessi non autorizzati, perdita, distruzione o divulgazione non consentita. La piattaforma NutriPlan utilizza connessioni cifrate (TLS/SSL), autenticazione sicura e infrastrutture cloud conformi al GDPR.'),
+    PRIVACY_DIVIDER + '\n' + t('chat.privacy_default.s4_header', '4. PERIODO DI CONSERVAZIONE') + '\n' + PRIVACY_DIVIDER + '\n' +
+      t('chat.privacy_default.s4_intro', 'I dati vengono conservati per il periodo strettamente necessario al raggiungimento delle finalità per cui sono stati raccolti, e comunque:') + '\n' +
+      t('chat.privacy_default.s4_li1', '- Per tutta la durata del rapporto professionale') + '\n' +
+      t('chat.privacy_default.s4_li2', '- Per un massimo di 10 anni dalla cessazione del rapporto, salvo obblighi di legge che prevedano conservazione più lunga') + '\n' +
+      t('chat.privacy_default.s4_li3', '- Per tutta la durata prevista dalla normativa fiscale e contabile applicabile'),
+    PRIVACY_DIVIDER + '\n' + t('chat.privacy_default.s5_header', '5. COMUNICAZIONE E CONDIVISIONE DEI DATI') + '\n' + PRIVACY_DIVIDER + '\n' +
+      t('chat.privacy_default.s5_intro', 'I dati personali non vengono diffusi a terzi. Possono essere comunicati esclusivamente a:') + '\n' +
+      t('chat.privacy_default.s5_li1', '▸ Medici curanti e altri specialisti sanitari, previo esplicito consenso dell\'interessato') + '\n' +
+      t('chat.privacy_default.s5_li2', '▸ Personale amministrativo dello studio, nei limiti strettamente necessari') + '\n' +
+      t('chat.privacy_default.s5_li3', '▸ Fornitori di servizi tecnologici (infrastruttura cloud, applicativi software) vincolati da accordi di riservatezza conformi al GDPR') + '\n' +
+      t('chat.privacy_default.s5_li4', '▸ Autorità pubbliche, nei casi previsti dalla legge'),
+    PRIVACY_DIVIDER + '\n' + t('chat.privacy_default.s6_header', "6. TRASFERIMENTO DATI ALL'ESTERO") + '\n' + PRIVACY_DIVIDER + '\n' +
+      t('chat.privacy_default.s6_body', "I dati potrebbero essere trattati da fornitori di servizi cloud ubicati in Paesi dell'Unione Europea o in Paesi terzi che garantiscono un livello di protezione adeguato ai sensi degli artt. 44-49 GDPR, come gli USA nell'ambito del Data Privacy Framework."),
+    PRIVACY_DIVIDER + '\n' + t('chat.privacy_default.s7_header', "7. DIRITTI DELL'INTERESSATO") + '\n' + PRIVACY_DIVIDER + '\n' +
+      t('chat.privacy_default.s7_intro', 'In qualsiasi momento Lei potrà esercitare i seguenti diritti (artt. 15–22 GDPR), inviando richiesta scritta al Titolare del trattamento:') + '\n\n' +
+      t('chat.privacy_default.s7_li1', '▸ Diritto di accesso (art. 15): ottenere conferma che i Suoi dati siano trattati e riceverne copia') + '\n' +
+      t('chat.privacy_default.s7_li2', '▸ Diritto di rettifica (art. 16): correggere dati inesatti o incompleti') + '\n' +
+      t('chat.privacy_default.s7_li3', '▸ Diritto alla cancellazione / "diritto all\'oblio" (art. 17): chiedere la cancellazione dei dati quando non più necessari') + '\n' +
+      t('chat.privacy_default.s7_li4', '▸ Diritto alla limitazione del trattamento (art. 18): ottenere la sospensione temporanea del trattamento') + '\n' +
+      t('chat.privacy_default.s7_li5', '▸ Diritto alla portabilità dei dati (art. 20): ricevere i Suoi dati in formato strutturato e leggibile da dispositivo automatico') + '\n' +
+      t('chat.privacy_default.s7_li6', '▸ Diritto di opposizione (art. 21): opporsi al trattamento in qualsiasi momento') + '\n' +
+      t('chat.privacy_default.s7_li7', '▸ Diritto di revocare il consenso (art. 7, par. 3): la revoca non pregiudica la liceità del trattamento effettuato prima della stessa'),
+    PRIVACY_DIVIDER + '\n' + t('chat.privacy_default.s8_header', '8. RECLAMO AL GARANTE') + '\n' + PRIVACY_DIVIDER + '\n' +
+      t('chat.privacy_default.s8_body', 'Lei ha il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali qualora ritenga che il trattamento dei Suoi dati personali sia effettuato in violazione del GDPR.') + '\n' +
+      t('chat.privacy_default.s8_site', 'Sito ufficiale: www.garanteprivacy.it') + '\n' +
+      t('chat.privacy_default.s8_address', 'Indirizzo: Piazza Venezia 11, 00187 Roma') + '\n' +
+      t('chat.privacy_default.s8_email', 'E-mail: garante@gpdp.it'),
+    PRIVACY_DIVIDER + '\n' + t('chat.privacy_default.declaration_header', 'DICHIARAZIONE DI CONSENSO') + '\n' + PRIVACY_DIVIDER + '\n' +
+      t('chat.privacy_default.declaration_body', 'Il/La sottoscritto/a dichiara di aver letto integralmente la presente informativa, di averla compresa in ogni sua parte e di prestare il proprio consenso libero, specifico, informato e inequivocabile al trattamento dei propri dati personali, inclusi quelli relativi allo stato di salute, per le finalità sopra indicate.') + '\n\n' +
+      t('chat.privacy_default.date_label', { date: dateStr }, 'Data: {{date}}'),
+  ].join('\n\n')
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -305,7 +276,7 @@ function SignatureModal({ doc, onClose, onSigned }) {
         {/* Document content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '14px 20px' }}>
           <div style={{ background: 'var(--surface-2)', borderRadius: 12, padding: '14px 16px', marginBottom: 16, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.75, border: '1px solid var(--border-light)', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono, monospace)', letterSpacing: '0.01em' }}>
-            {doc.content && doc.content.trim().length > 30 ? doc.content : PRIVACY_DEFAULT}
+            {doc.content && doc.content.trim().length > 30 ? doc.content : buildPrivacyDefault(t)}
           </div>
 
           {/* Mode toggle */}

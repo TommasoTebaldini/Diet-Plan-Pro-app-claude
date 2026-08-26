@@ -262,7 +262,7 @@ export default function QuizPage({ inModal = false }) {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-                    <span style={{ fontSize: 10, background: qCat?.bg, color: qCat?.color, padding: '1px 7px', borderRadius: 20, fontWeight: 700 }}>{qCat?.emoji} {qCat?.label}</span>
+                    <span style={{ fontSize: 10, background: qCat?.bg, color: qCat?.color, padding: '1px 7px', borderRadius: 20, fontWeight: 700 }}>{qCat?.emoji} {qCat && t(qCat.labelKey, qCat.label)}</span>
                   </div>
                   <p style={{ fontSize: 12.5, fontWeight: 600, color: '#111827', marginBottom: 3, lineHeight: 1.35 }}>{question.q}</p>
                   <p style={{ fontSize: 11.5, color: correct ? '#16a34a' : '#dc2626', fontWeight: 600, marginBottom: 3 }}>
@@ -318,7 +318,7 @@ export default function QuizPage({ inModal = false }) {
                     onClick={() => setSelectedCats(prev => prev.includes(key) ? prev.filter(c => c !== key) : [...prev, key])}
                     style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', background: active ? cat.bg : 'var(--surface-2)', borderRadius: 20, border: `1.5px solid ${active ? cat.light : 'var(--border)'}`, cursor: 'pointer', transition: 'all .15s' }}>
                     <span style={{ fontSize: 13 }}>{cat.emoji}</span>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: active ? cat.color : 'var(--text-muted)' }}>{cat.label}</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: active ? cat.color : 'var(--text-muted)' }}>{t(cat.labelKey, cat.label)}</span>
                   </button>
                 )
               })}
@@ -390,7 +390,7 @@ export default function QuizPage({ inModal = false }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 9px', background: cat.bg, borderRadius: 20, border: `1.5px solid ${cat.light}` }}>
             <span style={{ fontSize: 12 }}>{cat.emoji}</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: cat.color }}>{cat.label}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: cat.color }}>{t(cat.labelKey, cat.label)}</span>
           </div>
           <span style={{ fontSize: 12, color: '#9ca3af', fontWeight: 600 }}>{t('quiz.question_progress', { current: idx + 1, total: questions.length }, 'Domanda {{current}} di {{total}}')}</span>
         </div>

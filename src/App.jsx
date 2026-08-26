@@ -11,7 +11,7 @@ import { NotificationProvider } from './context/NotificationContext'
 import { AchievementsProvider } from './context/AchievementsContext'
 import OfflineBar from './components/OfflineBar'
 import PageTransition from './components/PageTransition'
-import { useT } from './i18n'
+import { useT, t } from './i18n'
 import { getPedometer, isPedometerSupported, hasMotionPermission } from './lib/pedometer'
 import { logClientError } from './lib/errorLogger'
 
@@ -69,14 +69,14 @@ class ErrorBoundary extends Component {
     if (this.state.error) {
       return (
         <div style={{ padding: '2rem', textAlign: 'center' }}>
-          <p style={{ color: '#DC2626', marginBottom: '4px', fontWeight: 600 }}>Si è verificato un errore imprevisto in questa pagina.</p>
-          <p style={{ color: 'var(--text-muted, #64748b)', fontSize: 13, marginBottom: '1rem' }}>Il resto dell'app funziona normalmente — è stato segnalato automaticamente.</p>
+          <p style={{ color: '#DC2626', marginBottom: '4px', fontWeight: 600 }}>{t('errorboundary.title', 'Si è verificato un errore imprevisto in questa pagina.')}</p>
+          <p style={{ color: 'var(--text-muted, #64748b)', fontSize: 13, marginBottom: '1rem' }}>{t('errorboundary.description', "Il resto dell'app funziona normalmente — è stato segnalato automaticamente.")}</p>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
             <button onClick={() => this.setState({ error: null })} style={{ padding: '0.5rem 1.5rem', borderRadius: '8px', border: 'none', background: '#1a7f5a', color: '#fff', cursor: 'pointer' }}>
-              Riprova
+              {t('errorboundary.retry', 'Riprova')}
             </button>
             <a href="/" style={{ padding: '0.5rem 1.5rem', borderRadius: '8px', border: '1.5px solid var(--border, #e2e8f0)', color: 'var(--text-primary, #1e293b)', textDecoration: 'none', display: 'inline-block' }}>
-              Torna alla Home
+              {t('errorboundary.home', 'Torna alla Home')}
             </a>
           </div>
         </div>

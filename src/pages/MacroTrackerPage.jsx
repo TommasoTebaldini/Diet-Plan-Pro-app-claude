@@ -218,19 +218,19 @@ const MOOD_OPTIONS = [
 ]
 
 const ALLERGEN_RULES = [
-  { key: 'Glutine', icon: '🌾', col: '#92400E', bg: '#FEF3C7', kw: ['grano','frumento','farro','orzo','segale','kamut','spelta','pane','pasta','semola','semolino','crackers','biscotti','pizza','focaccia','grissini','taralli','farina','avena','seitan','bulgur','couscous'] },
-  { key: 'Lattosio', icon: '🥛', col: '#1D4ED8', bg: '#DBEAFE', kw: ['latte','lattosio','formaggio','yogurt','burro','panna','mozzarella','ricotta','parmigiano','pecorino','gorgonzola','mascarpone','kefir','whey','latticini','scamorza','provola','fontina','brie','asiago','caciotta'] },
-  { key: 'Uova', icon: '🥚', col: '#B45309', bg: '#FEFCE8', kw: ['uova','uovo','egg','maionese','mayo','omelette','frittata','albume','tuorlo'] },
-  { key: 'Arachidi', icon: '🥜', col: '#92400E', bg: '#FFF7ED', kw: ['arachidi','arachide','peanut'] },
-  { key: 'Frutta a guscio', icon: '🌰', col: '#78350F', bg: '#FEF3C7', kw: ['noci','mandorle','nocciole','pistacchi','anacardi','cashew','macadamia','pecan','pinoli','noci brasiliane'] },
-  { key: 'Pesce', icon: '🐟', col: '#1E40AF', bg: '#DBEAFE', kw: ['pesce','merluzzo','salmone','tonno','trota','alici','sardine','spigola','orata','branzino','nasello','baccalà','stoccafisso','acciughe','sgombro','aringa','halibut','sogliola'] },
-  { key: 'Crostacei e molluschi', icon: '🦐', col: '#B91C1C', bg: '#FEE2E2', kw: ['gamberi','gambero','crostacei','aragosta','granchio','scampi','astice','vongole','cozze','ostriche','calamari','polpo','seppia','molluschi'] },
-  { key: 'Soia', icon: '🌱', col: '#16A34A', bg: '#DCFCE7', kw: ['soia','soy','tofu','tempeh','edamame','miso','tamari'] },
-  { key: 'Sedano', icon: '🌿', col: '#15803D', bg: '#F0FDF4', kw: ['sedano','celery'] },
-  { key: 'Sesamo', icon: '🌾', col: '#CA8A04', bg: '#FEFCE8', kw: ['sesamo','sesame','tahini','tahin'] },
-  { key: 'Senape', icon: '🌶', col: '#B45309', bg: '#FFFBEB', kw: ['senape','mustard'] },
-  { key: 'Lupini', icon: '🌼', col: '#D97706', bg: '#FFF7ED', kw: ['lupini','lupino','lupin'] },
-  { key: 'Anidride solforosa e solfiti', icon: '🍷', col: '#7C3AED', bg: '#F5F3FF', kw: ['solfiti','vino','aceto di vino','prugne secche','uva passa','albicocche secche'] },
+  { key: 'Glutine', slug: 'gluten', icon: '🌾', col: '#92400E', bg: '#FEF3C7', kw: ['grano','frumento','farro','orzo','segale','kamut','spelta','pane','pasta','semola','semolino','crackers','biscotti','pizza','focaccia','grissini','taralli','farina','avena','seitan','bulgur','couscous'] },
+  { key: 'Lattosio', slug: 'lactose', icon: '🥛', col: '#1D4ED8', bg: '#DBEAFE', kw: ['latte','lattosio','formaggio','yogurt','burro','panna','mozzarella','ricotta','parmigiano','pecorino','gorgonzola','mascarpone','kefir','whey','latticini','scamorza','provola','fontina','brie','asiago','caciotta'] },
+  { key: 'Uova', slug: 'eggs', icon: '🥚', col: '#B45309', bg: '#FEFCE8', kw: ['uova','uovo','egg','maionese','mayo','omelette','frittata','albume','tuorlo'] },
+  { key: 'Arachidi', slug: 'peanuts', icon: '🥜', col: '#92400E', bg: '#FFF7ED', kw: ['arachidi','arachide','peanut'] },
+  { key: 'Frutta a guscio', slug: 'tree_nuts', icon: '🌰', col: '#78350F', bg: '#FEF3C7', kw: ['noci','mandorle','nocciole','pistacchi','anacardi','cashew','macadamia','pecan','pinoli','noci brasiliane'] },
+  { key: 'Pesce', slug: 'fish', icon: '🐟', col: '#1E40AF', bg: '#DBEAFE', kw: ['pesce','merluzzo','salmone','tonno','trota','alici','sardine','spigola','orata','branzino','nasello','baccalà','stoccafisso','acciughe','sgombro','aringa','halibut','sogliola'] },
+  { key: 'Crostacei e molluschi', slug: 'shellfish', icon: '🦐', col: '#B91C1C', bg: '#FEE2E2', kw: ['gamberi','gambero','crostacei','aragosta','granchio','scampi','astice','vongole','cozze','ostriche','calamari','polpo','seppia','molluschi'] },
+  { key: 'Soia', slug: 'soy', icon: '🌱', col: '#16A34A', bg: '#DCFCE7', kw: ['soia','soy','tofu','tempeh','edamame','miso','tamari'] },
+  { key: 'Sedano', slug: 'celery', icon: '🌿', col: '#15803D', bg: '#F0FDF4', kw: ['sedano','celery'] },
+  { key: 'Sesamo', slug: 'sesame', icon: '🌾', col: '#CA8A04', bg: '#FEFCE8', kw: ['sesamo','sesame','tahini','tahin'] },
+  { key: 'Senape', slug: 'mustard', icon: '🌶', col: '#B45309', bg: '#FFFBEB', kw: ['senape','mustard'] },
+  { key: 'Lupini', slug: 'lupin', icon: '🌼', col: '#D97706', bg: '#FFF7ED', kw: ['lupini','lupino','lupin'] },
+  { key: 'Anidride solforosa e solfiti', slug: 'sulphites', icon: '🍷', col: '#7C3AED', bg: '#F5F3FF', kw: ['solfiti','vino','aceto di vino','prugne secche','uva passa','albicocche secche'] },
 ]
 
 const GLUTEN_FREE_MARKERS = /senza glutine|gluten-?free|\(gf\)/i
@@ -1575,7 +1575,7 @@ export default function MacroTrackerPage() {
                                         const isConflict = conflicts.some(c => c.key === a.key)
                                         return (
                                           <span key={a.key} style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, fontWeight: 700, background: isConflict ? '#FEE2E2' : a.bg, color: isConflict ? '#B91C1C' : a.col, border: isConflict ? '1px solid #FECACA' : 'none' }}>
-                                            {a.icon} {a.key}{isConflict ? ' ⚠️' : ''}
+                                            {a.icon} {t('macro.allergen.name.' + a.slug, a.key)}{isConflict ? ' ⚠️' : ''}
                                           </span>
                                         )
                                       })}
@@ -1718,7 +1718,7 @@ export default function MacroTrackerPage() {
                                     const isConflict = conflicts.some(c => c.key === a.key)
                                     return (
                                       <span key={a.key} style={{ fontSize: 10, padding: '2px 7px', borderRadius: 8, fontWeight: 700, background: isConflict ? '#FEE2E2' : a.bg, color: isConflict ? '#B91C1C' : a.col }}>
-                                        {a.icon} {a.key}{isConflict ? ' ⚠️' : ''}
+                                        {a.icon} {t('macro.allergen.name.' + a.slug, a.key)}{isConflict ? ' ⚠️' : ''}
                                       </span>
                                     )
                                   })}

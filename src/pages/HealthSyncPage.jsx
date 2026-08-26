@@ -245,7 +245,16 @@ export default function HealthSyncPage() {
       checkWeightAchievements(supabase, user.id, checkAndAward, kg).catch(() => {})
       setSyncMsg(t('healthsync.weight_read_from_scale', { kg }, 'Peso letto dalla bilancia: {{kg}} kg'))
     } catch (e) {
-      setSyncMsg(e?.message || t('healthsync.ble_scale_read_error', 'Impossibile leggere la bilancia Bluetooth.'))
+      console.error('BLE scale read failed:', e)
+      let msg
+      if (e?.message === 'BLE_SCALE_UNSUPPORTED') {
+        msg = t('healthsync.ble_scale_unsupported', 'Il Bluetooth web non è supportato su questo browser/dispositivo.')
+      } else if (e?.message === 'BLE_SCALE_TIMEOUT') {
+        msg = t('healthsync.ble_scale_timeout', 'Nessuna misurazione ricevuta — sali sulla bilancia e riprova.')
+      } else {
+        msg = t('healthsync.ble_scale_read_error', 'Impossibile leggere la bilancia Bluetooth.')
+      }
+      setSyncMsg(msg)
     } finally {
       setBleScaleConnecting(false)
     }

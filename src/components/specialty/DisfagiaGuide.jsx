@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Check } from 'lucide-react'
-import { IDDSI_LEVELS, IDDSI_ALIMENTI } from '../../data/specialtyMeta'
+import { IDDSI_LEVELS, IDDSI_ALIMENTI, getIddsiLevelName } from '../../data/specialtyMeta'
 import { useAuth } from '../../context/AuthContext'
 import { fetchTodayIntake } from '../../lib/specialSections'
 import { useT } from '../../i18n'
@@ -77,7 +77,7 @@ export default function DisfagiaGuide({ dati }) {
       <div className="card" style={{ padding: 16 }}>
         <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{t('disfagia.headingLevel', { level }, '🗣️ Alimenti per il tuo livello — IDDSI {{level}}')}</h3>
         <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 14 }}>
-          {t('disfagia.assignedConsistency', 'Consistenza assegnata dal tuo dietista:')} <b style={{ color: meta.color }}>{meta.nome}</b>
+          {t('disfagia.assignedConsistency', 'Consistenza assegnata dal tuo dietista:')} <b style={{ color: meta.color }}>{getIddsiLevelName(t, level)}</b>
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

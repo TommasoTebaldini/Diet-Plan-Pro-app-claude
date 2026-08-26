@@ -377,3 +377,97 @@ export const FIELD_CONFIG = {
     ],
   },
 }
+
+// ── Translated accessors ─────────────────────────────────────────────────────
+// This module is plain data (no React), so it can't call the useT() hook
+// itself. SpecialPage.jsx already has `t` via useT() — these helpers take it
+// as a parameter and return the same shapes as the raw exports above, with
+// every user-visible string run through `t(key, italianFallback)`. The
+// Italian text above stays as-is and doubles as the translation fallback, so
+// nothing goes blank if a key is ever missing.
+//
+// NOTE: IDDSI_LEVELS/IDDSI_ALIMENTI are deliberately NOT wrapped here — they
+// are also consumed directly (untranslated shape) by DisfagiaGuide.jsx, which
+// is outside the scope of this translation pass. getIddsiLevelName() below
+// translates just the display name for SpecialPage.jsx's own use, without
+// altering the IDDSI_LEVELS object itself.
+
+export function getSpecialties(t) {
+  return SPECIALTIES.map(s => ({
+    ...s,
+    label: t(`specialty.${s.key}.label`, s.label),
+    description: t(`specialty.${s.key}.description`, s.description),
+  }))
+}
+
+export function getTips(t, tipo) {
+  const tips = TIPS[tipo]
+  if (!tips) return tips
+  return tips.map((tipItem, i) => {
+    const key = `specialty.tips.${tipo}.${i}`
+    if (typeof tipItem === 'string') return t(key, tipItem)
+    // { text, tel, telLabel } — only `text` is language-specific, the phone
+    // number/its display form stay as-is regardless of language.
+    return { ...tipItem, text: t(key, tipItem.text) }
+  })
+}
+
+export function getQuickLinks(t, tipo) {
+  const links = QUICK_LINKS[tipo]
+  if (!links) return links
+  return links.map(l => {
+    const slug = l.to.replace(/^\//, '')
+    return { ...l, label: t(`specialty.quicklinks.${slug}`, l.label) }
+  })
+}
+
+// Translated level name only — color/keys on IDDSI_LEVELS stay untouched (see note above).
+export function getIddsiLevelName(t, level) {
+  const meta = IDDSI_LEVELS[level]
+  if (!meta) return undefined
+  return t(`specialty.iddsi.level${level}`, meta.nome)
+}
+
+export function getMealColumns(t) {
+  return MEAL_COLUMNS.map(c => ({ ...c, label: t(`specialty.mealcolumns.${c.key}`, c.label) }))
+}
+
+export function getObesitaComorLabels(t) {
+  return Object.fromEntries(
+    Object.entries(OBESITA_COMOR_LABELS).map(([k, v]) => [k, t(`specialty.obesitacomor.${k}`, v)])
+  )
+}
+
+function translateGroup(t, tipo, group) {
+  return {
+    ...group,
+    label: t(`specialty.fields.${tipo}.${group.path}.group`, group.label),
+    fields: (group.fields || []).map(f => ({
+      ...f,
+      label: t(`specialty.fields.${tipo}.${group.path}.${f.key}`, f.label),
+    })),
+    ...(group.checkboxGroup ? {
+      checkboxGroup: {
+        ...group.checkboxGroup,
+        label: t(`specialty.fields.${tipo}.${group.path}.checkboxgroup`, group.checkboxGroup.label),
+        // Only OBESITA_COMOR_LABELS is used as a checkboxGroup labels map today.
+        labels: getObesitaComorLabels(t),
+      },
+    } : {}),
+  }
+}
+
+export function getFieldConfig(t, tipo) {
+  const config = FIELD_CONFIG[tipo]
+  if (!config) return config
+  if (config.flatFields) {
+    return {
+      ...config,
+      flatFields: config.flatFields.map(f => ({
+        ...f,
+        label: t(`specialty.fields.${tipo}.flat.${f.key}`, f.label),
+      })),
+    }
+  }
+  return { ...config, groups: config.groups.map(g => translateGroup(t, tipo, g)) }
+}
