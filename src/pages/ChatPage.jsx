@@ -758,6 +758,11 @@ export default function ChatPage() {
       channel = supabase.channel(`chat:${user.id}`, { config: { private: true } })
         .on('broadcast', { event: 'INSERT' }, payload => {
           const msg = payload.payload
+          // Un messaggio programmato dal dietista (status='scheduled', chat.html)
+          // arriva comunque via INSERT — non ancora destinato al paziente, deve
+          // restare invisibile finché il trigger non lo aggiorna a 'sent' (vedi
+          // handler UPDATE sotto), stesso pattern già usato per i gruppi.
+          if (msg.status !== 'sent') return
           setMessages(prev => {
             if (prev.find(m => m.id === msg.id)) return prev
             return [...prev, msg]
@@ -767,10 +772,24 @@ export default function ChatPage() {
             showPushNotification(msg)
           }
         })
-        // Realtime: read receipts updated (dietitian read our messages)
+        // Realtime: read receipts updated (dietitian read our messages) E
+        // transizione scheduled -> sent (il messaggio diventa visibile ora).
         .on('broadcast', { event: 'UPDATE' }, payload => {
           const msg = payload.payload
-          setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, read_at: msg.read_at } : m))
+          if (msg.status !== 'sent') return
+          let wasNew = false
+          setMessages(prev => {
+            if (prev.find(m => m.id === msg.id)) {
+              return prev.map(m => m.id === msg.id ? { ...m, ...msg } : m)
+            }
+            // Prima volta che diventa visibile (era scheduled all'INSERT, ignorato sopra)
+            wasNew = true
+            return [...prev, msg]
+          })
+          if (wasNew && msg.sender_role === 'dietitian') {
+            markAsRead([msg.id])
+            showPushNotification(msg)
+          }
         })
         .subscribe()
 

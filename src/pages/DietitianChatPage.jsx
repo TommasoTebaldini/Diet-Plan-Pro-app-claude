@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { Send, CheckCheck, Check, MessageCircle, LogOut, Users, ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Apple, Clock, UserPlus, Search, X, FolderOpen, User, MapPin, Eye, EyeOff, Pencil, Video } from 'lucide-react'
@@ -856,9 +856,21 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
                           ) : (
                             <p style={{ fontSize: 14, lineHeight: 1.5, wordBreak: 'break-word' }}>{msg.content}</p>
                           )}
+                          {/* Un messaggio programmato da chat.html (status='scheduled') resta
+                              visibile qui — il mittente può sempre vedere le proprie righe via
+                              RLS — ma senza questa etichetta sembrava già consegnato al
+                              paziente, spunta di lettura inclusa. */}
+                          {isMe && msg.status === 'scheduled' && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
+                              <Clock size={10} style={{ opacity: 0.7 }} />
+                              <span style={{ fontSize: 10.5, opacity: 0.75, fontStyle: 'italic' }}>
+                                {t('chat.scheduled_badge', 'Programmato')}{msg.scheduled_at ? ` · ${formatTime(msg.scheduled_at)}` : ''}
+                              </span>
+                            </div>
+                          )}
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 3, marginTop: 3 }}>
                             <span style={{ fontSize: 10, opacity: 0.65 }}>{formatTime(msg.created_at)}</span>
-                            {isMe && (msg.read_at
+                            {isMe && msg.status !== 'scheduled' && (msg.read_at
                               ? <CheckCheck size={11} style={{ opacity: 0.7 }} />
                               : <Check size={11} style={{ opacity: 0.4 }} />
                             )}
@@ -917,7 +929,6 @@ export default function DietitianChatPage() {
   const [callRoom, setCallRoom] = useState(null)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
-  const patientIdsRef = useRef(new Set())
 
   // ── Load own profile ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -932,16 +943,26 @@ export default function DietitianChatPage() {
   // ── Load patient list ────────────────────────────────────────────────────
   useEffect(() => {
     loadPatients()
-    // chat_messages has no dietitian_id column to filter on server-side, so every
-    // INSERT in the whole table reaches every connected dietitian — filter here to
-    // only react to messages involving one of THIS dietitian's own patients,
-    // otherwise any patient writing to any dietitian reloads everyone's list.
-    const channel = supabase.channel('dietitian-list-updates')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' },
-        payload => { if (patientIdsRef.current.has(payload.new.patient_id)) loadPatients() })
-      .subscribe()
-    return () => supabase.removeChannel(channel)
   }, [user.id])
+
+  // chat_messages è diventata una vista cifrata (SEZIONE 80/82 di
+  // supabase_setup.sql): postgres_changes su una vista non funziona più (il
+  // canale non riceve mai nulla), quindi questa sottoscrizione era morta.
+  // Stesso meccanismo broadcast già usato da chat.html/ChatPage.jsx: un
+  // canale privato per paziente, topic 'chat:<patientId>' — non esiste un
+  // topic "tutti i miei pazienti", quindi ne apriamo uno per ciascuno.
+  const patientIdsKey = useMemo(() => patients.map(p => p.id).slice().sort().join(','), [patients])
+  useEffect(() => {
+    const ids = patientIdsKey ? patientIdsKey.split(',') : []
+    if (!ids.length) return
+    const channels = ids.map(id =>
+      supabase.channel(`chat:${id}`, { config: { private: true } })
+        .on('broadcast', { event: 'INSERT' }, () => loadPatients())
+        .on('broadcast', { event: 'UPDATE' }, () => loadPatients())
+        .subscribe()
+    )
+    return () => channels.forEach(ch => supabase.removeChannel(ch))
+  }, [patientIdsKey])
 
   async function loadPatients() {
     const { data: links } = await supabase
@@ -950,14 +971,12 @@ export default function DietitianChatPage() {
       .eq('dietitian_id', user.id)
 
     if (!links || links.length === 0) {
-      patientIdsRef.current = new Set()
       setPatients([])
       setLoadingList(false)
       return
     }
 
     const ids = links.map(l => l.patient_id)
-    patientIdsRef.current = new Set(ids)
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, email')
@@ -992,16 +1011,21 @@ export default function DietitianChatPage() {
   useEffect(() => {
     if (!selected) return
     loadMessages(selected)
-    const channel = supabase.channel(`dietitian-msgs-${selected}`)
-      .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'chat_messages',
-        filter: `patient_id=eq.${selected}`,
-      }, payload => {
-        setMessages(prev =>
-          prev.find(m => m.id === payload.new.id) ? prev : [...prev, payload.new]
-        )
-        if (payload.new.sender_role === 'patient') markAsRead([payload.new.id])
+    // Canale broadcast privato 'chat:<patientId>' (stesso di chat.html/
+    // ChatPage.jsx) — postgres_changes su 'chat_messages' non riceve più
+    // nulla da quando quel nome è diventato una vista cifrata (SEZIONE 80/82
+    // di supabase_setup.sql). Gestisce sia INSERT (nuovo messaggio) che
+    // UPDATE (ricevuta di lettura, o transizione status scheduled→sent).
+    const channel = supabase.channel(`chat:${selected}`, { config: { private: true } })
+      .on('broadcast', { event: 'INSERT' }, payload => {
+        const msg = payload.payload
+        setMessages(prev => prev.find(m => m.id === msg.id) ? prev : [...prev, msg])
+        if (msg.sender_role === 'patient') markAsRead([msg.id])
         loadPatients()
+      })
+      .on('broadcast', { event: 'UPDATE' }, payload => {
+        const msg = payload.payload
+        setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, ...msg } : m))
       })
       .subscribe()
     return () => supabase.removeChannel(channel)
@@ -1047,7 +1071,7 @@ export default function DietitianChatPage() {
     setMessages(prev => [...prev, optimistic])
     const { data, error } = await supabase
       .from('chat_messages')
-      .insert({ patient_id: selected, sender_role: 'dietitian', sender_id: user.id, content })
+      .insert({ patient_id: selected, dietitian_id: user.id, sender_role: 'dietitian', sender_id: user.id, content })
       .select().single()
     if (data) {
       setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
@@ -1072,7 +1096,7 @@ export default function DietitianChatPage() {
     setMessages(prev => [...prev, optimistic])
     const { data } = await supabase
       .from('chat_messages')
-      .insert({ patient_id: selected, sender_role: 'dietitian', sender_id: user.id, content: room, message_type: 'video_call' })
+      .insert({ patient_id: selected, dietitian_id: user.id, sender_role: 'dietitian', sender_id: user.id, content: room, message_type: 'video_call' })
       .select().single()
     if (data) setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
   }
