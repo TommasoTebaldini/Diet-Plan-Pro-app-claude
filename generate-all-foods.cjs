@@ -29,6 +29,30 @@ function extractArray(content, varName) {
   return result;
 }
 
+// Stessa logica di extractArray ma per un OGGETTO ({...} invece di [...]) —
+// serve per FOOD_EN (traduzioni inglesi già usate dal sito dietisti, chiave
+// = nome italiano esatto, vedi js/db.js). Aggiunta per portare i nomi
+// inglesi nell'app pazienti senza ricreare da zero la traduzione.
+function extractObject(content, varName) {
+  const start = content.indexOf(`const ${varName}={`) !== -1
+    ? content.indexOf(`const ${varName}={`)
+    : content.indexOf(`const ${varName} = {`);
+  if (start === -1) { console.warn(`${varName} not found`); return {}; }
+  const objStart = content.indexOf('{', start);
+  let depth = 0, objEnd = -1;
+  for (let i = objStart; i < content.length; i++) {
+    if (content[i] === '{') depth++;
+    else if (content[i] === '}') { depth--; if (depth === 0) { objEnd = i; break; } }
+  }
+  const objContent = content.slice(objStart, objEnd + 1);
+  let result;
+  eval(`result = ${objContent}`);
+  console.log(`  ${varName}: ${Object.keys(result).length} keys`);
+  return result;
+}
+
+const FOOD_EN = extractObject(dbContent, 'FOOD_EN');
+
 const DB_CREA     = extractArray(dbContent, 'DB_CREA');
 const DB_BDA      = extractArray(dbContent, 'DB_BDA');
 const DB_UPF      = extractArray(dbContent, 'DB_UPF');
@@ -257,6 +281,7 @@ const converted = ALL_RAW.map((f, i) => {
   return {
     id: `db_${i}`,
     name: f.n,
+    name_en: FOOD_EN[f.n] || f.n,
     category: cat,
     src: f.src || 'CREA',
     kcal_100g:     f.k  || 0,
@@ -294,7 +319,9 @@ console.log(`After dedup: ${deduped.length} unique foods`);
 
 const lines = deduped.map(f => `  ${JSON.stringify(f)}`).join(',\n');
 const output = `// Combined food database — auto-generated from NutriPlan-Pro/js/db.js
-// Sources: CREA, BDA, ONS, APROTEICI, FLAVIS, UPF
+// Sources: CREA, BDA, ONS, APROTEICI, FLAVIS, UPF, EXTRA
+// name_en è la traduzione inglese già usata dal sito dietisti (FOOD_EN in js/db.js) —
+// fallback al nome italiano se manca una chiave per quell'alimento.
 // Do not edit manually. Run: node generate-all-foods.cjs
 export const ALL_FOODS = [\n${lines}\n]\n`;
 

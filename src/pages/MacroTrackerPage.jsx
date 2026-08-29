@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext'
 import { useAchievements } from '../context/AchievementsContext'
 import { checkFoodLogAchievements } from '../lib/achievementTriggers'
 import { useT } from '../i18n'
-import { searchFoodsLocal, supplementWithOpenFoodFacts, searchByBarcode, sourceBadge } from '../lib/foodSearch'
+import { searchFoodsLocal, supplementWithOpenFoodFacts, searchByBarcode, sourceBadge, translateFoodName, ensureFoodNamesLoaded } from '../lib/foodSearch'
 import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle, Pencil, Check, Lock, Camera, Mic, Star, BookmarkPlus, ClipboardCopy, WifiOff } from 'lucide-react'
 import { safeWrite } from '../lib/offlineDB'
 const BarcodeScanner   = lazy(() => import('../components/BarcodeScanner'))
@@ -372,6 +372,15 @@ export default function MacroTrackerPage() {
 
   // Load recent/favorites once on mount
   useEffect(() => { loadRecentAndFavorites() }, [])
+
+  // Precarica la mappa nomi IT→EN (stesso DB usato dalla ricerca) così i
+  // food_name già salvati nel diario (stringhe congelate in italiano al
+  // momento del log) possono essere tradotti anche loro quando l'app è in
+  // inglese, non solo i risultati di una nuova ricerca — vedi
+  // translateFoodName() in lib/foodSearch.js. Il forceUpdate esistente
+  // (sopra, per il riposizionamento del dropdown) fa da trigger di re-render
+  // una volta che la mappa è pronta.
+  useEffect(() => { ensureFoodNamesLoaded().then(() => forceUpdate(n => n + 1)) }, [])
 
   // Enabled-specialty clinical data, for the per-meal dose calculator
   // (MealDoseCalculator) — fetched once per visit, same source SpecialPage.jsx
@@ -1214,7 +1223,7 @@ export default function MacroTrackerPage() {
                 return (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: '#fffbeb', borderRadius: 10, border: '1px solid #fde68a' }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.food_name}</p>
+                      <p style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{translateFoodName(r.food_name)}</p>
                       <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.grams}g · {m.kcal} kcal</p>
                     </div>
                     <button
@@ -1321,7 +1330,7 @@ export default function MacroTrackerPage() {
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                            <p style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, margin: 0 }}>{f.food_name}</p>
+                            <p style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, margin: 0 }}>{translateFoodName(f.food_name)}</p>
                             <span style={{ fontSize: 11, fontWeight: 700, color: 'white', background: '#6b7280', padding: '2px 8px', borderRadius: 20, flexShrink: 0 }}>{f.grams}g</span>
                           </div>
                           {(() => {
@@ -1620,7 +1629,7 @@ export default function MacroTrackerPage() {
                                 >
                                   <div style={{ flex: 1, minWidth: 0 }}>
                                     <p style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>
-                                      {r.food_name}
+                                      {translateFoodName(r.food_name)}
                                     </p>
                                     <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                                       {r.grams}g · {mac.kcal} kcal · P:{mac.proteins}g
@@ -1986,7 +1995,7 @@ export default function MacroTrackerPage() {
               </div>
 
               <div style={{ background: 'var(--green-pale)', borderRadius: 12, padding: '12px 14px', marginBottom: 14 }}>
-                <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>{recentFoodPicker.food_name}</p>
+                <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>{translateFoodName(recentFoodPicker.food_name)}</p>
                 <div style={{ display: 'flex', gap: 14 }}>
                   {[
                     { label: t('macro.label.kcal', 'Kcal'), val: pickerPreview.kcal },

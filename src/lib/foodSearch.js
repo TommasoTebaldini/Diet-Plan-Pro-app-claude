@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { t as translate } from '../i18n'
+import { t as translate, getLang } from '../i18n'
 
 // ─── Shared food database (same as dietitian site: CREA + BDA + ONS + APROTEICI + FLAVIS + UPF) ──
 // Every keystroke used to re-run f.name.toLowerCase() over all ~3400 entries
@@ -8,12 +8,54 @@ import { t as translate } from '../i18n'
 // after the first is a lookup instead of a few thousand fresh string ops.
 let _allFoods = null
 let _allFoodsLower = null
+let _allFoodsLowerEn = null
 async function getAllFoods() {
   if (_allFoods) return _allFoods
   const mod = await import('../data/all-foods.js')
   _allFoods = mod.ALL_FOODS
   _allFoodsLower = _allFoods.map(f => (f?.name || '').toLowerCase())
+  // name_en = traduzione inglese già usata dal sito dietisti (FOOD_EN in
+  // NutriPlan-Pro/js/db.js, portata qui da generate-all-foods.cjs) — con
+  // fallback al nome italiano per le ~4% di voci senza traduzione.
+  _allFoodsLowerEn = _allFoods.map(f => (f?.name_en || f?.name || '').toLowerCase())
   return _allFoods
+}
+
+// Nome da mostrare per un alimento del DB interno (CREA/BDA/UPF/EXTRA/…) in
+// base alla lingua corrente dell'app paziente — indipendente dalla lingua
+// del sito dietisti (getLang() qui legge src/i18n, non js/lang.js).
+function _displayName(f) {
+  return getLang() === 'en' ? (f.name_en || f.name) : f.name
+}
+
+// ─── Traduzione a runtime di nomi già salvati (food_logs.food_name) ──────────
+// food_logs.food_name è una stringa libera congelata in italiano al momento
+// del log (vedi MacroTrackerPage: `food_name: food.name`) — non un
+// riferimento al DB. Non è quindi traducibile una volta per tutte in
+// ricerca: va tradotta ogni volta che viene MOSTRATA, con un lookup sul
+// nome esatto. Copre solo gli alimenti del DB interno (CREA/BDA/UPF/…, dove
+// esiste una traduzione nota) — voci di ricette/pasti personalizzati/piano
+// dietista restano in italiano, coerente con "database alimenti" della
+// richiesta originale.
+let _foodNameEnMap = null
+
+export async function ensureFoodNamesLoaded() {
+  await getAllFoods()
+  if (!_foodNameEnMap) {
+    _foodNameEnMap = new Map()
+    _allFoods.forEach(f => {
+      if (f.name && f.name_en && f.name_en !== f.name) _foodNameEnMap.set(f.name.toLowerCase(), f.name_en)
+    })
+  }
+}
+
+// Sincrona apposta (usata direttamente nel render JSX): finché la mappa non
+// è pronta ritorna il nome originale invariato, senza bloccare/crashare —
+// il chiamante tipicamente richiama ensureFoodNamesLoaded() in un effect al
+// mount e forza un re-render quando risolve.
+export function translateFoodName(name) {
+  if (!name || getLang() !== 'en' || !_foodNameEnMap) return name
+  return _foodNameEnMap.get(name.toLowerCase()) || name
 }
 
 // Elenco per la pagina "Alimenti": l'intero database CREA+BDA (stesso usato
@@ -25,12 +67,13 @@ async function getAllFoods() {
 // montarle tutte nel DOM in un colpo solo.
 export async function browseFoods() {
   const ALL_FOODS = await getAllFoods()
+  const lang = getLang()
   return ALL_FOODS
     .filter(f => f.src === 'CREA' || f.src === 'BDA')
     .slice()
-    .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it'))
+    .sort((a, b) => _displayName(a).localeCompare(_displayName(b), lang === 'en' ? 'en' : 'it'))
     .map(f => ({
-      ...f, brand: `${f.src} — ${f.category || translate('foodsearch.category_generic', 'Generico')}`, source: 'public',
+      ...f, name: _displayName(f), brand: `${f.src} — ${f.category || translate('foodsearch.category_generic', 'Generico')}`, source: 'public',
     }))
 }
 
@@ -38,19 +81,27 @@ async function searchAllFoods(query) {
   const q = query.toLowerCase().trim()
   if (!q) return []
   const ALL_FOODS = await getAllFoods()
+  // Fa match sia sul nome nella lingua corrente (quello che l'utente digita
+  // davvero) sia sull'altra lingua, così "apple" in inglese e "mela" in
+  // italiano trovano lo stesso alimento indipendentemente dalla lingua
+  // dell'app — il nome MOSTRATO resta comunque quello della lingua corrente.
+  const lang = getLang()
+  const primary = lang === 'en' ? _allFoodsLowerEn : _allFoodsLower
+  const secondary = lang === 'en' ? _allFoodsLower : _allFoodsLowerEn
   const tokens = q.split(/\s+/)
   const matches = []
   for (let i = 0; i < ALL_FOODS.length; i++) {
-    const name = _allFoodsLower[i]
-    if (name && tokens.every(t => name.includes(t))) matches.push(i)
+    const name = primary[i]
+    const nameAlt = secondary[i]
+    if ((name && tokens.every(t => name.includes(t))) || (nameAlt && tokens.every(t => nameAlt.includes(t)))) matches.push(i)
   }
   // CREA+BDA prima delle altre fonti interne (ONS/APROTEICI/FLAVIS/UPF/EXTRA,
   // meno curate/meno standard) — la corrispondenza "inizia con" resta il
   // criterio primario, la fonte è solo lo spareggio tra pari.
   const isCreaBda = f => f.src === 'CREA' || f.src === 'BDA'
   matches.sort((ia, ib) => {
-    const aStarts = _allFoodsLower[ia].startsWith(q) ? 0 : 1
-    const bStarts = _allFoodsLower[ib].startsWith(q) ? 0 : 1
+    const aStarts = primary[ia].startsWith(q) || secondary[ia].startsWith(q) ? 0 : 1
+    const bStarts = primary[ib].startsWith(q) || secondary[ib].startsWith(q) ? 0 : 1
     if (aStarts !== bStarts) return aStarts - bStarts
     const aCrea = isCreaBda(ALL_FOODS[ia]) ? 0 : 1
     const bCrea = isCreaBda(ALL_FOODS[ib]) ? 0 : 1
@@ -58,7 +109,7 @@ async function searchAllFoods(query) {
   })
   return matches.slice(0, 50).map(i => {
     const f = ALL_FOODS[i]
-    return { ...f, brand: `${f.src || 'CREA'} — ${f.category || translate('foodsearch.category_generic', 'Generico')}`, source: 'public' }
+    return { ...f, name: _displayName(f), brand: `${f.src || 'CREA'} — ${f.category || translate('foodsearch.category_generic', 'Generico')}`, source: 'public' }
   })
 }
 
@@ -241,12 +292,23 @@ async function searchCustomMeals(query) {
   } catch { return [] }
 }
 
-// Open Food Facts — Italian-first search with multiple endpoint fallbacks
+// Open Food Facts — il proxy (api/off-proxy.js) scarica sempre sia
+// product_name_it che product_name_en per ogni prodotto trovato (nessun
+// filtro di lingua sulla query stessa) — qui decidiamo solo quale nome
+// MOSTRARE/su cui fare match, in base alla lingua corrente dell'app.
+// Priorità italiana quando lang='it', inglese altrimenti — prima era
+// sempre IT-first indipendentemente dalla lingua selezionata.
 // OFF exposes sodium/calcium/iron in grams per 100g (when present at all) —
 // our food_data convention stores them in mg, matching the master DB (all-foods.js).
 function _offMgFrom100g(n, key, saltFallbackKey) {
   const g = n[key] || (saltFallbackKey ? (n[saltFallbackKey] || 0) / 2.5 : 0)
   return g ? Math.round(g * 1000) : null
+}
+
+function _offDisplayName(p) {
+  return getLang() === 'en'
+    ? (p.product_name_en || p.product_name || p.product_name_it || '')
+    : (p.product_name_it || p.product_name || p.product_name_en || '')
 }
 
 function mapOFFProduct(p) {
@@ -256,7 +318,7 @@ function mapOFFProduct(p) {
     || (n['energy_100g'] ? Math.round(n['energy_100g'] / 4.184) : 0)
     || n['energy-kcal']
     || 0
-  const name = p.product_name_it || p.product_name || p.product_name_en || ''
+  const name = _offDisplayName(p)
   return {
     id: p.code || p._id, name, brand: p.brands || '',
     kcal_100g: Math.round(kcal),
@@ -277,7 +339,7 @@ function mapOFFProduct(p) {
 
 function hasUsefulData(p) {
   const n = p.nutriments || {}
-  const name = p.product_name_it || p.product_name || p.product_name_en || ''
+  const name = _offDisplayName(p)
   if (!name) return false
   return (
     n['energy-kcal_100g'] || n['energy_100g'] || n['energy-kcal'] ||
@@ -299,7 +361,7 @@ export async function searchOpenFoodFacts(query) {
   const tokens = query.toLowerCase().split(/\s+/).filter(t => t.length > 1)
 
   const nameMatches = (p) => {
-    const name = (p.product_name_it || p.product_name || p.product_name_en || '').toLowerCase()
+    const name = _offDisplayName(p).toLowerCase()
     return tokens.length === 0 || tokens.some(t => name.includes(t))
   }
   const processResults = (data) =>
@@ -415,7 +477,7 @@ export async function searchByBarcode(barcode) {
     if (data.status !== 1 || !data.product) return null
     const p = data.product
     const n = p.nutriments || {}
-    const name = p.product_name_it || p.product_name || ''
+    const name = _offDisplayName(p)
     if (!name) return null
     return {
       id: p.code || barcode,
