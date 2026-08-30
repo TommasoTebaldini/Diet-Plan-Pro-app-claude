@@ -114,13 +114,14 @@ export async function getPendingCount() {
  * Returns { synced, failed }.
  */
 export async function syncPendingWrites() {
-  if (!navigator.onLine) return { synced: 0, failed: 0 }
+  if (!navigator.onLine) return { synced: 0, failed: 0, tables: [] }
   let pending
-  try { pending = await getPendingItems() } catch { return { synced: 0, failed: 0 } }
-  if (!pending.length) return { synced: 0, failed: 0 }
+  try { pending = await getPendingItems() } catch { return { synced: 0, failed: 0, tables: [] } }
+  if (!pending.length) return { synced: 0, failed: 0, tables: [] }
 
   const { supabase } = await import('./supabase')
   let synced = 0, failed = 0
+  const syncedTables = new Set()
 
   for (const item of pending) {
     try {
@@ -140,13 +141,24 @@ export async function syncPendingWrites() {
       }
       await markSynced(item.id)
       synced++
+      syncedTables.add(item.table_name)
     } catch (e) {
       console.warn('[offlineDB] Sync failed for item', item.id, e.message)
       failed++
     }
   }
 
-  return { synced, failed }
+  const tables = [...syncedTables]
+  // Achievement checks (checkWaterAchievements/checkWellnessAchievements) only
+  // run inline right after an *online* save — a save that was queued offline
+  // never triggered them, and without this event they'd never run at all for
+  // that entry, even once it reaches Supabase here. AchievementsContext
+  // listens for this to re-check the relevant tables post-sync.
+  if (tables.length && typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('offlinedb:synced', { detail: { tables } }))
+  }
+
+  return { synced, failed, tables }
 }
 
 /**

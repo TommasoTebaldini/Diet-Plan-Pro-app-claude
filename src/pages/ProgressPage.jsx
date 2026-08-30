@@ -293,10 +293,13 @@ export default function ProgressPage() {
 
   const latest = weights[weights.length - 1]?.weight_kg
   const previous = weights[weights.length - 2]?.weight_kg
-  const diff = latest && previous ? (latest - previous).toFixed(1) : null
+  // != null (not truthy) checks: a logged weight of exactly 0 kg is bad data,
+  // but it's still a value, not a "missing" one — treating it as falsy hid
+  // the trend arrow / totalChange / goal-progress bar for that entry.
+  const diff = latest != null && previous != null ? (latest - previous).toFixed(1) : null
   const target = profile?.target_weight
   const initial = weights[0]?.weight_kg
-  const totalChange = latest && initial ? (latest - initial).toFixed(1) : null
+  const totalChange = latest != null && initial != null ? (latest - initial).toFixed(1) : null
 
   return (
     <div className="page">
@@ -321,9 +324,9 @@ export default function ProgressPage() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 10 }}>
           {[
-            { label: t('progress.weight'), val: latest ? `${latest} kg` : '–', sub: diff ? `${diff > 0 ? '+' : ''}${diff} kg` : '', icon: <Scale size={14} /> },
-            { label: t('progress.trend'), val: totalChange ? `${totalChange > 0 ? '+' : ''}${totalChange} kg` : '–', sub: t('progress.sinceStart', "dall'inizio"), icon: <Activity size={14} /> },
-            { label: t('dash.goal'), val: target ? `${target} kg` : '–', sub: latest && target ? t('progress.remaining', { value: Math.abs(latest - target).toFixed(1) }, 'Mancano {{value}} kg') : '', icon: <Target size={14} /> },
+            { label: t('progress.weight'), val: latest != null ? `${latest} kg` : '–', sub: diff !== null ? `${diff > 0 ? '+' : ''}${diff} kg` : '', icon: <Scale size={14} /> },
+            { label: t('progress.trend'), val: totalChange !== null ? `${totalChange > 0 ? '+' : ''}${totalChange} kg` : '–', sub: t('progress.sinceStart', "dall'inizio"), icon: <Activity size={14} /> },
+            { label: t('dash.goal'), val: target != null ? `${target} kg` : '–', sub: latest != null && target != null ? t('progress.remaining', { value: Math.abs(latest - target).toFixed(1) }, 'Mancano {{value}} kg') : '', icon: <Target size={14} /> },
           ].map((s, i) => (
             <motion.div key={s.label}
               initial={{ opacity: 0, scale: 0.88 }}
@@ -487,7 +490,7 @@ export default function ProgressPage() {
                     const isToday = w.date === today
                     const isLast = i === arr.length - 1
                     // Distance to target as percentage (0–100%)
-                    const distPct = target && initial && latest
+                    const distPct = target != null && initial != null && latest != null
                       ? Math.max(0, Math.min(100, 100 - Math.abs(w.weight_kg - target) / Math.max(0.1, Math.abs(initial - target)) * 100))
                       : null
                     return (

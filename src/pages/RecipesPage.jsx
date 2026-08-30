@@ -658,7 +658,7 @@ export default function RecipesPage() {
   const [sharedRecipes, setSharedRecipes] = useState([])
   const [loadingMine, setLoadingMine] = useState(true)
   const [loadingPublic, setLoadingPublic] = useState(false)
-  const [loadingDietist, setLoadingDietist] = useState(false)
+  const [loadingDietist, setLoadingDietist] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [newStep, setNewStep] = useState('')
@@ -700,18 +700,16 @@ export default function RecipesPage() {
   }, [tab, user.id])
 
   useEffect(() => {
+    // Runs once per user (not per tab switch), so it must not gate on `tab`
+    // here: a closure over `tab` captured at mount time would always see the
+    // initial 'mine' value and never flip loadingDietist to false.
     supabase.from('shared_recipes').select('*').eq('patient_id', user.id)
       .order('shared_at', { ascending: false })
       .then(({ data }) => {
         setSharedRecipes(data || [])
-        if (tab === 'dietist') setLoadingDietist(false)
+        setLoadingDietist(false)
       })
-  }, [user.id]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (tab !== 'dietist') return
-    setLoadingDietist(false)
-  }, [tab])
+  }, [user.id])
 
   function showToast(msg) { setToast(msg); setTimeout(() => setToast(null), 2500) }
 

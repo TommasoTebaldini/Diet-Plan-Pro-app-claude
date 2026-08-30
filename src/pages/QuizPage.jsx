@@ -27,10 +27,14 @@ const DIFFS = [
 ]
 
 function getQuestionsWithFilters(questions, cats, diff) {
-  let pool = questions
-  if (cats.length > 0) pool = pool.filter(q => cats.includes(q.cat))
-  if (diff !== 'misto') pool = pool.filter(q => DIFF_MAP[q.cat] === diff)
-  if (pool.length < QUESTIONS_PER_DAY) pool = questions
+  // Fall back progressively instead of discarding every filter at once: a
+  // category can have a single fixed difficulty in DIFF_MAP (e.g. "vitamine"
+  // is always 'difficile'), so category+difficulty alone can legitimately
+  // match 0 questions — in that case keep the chosen categories and only
+  // relax the difficulty, rather than silently ignoring the category too.
+  const byCat = cats.length > 0 ? questions.filter(q => cats.includes(q.cat)) : questions
+  let pool = diff !== 'misto' ? byCat.filter(q => DIFF_MAP[q.cat] === diff) : byCat
+  if (pool.length < QUESTIONS_PER_DAY) pool = byCat.length >= QUESTIONS_PER_DAY ? byCat : questions
   const today = new Date().toISOString().split('T')[0]
   let s = today.split('-').reduce((acc, v) => acc * 100 + parseInt(v), 0)
   const indices = []

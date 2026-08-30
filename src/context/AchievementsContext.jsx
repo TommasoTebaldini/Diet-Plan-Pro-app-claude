@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef } f
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import AchievementToast from '../components/AchievementToast'
+import { checkWaterAchievements, checkWellnessAchievements } from '../lib/achievementTriggers'
 
 // ─── Badge definitions ────────────────────────────────────────────────────────
 // name/description restano il fallback italiano; nameKey/descKey sono le
@@ -305,6 +306,22 @@ export function AchievementsProvider({ children }) {
       setToastQueue(prev => [...prev, achievement])
     }
   }, [user])
+
+  // Water/wellness entries saved while offline never run checkWaterAchievements
+  // / checkWellnessAchievements (those only fire inline after an online save —
+  // see WaterPage/WellnessPage). Without this, an offline-then-synced entry
+  // could never earn its achievement, even after reaching Supabase. offlineDB's
+  // syncPendingWrites() dispatches this event once the queue has synced.
+  useEffect(() => {
+    if (!user) return
+    function onSynced(e) {
+      const tables = e.detail?.tables || []
+      if (tables.includes('water_logs')) checkWaterAchievements(supabase, user.id, checkAndAward).catch(() => {})
+      if (tables.includes('daily_wellness')) checkWellnessAchievements(supabase, user.id, checkAndAward).catch(() => {})
+    }
+    window.addEventListener('offlinedb:synced', onSynced)
+    return () => window.removeEventListener('offlinedb:synced', onSynced)
+  }, [user, checkAndAward])
 
   const getProgress = useCallback((key) => {
     return earned[key] ? { earned: true, earned_at: earned[key] } : { earned: false }
