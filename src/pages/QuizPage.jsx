@@ -51,20 +51,16 @@ function getQuestionsWithFilters(questions, cats, diff) {
 
 const QUESTIONS_PER_DAY = 5
 
-// Deterministic daily question selection — same questions for everyone on the same day
+// Deterministic daily question selection — same questions for everyone on the
+// same day. This is exactly getQuestionsWithFilters with no filters applied
+// (cats=[], diff='misto'); kept as a separate call for readability at the
+// call sites, not as a separate implementation — a second copy of the seeded
+// index-picking loop previously lived here and had already drifted (this one
+// had no `Math.min(QUESTIONS_PER_DAY, len)` guard, which is exactly what
+// keeps getQuestionsWithFilters safe if the bank ever has fewer than
+// QUESTIONS_PER_DAY questions).
 function getQuestionsForToday(questions) {
-  const today = new Date().toISOString().split('T')[0]
-  const seed = today.split('-').reduce((acc, v) => acc * 100 + parseInt(v), 0)
-  const indices = []
-  let s = seed
-  while (indices.length < QUESTIONS_PER_DAY) {
-    s = Math.imul(s ^ (s >>> 16), 0x45d9f3b)
-    s = Math.imul(s ^ (s >>> 16), 0x45d9f3b)
-    s = s ^ (s >>> 16)
-    const idx = Math.abs(s) % questions.length
-    if (!indices.includes(idx)) indices.push(idx)
-  }
-  return indices.map(i => questions[i])
+  return getQuestionsWithFilters(questions, [], 'misto')
 }
 
 function todayKey() { return new Date().toISOString().split('T')[0] }

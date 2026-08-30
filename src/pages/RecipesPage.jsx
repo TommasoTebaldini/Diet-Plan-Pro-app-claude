@@ -734,6 +734,11 @@ export default function RecipesPage() {
       if (!uploadErr) {
         const { data: pub } = supabase.storage.from('recipe-photos').getPublicUrl(path)
         photoUrl = pub.publicUrl
+      } else {
+        // Recipe save still proceeds without a photo, but the user must be
+        // told — otherwise they believe the photo they just attached was
+        // saved when it silently wasn't.
+        showToast(t('recipes.error_photo_upload', 'Errore nel caricamento della foto. La ricetta verrà salvata senza foto.'))
       }
     }
 

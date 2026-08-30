@@ -254,9 +254,13 @@ export default function WellnessPage() {
         sleep_restedness: sleepRestedness ?? null,
         symptoms: symptoms.length > 0 ? symptoms : [],
         notes: notes || null,
-        stress_level: stressLevel ?? null,
       }
-      await safeWrite('daily_wellness', { user_id: user.id, date: today, ...baseFields })
+      // Mirror the online path's schema-fallback: only queue stress_level if we
+      // already know the column exists, otherwise a queued write against a DB
+      // without it would 400 on every sync retry and stay stuck forever (the
+      // online path can retry with base fields instead, but a queued item can't).
+      const fields = _wellnessHasExtended ? { ...baseFields, stress_level: stressLevel ?? null } : baseFields
+      await safeWrite('daily_wellness', { user_id: user.id, date: today, ...fields })
       setSaving(false)
       setSaved(true)
       setShowForm(false)
@@ -276,9 +280,13 @@ export default function WellnessPage() {
         symptoms: symptoms.length > 0 ? symptoms : [],
         notes: notes || null,
       }
-      // Extended fields only if columns exist in DB
+      // Extended fields only if columns exist in DB. hydration_level is
+      // intentionally omitted: there's no UI control for it on this page, so
+      // sending `hydration_level: null` here would silently wipe out any
+      // value set elsewhere (e.g. a future feature or manual edit) on every
+      // single wellness save.
       const fields = _wellnessHasExtended
-        ? { ...baseFields, stress_level: stressLevel ?? null, hydration_level: null }
+        ? { ...baseFields, stress_level: stressLevel ?? null }
         : baseFields
 
       // Try update first; if extended columns missing (PGRST204), retry with base only

@@ -314,12 +314,16 @@ export default function StatisticsPage() {
       const m = weekData.macros.find(x => x.date === ds) || {}
       const waterEntries = weekData.water.filter(x => x.date === ds)
       const waterMl = waterEntries.reduce((a, b) => a + b.ml, 0)
+      // null (not 0) when the day has no log at all, so the PDF table below can
+      // tell "nothing logged" apart from "logged, totals to exactly 0" — a
+      // fasting/water-only day. The bar chart renders a null bar as an empty
+      // gap, same as it did with a 0-height bar, so this doesn't change it.
       return {
         label: format(d, 'EEE', { locale: it }),
-        kcal: m.kcal || 0,
-        proteins: Math.round(m.proteins || 0),
-        carbs: Math.round(m.carbs || 0),
-        fats: Math.round(m.fats || 0),
+        kcal: m.kcal != null ? m.kcal : null,
+        proteins: m.proteins != null ? Math.round(m.proteins) : null,
+        carbs: m.carbs != null ? Math.round(m.carbs) : null,
+        fats: m.fats != null ? Math.round(m.fats) : null,
         water: waterMl,
       }
     })
@@ -327,8 +331,9 @@ export default function StatisticsPage() {
 
   const dailyChart = buildDailyChart()
 
+  // kcal rounded to an integer, macros to 1 decimal (CLAUDE.md "Macro Calculations")
   const weekAvg = {
-    kcal: round1(avg(weekData.macros.map(m => m.kcal || 0))),
+    kcal: Math.round(avg(weekData.macros.map(m => m.kcal || 0))),
     proteins: round1(avg(weekData.macros.map(m => m.proteins || 0))),
     carbs: round1(avg(weekData.macros.map(m => m.carbs || 0))),
     fats: round1(avg(weekData.macros.map(m => m.fats || 0))),
@@ -336,7 +341,7 @@ export default function StatisticsPage() {
     weight: weekData.weights.length ? round1(avg(weekData.weights.map(w => w.weight_kg))) : null,
   }
   const prevAvg = {
-    kcal: round1(avg(prevWeekData.macros.map(m => m.kcal || 0))),
+    kcal: Math.round(avg(prevWeekData.macros.map(m => m.kcal || 0))),
     proteins: round1(avg(prevWeekData.macros.map(m => m.proteins || 0))),
     carbs: round1(avg(prevWeekData.macros.map(m => m.carbs || 0))),
     fats: round1(avg(prevWeekData.macros.map(m => m.fats || 0))),
@@ -425,7 +430,7 @@ export default function StatisticsPage() {
         if (y > 260) { doc.addPage(); y = 20 }
         const rowIdx = dailyChart.indexOf(row)
         if (rowIdx % 2 === 0) { doc.setFillColor(240, 250, 245); doc.rect(margin, y - 4.5, W - margin * 2, 7, 'F') }
-        const vals = [row.label, row.kcal || '–', row.proteins || '–', row.carbs || '–', row.fats || '–', row.water ? `${Math.round(row.water)} ml` : '–']
+        const vals = [row.label, row.kcal != null ? row.kcal : '–', row.proteins != null ? row.proteins : '–', row.carbs != null ? row.carbs : '–', row.fats != null ? row.fats : '–', row.water ? `${Math.round(row.water)} ml` : '–']
         vals.forEach((v, i) => addText(String(v), cols[i], y, { size: 8 }))
         y += 8
       }
@@ -507,7 +512,7 @@ export default function StatisticsPage() {
       const daysInMonth = allDays.length
 
       const monthMacroAvg = {
-        kcal: round1(avg(macros.map(m => m.kcal || 0))),
+        kcal: Math.round(avg(macros.map(m => m.kcal || 0))),
         proteins: round1(avg(macros.map(m => m.proteins || 0))),
         carbs: round1(avg(macros.map(m => m.carbs || 0))),
         fats: round1(avg(macros.map(m => m.fats || 0))),
@@ -635,10 +640,10 @@ export default function StatisticsPage() {
         if (i % 2 === 0) { doc.setFillColor(240, 250, 245); doc.rect(margin, y - 4.5, W - margin * 2, 7, 'F') }
         const rowVals = [
           format(d, 'dd/MM EEE', { locale: it }),
-          row.kcal ? String(row.kcal) : '-',
-          row.proteins ? String(round1(row.proteins)) : '-',
-          row.carbs ? String(round1(row.carbs)) : '-',
-          row.fats ? String(round1(row.fats)) : '-',
+          row.kcal != null ? String(row.kcal) : '-',
+          row.proteins != null ? String(round1(row.proteins)) : '-',
+          row.carbs != null ? String(round1(row.carbs)) : '-',
+          row.fats != null ? String(round1(row.fats)) : '-',
           waterMl ? `${Math.round(waterMl)}ml` : '-',
         ]
         rowVals.forEach((v, idx) => addText(v, cols[idx], y, { size: 7.5 }))

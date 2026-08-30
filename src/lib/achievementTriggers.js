@@ -56,17 +56,21 @@ export async function checkWellnessAchievements(supabase, userId, checkAndAward)
 }
 
 // weight_logs: first_weight, first_weight_loss, lost_1kg, lost_5kg — chiamare
-// DOPO aver scritto il nuovo peso, passando il valore appena salvato.
+// DOPO aver scritto il nuovo peso, passando il valore appena salvato. Se non
+// viene passato (es. ri-controllo generico dopo una sync della coda offline,
+// dove il chiamante non ha "il valore appena scritto" a portata di mano) si
+// usa l'ultima riga già presente su Supabase.
 export async function checkWeightAchievements(supabase, userId, checkAndAward, newWeightKg) {
   const { data } = await supabase.from('weight_logs').select('date,weight_kg').eq('user_id', userId).order('date', { ascending: true })
   if (!data || !data.length) return
   await checkAndAward('first_weight')
   if (data.length < 2) return
+  const latest = newWeightKg != null ? newWeightKg : data[data.length - 1].weight_kg
   const first = data[0].weight_kg
   const prev = data[data.length - 2]?.weight_kg
-  if (prev != null && newWeightKg != null && newWeightKg < prev) await checkAndAward('first_weight_loss')
-  if (first != null && newWeightKg != null) {
-    const lost = first - newWeightKg
+  if (prev != null && latest != null && latest < prev) await checkAndAward('first_weight_loss')
+  if (first != null && latest != null) {
+    const lost = first - latest
     if (lost >= 1) await checkAndAward('lost_1kg')
     if (lost >= 5) await checkAndAward('lost_5kg')
   }

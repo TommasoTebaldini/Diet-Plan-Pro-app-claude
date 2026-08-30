@@ -86,7 +86,10 @@ export default function WeeklyReportPage() {
 
     const stepsAvg = list => {
       const byDay = {}
-      for (const a of list) if (a.steps) byDay[a.date] = Math.max(byDay[a.date] || 0, a.steps)
+      // != null (not truthy): a rest day with 0 recorded steps is real data
+      // and should count toward the average and the day count, not be
+      // dropped as if nothing had been logged that day.
+      for (const a of list) if (a.steps != null) byDay[a.date] = Math.max(byDay[a.date] || 0, a.steps)
       const vals = Object.values(byDay)
       return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null
     }

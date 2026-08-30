@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
 import ProGate from '../components/ProGate'
 import { useSubscription } from '../hooks/useSubscription'
+import { useAchievements } from '../context/AchievementsContext'
+import { checkWeightAchievements, checkWellnessAchievements } from '../lib/achievementTriggers'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts'
 import { TrendingDown, TrendingUp, Minus, Target, Plus, Scale, Activity, Camera, WifiOff, Ruler } from 'lucide-react'
 import { safeWrite } from '../lib/offlineDB'
@@ -40,6 +42,7 @@ function CustomTooltip({ active, payload, label }) {
 export default function ProgressPage() {
   const { user, profile } = useAuth()
   const { isPro } = useSubscription()
+  const { checkAndAward } = useAchievements()
   const t = useT()
   const MOOD_LABELS = {
     1: t('progress.mood.terrible', 'Pessimo'),
@@ -194,10 +197,13 @@ export default function ProgressPage() {
               .upsert({ user_id: user.id, date: today, weight_kg: w }, { onConflict: 'user_id,date' })
               .select().single()
             if (error) throw new Error(t('progress.weightError', { message: error.message }, 'Errore peso: {{message}}'))
-            if (data) setWeights(prev => {
-              const filtered = prev.filter(x => x.date !== today)
-              return [...filtered, data].sort((a, b) => a.date.localeCompare(b.date))
-            })
+            if (data) {
+              setWeights(prev => {
+                const filtered = prev.filter(x => x.date !== today)
+                return [...filtered, data].sort((a, b) => a.date.localeCompare(b.date))
+              })
+              checkWeightAchievements(supabase, user.id, checkAndAward, w).catch(() => {})
+            }
           } else {
             await safeWrite('weight_logs', { user_id: user.id, date: today, weight_kg: w })
             setWeights(prev => {
@@ -221,6 +227,7 @@ export default function ProgressPage() {
           const { error } = await supabase.from('daily_wellness')
             .upsert(wellnessData, { onConflict: 'user_id,date' })
           if (error) throw new Error(t('progress.wellnessError', { message: error.message }, 'Errore benessere: {{message}}'))
+          checkWellnessAchievements(supabase, user.id, checkAndAward).catch(() => {})
         } else {
           await safeWrite('daily_wellness', wellnessData)
         }
@@ -375,13 +382,6 @@ export default function ProgressPage() {
             {saveError && (
               <div style={{ background: 'var(--alert-error-bg)', border: '1px solid var(--alert-error-border)', borderRadius: 12, padding: '12px 16px', fontSize: 13, color: 'var(--alert-error-text)' }}>
                 ⚠️ {saveError}
-                <p style={{ fontSize: 11, marginTop: 4, opacity: 0.8 }}>
-                  {t('progress.sqlHint', "Se l'errore persiste, esegui questo SQL su Supabase:")}<br />
-                  <code style={{ fontFamily: 'monospace', fontSize: 10 }}>
-                    ALTER TABLE daily_wellness ENABLE ROW LEVEL SECURITY;<br />
-                    CREATE POLICY "utenti wellness" ON daily_wellness FOR ALL USING (auth.uid() = user_id);
-                  </code>
-                </p>
               </div>
             )}
 
@@ -680,7 +680,7 @@ export default function ProgressPage() {
                   const last = schede[schede.length - 1]
                   const prev = schede[schede.length - 2]
                   const delta = (field) => {
-                    const d = last[field] && prev?.[field] ? (last[field] - prev[field]).toFixed(1) : null
+                    const d = last[field] != null && prev?.[field] != null ? (last[field] - prev[field]).toFixed(1) : null
                     return d !== null ? <span style={{ fontSize: 10, color: parseFloat(d) > 0 ? '#EF4444' : '#22C55E', marginLeft: 4 }}>{parseFloat(d) > 0 ? '+' : ''}{d}</span> : null
                   }
                   return (

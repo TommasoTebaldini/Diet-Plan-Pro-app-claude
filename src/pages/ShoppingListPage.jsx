@@ -91,7 +91,9 @@ function extractFoodsFromPiano(piano) {
         if (!name) continue
         foods.push({
           name,
-          quantity: `${food.qt || food.quantita || food.quantity || food.grammi || food.grams || ''}${food.misura || food.unita || food.unit || 'g'}`,
+          // ?? (not ||): a genuine quantity of 0 must not fall through to the
+          // next fallback field just because 0 is falsy.
+          quantity: `${food.qt ?? food.quantita ?? food.quantity ?? food.grammi ?? food.grams ?? ''}${food.misura || food.unita || food.unit || 'g'}`,
           category: categorizeFood(name),
         })
       }
@@ -109,7 +111,7 @@ function extractFoodsFromDietMeals(meals) {
       if (!name) continue
       foods.push({
         name,
-        quantity: `${food.quantity || food.qt || ''}${food.unit || 'g'}`,
+        quantity: `${food.quantity ?? food.qt ?? ''}${food.unit || 'g'}`,
         category: categorizeFood(name),
       })
     }

@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef } f
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import AchievementToast from '../components/AchievementToast'
-import { checkWaterAchievements, checkWellnessAchievements } from '../lib/achievementTriggers'
+import { checkWaterAchievements, checkWellnessAchievements, checkFoodLogAchievements, checkWeightAchievements } from '../lib/achievementTriggers'
 
 // ─── Badge definitions ────────────────────────────────────────────────────────
 // name/description restano il fallback italiano; nameKey/descKey sono le
@@ -307,15 +307,21 @@ export function AchievementsProvider({ children }) {
     }
   }, [user])
 
-  // Water/wellness entries saved while offline never run checkWaterAchievements
-  // / checkWellnessAchievements (those only fire inline after an online save —
-  // see WaterPage/WellnessPage). Without this, an offline-then-synced entry
-  // could never earn its achievement, even after reaching Supabase. offlineDB's
-  // syncPendingWrites() dispatches this event once the queue has synced.
+  // Entries saved while offline never run their inline achievement check —
+  // that only fires after an *online* save (see WaterPage, WellnessPage,
+  // ProgressPage, MacroTrackerPage). Without this, an offline-then-synced
+  // entry could never earn its achievement, even after reaching Supabase.
+  // offlineDB's syncPendingWrites() dispatches this event once the queue has
+  // synced, naming every table that got at least one row written. Covers
+  // every table safeWrite() is used for (food_logs, weight_logs, water_logs,
+  // daily_wellness) — keep this in sync if a new page starts using safeWrite
+  // for a table with its own achievements.
   useEffect(() => {
     if (!user) return
     function onSynced(e) {
       const tables = e.detail?.tables || []
+      if (tables.includes('food_logs')) checkFoodLogAchievements(supabase, user.id, checkAndAward).catch(() => {})
+      if (tables.includes('weight_logs')) checkWeightAchievements(supabase, user.id, checkAndAward).catch(() => {})
       if (tables.includes('water_logs')) checkWaterAchievements(supabase, user.id, checkAndAward).catch(() => {})
       if (tables.includes('daily_wellness')) checkWellnessAchievements(supabase, user.id, checkAndAward).catch(() => {})
     }
