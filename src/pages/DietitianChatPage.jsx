@@ -1071,7 +1071,7 @@ export default function DietitianChatPage() {
     setMessages(prev => [...prev, optimistic])
     const { data, error } = await supabase
       .from('chat_messages')
-      .insert({ patient_id: selected, dietitian_id: user.id, sender_role: 'dietitian', sender_id: user.id, content })
+      .insert({ patient_id: selected, dietitian_id: user.id, sender_role: 'dietitian', sender_id: user.id, content, status: 'sent' })
       .select().single()
     if (data) {
       setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
@@ -1096,7 +1096,7 @@ export default function DietitianChatPage() {
     setMessages(prev => [...prev, optimistic])
     const { data } = await supabase
       .from('chat_messages')
-      .insert({ patient_id: selected, dietitian_id: user.id, sender_role: 'dietitian', sender_id: user.id, content: room, message_type: 'video_call' })
+      .insert({ patient_id: selected, dietitian_id: user.id, sender_role: 'dietitian', sender_id: user.id, content: room, message_type: 'video_call', status: 'sent' })
       .select().single()
     if (data) setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
   }

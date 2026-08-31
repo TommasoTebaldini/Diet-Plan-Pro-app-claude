@@ -610,7 +610,7 @@ export default function ChatPage() {
     setMessages(prev => [...prev, optimistic])
     const { data, error } = await supabase.from('chat_messages').insert({
       patient_id: user.id, dietitian_id: dietitianId, sender_role: 'patient',
-      sender_id: user.id, content, message_type: 'text'
+      sender_id: user.id, content, message_type: 'text', status: 'sent'
     }).select().single()
     if (data) {
       setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
@@ -636,7 +636,7 @@ export default function ChatPage() {
     setMessages(prev => [...prev, optimistic])
     const { data } = await supabase.from('chat_messages').insert({
       patient_id: user.id, dietitian_id: dietitianId, sender_role: 'patient',
-      sender_id: user.id, content: room, message_type: 'video_call',
+      sender_id: user.id, content: room, message_type: 'video_call', status: 'sent',
     }).select().single()
     if (data) setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
   }
@@ -677,7 +677,7 @@ export default function ChatPage() {
       const fileUrl = await uploadToStorage(file, 'img')
       const { data, error } = await supabase.from('chat_messages').insert({
         patient_id: user.id, dietitian_id: dietitianId, sender_role: 'patient', sender_id: user.id,
-        content: '', message_type: 'image', file_url: fileUrl, file_name: file.name
+        content: '', message_type: 'image', file_url: fileUrl, file_name: file.name, status: 'sent'
       }).select().single()
       if (data) {
         setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
@@ -757,7 +757,7 @@ export default function ChatPage() {
       const fileUrl = await uploadToStorage(file, 'audio')
       const { data, error } = await supabase.from('chat_messages').insert({
         patient_id: user.id, dietitian_id: dietitianId, sender_role: 'patient', sender_id: user.id,
-        content: '', message_type: 'audio', file_url: fileUrl, duration_seconds: dur
+        content: '', message_type: 'audio', file_url: fileUrl, duration_seconds: dur, status: 'sent'
       }).select().single()
       if (data) {
         setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
