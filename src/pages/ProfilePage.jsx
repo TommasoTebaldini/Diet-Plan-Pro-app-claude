@@ -27,6 +27,15 @@ import {
   subscribeToPush, DEFAULT_PREFS,
 } from '../lib/notifications'
 
+// Local calendar date (not UTC) — toISOString() shifts to UTC and shows
+// the wrong day for users east of UTC (e.g. Italy) right after midnight.
+function localDateStr(d = new Date()) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 // A legacy row saved before these columns were arrays (or any manual DB edit)
 // could leave a non-JSON string here — JSON.parse would throw synchronously
 // during render and take down the whole page for that patient.
@@ -88,7 +97,7 @@ function PersonalDataModal({ profile, user, onClose, onSaved }) {
     const { error } = await supabase.from('profiles').upsert(updates)
     let weightError = null
     if (!error && currentWeight) {
-      const today = new Date().toISOString().split('T')[0]
+      const today = localDateStr()
       ;({ error: weightError } = await supabase.from('weight_logs').upsert({
         user_id: user.id, date: today, weight_kg: parseFloat(currentWeight),
       }, { onConflict: 'user_id,date' }))

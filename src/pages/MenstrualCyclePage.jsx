@@ -23,6 +23,15 @@ import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
 import { Plus, X, Check, Trash2, Calendar } from 'lucide-react'
 
+// Local calendar date (not UTC) — toISOString() shifts to UTC and shows
+// the wrong day for users east of UTC (e.g. Italy) right after midnight.
+function localDateStr(d = new Date()) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 // Valori interni (memorizzati anche su DB) — l'etichetta visualizzata passa da symptomLabel()
 const CYCLE_SYMPTOMS = [
   'Crampi', 'Gonfiore', 'Mal di testa', 'Stanchezza',
@@ -232,7 +241,7 @@ export default function MenstrualCyclePage() {
   const { user, profile } = useAuth()
   const t = useT()
   const PHASE_NUTRITION = getPhaseNutrition(t)
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateStr()
 
   const [cycles, setCycles] = useState([])
   const [loading, setLoading] = useState(true)

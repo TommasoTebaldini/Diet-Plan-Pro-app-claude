@@ -191,6 +191,7 @@ export default function ActivityPage() {
   const today = new Date().toISOString().split('T')[0]
 
   const [logs, setLogs] = useState([])
+  const [deleteError, setDeleteError] = useState('')
   const [weekData, setWeekData] = useState([])
   const [historyLogs, setHistoryLogs] = useState([])
   const [latestWeight, setLatestWeight] = useState(null)
@@ -297,7 +298,10 @@ export default function ActivityPage() {
   // Computed totals for today — use liveSteps as total (pedometer + logged)
   const todayCalories = logs.reduce((s, l) => s + (l.calories_burned || 0), 0)
   const todayMinutes = logs.reduce((s, l) => s + l.duration_minutes, 0)
-  const loggedSteps = logs.reduce((s, l) => s + (l.steps || 0), 0)
+  // Esclude la riga sintetica 'passi' (creata dal sync passivo del
+  // contapassi, gestita a parte via liveSteps) — prima veniva sommata
+  // insieme ai log manuali, facendo contare due volte gli stessi passi.
+  const loggedSteps = logs.reduce((s, l) => s + (l.activity_type === 'passi' ? 0 : (l.steps || 0)), 0)
   const totalSteps = Math.max(liveSteps, loggedSteps)
   const todaySteps = totalSteps
   const stepPct = Math.min(100, Math.round((todaySteps / stepGoal) * 100))
@@ -311,7 +315,12 @@ export default function ActivityPage() {
   }, [todaySteps])
 
   async function deleteLog(id) {
-    await supabase.from('activity_logs').delete().eq('id', id)
+    const { error: delErr } = await supabase.from('activity_logs').delete().eq('id', id)
+    // Prima: l'esito non veniva controllato, l'attività spariva dalla lista
+    // anche se la delete falliva (RLS/rete) — ricompariva al ricaricamento
+    // successivo, contraddicendo quanto appena visto dall'utente.
+    if (delErr) { setDeleteError(t('activity.delete_error', 'Impossibile eliminare l\'attività. Riprova.')); return }
+    setDeleteError('')
     setLogs(l => l.filter(x => x.id !== id))
   }
 
@@ -701,6 +710,9 @@ export default function ActivityPage() {
         {/* ── Today tab ── */}
         {tab === 'oggi' && (
           <div className="card" style={{ padding: '18px 20px' }}>
+            {deleteError && (
+              <div style={{ marginBottom: 12, background: 'var(--alert-error-bg)', border: '1.5px solid var(--alert-error-border)', borderRadius: 12, padding: '10px 14px', color: 'var(--alert-error-text)', fontSize: 13, fontWeight: 500 }}>{deleteError}</div>
+            )}
             {loading ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[1, 2].map(i => <div key={i} className="skeleton" style={{ height: 60, borderRadius: 12 }} />)}

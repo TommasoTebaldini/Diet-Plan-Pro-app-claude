@@ -19,6 +19,26 @@ function toCSV(rows, columns) {
   return '﻿' + [header, ...lines].join('\n') // BOM for Excel UTF-8
 }
 
+// Supabase/PostgREST applica un limite di default (1000 righe) su ogni
+// singola richiesta — le query di export sotto non avevano né .range() né
+// .limit() espliciti, quindi un utente con più di 1000 righe (circa un anno
+// di diario alimentare) otteneva un export GDPR troncato in silenzio,
+// senza alcun errore né avviso. Pagina in blocchi finché una pagina torna
+// più corta della dimensione richiesta (= fine dei dati).
+const EXPORT_PAGE_SIZE = 1000
+async function fetchAllRows(query) {
+  let all = []
+  let from = 0
+  for (;;) {
+    const { data, error } = await query.range(from, from + EXPORT_PAGE_SIZE - 1)
+    if (error) throw error
+    all = all.concat(data || [])
+    if (!data || data.length < EXPORT_PAGE_SIZE) break
+    from += EXPORT_PAGE_SIZE
+  }
+  return all
+}
+
 function downloadFile(content, filename, mime) {
   const blob = new Blob([content], { type: mime })
   const url = URL.createObjectURL(blob)
@@ -117,12 +137,11 @@ export default function ExportDataPage() {
 
   // ── Diario alimentare CSV ─────────────────────────────────────────────────
   async function exportFoodLogs() {
-    const { data, error } = await supabase
+    const data = await fetchAllRows(supabase
       .from('food_logs')
       .select('*')
       .eq('user_id', user.id)
-      .order('created_at')
-    if (error) throw error
+      .order('created_at'))
 
     const MEAL_LABELS = {
       colazione: t('export.meal_colazione', 'Colazione'), spuntino_mattina: t('export.meal_spuntino_mattina', 'Spuntino mat.'),
@@ -157,12 +176,11 @@ export default function ExportDataPage() {
 
   // ── Peso CSV ──────────────────────────────────────────────────────────────
   async function exportWeightLogs() {
-    const { data, error } = await supabase
+    const data = await fetchAllRows(supabase
       .from('weight_logs')
       .select('*')
       .eq('user_id', user.id)
-      .order('date')
-    if (error) throw error
+      .order('date'))
 
     const rows = (data || []).map(r => ({
       data: r.date || '',
@@ -180,12 +198,11 @@ export default function ExportDataPage() {
 
   // ── Benessere CSV ─────────────────────────────────────────────────────────
   async function exportWellness() {
-    const { data, error } = await supabase
+    const data = await fetchAllRows(supabase
       .from('daily_wellness')
       .select('*')
       .eq('user_id', user.id)
-      .order('date')
-    if (error) throw error
+      .order('date'))
 
     const rows = (data || []).map(r => ({
       data: r.date || '',
@@ -214,11 +231,11 @@ export default function ExportDataPage() {
   // ── Export completo JSON ──────────────────────────────────────────────────
   async function exportAllJSON() {
     const [foodLogs, waterLogs, weightLogs, wellness, activityLogs] = await Promise.all([
-      supabase.from('food_logs').select('*').eq('user_id', user.id).order('created_at'),
-      supabase.from('water_logs').select('*').eq('user_id', user.id).order('created_at'),
-      supabase.from('weight_logs').select('*').eq('user_id', user.id).order('date'),
-      supabase.from('daily_wellness').select('*').eq('user_id', user.id).order('date'),
-      supabase.from('activity_logs').select('*').eq('user_id', user.id).order('date'),
+      fetchAllRows(supabase.from('food_logs').select('*').eq('user_id', user.id).order('created_at')),
+      fetchAllRows(supabase.from('water_logs').select('*').eq('user_id', user.id).order('created_at')),
+      fetchAllRows(supabase.from('weight_logs').select('*').eq('user_id', user.id).order('date')),
+      fetchAllRows(supabase.from('daily_wellness').select('*').eq('user_id', user.id).order('date')),
+      fetchAllRows(supabase.from('activity_logs').select('*').eq('user_id', user.id).order('date')),
     ])
 
     const exportPayload = {
@@ -226,11 +243,11 @@ export default function ExportDataPage() {
       user_id: user.id,
       note: t('export.gdpr_note', 'Esportazione dati personali ai sensi del GDPR Art. 20 – Portabilità dei dati'),
       data: {
-        diario_alimentare: foodLogs.data || [],
-        acqua: waterLogs.data || [],
-        peso: weightLogs.data || [],
-        benessere: wellness.data || [],
-        attivita: activityLogs.data || [],
+        diario_alimentare: foodLogs,
+        acqua: waterLogs,
+        peso: weightLogs,
+        benessere: wellness,
+        attivita: activityLogs,
       },
     }
 

@@ -13,8 +13,11 @@ function getWeekStart(date = new Date()) {
   const day = d.getDay()
   const diff = (day === 0 ? -6 : 1 - day) // Monday = start
   d.setDate(d.getDate() + diff)
-  d.setHours(0, 0, 0, 0)
-  return d.toISOString().split('T')[0] // YYYY-MM-DD
+  // toISOString() converte in UTC, spostando la data indietro di un giorno
+  // per chiunque sia in un fuso orario positivo (es. l'Italia) — costruire
+  // la stringa a mano dai componenti locali della data, come altrove
+  // nell'app (vedi localDateStr in agenda.html/DietitianDetailPage.jsx).
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
 }
 
 function getAdherenceOptions(t) {
@@ -229,21 +232,38 @@ export default function CheckinPage() {
 
       if (insertError) throw insertError
 
-      // If message to dietitian is not empty, send it as a chat message
+      // Da qui in poi il check-in è già salvato: un fallimento nel messaggio
+      // in chat o nel badge non deve più far apparire un errore generico
+      // all'utente. Prima, un paziente senza dietista collegato (dietitianId
+      // null) faceva fallire l'insert in chat_messages (dietitian_id NOT
+      // NULL nello schema) e l'intero submit sembrava fallito nonostante il
+      // check-in fosse già scritto — un reinvio poi urtava il vincolo
+      // UNIQUE(user_id, week_start_date) con un errore grezzo invece della
+      // schermata "già inviato".
       if (messageToDietitian.trim()) {
-        const dietitianId = await getMyDietitianId(user.id)
-        await supabase.from('chat_messages').insert({
-          patient_id: user.id,
-          dietitian_id: dietitianId,
-          sender_role: 'patient',
-          sender_id: user.id,
-          content: t('checkin.msg_prefix_chat', { msg: messageToDietitian.trim() }, '📊 Check-in settimanale: {{msg}}'),
-          message_type: 'text',
-        })
+        try {
+          const dietitianId = await getMyDietitianId(user.id)
+          if (dietitianId) {
+            await supabase.from('chat_messages').insert({
+              patient_id: user.id,
+              dietitian_id: dietitianId,
+              sender_role: 'patient',
+              sender_id: user.id,
+              content: t('checkin.msg_prefix_chat', { msg: messageToDietitian.trim() }, '📊 Check-in settimanale: {{msg}}'),
+              message_type: 'text',
+            })
+          }
+        } catch (chatErr) {
+          console.warn('Checkin: invio messaggio in chat fallito (check-in comunque salvato):', chatErr.message)
+        }
       }
 
-      // Award badge
-      await checkAndAward('first_checkin')
+      // Award badge — anche questo non deve bloccare la conferma del check-in
+      try {
+        await checkAndAward('first_checkin')
+      } catch (badgeErr) {
+        console.warn('Checkin: assegnazione badge fallita:', badgeErr.message)
+      }
 
       setSubmitted(true)
     } catch (err) {

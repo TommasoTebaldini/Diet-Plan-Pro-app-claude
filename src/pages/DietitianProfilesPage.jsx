@@ -24,7 +24,11 @@ function AvatarCircle({ profile, size = 60 }) {
     'linear-gradient(135deg,#B45309,#F59E0B)',
     'linear-gradient(135deg,#065F46,#10B981)',
   ]
-  const colorIdx = (profile.nome || '').charCodeAt(0) % colors.length
+  // Riusa `initials` (già con fallback a '?') invece di profile.nome da solo:
+  // un nome vuoto dava ''.charCodeAt(0) = NaN, colors[NaN] = undefined
+  // (sfondo dell'avatar trasparente), disallineato dal fallback '?' che le
+  // iniziali gestiscono già correttamente.
+  const colorIdx = initials.charCodeAt(0) % colors.length
   if (profile.avatar_url) {
     return (
       <img src={profile.avatar_url} alt={[profile.nome, profile.cognome].filter(Boolean).join(' ')} loading="lazy"
@@ -240,7 +244,10 @@ export default function DietitianProfilesPage() {
   const filtered = profiles
     .map(p => {
       let _distance = null
-      if (nearMode && locCoords && p.latitude && p.longitude) {
+      // != null (non truthy): longitudine 0 (es. meridiano di Greenwich) è
+      // una coordinata reale, non "mancante" — prima veniva trattata come
+      // tale ed esclusa dal calcolo distanza.
+      if (nearMode && locCoords && p.latitude != null && p.longitude != null) {
         _distance = haversine(locCoords.lat, locCoords.lon, p.latitude, p.longitude)
       }
       return { ...p, _distance }

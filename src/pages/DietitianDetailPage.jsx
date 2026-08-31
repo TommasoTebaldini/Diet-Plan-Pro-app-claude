@@ -64,6 +64,7 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
   const [selectedDate, setSelectedDate] = useState(null)
   const [bookedTimes, setBookedTimes] = useState([])
   const [slotsLoading, setSlotsLoading] = useState(false)
+  const [slotsError, setSlotsError] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState(null)
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
@@ -93,15 +94,26 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
     setSelectedDate(dateStr)
     setSelectedSlot(null)
     setSlotsLoading(true)
+    setSlotsError(false)
     const start = new Date(dateStr + 'T00:00:00')
     const end = new Date(start.getTime() + 24 * 3600 * 1000)
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('appointment_slots')
       .select('appointment_date, duration_minutes')
       .eq('dietitian_id', dietitianId)
       .gte('appointment_date', start.toISOString())
       .lt('appointment_date', end.toISOString())
       .neq('status', 'cancelled')
+    if (error) {
+      // Fail-closed: se non sappiamo quali slot sono già occupati non
+      // mostrare nessuno slot come prenotabile — prima un errore qui
+      // lasciava bookedTimes a [], facendo apparire libero anche uno slot
+      // già occupato.
+      setBookedTimes([])
+      setSlotsError(true)
+      setSlotsLoading(false)
+      return
+    }
     setBookedTimes((data || []).map(b => getLocalTimeHHMM(b.appointment_date)))
     setSlotsLoading(false)
   }
@@ -110,7 +122,19 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
     if (!dateStr) return []
     const dow = getDow(dateStr)
     const avail = getAvailForDow(dow)
-    return generateSlots(avail)
+    const result = generateSlots(avail)
+    // isDayAvailable() considera "oggi" un giorno valido (giustamente — ha
+    // ancora ore disponibili al mattino), ma generateSlots() non sapeva
+    // escludere gli orari già passati: un orario delle 9:00 restava
+    // prenotabile anche alle 15:00 dello stesso giorno.
+    if (dateStr === localDateStr(today)) {
+      const nowMinutes = now.getHours() * 60 + now.getMinutes()
+      return result.filter(s => {
+        const [h, m] = s.split(':').map(Number)
+        return h * 60 + m > nowMinutes
+      })
+    }
+    return result
   }
 
   async function book() {
@@ -261,6 +285,8 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
                     <div style={{ textAlign: 'center', padding: 16 }}>
                       <div style={{ width: 20, height: 20, border: '2px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto' }} />
                     </div>
+                  ) : slotsError ? (
+                    <p style={{ fontSize: 13, color: '#dc2626' }}>{t('ddetail.errore_slot', 'Impossibile verificare gli orari disponibili. Riprova.')}</p>
                   ) : slots.length === 0 ? (
                     <p style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>{t('ddetail.nessuno_slot', 'Nessuno slot per questo giorno.')}</p>
                   ) : (
@@ -387,10 +413,18 @@ export default function DietitianDetailPage() {
     }
     if (!confirm(t('ddetail.confirm_annulla_colloquio', 'Annullare questo colloquio?'))) return
     setCancelling(appt.id)
-    await supabase.from('appointments')
+    const { error } = await supabase.from('appointments')
       .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
       .eq('id', appt.id)
     setCancelling(null)
+    if (error) {
+      // Prima: l'esito non veniva mai controllato, l'appuntamento spariva
+      // dall'interfaccia anche se l'update falliva (RLS/rete) — il paziente
+      // poteva ricredersi libero lo slot e riprenotarlo mentre lato dietista
+      // risultava ancora attivo.
+      alert(t('ddetail.errore_annulla_colloquio', 'Impossibile annullare il colloquio. Riprova.'))
+      return
+    }
     setMyAppointments(prev => prev.filter(a => a.id !== appt.id))
   }
 

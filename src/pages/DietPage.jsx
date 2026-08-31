@@ -9,6 +9,15 @@ import { searchFoodsLocal } from '../lib/foodSearch'
 const r1 = v => Math.round((+v || 0) * 10) / 10
 const r0 = v => Math.round(+v || 0)
 
+// "Oggi" in data locale, non UTC — toISOString() riporta la data UTC, che
+// per un utente in un fuso orario positivo (es. l'Italia) resta "ieri" per
+// 1-2 ore dopo la mezzanotte locale: un pasto spuntato o una copia nel
+// diario finivano attribuiti al giorno sbagliato in quella finestra.
+function todayLocalStr() {
+  const d = new Date()
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
+}
+
 const DAY_KEYS = ['days_mon', 'days_tue', 'days_wed', 'days_thu', 'days_fri', 'days_sat', 'days_sun']
 
 const MEAL_META_STATIC = {
@@ -182,7 +191,15 @@ function FoodItem({ food, overrideKey, override, onOverride }) {
     if (!onOverride || !overrideKey) return
     if (i === selectedSubIdx) { onOverride(overrideKey, null); return }
     const sub = subs[i]
-    onOverride(overrideKey, sub.parts.length === 1 ? { subIdx: i, grams: String(sub.parts[0].quantity || '') } : { subIdx: i })
+    const base = sub.parts.length === 1 ? { subIdx: i, grams: String(sub.parts[0].quantity || '') } : { subIdx: i }
+    // I sostituti AI (sub.ai) esistono solo nello stato locale di questo
+    // componente (rigenerati ad ogni richiesta, mai persistiti altrove) —
+    // senza portarne una copia nell'override, copyDayMealsToLog() nel
+    // componente padre non può più ritrovarli: l'indice puntava oltre
+    // dietSubs (che non contiene mai gli aiSubs) e veniva ignorato in
+    // silenzio, copiando nel diario l'alimento originale invece del
+    // sostituto scelto e mostrato a schermo.
+    onOverride(overrideKey, sub.ai ? { ...base, aiSub: sub } : base)
   }
 
   return (
@@ -551,7 +568,7 @@ function MacroChip({ val, label, color, bg }) {
 function PianoAlimentareContent({ piano }) {
   const { user } = useAuth()
   const t = useT()
-  const today = new Date().toISOString().split('T')[0]
+  const today = todayLocalStr()
   const [copyState, setCopyState] = useState({ dayIdx: null, date: today, busy: false, doneIdx: null })
   const [feedbackMeal, setFeedbackMeal] = useState(null)
   const [selectedAlts, setSelectedAlts] = useState({})
@@ -1048,7 +1065,7 @@ export default function DietPage() {
     })
   }, [])
 
-  const today = useMemo(() => new Date().toISOString().split('T')[0], [])
+  const today = useMemo(() => todayLocalStr(), [])
 
   const allergenWarning = useMemo(() => {
     if (!profile?.intolerances?.length) return null
@@ -1182,7 +1199,7 @@ export default function DietPage() {
           const overrideKey = `${meal.id}_${fi}`
           const override = foodOverrides[overrideKey]
           const dietSubs = buildFoodSubs(food)
-          const sub = override?.subIdx != null ? dietSubs[override.subIdx] : null
+          const sub = override?.aiSub || (override?.subIdx != null ? dietSubs[override.subIdx] : null)
           if (sub) {
             if (sub.parts.length === 1) {
               const part = sub.parts[0]

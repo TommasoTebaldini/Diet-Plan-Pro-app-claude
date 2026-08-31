@@ -9,6 +9,15 @@ import { getTodaySteps, setTodaySteps, isPedometerSupported, hasMotionPermission
 import { isBleScaleSupported, connectAndReadWeight } from '../lib/bleScale'
 import { useT } from '../i18n'
 
+// Local calendar date (not UTC) — toISOString() shifts to UTC and shows
+// the wrong day for users east of UTC (e.g. Italy) right after midnight.
+function localDateStr(d = new Date()) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 // ── Platform detection ────────────────────────────────────────────────────────
 
 function getOS() {
@@ -87,7 +96,7 @@ export default function HealthSyncPage() {
   const [healthAvailable, setHealthAvailable] = useState(null) // null = not checked yet (native only)
   const [hrSyncing, setHrSyncing] = useState(false)
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateStr()
   const native = isNativeApp()
   const healthAppName = os === 'ios' ? t('healthsync.health_app_name', 'Salute') : 'Health Connect'
 

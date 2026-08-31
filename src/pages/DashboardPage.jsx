@@ -104,7 +104,15 @@ function getMotivationalMessage(t, kcalPct, waterPct, streak) {
 }
 
 function StatPill({ label, val, target, color }) {
-  const pct = target ? Math.min(100, Math.round(val / target * 100)) : 0
+  // val/target arrivano già formattati con l'unità di misura (es. "12.3g",
+  // "150g", vedi le chiamate a StatPill sotto) — dividerli direttamente
+  // dava sempre NaN, quindi la barra risultava sempre al 100% (width:"NaN%"
+  // non è un valore CSS valido, il browser la ignora e il div torna alla
+  // sua larghezza piena di default). parseFloat estrae solo la parte
+  // numerica iniziale, qualunque sia l'unità.
+  const numVal = parseFloat(val)
+  const numTarget = parseFloat(target)
+  const pct = numTarget ? Math.min(100, Math.round(numVal / numTarget * 100)) : 0
   return (
     <div style={{ flex: 1, background: 'rgba(255,255,255,.1)', borderRadius: 14, padding: '10px 8px', textAlign: 'center', border: '1px solid rgba(255,255,255,.12)', backdropFilter: 'blur(8px)' }}>
       <div style={{ height: 3, background: 'rgba(255,255,255,.2)', borderRadius: 2, marginBottom: 8, overflow: 'hidden' }}>

@@ -1110,6 +1110,7 @@ export default function DocumentsPage() {
   const [selected,               setSelected]               = useState(null)
   const [pendingSignatureDocs,   setPendingSignatureDocs]   = useState([])
   const [signingId,              setSigningId]              = useState(null)
+  const [signError,              setSignError]              = useState(null)
   const [bookmarks,              setBookmarks]              = useState(() => {
     try {
       const raw = localStorage.getItem(`doc_bookmarks_${user?.id}`)
@@ -1150,23 +1151,41 @@ export default function DocumentsPage() {
 
   const handleSign = useCallback(async (docId, accepted) => {
     setSigningId(docId)
+    setSignError(null)
     try {
+      const signedFields = {
+        signed_at: new Date().toISOString(),
+        signature_accepted: accepted,
+        signature_data: accepted ? 'accepted_digitally' : 'rejected_digitally',
+      }
       const { error } = await supabase
         .from('patient_documents')
-        .update({
-          signed_at: new Date().toISOString(),
-          signature_accepted: accepted,
-          signature_data: accepted ? 'accepted_digitally' : 'rejected_digitally',
-        })
+        .update(signedFields)
         .eq('id', docId)
         .eq('patient_id', user.id)
-      if (!error) {
-        setPendingSignatureDocs(prev => prev.filter(d => d.id !== docId))
+      if (error) {
+        // Prima: un errore qui (rete/RLS) veniva ignorato del tutto — il
+        // pulsante tornava cliccabile senza alcuna indicazione, il paziente
+        // poteva credere di aver firmato quando in realtà non era successo
+        // nulla sul server.
+        setSignError(t('docs.sign_error', 'Non è stato possibile registrare la firma. Riprova.'))
+        return
+      }
+      let signedDoc = null
+      setPendingSignatureDocs(prev => {
+        signedDoc = prev.find(d => d.id === docId)
+        return prev.filter(d => d.id !== docId)
+      })
+      // Prima: il documento firmato spariva dall'interfaccia (rimosso da
+      // pendingSignatureDocs ma mai aggiunto a docs) finché un refresh non
+      // lo ricaricava dal DB.
+      if (signedDoc) {
+        setDocs(prev => [...prev, { ...signedDoc, ...signedFields, published_at: signedDoc.published_at || signedDoc.created_at }])
       }
     } finally {
       setSigningId(null)
     }
-  }, [user.id])
+  }, [user.id, t])
 
   // ── Carica i documenti dal DB ────────────────────────────────────────────────
   useEffect(() => {
@@ -1244,6 +1263,13 @@ export default function DocumentsPage() {
 
         const patientDocs = pdRes.data || []
         const pdErr = pdRes.error
+        // Le 6 query sopra sono chiamate Supabase, non Promise che rifiutano
+        // su errore: un fallimento (RLS, rete, rinomina colonna) ritornava
+        // {data:null, error} silenziosamente, mai controllato — il paziente
+        // vedeva una cartella semplicemente vuota, indistinguibile da "non
+        // ci sono davvero documenti".
+        const firstErr = pdErr || notesErr || pianiErr || ncptErr || schedeErr || biaErr
+        if (firstErr) throw firstErr
 
 
         if (cartellaId) {
@@ -1400,28 +1426,26 @@ export default function DocumentsPage() {
           const foldersToCheck = [user.id]
           if (dietitianId && dietitianId !== user.id) foldersToCheck.push(dietitianId)
 
-          const storageMap = {}
-          await Promise.all(foldersToCheck.map(async folderId => {
-            const { data: storageFiles } = await supabase.storage
-              .from('document-prints')
-              .list(folderId, { limit: 200 })
-            for (const f of storageFiles || []) {
-              const uuidMatch = f.name.match(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/)
-              if (!uuidMatch) continue
-              const uuid = uuidMatch[1]
-              const prefix = f.name.slice(0, f.name.indexOf(uuid))
-              const key = prefix + uuid
-              if (!storageMap[key]) storageMap[key] = []
-              storageMap[key].push({ fname: f.name, folder: folderId })
-            }
-          }))
-
           await Promise.all(needsStorageLookup.map(async doc => {
             const tablePrefix = SOURCE_TABLE_PREFIX[doc.source] || ''
             const rawUuid = doc.id.replace(/^[a-z_]+_/, '')
-            const storageKey = tablePrefix + rawUuid
-            const matches = storageMap[storageKey]
-            if (!matches?.length) return
+            // `search` filtra lato SERVER sul nome file — prima si scaricava
+            // l'intera cartella condivisa del dietista (fino a 200 file, che
+            // possono appartenere a QUALSIASI suo paziente) solo per trovare
+            // le pagine di questo specifico documento; il browser del
+            // paziente riceveva così i nomi file (con UUID) di documenti di
+            // altri pazienti prima di qualunque filtro lato client.
+            const matches = []
+            for (const folderId of foldersToCheck) {
+              const { data: storageFiles } = await supabase.storage
+                .from('document-prints')
+                .list(folderId, { limit: 20, search: rawUuid })
+              for (const f of storageFiles || []) {
+                if (!f.name.includes(rawUuid) || !f.name.startsWith(tablePrefix)) continue
+                matches.push({ fname: f.name, folder: folderId })
+              }
+            }
+            if (!matches.length) return
 
             // Sort: _p1, _p2, … first (in order), then other variants
             const sorted = [...matches].sort((a, b) => {
@@ -1565,6 +1589,11 @@ export default function DocumentsPage() {
                     : t('docs.to_sign_other', { count: pendingSignatureDocs.length }, 'Documenti da firmare ({{count}})')}
                 </span>
               </div>
+              {signError && (
+                <div style={{ padding: '10px 16px', background: '#fef2f2', color: '#b91c1c', fontSize: 13, fontWeight: 600, borderTop: '1px solid #fde68a' }}>
+                  {signError}
+                </div>
+              )}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                 {pendingSignatureDocs.map((doc, idx) => (
                   <div key={doc.id} style={{ padding: '14px 16px', borderTop: idx > 0 ? '1px solid #fde68a' : 'none' }}>
