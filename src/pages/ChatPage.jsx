@@ -7,7 +7,7 @@ import { useT } from '../i18n'
 import {
   Send, CheckCheck, Check, MessageCircle,
   ImagePlus, Mic, MicOff, X, Play, Pause, Bell, BellOff,
-  FileText, PenLine, AlertTriangle, ArrowLeft, Video
+  FileText, PenLine, AlertTriangle, Video
 } from 'lucide-react'
 import VideoCallModal from '../components/VideoCallModal'
 import { callRoomName } from '../lib/videoCall'
@@ -344,347 +344,6 @@ function SignatureModal({ doc, onClose, onSigned }) {
   )
 }
 
-// ── Chat list (dietitian thread + group threads) ──────────────────────────────
-
-function profileLabel(p, t) {
-  return p.full_name || `${p.nome || ''} ${p.cognome || ''}`.trim() || p.email || t('chat.default_user', 'Utente')
-}
-
-function ChatListView({ dietitianName, dietitianOnline, dietitianPreview, dietitianUnread, notLinked, groups, onOpenDietitian, onOpenGroup }) {
-  const t = useT()
-  return (
-    <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--surface-2)' }}>
-      <div style={{ background: 'linear-gradient(160deg, var(--green-dark), var(--green-main))', padding: 'calc(env(safe-area-inset-top) + 16px) 20px 20px', flexShrink: 0 }}>
-        <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 22, color: 'white', fontWeight: 300 }}>{t('chat.header', 'Chat')}</h1>
-      </div>
-      <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px calc(90px + env(safe-area-inset-bottom))' }}>
-        {!notLinked && (
-          <div onClick={onOpenDietitian} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 10px', borderRadius: 14, cursor: 'pointer', background: 'var(--surface)', marginBottom: 8, border: '1px solid var(--border-light)' }}>
-            <div style={{ position: 'relative', flexShrink: 0 }}>
-              <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 700, color: 'var(--green-main)' }}>
-                {dietitianName?.[0]?.toUpperCase() || 'D'}
-              </div>
-              {dietitianOnline && <span style={{ position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: '50%', background: '#4ade80', border: '2px solid var(--surface)' }} />}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 14.5, fontWeight: 600 }}>{dietitianName}</p>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dietitianPreview || t('chat.default_dietitian_name', 'Il tuo dietista')}</p>
-            </div>
-            {dietitianUnread && <span style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--red)', flexShrink: 0 }} />}
-          </div>
-        )}
-        {groups.map(g => (
-          <div key={g.id} onClick={() => onOpenGroup(g)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 10px', borderRadius: 14, cursor: 'pointer', background: 'var(--surface)', marginBottom: 8, border: '1px solid var(--border-light)' }}>
-            <div style={{ width: 46, height: 46, borderRadius: '50%', background: g.color || '#0F766E', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>👥</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 14.5, fontWeight: 600 }}>{g.name}</p>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.lastMsg ? (g.lastMsg.type === 'voice' ? t('chat.voice_message_preview', '🎤 Messaggio vocale') : g.lastMsg.content) : t('chat.no_message_preview', 'Nessun messaggio')}</p>
-            </div>
-            {g.unread && <span style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--red)', flexShrink: 0 }} />}
-          </div>
-        ))}
-        {notLinked && groups.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: 13.5 }}>{t('chat.no_chats_available', 'Nessuna chat disponibile.')}</div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function GroupThreadView({ group, user, onBack }) {
-  const t = useT()
-  const [messages, setMessages] = useState([])
-  const [text, setText] = useState('')
-  const [sending, setSending] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [memberProfiles, setMemberProfiles] = useState({})
-  const [isRecording, setIsRecording] = useState(false)
-  const [recordingDuration, setRecordingDuration] = useState(0)
-  const messagesContainerRef = useRef(null)
-  const inputRef = useRef(null)
-  const mediaRecorderRef = useRef(null)
-  const audioChunksRef = useRef([])
-  const recordingTimerRef = useRef(null)
-  const recordingSecondsRef = useRef(0)
-
-  useEffect(() => {
-    let cancelled = false
-    let channel
-
-    async function load() {
-      const [{ data: members }, { data: msgs }] = await Promise.all([
-        supabase.from('chat_group_members').select('user_id,member_role').eq('group_id', group.id),
-        supabase.from('chat_group_messages').select('*').eq('group_id', group.id).order('created_at', { ascending: true }).limit(200),
-      ])
-      if (cancelled) return
-      const ids = (members || []).map(m => m.user_id)
-      if (ids.length) {
-        const { data: profiles } = await supabase.from('profiles').select('id,nome,cognome,full_name,email,role').in('id', ids)
-        const map = {}
-        ;(profiles || []).forEach(p => { map[p.id] = { name: profileLabel(p, t), role: p.role } })
-        if (!cancelled) setMemberProfiles(map)
-      }
-      if (!cancelled) {
-        setMessages(msgs || [])
-        setLoading(false)
-      }
-      await supabase.from('chat_group_members').update({ last_read_at: new Date().toISOString() }).eq('group_id', group.id).eq('user_id', user.id)
-    }
-    load()
-
-    channel = supabase.channel(`group-${group.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_group_messages', filter: `group_id=eq.${group.id}` }, payload => {
-        if (payload.new.status !== 'sent') return // proprio messaggio programmato di un altro membro: non ancora visibile
-        setMessages(prev => prev.find(m => m.id === payload.new.id) ? prev : [...prev, payload.new].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)))
-        if (payload.new.sender_id !== user.id) {
-          supabase.from('chat_group_members').update({ last_read_at: new Date().toISOString() }).eq('group_id', group.id).eq('user_id', user.id)
-        }
-      })
-      // Un messaggio programmato diventa visibile via UPDATE (scheduled -> sent),
-      // non via INSERT, per chi non l'ha inviato (vedi RLS su chat_group_messages).
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_group_messages', filter: `group_id=eq.${group.id}` }, payload => {
-        const msg = payload.new
-        let wasNew = false
-        setMessages(prev => {
-          const exists = prev.some(m => m.id === msg.id)
-          wasNew = !exists
-          const next = exists ? prev.map(m => m.id === msg.id ? msg : m) : [...prev, msg]
-          return next.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-        })
-        if (wasNew && msg.sender_id !== user.id) {
-          supabase.from('chat_group_members').update({ last_read_at: new Date().toISOString() }).eq('group_id', group.id).eq('user_id', user.id)
-        }
-      })
-      .subscribe()
-
-    return () => {
-      cancelled = true
-      if (channel) supabase.removeChannel(channel)
-      clearInterval(recordingTimerRef.current)
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-        mediaRecorderRef.current.ondataavailable = null
-        mediaRecorderRef.current.onstop = () => { mediaRecorderRef.current.stream?.getTracks().forEach(track => track.stop()) }
-        mediaRecorderRef.current.stop()
-      }
-    }
-  }, [group.id, user.id])
-
-  useEffect(() => {
-    const el = messagesContainerRef.current
-    if (el) el.scrollTop = el.scrollHeight
-  }, [messages])
-
-  async function sendMessage(e) {
-    e?.preventDefault()
-    const content = text.trim()
-    if (!content || sending) return
-    setSending(true)
-    setText('')
-    const optimistic = { id: `opt_${Date.now()}`, group_id: group.id, sender_id: user.id, content, type: 'text', status: 'sent', created_at: new Date().toISOString() }
-    setMessages(prev => [...prev, optimistic])
-    const { data, error } = await supabase.from('chat_group_messages').insert({ group_id: group.id, sender_id: user.id, content, type: 'text', status: 'sent' }).select().single()
-    if (data) {
-      setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
-    } else if (error) {
-      setMessages(prev => prev.filter(m => m.id !== optimistic.id))
-      setText(content)
-    }
-    setSending(false)
-    inputRef.current?.focus()
-  }
-
-  // ── Voice recording ─────────────────────────────────────────────────────
-  async function startRecording() {
-    if (isRecording) return
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg'
-      const recorder = new MediaRecorder(stream, { mimeType })
-      audioChunksRef.current = []
-      recorder.ondataavailable = e => { if (e.data.size > 0) audioChunksRef.current.push(e.data) }
-      recorder.onstop = async () => {
-        stream.getTracks().forEach(track => track.stop())
-        const blob = new Blob(audioChunksRef.current, { type: mimeType })
-        // recorder.onstop is assigned once here and never recreated, so closing
-        // over the recordingDuration state variable directly always reads its
-        // value from this exact moment (effectively stuck at 0) — read the ref
-        // the interval below keeps live instead.
-        const dur = recordingSecondsRef.current
-        setIsRecording(false)
-        setRecordingDuration(0)
-        if (blob.size >= 100) await sendAudio(blob, dur, mimeType)
-      }
-      recorder.start()
-      mediaRecorderRef.current = recorder
-      setIsRecording(true)
-      setRecordingDuration(0)
-      recordingSecondsRef.current = 0
-      recordingTimerRef.current = setInterval(() => {
-        recordingSecondsRef.current += 1
-        setRecordingDuration(recordingSecondsRef.current)
-      }, 1000)
-    } catch {
-      alert(t('chat.mic_access_error', 'Impossibile accedere al microfono.'))
-    }
-  }
-
-  function stopRecording(cancel = false) {
-    clearInterval(recordingTimerRef.current)
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      if (cancel) {
-        mediaRecorderRef.current.ondataavailable = null
-        mediaRecorderRef.current.onstop = () => { mediaRecorderRef.current.stream?.getTracks().forEach(track => track.stop()) }
-      }
-      mediaRecorderRef.current.stop()
-    }
-    if (cancel) { setIsRecording(false); setRecordingDuration(0) }
-  }
-
-  async function sendAudio(blob, dur, mimeType) {
-    const ext = mimeType.includes('ogg') ? 'ogg' : 'webm'
-    setSending(true)
-    const optimistic = { id: `opt_${Date.now()}`, group_id: group.id, sender_id: user.id, content: URL.createObjectURL(blob), type: 'voice', status: 'sent', duration_seconds: dur, created_at: new Date().toISOString() }
-    setMessages(prev => [...prev, optimistic])
-    try {
-      const path = `${group.id}/${Date.now()}.${ext}`
-      const { error: upErr } = await supabase.storage.from('group-chat-media').upload(path, blob, { contentType: mimeType })
-      if (upErr) throw upErr
-      const { data: signed, error: signErr } = await supabase.storage.from('group-chat-media').createSignedUrl(path, 315_360_000)
-      if (signErr) throw signErr
-      const { data, error } = await supabase.from('chat_group_messages')
-        .insert({ group_id: group.id, sender_id: user.id, content: signed.signedUrl, type: 'voice', status: 'sent' })
-        .select().single()
-      if (data) {
-        setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
-      } else if (error) {
-        setMessages(prev => prev.filter(m => m.id !== optimistic.id))
-      }
-    } catch {
-      setMessages(prev => prev.filter(m => m.id !== optimistic.id))
-    }
-    setSending(false)
-  }
-
-  const canSendText = text.trim().length > 0 && !sending && !isRecording
-  const dayGroups = groupByDate(messages)
-
-  return (
-    <div className="chat-fullscreen">
-      <div style={{ background: `linear-gradient(160deg, ${group.color || '#157A4A'}, ${group.color || '#1a9f60'})`, padding: 'calc(env(safe-area-inset-top) + 14px) 16px 16px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-        <button onClick={onBack} aria-label={t('chat.back', 'Torna indietro')} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-          <ArrowLeft size={17} color="white" />
-        </button>
-        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>👥</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ color: 'white', fontSize: 16, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{group.name}</p>
-          <p style={{ color: 'rgba(255,255,255,0.72)', fontSize: 11 }}>{Object.keys(memberProfiles).length || ''} {Object.keys(memberProfiles).length === 1 ? t('chat.members_one', 'membro') : t('chat.members_other', 'membri')}</p>
-        </div>
-      </div>
-
-      <div ref={messagesContainerRef} className="chat-messages" style={{ flex: 1, overflowY: 'auto', padding: '12px 14px 0', WebkitOverflowScrolling: 'touch' }}>
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)', fontSize: 13 }}>{t('chat.loading', 'Caricamento…')}</div>
-        ) : messages.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '50px 20px' }}>
-            <div style={{ fontSize: 44, marginBottom: 12 }}>💬</div>
-            <p style={{ fontSize: 15, fontWeight: 500 }}>{t('chat.group_start', 'Inizia la conversazione di gruppo')}</p>
-          </div>
-        ) : (
-          Object.entries(dayGroups).map(([day, msgs]) => (
-            <div key={day}>
-              <div style={{ textAlign: 'center', margin: '10px 0' }}>
-                <span style={{ background: 'var(--border)', color: 'var(--text-muted)', fontSize: 11, padding: '3px 10px', borderRadius: 100 }}>{dayLabel(day, t)}</span>
-              </div>
-              {msgs.map(msg => {
-                const isMe = msg.sender_id === user.id
-                const info = memberProfiles[msg.sender_id]
-                const isDietitian = info?.role === 'dietitian'
-                return (
-                  <div key={msg.id} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start', marginBottom: 6 }}>
-                    <div style={{ maxWidth: '78%', background: isMe ? 'linear-gradient(135deg, var(--green-main), var(--green-mid))' : 'var(--surface-3)', color: isMe ? 'white' : 'var(--text-primary)', padding: '8px 13px', borderRadius: isMe ? '16px 16px 3px 16px' : '16px 16px 16px 3px', border: isMe ? 'none' : '1px solid var(--border-light)' }}>
-                      {!isMe && (
-                        <p style={{ fontSize: 11, fontWeight: 700, marginBottom: 2, color: isDietitian ? '#7C3AED' : 'var(--green-main)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                          {info?.name || t('chat.default_user', 'Utente')}
-                          <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 20, background: isDietitian ? '#EDE9FE' : '#DCFCE7', color: isDietitian ? '#6D28D9' : '#15803D' }}>
-                            {isDietitian ? t('chat.role_dietitian', 'Dietista/Nutrizionista') : t('chat.role_patient', 'Paziente')}
-                          </span>
-                        </p>
-                      )}
-                      {msg.type === 'voice' && msg.content ? (
-                        <AudioPlayer src={msg.content} isMe={isMe} />
-                      ) : (
-                        <p style={{ fontSize: 14, lineHeight: 1.5, wordBreak: 'break-word' }}>{msg.content}</p>
-                      )}
-                      <div style={{ textAlign: 'right', marginTop: 3 }}>
-                        <span style={{ fontSize: 10, opacity: 0.65 }}>{formatTime(msg.created_at)}</span>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          ))
-        )}
-      </div>
-
-      <div className="chat-input-bar" style={{ position: 'fixed', bottom: 'calc(64px + env(safe-area-inset-bottom))', left: 0, right: 0, padding: '8px 10px', background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(12px)', borderTop: '1px solid var(--border-light)', zIndex: 50 }}>
-        {isRecording ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 4px' }}>
-            <button
-              onClick={() => stopRecording(true)}
-              aria-label={t('chat.cancel_recording_aria', 'Annulla registrazione vocale')}
-              style={{ width: 38, height: 38, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#fff0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
-            >
-              <X size={16} color="var(--red)" />
-            </button>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--red)', animation: 'pulse 1s infinite', flexShrink: 0 }} />
-              <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--red)' }}>{formatDuration(recordingDuration)}</span>
-              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('chat.recording', 'Registrazione…')}</span>
-            </div>
-            <button
-              onClick={() => stopRecording(false)}
-              aria-label={t('chat.send_voice_aria', 'Invia messaggio vocale')}
-              style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'var(--green-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(21,122,74,0.35)' }}
-            >
-              <Send size={17} color="white" style={{ marginLeft: 2 }} />
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={sendMessage} style={{ display: 'flex', alignItems: 'flex-end', gap: 7 }}>
-            <div style={{ flex: 1, background: 'var(--surface-2)', borderRadius: 22, border: '1.5px solid var(--border)', padding: '9px 14px' }}>
-              <textarea
-                ref={inputRef} value={text}
-                onChange={e => setText(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
-                placeholder={t('chat.group_placeholder', 'Scrivi al gruppo…')} rows={1}
-                style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontFamily: 'var(--font-b)', fontSize: 15, color: 'var(--text-primary)', resize: 'none', maxHeight: 100, lineHeight: 1.5 }}
-              />
-            </div>
-            {canSendText ? (
-              <button type="submit" aria-label={t('chat.send_aria', 'Invia messaggio')} style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: 'var(--green-main)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(26,127,90,0.3)' }}>
-                <Send size={17} color="white" style={{ marginLeft: 2 }} />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onMouseDown={startRecording}
-                onTouchStart={e => { e.preventDefault(); startRecording() }}
-                disabled={sending}
-                aria-label={t('chat.record_voice_aria', 'Registra messaggio vocale')}
-                style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: sending ? 'var(--border)' : 'var(--surface-3)', border: 'none', cursor: sending ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: sending ? 0.5 : 1 }}
-              >
-                <Mic size={19} color="var(--text-muted)" />
-              </button>
-            )}
-          </form>
-        )}
-      </div>
-      <div style={{ height: 'calc(72px + env(safe-area-inset-bottom))' }} />
-    </div>
-  )
-}
-
 // ── Main Component ───────────────────────────────────────────────────────────
 
 export default function ChatPage() {
@@ -704,11 +363,6 @@ export default function ChatPage() {
   const [unsignedDocs, setUnsignedDocs] = useState([])
   const [signingDoc, setSigningDoc] = useState(null)
   const [callRoom, setCallRoom] = useState(null)
-
-  // Group chats
-  const [groups, setGroups] = useState([])
-  const [groupsLoaded, setGroupsLoaded] = useState(false)
-  const [activeThread, setActiveThread] = useState(null) // null=deciding, 'list', 'dietitian', or a group object
 
   // Online status
   const [dietitianLastSeen, setDietitianLastSeen] = useState(null)
@@ -820,38 +474,6 @@ export default function ChatPage() {
     const el = messagesContainerRef.current
     if (el) el.scrollTop = el.scrollHeight
   }, [messages])
-
-  // ── Load group chats the patient belongs to ─────────────────────────────
-  useEffect(() => {
-    async function loadGroups() {
-      const { data: mine } = await supabase.from('chat_group_members').select('group_id,last_read_at').eq('user_id', user.id)
-      const groupIds = (mine || []).map(m => m.group_id)
-      if (!groupIds.length) { setGroups([]); setGroupsLoaded(true); return }
-      const [{ data: gRows }, { data: lastMsgs }] = await Promise.all([
-        supabase.from('chat_groups').select('*').in('id', groupIds),
-        supabase.from('chat_group_messages').select('group_id,sender_id,content,type,created_at').in('group_id', groupIds).order('created_at', { ascending: false }),
-      ])
-      const myReadMap = Object.fromEntries((mine || []).map(m => [m.group_id, m.last_read_at]))
-      const lastByGroup = {}
-      ;(lastMsgs || []).forEach(m => { if (!lastByGroup[m.group_id]) lastByGroup[m.group_id] = m })
-      const list = (gRows || []).map(g => {
-        const last = lastByGroup[g.id]
-        const unread = !!(last && last.sender_id !== user.id && (!myReadMap[g.id] || new Date(last.created_at) > new Date(myReadMap[g.id])))
-        return { ...g, lastMsg: last || null, unread }
-      })
-      setGroups(list)
-      setGroupsLoaded(true)
-    }
-    loadGroups()
-  }, [user.id])
-
-  // ── Decide the default thread once both the dietitian chat and groups have loaded ──
-  useEffect(() => {
-    if (activeThread !== null) return
-    if (!loading && groupsLoaded) {
-      setActiveThread(groups.length > 0 ? 'list' : 'dietitian')
-    }
-  }, [loading, groupsLoaded, groups, activeThread])
 
   async function updateLastSeen() {
     await supabase.from('profiles').update({ last_seen_at: new Date().toISOString() }).eq('id', user.id)
@@ -1167,37 +789,11 @@ export default function ChatPage() {
 
   const canSendText = text.trim().length > 0 && !sending && !isRecording
 
-  // ── Deciding / list / group thread routing ──────────────────────────────
-  if (activeThread === null) {
+  if (loading) {
     return (
       <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-2)' }}>
         <div className="skeleton" style={{ width: 60, height: 60, borderRadius: '50%' }} />
       </div>
-    )
-  }
-
-  if (activeThread === 'list') {
-    return (
-      <ChatListView
-        dietitianName={dietitianName}
-        dietitianOnline={isOnline}
-        dietitianPreview={messages[messages.length - 1]?.content || t('chat.default_dietitian_name', 'Il tuo dietista')}
-        dietitianUnread={messages.some(m => m.sender_role === 'dietitian' && !m.read_at)}
-        notLinked={notLinked}
-        groups={groups}
-        onOpenDietitian={() => setActiveThread('dietitian')}
-        onOpenGroup={g => setActiveThread(g)}
-      />
-    )
-  }
-
-  if (activeThread && typeof activeThread === 'object') {
-    return (
-      <GroupThreadView
-        group={activeThread}
-        user={user}
-        onBack={() => setActiveThread(groups.length > 0 ? 'list' : 'dietitian')}
-      />
     )
   }
 
@@ -1241,15 +837,6 @@ export default function ChatPage() {
 
       {/* Header */}
       <div style={{ background: 'linear-gradient(160deg, var(--green-dark), var(--green-main))', padding: 'calc(env(safe-area-inset-top) + 14px) 16px 16px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-        {groups.length > 0 && (
-          <button
-            onClick={() => setActiveThread('list')}
-            aria-label={t('chat.back_to_list', 'Torna alla lista chat')}
-            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
-          >
-            <ArrowLeft size={17} color="white" />
-          </button>
-        )}
         {/* Avatar with online indicator */}
         <div style={{ position: 'relative', flexShrink: 0 }}>
           <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: 'white', border: '2px solid rgba(255,255,255,0.3)' }}>
