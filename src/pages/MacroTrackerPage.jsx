@@ -1361,10 +1361,10 @@ export default function MacroTrackerPage() {
                           style={{ background: 'none', border: 'none', cursor: 'pointer', color: f.is_favorite ? '#f59e0b' : 'var(--text-muted)', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Star size={13} fill={f.is_favorite ? '#f59e0b' : 'none'} />
                         </button>
-                        <button onClick={() => { setEditingFood(f.id); setEditGrams(String(f.grams || 100)) }} aria-label={t('macro.editQtyOf', { name: f.nome || t('macro.genericFood', 'alimento') }, 'Modifica quantità di {{name}}')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <button onClick={() => { setEditingFood(f.id); setEditGrams(String(f.grams || 100)) }} aria-label={t('macro.editQtyOf', { name: f.food_name || t('macro.genericFood', 'alimento') }, 'Modifica quantità di {{name}}')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Pencil size={13} />
                         </button>
-                        <button onClick={() => removeFood(f.id)} aria-label={t('macro.removeFromDiary', { name: f.nome || t('macro.genericFood', 'alimento') }, 'Rimuovi {{name}} dal diario')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <button onClick={() => removeFood(f.id)} aria-label={t('macro.removeFromDiary', { name: f.food_name || t('macro.genericFood', 'alimento') }, 'Rimuovi {{name}} dal diario')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 10, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Trash2 size={14} />
                         </button>
                       </div>

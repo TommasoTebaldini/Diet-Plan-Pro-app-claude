@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -31,17 +31,21 @@ function IngredientSearch({ onAdd }) {
   const [busy, setBusy] = useState(false)
   const [pending, setPending] = useState(null)   // selected food before confirming grams
   const [pendingGrams, setPendingGrams] = useState('100')
+  const searchIdRef = useRef(0)
 
   async function handleSearch(e) {
     e?.preventDefault()
     if (!q.trim() || q.trim().length < 2) return
+    const searchId = ++searchIdRef.current
     setBusy(true); setRes([])
     // Phase 1: show local results immediately
     const localFoods = await searchFoodsLocal(q.trim())
+    if (searchId !== searchIdRef.current) return
     if (localFoods.length > 0) { setRes(localFoods); setBusy(false) }
     // Phase 2: supplement with OFA if needed
     if (q.trim().length >= 3 && localFoods.length < 8) {
       const allFoods = await supplementWithOpenFoodFacts(q.trim(), localFoods)
+      if (searchId !== searchIdRef.current) return
       setRes(allFoods)
     }
     setBusy(false)
@@ -128,6 +132,7 @@ export default function FoodDatabasePage() {
   const [showRecCreate, setShowRecCreate] = useState(false)
   const [recForm, setRecForm] = useState({ nome: '', porzioni: '1', ingredienti: [], note: '' })
   const [expandedRicetta, setExpandedRicetta] = useState(null)
+  const searchIdRef = useRef(0)
 
   useEffect(() => {
     Promise.all([
@@ -166,14 +171,18 @@ export default function FoodDatabasePage() {
     e?.preventDefault()
     if (!query.trim()) return
     const trimmed = query.trim()
+    const searchId = ++searchIdRef.current
     setSearching(true); setResults([])
     // Same two-phase pattern as the IngredientSearch sub-component above:
     // local sources answer immediately, Open Food Facts only fills the gap
     // in the background instead of blocking every search on that network call.
+    // searchId guards against a slower, older search overwriting a newer one.
     const localFoods = await searchFoodsLocal(trimmed)
+    if (searchId !== searchIdRef.current) return
     if (localFoods.length > 0) { setResults(localFoods); setSearching(false) }
     if (trimmed.length >= 3 && localFoods.length < 8) {
       const allFoods = await supplementWithOpenFoodFacts(trimmed, localFoods)
+      if (searchId !== searchIdRef.current) return
       setResults(allFoods)
     }
     setSearching(false)

@@ -77,14 +77,20 @@ export default function FastingPage() {
   async function stopFast() {
     if (!activeFast) return
     const endedAt = new Date().toISOString()
-    localStorage.removeItem(STORAGE_KEY)
-    const { data } = await supabase.from('fasting_logs').insert({
+    const { data, error } = await supabase.from('fasting_logs').insert({
       user_id: user.id,
       started_at: activeFast.startedAt,
       ended_at: endedAt,
       protocol: activeFast.protocol,
       notes: notes || null,
     }).select().single()
+    if (error) {
+      // Keep the active fast (and its localStorage backup) so the elapsed time
+      // isn't silently lost — the user can retry "Termina digiuno" once back online.
+      alert(t('fasting.stop_error', 'Errore nel salvare il digiuno. Riprova.'))
+      return
+    }
+    localStorage.removeItem(STORAGE_KEY)
     setActiveFast(null)
     if (data) setHistory(prev => [data, ...prev.slice(0, 19)])
   }
