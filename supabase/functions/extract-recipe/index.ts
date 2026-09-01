@@ -138,7 +138,13 @@ function parseResponse(text: string) {
     categoria: parsed.categoria || 'Altro',
     ingredienti: parsed.ingredienti
       .filter(i => i && i.nome)
-      .map(i => ({ nome: String(i.nome).slice(0, 80), qt: String(parseFloat(String(i.qt)) || 100) })),
+      .map(i => {
+        // Number.isFinite (not `|| 100`) so a legitimate 0 (e.g. "sale q.b."
+        // mapped to 0g) isn't replaced by the 100g default — `0 || 100`
+        // would always pick 100 since 0 is falsy.
+        const n = parseFloat(String(i.qt))
+        return { nome: String(i.nome).slice(0, 80), qt: String(Number.isFinite(n) ? n : 100) }
+      }),
     note: (parsed.note || '').slice(0, 500),
   }
 }
@@ -199,7 +205,15 @@ Deno.serve(async (req: Request) => {
   let result: string | undefined
   let lastError = ''
   for (const call of providers) {
-    try { result = await call(); break } catch (e) { lastError = (e as Error).message }
+    try {
+      // A 200 OK with no usable content (e.g. Gemini safety-filtering the
+      // image/text and returning empty candidates) doesn't throw, so `break`
+      // on any non-throwing call would stop here without ever trying the
+      // next configured provider — only stop once we actually have content.
+      result = await call()
+      if (result) break
+      lastError = 'Risposta AI vuota'
+    } catch (e) { lastError = (e as Error).message }
   }
   if (!result) {
     await logServerError('extract-recipe', lastError || 'Errore AI: tutti i provider hanno fallito').catch(() => {})

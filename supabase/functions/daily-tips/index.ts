@@ -30,11 +30,20 @@ function json(data: unknown, status = 200) {
 // client polling in a loop can't run up the AI API bill.
 const rateLimiter = createRateLimiter(10, 60_000)
 
+// Fallback only: Deno edge functions run with TZ=UTC, so this computes
+// "yesterday" in UTC, not in the user's local calendar day. food_logs/
+// water_logs/daily_wellness are written with the user's *local* date (see
+// localDateStr() in MacroTrackerPage.jsx etc.), so for users east of UTC
+// (e.g. Italy) this would look up the wrong day between local and UTC
+// midnight. The caller now sends its own locally-computed date; this is only
+// used if that's missing/invalid.
 function yesterday() {
   const d = new Date()
   d.setDate(d.getDate() - 1)
   return d.toISOString().split('T')[0]
 }
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
 async function callGemini(prompt: string): Promise<string> {
   const key = Deno.env.get('GEMINI_API_KEY')
@@ -155,7 +164,14 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'Hai raggiunto il limite di richieste AI incluse per questo mese. Il conteggio si azzera a inizio mese.' }, 429)
   }
 
-  const yest = yesterday()
+  let clientDate: string | undefined
+  try {
+    const body = await req.json()
+    if (typeof body?.date === 'string' && DATE_RE.test(body.date)) clientDate = body.date
+  } catch {
+    // no/invalid JSON body — fall back to server-computed UTC date below
+  }
+  const yest = clientDate || yesterday()
 
   // Fetch all data in parallel
   const [logsRes, waterRes, wellnessRes, dietRes] = await Promise.all([

@@ -112,16 +112,21 @@ async function verifySupabaseToken(token) {
 }
 
 // Stesso approccio di fetchPatientTags in food-swap.js: sola lettura con il
-// token dell'utente stesso (RLS), mai service role. Best-effort.
+// token dell'utente stesso (RLS), mai service role. Ritorna null (non [])
+// quando i tag non sono stati letti con successo, così il chiamante può
+// distinguere "nessun tag DCA" da "non sappiamo" — il blocco DCA più sotto
+// deve restare in vigore (fail-safe) anche quando una lettura fallisce, non
+// aprirsi per default come farebbe un [] indistinguibile dal caso "niente
+// tag".
 async function fetchPatientTags(token, userId) {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return [];
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
   const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` };
   try {
     const linkRes = await fetch(
       `${SUPABASE_URL}/rest/v1/patient_dietitian?patient_id=eq.${userId}&select=cartella_id&limit=5`,
       { headers }
     );
-    if (!linkRes.ok) return [];
+    if (!linkRes.ok) return null;
     const links = await linkRes.json();
     const cartellaIds = [...new Set((links || []).map(l => l.cartella_id).filter(Boolean))];
     if (!cartellaIds.length) return [];
@@ -130,7 +135,7 @@ async function fetchPatientTags(token, userId) {
       `${SUPABASE_URL}/rest/v1/cartelle?id=in.(${cartellaIds.join(',')})&select=tags`,
       { headers }
     );
-    if (!cartRes.ok) return [];
+    if (!cartRes.ok) return null;
     const cartelle = await cartRes.json();
     const tags = new Set();
     for (const c of cartelle || []) {
@@ -138,7 +143,7 @@ async function fetchPatientTags(token, userId) {
     }
     return [...tags];
   } catch {
-    return [];
+    return null;
   }
 }
 

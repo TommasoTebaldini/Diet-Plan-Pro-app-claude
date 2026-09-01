@@ -305,7 +305,14 @@ Deno.serve(async (req: Request) => {
 
   let lastError = ''
   for (const call of providers) {
-    try { text = await call(); break } catch (e) { lastError = (e as Error).message }
+    try {
+      // A 200 OK with no usable content (e.g. safety-filtered image) doesn't
+      // throw, so breaking on any non-throwing call would skip the
+      // remaining configured providers — only stop once we have content.
+      text = await call()
+      if (text) break
+      lastError = 'Risposta AI vuota'
+    } catch (e) { lastError = (e as Error).message }
   }
   if (!text!) {
     await logServerError('analyze-meal', lastError || 'Errore AI: tutti i provider hanno fallito').catch(() => {})

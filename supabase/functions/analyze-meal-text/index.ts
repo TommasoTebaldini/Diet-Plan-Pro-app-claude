@@ -212,7 +212,14 @@ Deno.serve(async (req: Request) => {
   let result: string | undefined
   let lastError = ''
   for (const call of providers) {
-    try { result = await call(); break } catch (e) { lastError = (e as Error).message }
+    try {
+      // A 200 OK with no usable content doesn't throw, so breaking on any
+      // non-throwing call would skip the remaining configured providers —
+      // only stop once we actually have content.
+      result = await call()
+      if (result) break
+      lastError = 'Risposta AI vuota'
+    } catch (e) { lastError = (e as Error).message }
   }
   if (!result) {
     await logServerError('analyze-meal-text', lastError || 'Errore AI: tutti i provider hanno fallito').catch(() => {})

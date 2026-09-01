@@ -13,15 +13,35 @@ precacheAndRoute(self.__WB_MANIFEST)
 
 // ── SW lifecycle ──────────────────────────────────────────────────────────────
 self.skipWaiting()
-self.addEventListener('activate', () => self.clients.claim())
+// event.waitUntil() extends the activate event's lifetime until
+// clients.claim() resolves — without it the browser (notably iOS
+// Safari/WKWebView, which this Capacitor-wrapped PWA runs under) can
+// consider 'activate' finished before claim() completes, leaving already
+// open tabs on the previous controller instead of the new worker.
+self.addEventListener('activate', event => event.waitUntil(self.clients.claim()))
 
 // ── Runtime caching ───────────────────────────────────────────────────────────
+// Cache key includes the Authorization header: Workbox's default key is the
+// URL alone, so on a shared device Patient A's cached response (diet, food
+// logs, other health data) would otherwise get served to Patient B if they
+// log in on the same device and hit the same URL while offline/on a slow
+// connection (NetworkFirst falls back to cache after networkTimeoutSeconds).
 registerRoute(
   ({ url }) => url.hostname.includes('supabase.co'),
   new NetworkFirst({
     cacheName: 'supabase-cache',
     networkTimeoutSeconds: 10,
-    plugins: [new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 })],
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 }),
+      {
+        cacheKeyWillBeUsed: async ({ request }) => {
+          const auth = (request.headers && request.headers.get('Authorization')) || 'anon'
+          const url = new URL(request.url)
+          url.searchParams.set('__sw_auth', auth.slice(-32))
+          return url.href
+        },
+      },
+    ],
   }),
 )
 

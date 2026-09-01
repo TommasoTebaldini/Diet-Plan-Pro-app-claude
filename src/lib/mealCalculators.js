@@ -34,8 +34,7 @@ function isInRange(current, from, to) {
   return from <= to ? current >= from && current < to : current >= from || current < to // wraps midnight
 }
 function findFasciaIdx(fasce, atMinutes) {
-  const idx = fasce.findIndex(f => isInRange(atMinutes, timeToMinutes(f.oraDa), timeToMinutes(f.oraA)))
-  return idx >= 0 ? idx : 0
+  return fasce.findIndex(f => isInRange(atMinutes, timeToMinutes(f.oraDa), timeToMinutes(f.oraA)))
 }
 
 // dati: the diabete note's `dati` object (note_specialistiche.dati).

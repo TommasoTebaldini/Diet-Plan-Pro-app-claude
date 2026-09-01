@@ -6,6 +6,17 @@ import { Sparkles, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
 
 const CACHE_KEY = 'nutriplan_daily_tips'
 
+// Local calendar date (not UTC) — toISOString() shifts to UTC and would ask
+// the edge function for the wrong "yesterday" for users east of UTC (e.g.
+// Italy) between local and UTC midnight. Same helper as MacroTrackerPage.jsx
+// etc., where food/water/wellness logs are written using the local date.
+function localDateStr(d = new Date()) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 function loadCache() {
   try {
     const raw = localStorage.getItem(CACHE_KEY)
@@ -55,7 +66,12 @@ export default function DailyTipsCard() {
     setError('')
     setNoData(false)
     try {
-      const { data, error } = await supabase.functions.invoke('daily-tips', { method: 'POST' })
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      const { data, error } = await supabase.functions.invoke('daily-tips', {
+        method: 'POST',
+        body: { date: localDateStr(yesterday) },
+      })
       if (error) throw new Error(error.message || t('dailytips.errorAI', 'Errore AI'))
       if (data?.noData) { setNoData(true); setTips([]); return }
       setTips(data?.tips || [])
