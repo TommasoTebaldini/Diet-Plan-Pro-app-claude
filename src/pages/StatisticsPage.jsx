@@ -170,6 +170,12 @@ export default function StatisticsPage() {
     return { today: d, weekStart: ws, weekEnd: we, prevWeekStart: subWeeks(ws, 1), prevWeekEnd: subWeeks(we, 1) }
   }, [weekOffset])
 
+  // Se l'utente cambia settimana rapidamente (frecce prev/next), le risposte
+  // di loadAll() possono arrivare fuori ordine — senza questa guardia i dati
+  // di una settimana precedente più lenta potrebbero sovrascrivere quelli
+  // della settimana effettivamente visualizzata.
+  const latestStatsRequestRef = useRef(weekOffset)
+
   useEffect(() => {
     if (!isPro && weekOffset > 0) { setWeekOffset(0); return }
     loadAll()
@@ -239,6 +245,8 @@ export default function StatisticsPage() {
   }, [tab, user?.id, insightsData])
 
   async function loadAll() {
+    const requestedOffset = weekOffset
+    latestStatsRequestRef.current = requestedOffset
     setLoading(true)
     const ws = isoDate(weekStart)
     const we = isoDate(weekEnd)
@@ -255,6 +263,8 @@ export default function StatisticsPage() {
       supabase.from('patient_diets').select('kcal_target,protein_target,carbs_target,fats_target,meals_count').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
       supabase.from('food_logs').select('date,meal_type').eq('user_id', user.id).gte('date', pws).lte('date', we).limit(300),
     ])
+
+    if (latestStatsRequestRef.current !== requestedOffset) return // superata da una richiesta più recente (settimana cambiata)
 
     setDietTarget(dietRes.data || null)
     setMealsCount(dietRes.data?.meals_count || 3)

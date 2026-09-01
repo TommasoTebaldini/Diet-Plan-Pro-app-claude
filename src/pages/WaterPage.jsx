@@ -159,7 +159,13 @@ export default function WaterPage() {
     const removed = logs.find(x => x.id === id)
     setLogs(l => l.filter(x => x.id !== id))
     const { error } = await supabase.from('water_logs').delete().eq('id', id)
-    if (error && removed) setLogs(l => [...l, removed])
+    if (error && removed) {
+      // Ripristina in ordine cronologico invece che in coda, e avvisa
+      // l'utente — altrimenti la voce spariva e poi ricompariva in fondo
+      // alla lista senza alcuna spiegazione del perché.
+      setLogs(l => [...l, removed].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)))
+      setSaveError(t('water.delete_error', 'Impossibile eliminare la voce. Riprova.'))
+    }
   }
 
   async function toggleNotifications() {

@@ -4,6 +4,8 @@
 // di NutriPlan-Pro/api/fetch-page.js (repo gemella, stesso progetto Supabase).
 
 import dns from 'node:dns';
+import http from 'node:http';
+import https from 'node:https';
 import { withErrorLogging, logServerError } from './_errorLog.js';
 const dnsLookup = dns.promises.lookup;
 
@@ -31,26 +33,96 @@ function rateLimit(userId) {
   return true;
 }
 
+// Blocklist of private/internal IP ranges to prevent SSRF
 const PRIVATE_IP_PATTERNS = [
-  /^0\./, /^127\./, /^10\./, /^172\.(1[6-9]|2\d|3[01])\./, /^192\.168\./,
-  /^169\.254\./, /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./,
-  /^::1$/, /^fc00:/i, /^fe80:/i,
+  /^0\./,                             // "this" network
+  /^127\./,                          // loopback
+  /^10\./,                           // RFC1918
+  /^172\.(1[6-9]|2\d|3[01])\./,     // RFC1918
+  /^192\.168\./,                     // RFC1918
+  /^169\.254\./,                     // link-local / cloud metadata (AWS/GCP/Azure)
+  /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./,  // CGNAT RFC6598
+  /^::1$/,                           // IPv6 loopback
+  /^f[cd][0-9a-f]{0,2}:/i,           // IPv6 ULA (fc00::/7 — fd00::/8 is what's
+                                      // actually assigned in practice)
+  /^fe80:/i,                         // IPv6 link-local
 ];
+
+// Normalizza IPv4-mapped IPv6 (::ffff:127.0.0.1 → 127.0.0.1), incluse le
+// varianti che Node può restituire in forma esadecimale pura
+// (::ffff:7f00:1, stessa entità di 127.0.0.1) a seconda di come arriva
+// l'input — solo la forma "dotted" veniva gestita in precedenza.
 function isPrivateIp(ip) {
-  const normalized = ip.replace(/^::ffff:/i, '');
+  let normalized = ip.replace(/^::ffff:/i, '');
+  const hexMatch = normalized.match(/^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
+  if (hexMatch) {
+    const hi = parseInt(hexMatch[1], 16);
+    const lo = parseInt(hexMatch[2], 16);
+    normalized = [hi >> 8, hi & 0xff, lo >> 8, lo & 0xff].join('.');
+  }
   return PRIVATE_IP_PATTERNS.some(re => re.test(normalized));
 }
+
 function isPrivateHost(hostname) {
   return isPrivateIp(hostname) || hostname === 'localhost';
 }
-async function resolvesToPrivateIp(hostname) {
-  if (isPrivateHost(hostname)) return true;
+
+// Protezione SSRF contro DNS rebinding: un lookup DNS separato per validare
+// l'hostname, seguito da un secondo lookup implicito dentro fetch()/http
+// per la connessione vera, può restituire IP diversi (TTL bassissimo o DNS
+// server malevolo) — un IP pubblico alla validazione, un IP privato/interno
+// alla connessione reale. Qui si risolve UNA VOLTA, si validano TUTTI gli
+// indirizzi restituiti, e la richiesta si connette esplicitamente al primo
+// IP già validato invece di ri-risolvere l'hostname (vedi pinnedRequest
+// sotto) — l'hostname originale resta usato per l'header Host e per
+// l'SNI/verifica del certificato TLS.
+async function resolveValidatedIp(hostname) {
+  if (isPrivateHost(hostname)) return null;
+  let records;
   try {
-    const records = await dnsLookup(hostname, { all: true, verbatim: true });
-    return records.some(r => isPrivateIp(r.address));
+    records = await dnsLookup(hostname, { all: true, verbatim: true });
   } catch {
-    return true;
+    return null; // dominio non risolvibile → non consentito
   }
+  if (!records.length || records.some(r => isPrivateIp(r.address))) return null;
+  return records[0].address;
+}
+
+// Richiesta HTTP(S) "pinnata" al preciso IP già validato da
+// resolveValidatedIp, evitando che Node risolva di nuovo l'hostname in fase
+// di connessione. Per HTTPS, servername forza comunque l'SNI e la verifica
+// del certificato sull'hostname reale (non sull'IP) — la connessione è
+// pinnata, la sicurezza TLS resta quella corretta.
+function pinnedRequest(urlObj, ip, signal) {
+  return new Promise((resolve, reject) => {
+    const isHttps = urlObj.protocol === 'https:';
+    const mod = isHttps ? https : http;
+    const req = mod.request({
+      hostname: ip,
+      port: urlObj.port || (isHttps ? 443 : 80),
+      path: urlObj.pathname + urlObj.search,
+      method: 'GET',
+      headers: {
+        'Host': urlObj.hostname,
+        'User-Agent': 'Mozilla/5.0 (compatible; NutriPlanApp/1.0)',
+        'Accept': 'text/html,application/xhtml+xml',
+        'Accept-Language': 'it-IT,it;q=0.9',
+      },
+      servername: isHttps ? urlObj.hostname : undefined,
+      signal,
+    }, resp => {
+      const chunks = [];
+      resp.on('data', c => chunks.push(c));
+      resp.on('end', () => resolve({
+        status: resp.statusCode,
+        headers: resp.headers,
+        text: () => Buffer.concat(chunks).toString('utf-8'),
+      }));
+      resp.on('error', reject);
+    });
+    req.on('error', reject);
+    req.end();
+  });
 }
 
 const _tkCache = new Map();
@@ -105,31 +177,58 @@ async function handler(req, res) {
     return res.status(400).json({ error: 'URL non valido' });
   }
 
-  if (await resolvesToPrivateIp(parsedUrl.hostname)) {
-    return res.status(400).json({ error: 'URL non consentito' });
-  }
-
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; NutriPlanApp/1.0)',
-        'Accept': 'text/html,application/xhtml+xml',
-        'Accept-Language': 'it-IT,it;q=0.9',
-      },
-    });
-    clearTimeout(timeout);
 
-    if (!response.ok) return res.status(response.status).json({ error: `HTTP ${response.status}` });
+    let response;
+    try {
+      // redirect seguiti manualmente e ri-validati (IP pinnato) ad ogni hop:
+      // altrimenti un sito esterno consentito potrebbe rispondere con un 3xx
+      // verso 169.254.169.254 (metadata cloud) o localhost/10.x e la
+      // richiesta lo seguirebbe automaticamente, bypassando la protezione.
+      let currentUrl = parsedUrl;
+      let hops = 0;
+      const MAX_REDIRECTS = 5;
+      for (;;) {
+        if (!['http:', 'https:'].includes(currentUrl.protocol)) {
+          return res.status(400).json({ error: 'Protocollo non supportato' });
+        }
+        const validatedIp = await resolveValidatedIp(currentUrl.hostname);
+        if (!validatedIp) {
+          return res.status(400).json({ error: 'URL non consentito' });
+        }
 
-    const contentType = response.headers.get('content-type') || '';
+        response = await pinnedRequest(currentUrl, validatedIp, controller.signal);
+
+        if ([301, 302, 303, 307, 308].includes(response.status)) {
+          const location = response.headers.location;
+          if (!location || ++hops > MAX_REDIRECTS) {
+            return res.status(400).json({ error: 'Troppi redirect o redirect senza destinazione' });
+          }
+          try {
+            currentUrl = new URL(location, currentUrl);
+          } catch {
+            return res.status(400).json({ error: 'Redirect verso un URL non valido' });
+          }
+          continue;
+        }
+        break;
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    if (response.status < 200 || response.status >= 300) {
+      return res.status(response.status).json({ error: `HTTP ${response.status}` });
+    }
+
+    const contentType = response.headers['content-type'] || '';
     if (!contentType.includes('text/html')) {
       return res.status(400).json({ error: 'La pagina non è HTML' });
     }
 
-    const html = await response.text();
+    const html = response.text();
     return res.status(200).json({ contents: html, url });
   } catch (err) {
     if (err.name === 'AbortError') {

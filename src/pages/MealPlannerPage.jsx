@@ -780,10 +780,19 @@ export default function MealPlannerPage() {
 
   const weekStart = getWeekStart(addWeeks(new Date(), weekOffset))
   const weekStartStr = format(weekStart, 'yyyy-MM-dd')
+  // Tiene traccia della settimana richiesta più di recente: se l'utente
+  // cambia settimana rapidamente (frecce prev/next), una risposta di rete
+  // per una settimana precedente può arrivare dopo quella corrente — senza
+  // questa guardia il planId/items della settimana vecchia sovrascriverebbero
+  // quelli attuali, e "Aggiungi alimento" scriverebbe su meal_plan_items con
+  // un plan_id della settimana sbagliata.
+  const latestWeekRequestRef = useRef(weekStartStr)
 
   // ── Load plan ──────────────────────────────────────────────────────────────
   const loadPlan = useCallback(async () => {
     if (!user) return
+    const requestedWeek = weekStartStr
+    latestWeekRequestRef.current = requestedWeek
     setLoading(true)
     try {
       // Find or create plan for this week
@@ -795,6 +804,7 @@ export default function MealPlannerPage() {
         .maybeSingle()
 
       if (planErr) throw planErr
+      if (latestWeekRequestRef.current !== requestedWeek) return // superata da una richiesta più recente
 
       if (!plan) {
         setItems([])
@@ -812,11 +822,12 @@ export default function MealPlannerPage() {
         .order('created_at', { ascending: true })
 
       if (itemsErr) throw itemsErr
+      if (latestWeekRequestRef.current !== requestedWeek) return // superata da una richiesta più recente
       setItems(planItems || [])
     } catch (err) {
       console.error('Errore caricamento piano:', err)
     } finally {
-      setLoading(false)
+      if (latestWeekRequestRef.current === requestedWeek) setLoading(false)
     }
   }, [user, weekStartStr])
 

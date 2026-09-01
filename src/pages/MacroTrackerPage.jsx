@@ -321,6 +321,12 @@ export default function MacroTrackerPage() {
   const searchRef = useRef(null)
   const searchCacheRef = useRef(new Map())
   const latestSearchIdRef = useRef(0)
+  // Stesso pattern di latestSearchIdRef ma per il giorno visualizzato: se
+  // l'utente cambia giorno rapidamente (frecce prev/next), le risposte di
+  // loadLog() possono arrivare fuori ordine — senza questa guardia il log di
+  // un giorno precedente più lento potrebbe sovrascrivere quello del giorno
+  // effettivamente visualizzato.
+  const latestDateRequestRef = useRef(date)
   const [, forceUpdate] = useState(0)
   const [mealNoteInputs, setMealNoteInputs] = useState({})
   const [savingNote, setSavingNote] = useState(null)
@@ -394,6 +400,8 @@ export default function MacroTrackerPage() {
   }, [user?.id])
 
   async function loadLog() {
+    const requestedDate = date
+    latestDateRequestRef.current = requestedDate
     // Use known column set if already determined, else try extended
     const foodSelect = _foodLogsExtended !== false
       ? 'id,date,meal_type,meal_time,food_name,grams,kcal,proteins,carbs,fats,food_data,is_favorite,unit'
@@ -417,6 +425,7 @@ export default function MacroTrackerPage() {
     }
 
     if (foodRes.error) console.error('[food_logs] load error:', foodRes.error)
+    if (latestDateRequestRef.current !== requestedDate) return // superata da una richiesta più recente (giorno cambiato)
     setLog(foodRes.data || [])
 
     // diet: usa is_active, poi fallback già scaricato in parallelo, poi piani NutriPlan-Pro
@@ -425,6 +434,7 @@ export default function MacroTrackerPage() {
       const synth = await fetchDietFromPiani(user.id)
       if (synth) dietData = synth
     }
+    if (latestDateRequestRef.current !== requestedDate) return // superata da una richiesta più recente (giorno cambiato)
     setDiet(dietData)
     setMood(wellnessRes.data?.mood || null)
   }
