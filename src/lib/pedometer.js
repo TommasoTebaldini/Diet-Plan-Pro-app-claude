@@ -26,7 +26,16 @@ const GRAVITY = 9.81
 const NATIVE_POLL_MS = 20000 // re-read the OS step count this often while the app is open
 
 function todayKey() {
-  return STORAGE_PREFIX + new Date().toISOString().split('T')[0]
+  // Data locale, non UTC: toISOString() sposta la data a UTC e per un
+  // utente a est di UTC (es. Italia) restituisce ancora il giorno
+  // precedente nella finestra tra mezzanotte locale e mezzanotte UTC —
+  // i passi fatti subito dopo mezzanotte locale finirebbero nel bucket
+  // di ieri e sparirebbero dal conteggio "oggi" al rollover UTC.
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${STORAGE_PREFIX}${y}-${m}-${day}`
 }
 
 function startOfTodayISO() {

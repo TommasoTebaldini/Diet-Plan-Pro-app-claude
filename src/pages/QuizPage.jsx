@@ -26,6 +26,15 @@ const DIFFS = [
   { key: 'difficile', label: 'Difficile' },
 ]
 
+// Local calendar date (not UTC) — toISOString() shifts to UTC and shows
+// the wrong day for users east of UTC (e.g. Italy) right after midnight.
+function localDateStr(d = new Date()) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 function getQuestionsWithFilters(questions, cats, diff) {
   // Fall back progressively instead of discarding every filter at once: a
   // category can have a single fixed difficulty in DIFF_MAP (e.g. "vitamine"
@@ -35,7 +44,7 @@ function getQuestionsWithFilters(questions, cats, diff) {
   const byCat = cats.length > 0 ? questions.filter(q => cats.includes(q.cat)) : questions
   let pool = diff !== 'misto' ? byCat.filter(q => DIFF_MAP[q.cat] === diff) : byCat
   if (pool.length < QUESTIONS_PER_DAY) pool = byCat.length >= QUESTIONS_PER_DAY ? byCat : questions
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateStr()
   let s = today.split('-').reduce((acc, v) => acc * 100 + parseInt(v), 0)
   const indices = []
   const len = pool.length
@@ -63,7 +72,7 @@ function getQuestionsForToday(questions) {
   return getQuestionsWithFilters(questions, [], 'misto')
 }
 
-function todayKey() { return new Date().toISOString().split('T')[0] }
+function todayKey() { return localDateStr() }
 
 function loadProgress() {
   try {
@@ -84,7 +93,9 @@ function updateStreak(completed) {
   if (!completed) return getStreak()
   const today = todayKey()
   const lastDay = localStorage.getItem('quiz_last_day')
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+  const yesterdayDate = new Date()
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1)
+  const yesterday = localDateStr(yesterdayDate)
   let streak = getStreak()
   if (lastDay === yesterday) {
     streak += 1

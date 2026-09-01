@@ -15,6 +15,15 @@ import { getPedometer, isPedometerSupported, getTodaySteps, getStepGoal, setStep
 const STEP_GOAL_KEY = 'nutriplan_step_goal'
 const DEFAULT_STEP_GOAL = 10000
 
+// Local calendar date (not UTC) — toISOString() shifts to UTC and shows
+// the wrong day for users east of UTC (e.g. Italy) right after midnight.
+function localDateStr(d = new Date()) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 const ACTIVITIES = [
   { type: 'camminata', label: 'Camminata', icon: '🚶', met: 3.5, color: '#22c55e' },
   { type: 'corsa', label: 'Corsa', icon: '🏃', met: 9.0, color: '#ef4444' },
@@ -67,7 +76,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 // ─── Log activity bottom-sheet ────────────────────────────────────────────────
 function LogForm({ onClose, onSaved, userWeight, userId }) {
   const t = useT()
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateStr()
   const [form, setForm] = useState({
     activity_type: 'camminata',
     duration_minutes: '',
@@ -188,7 +197,7 @@ export default function ActivityPage() {
   const { checkAndAward } = useAchievements()
   const { isPro } = useSubscription()
   const t = useT()
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateStr()
 
   const [logs, setLogs] = useState([])
   const [deleteError, setDeleteError] = useState('')
@@ -246,7 +255,7 @@ export default function ActivityPage() {
   // Load weekly data
   useEffect(() => {
     async function loadWeek() {
-      const from = subDays(new Date(), 6).toISOString().split('T')[0]
+      const from = localDateStr(subDays(new Date(), 6))
       const { data, error } = await supabase
         .from('activity_logs')
         .select('date, calories_burned, duration_minutes')
@@ -256,7 +265,7 @@ export default function ActivityPage() {
       if (error) return
       const map = {}
       for (let i = 6; i >= 0; i--) {
-        const d = subDays(new Date(), i).toISOString().split('T')[0]
+        const d = localDateStr(subDays(new Date(), i))
         map[d] = { calories: 0, minutes: 0 }
       }
       ;(data || []).forEach(r => {
@@ -281,7 +290,7 @@ export default function ActivityPage() {
   useEffect(() => {
     if (tab !== 'storico') return
     async function loadHistory() {
-      const from = subDays(new Date(), 30).toISOString().split('T')[0]
+      const from = localDateStr(subDays(new Date(), 30))
       const { data, error } = await supabase
         .from('activity_logs')
         .select('id,activity_type,duration_minutes,calories_burned,steps,notes,date,created_at')

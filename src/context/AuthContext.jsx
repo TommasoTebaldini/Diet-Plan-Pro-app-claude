@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { t } from '../i18n'
 import { clearSensitiveLocalCaches } from '../lib/clearSensitiveCache'
@@ -55,15 +55,25 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(_cachedProfile)
   const [loading, setLoading] = useState(!_cachedProfile)  // false if cache hit → instant render
 
+  // Rispecchia sempre l'utente autenticato "corrente" per i controlli di
+  // staleness nelle callback async sotto — un ref, non lo state, perché va
+  // letto dentro closure di promise già in volo senza rientrare nel ciclo di
+  // render.
+  const currentUserIdRef = useRef(_peek?.id ?? null)
+
   const fetchProfile = useCallback(async (userId) => {
     // ① Serve from cache immediately — zero wait
     const cached = readProfileCache(userId)
     if (cached) {
       setProfile(cached)
       setLoading(false)
-      // Background refresh (don't block render)
+      // Background refresh (don't block render). Se nel frattempo l'utente
+      // ha fatto logout (o è cambiato, dispositivo condiviso) prima che
+      // questa risposta arrivi, non va applicata: altrimenti ripopolerebbe
+      // profilo/cache dell'utente precedente subito dopo che signOut() li ha
+      // esplicitamente svuotati.
       supabase.from('profiles').select('id,email,role,full_name,first_name,last_name,avatar_url,target_weight,height_cm,birth_date,gender,activity_level,intolerances,food_preferences,last_seen_at,ai_photo_consent_at,coach_ai_consent_at,nutrition_goal').eq('id', userId).single().then(({ data, error }) => {
-        if (!error && data) { setProfile(data); writeProfileCache(userId, data) }
+        if (!error && data && currentUserIdRef.current === userId) { setProfile(data); writeProfileCache(userId, data) }
       })
       return
     }
@@ -89,6 +99,7 @@ export function AuthProvider({ children }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       clearTimeout(safetyTimer)
       const u = session?.user ?? null
+      currentUserIdRef.current = u?.id ?? null
       setUser(u)
       if (u) fetchProfile(u.id)
       else { setProfile(null); setLoading(false) }
@@ -96,6 +107,7 @@ export function AuthProvider({ children }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const u = session?.user ?? null
+      currentUserIdRef.current = u?.id ?? null
       setUser(u)
       if (u) {
         fetchProfile(u.id)
@@ -194,6 +206,11 @@ export function AuthProvider({ children }) {
   }, [user])
 
   const signOut = useCallback(async () => {
+    // Invalida subito i refresh di profilo in volo (vedi fetchProfile) prima
+    // di iniziare le operazioni async di logout sotto — altrimenti una
+    // risposta che arriva durante l'await di syncPendingWrites()/signOut()
+    // potrebbe ancora passare il controllo se letta più tardi.
+    currentUserIdRef.current = null
     clearProfileCache()
     clearSensitiveLocalCaches()
     // Best-effort: prova a sincronizzare eventuali scritture offline in coda

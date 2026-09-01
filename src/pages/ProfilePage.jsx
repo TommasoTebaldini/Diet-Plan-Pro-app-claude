@@ -19,6 +19,7 @@ import {
   isBiometricSupported,
   isBiometricAvailable,
   getBiometricCredentialId,
+  getBiometricUserId,
   registerBiometric,
   clearBiometricCredential,
 } from '../lib/biometric'
@@ -800,10 +801,15 @@ function BiometricModal({ user, onClose }) {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    setHasCredential(!!getBiometricCredentialId())
+    // Il credential salvato in localStorage sopravvive al logout (non viene
+    // svuotato da signOut()): su un dispositivo condiviso, senza verificare
+    // che appartenga proprio a questo user.id, un utente diverso da quello
+    // che l'ha registrato vedrebbe "Face ID già attivo" per una credenziale
+    // WebAuthn che non è la sua. Stesso controllo già fatto in AppLockGate.jsx.
+    setHasCredential(!!getBiometricCredentialId() && getBiometricUserId() === user.id)
     if (!isBiometricSupported()) { setAvailable(false); return }
     isBiometricAvailable().then(setAvailable)
-  }, [])
+  }, [user.id])
 
   async function handleRegister() {
     setStatus(null); setLoading(true)

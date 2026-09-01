@@ -54,8 +54,11 @@ export async function checkMealAndNotify(userId) {
   const window = mealWindows.find(w => hour >= w.start && hour < w.end)
   if (!window) return
 
-  // Avoid firing multiple times: check localStorage timestamp
-  const lastKey = `smart_notif_${window.meal}_${todayStr}`
+  // Avoid firing multiple times: check localStorage timestamp. Scoped per
+  // userId — senza questo, su un dispositivo condiviso tra più pazienti la
+  // notifica già mostrata per un utente sopprimerebbe silenziosamente
+  // quella dovuta al successivo utente che apre l'app lo stesso giorno.
+  const lastKey = `smart_notif_${userId}_${window.meal}_${todayStr}`
   if (localStorage.getItem(lastKey)) return
 
   try {
@@ -94,7 +97,8 @@ export async function checkStreakAtRiskAndNotify(userId) {
   if (hour < 20) return // non ancora sera: non è ancora "a rischio"
 
   const todayStr = now.toISOString().split('T')[0]
-  const lastKey = `smart_notif_streak_risk_${todayStr}`
+  // Scoped per userId per lo stesso motivo del reminder pasti sopra.
+  const lastKey = `smart_notif_streak_risk_${userId}_${todayStr}`
   if (localStorage.getItem(lastKey)) return
 
   try {

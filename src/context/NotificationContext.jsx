@@ -39,15 +39,6 @@ export function NotificationProvider({ children, user }) {
       .channel(`notif-${user.id}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `patient_id=eq.${user.id}` },
-        payload => {
-          if (payload.new?.sender_role === 'dietitian' && prefsRef.current.newMessage) {
-            showNotification(t('notif.new_chat_message_title', '💬 Nuovo messaggio dal dietista'), payload.new.content?.slice(0, 80) || '', 'chat-msg')
-          }
-        },
-      )
-      .on(
-        'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'patient_documents', filter: `patient_id=eq.${user.id}` },
         payload => {
           const prefs = prefsRef.current
@@ -85,7 +76,33 @@ export function NotificationProvider({ children, user }) {
       )
       .subscribe()
 
-    channelsRef.current = [channel]
+    // chat_messages è una vista cifrata lato DB (SEZIONE 80 di
+    // supabase_setup.sql, NutriPlan-Pro): postgres_changes non riceve mai
+    // nulla su di essa (legge lo stream di replica della tabella base, non
+    // la vista decifrata). Stesso canale broadcast privato già usato da
+    // ChatPage.jsx per il contenuto già decifrato dal trigger
+    // chat_messages_broadcast() — qui serve solo per la notifica, non per lo
+    // stato dei messaggi.
+    const chatChannel = supabase
+      .channel(`chat:${user.id}`, { config: { private: true } })
+      .on('broadcast', { event: 'INSERT' }, payload => {
+        const msg = payload.payload
+        // I messaggi programmati (status='scheduled') non sono ancora
+        // destinati al paziente — arrivano via un UPDATE separato quando il
+        // trigger li porta a 'sent'.
+        if (msg?.status === 'sent' && msg?.sender_role === 'dietitian' && prefsRef.current.newMessage) {
+          showNotification(t('notif.new_chat_message_title', '💬 Nuovo messaggio dal dietista'), msg.content?.slice(0, 80) || '', 'chat-msg')
+        }
+      })
+      .on('broadcast', { event: 'UPDATE' }, payload => {
+        const msg = payload.payload
+        if (msg?.status === 'sent' && msg?.sender_role === 'dietitian' && prefsRef.current.newMessage) {
+          showNotification(t('notif.new_chat_message_title', '💬 Nuovo messaggio dal dietista'), msg.content?.slice(0, 80) || '', 'chat-msg')
+        }
+      })
+      .subscribe()
+
+    channelsRef.current = [channel, chatChannel]
 
     // Smart contextual meal notification on app focus
     function handleVisibility() {

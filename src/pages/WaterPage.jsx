@@ -31,6 +31,15 @@ const ACTIVITY_MULTIPLIERS = {
   molto_attivo: 1.5,
 }
 
+// Local calendar date (not UTC) — toISOString() shifts to UTC and shows
+// the wrong day for users east of UTC (e.g. Italy) right after midnight.
+function localDateStr(d = new Date()) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 function calcTarget(profile) {
   if (!profile?.weight_kg && !profile?.target_weight) return 2500
   const weight = profile?.weight_kg || profile?.target_weight || 70
@@ -55,7 +64,7 @@ export default function WaterPage() {
   const { profile, user } = useAuth()
   const { checkAndAward } = useAchievements()
   const t = useT()
-  const today = useMemo(() => new Date().toISOString().split('T')[0], [])
+  const today = useMemo(() => localDateStr(), [])
   const [latestWeight, setLatestWeight] = useState(null)
   // Il fabbisogno prescritto dal dietista (schede_valutazione) ha sempre la
   // precedenza sulla formula generica basata sul peso — è un valore clinico
@@ -93,7 +102,7 @@ export default function WaterPage() {
   // Load weekly data
   useEffect(() => {
     async function loadWeek() {
-      const from = subDays(new Date(), 6).toISOString().split('T')[0]
+      const from = localDateStr(subDays(new Date(), 6))
       const { data, error } = await supabase
         .from('water_logs')
         .select('date, amount_ml')
@@ -103,7 +112,7 @@ export default function WaterPage() {
       if (error) return
       const map = {}
       for (let i = 6; i >= 0; i--) {
-        const d = subDays(new Date(), i).toISOString().split('T')[0]
+        const d = localDateStr(subDays(new Date(), i))
         map[d] = 0
       }
       ;(data || []).forEach(r => { map[r.date] = (map[r.date] || 0) + r.amount_ml })

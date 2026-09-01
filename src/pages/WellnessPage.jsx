@@ -12,6 +12,15 @@ import {
 import { Heart, Zap, Moon, Plus, CheckCircle, Clock, BedDouble, Brain, WifiOff, Lightbulb } from 'lucide-react'
 import { safeWrite } from '../lib/offlineDB'
 
+// Local calendar date (not UTC) — toISOString() shifts to UTC and shows
+// the wrong day for users east of UTC (e.g. Italy) right after midnight.
+function localDateStr(d = new Date()) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 function getMoodOptions(t) {
   return [
     { value: 1, emoji: '😞', label: t('wellness.mood_pessimo', 'Pessimo') },
@@ -158,7 +167,7 @@ export default function WellnessPage() {
   const restednessOptions = getRestednessOptions(t)
   const stressOptions = getStressOptions(t)
   const symptomList = getSymptomList(t)
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateStr()
 
   const [todayLog, setTodayLog] = useState(null)
   const [mood, setMood] = useState(null)
@@ -198,7 +207,7 @@ export default function WellnessPage() {
   async function loadData() {
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - range)
-    const from = cutoff.toISOString().split('T')[0]
+    const from = localDateStr(cutoff)
 
     // Run wellness + macro in parallel; fall back to base columns only if extended fails
     const wellSelect = _wellnessHasExtended !== false

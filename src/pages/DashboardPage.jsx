@@ -21,6 +21,15 @@ import { useFirstVisit } from '../hooks/useFirstVisit'
 const r1 = v => Math.round((+v || 0) * 10) / 10
 const r0 = v => Math.round(+v || 0)
 
+// Local calendar date (not UTC) — toISOString() shifts to UTC and shows
+// the wrong day for users east of UTC (e.g. Italy) right after midnight.
+function localDateStr(d = new Date()) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 // Testo di framing basato sull'obiettivo scelto in onboarding (profiles.nutrition_goal) —
 // prima raccolto e mai più letto da nessuna parte, ora dà contesto al target calorico.
 const GOAL_LABELS = {
@@ -41,7 +50,7 @@ function computeAdherence(dailyRows, kcalTarget, todayStr) {
   for (let i = 1; i <= 7; i++) {
     const d = new Date()
     d.setDate(d.getDate() - i)
-    days.push(d.toISOString().split('T')[0])
+    days.push(localDateStr(d))
   }
   let aligned = 0
   days.forEach(d => {
@@ -141,7 +150,7 @@ const ACTIONS = [
 
 function QuizBannerCard({ onOpen }) {
   const t = useT()
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateStr()
   const done = (() => { try { return !!JSON.parse(localStorage.getItem(`quiz_${today}`) || 'null')?.done } catch { return false } })()
   const streak = (() => { try { return parseInt(localStorage.getItem('quiz_streak') || '0') } catch { return 0 } })()
   return (
@@ -220,7 +229,7 @@ export default function DashboardPage() {
   useEffect(() => {
     async function load() {
       const now = new Date()
-      const today = now.toISOString().split('T')[0]
+      const today = localDateStr(now)
       const nowDecimalHour = now.getHours() + now.getMinutes() / 60
       const jsDay = now.getDay()
       const dayNumber = jsDay === 0 ? 7 : jsDay
@@ -238,9 +247,9 @@ export default function DashboardPage() {
         supabase.from('patient_diets').select('id,name,kcal_target,protein_target,carbs_target,fats_target,notes').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
         supabase.from('weight_logs').select('weight_kg').eq('user_id', user.id).order('date', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('chat_messages').select('id', { count: 'exact' }).eq('patient_id', user.id).eq('sender_role', 'dietitian').is('read_at', null),
-        supabase.from('daily_logs').select('date').eq('user_id', user.id).gte('date', sixtyAgo.toISOString().split('T')[0]).order('date', { ascending: false }),
+        supabase.from('daily_logs').select('date').eq('user_id', user.id).gte('date', localDateStr(sixtyAgo)).order('date', { ascending: false }),
         supabase.from('appointments').select('id,appointment_date,title,notes').eq('patient_id', user.id).gte('appointment_date', now.toISOString()).order('appointment_date').limit(1).maybeSingle(),
-        supabase.from('daily_logs').select('date,kcal').eq('user_id', user.id).gte('date', sevenAgo.toISOString().split('T')[0]),
+        supabase.from('daily_logs').select('date,kcal').eq('user_id', user.id).gte('date', localDateStr(sevenAgo)),
         fetchWaterTarget(user.id),
       ])
 
@@ -287,7 +296,7 @@ export default function DashboardPage() {
         for (let i = startOffset; i < 60 + startOffset; i++) {
           const d = new Date(now)
           d.setDate(d.getDate() - i)
-          if (datesSet.has(d.toISOString().split('T')[0])) s++
+          if (datesSet.has(localDateStr(d))) s++
           else break
         }
         setStreak(s)

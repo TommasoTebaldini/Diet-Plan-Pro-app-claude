@@ -407,8 +407,17 @@ export default function ChatPage() {
   useEffect(() => {
     let channel
     let profileChannel
+    // Se il componente viene smontato prima che loadData() risolva (es.
+    // navigazione rapida via da Chat, o doppia invocazione di React
+    // StrictMode), il cleanup sincrono sotto gira con channel/profileChannel
+    // ancora undefined — senza questo flag, i canali creati DOPO l'unmount
+    // (quando la promise risolve comunque) non verrebbero mai ripuliti:
+    // sottoscrizione Realtime orfana che continua a girare in background e,
+    // se si rientra in Chat, una seconda sottoscrizione duplicata sullo
+    // stesso topic (notifiche/marchi di lettura duplicati).
+    let cancelled = false
     loadData().then(dId => {
-      if (!dId) return
+      if (cancelled || !dId) return
       channel = supabase.channel(`chat:${user.id}`, { config: { private: true } })
         .on('broadcast', { event: 'INSERT' }, payload => {
           const msg = payload.payload
@@ -463,6 +472,7 @@ export default function ChatPage() {
     presenceIntervalRef.current = setInterval(updateLastSeen, 60_000)
 
     return () => {
+      cancelled = true
       if (channel) supabase.removeChannel(channel)
       if (profileChannel) supabase.removeChannel(profileChannel)
       clearInterval(presenceIntervalRef.current)

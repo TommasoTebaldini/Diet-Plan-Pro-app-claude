@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Home, Utensils, MessageCircle, BookOpen, TrendingUp, User, FileText, Activity, BarChart2, Heart, Leaf, Users, ChefHat, Star, Flower2, X, Droplets, Brain, Award, ShoppingCart, Timer, Pill, Sparkles, ChevronRight, CalendarCheck, Trophy, Bot, CreditCard } from 'lucide-react'
@@ -37,6 +37,7 @@ export default function BottomNav() {
     return next
   })
   const [unreadChat, setUnreadChat] = useState(0)
+  const seenUnreadIdsRef = useRef(new Set())
   // Seeded from last known state so the "Speciale" entry doesn't pop in a few
   // seconds after the app opens on every single visit — only the very first
   // login ever has to wait on the real network round-trip below.
@@ -78,6 +79,7 @@ export default function BottomNav() {
 
   useEffect(() => {
     if (!user) return
+    seenUnreadIdsRef.current = new Set()
     supabase
       .from('chat_messages')
       .select('*', { count: 'exact', head: true })
@@ -86,12 +88,29 @@ export default function BottomNav() {
       .is('read_at', null)
       .then(({ count }) => setUnreadChat(count || 0))
 
-    const channel = supabase.channel(`nav-chat-${user.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `patient_id=eq.${user.id}` }, payload => {
-        if (payload.new.sender_role === 'dietitian' && !payload.new.read_at) setUnreadChat(prev => prev + 1)
+    // chat_messages è una vista cifrata lato DB (SEZIONE 80 di
+    // supabase_setup.sql, NutriPlan-Pro): postgres_changes non riceve mai
+    // nulla su di essa (legge lo stream di replica della tabella base, non
+    // la vista decifrata) — il badge non si aggiornava mai in tempo reale.
+    // Stesso canale broadcast privato già usato da ChatPage.jsx. Il payload
+    // broadcast non include lo stato "prima" della riga (solo NEW/OLD
+    // fusi lato trigger), quindi teniamo noi il set degli id già contati
+    // come non letti per non contarli due volte né decrementare più del
+    // dovuto.
+    const channel = supabase.channel(`chat:${user.id}`, { config: { private: true } })
+      .on('broadcast', { event: 'INSERT' }, payload => {
+        const msg = payload.payload
+        if (msg?.status === 'sent' && msg?.sender_role === 'dietitian' && !msg?.read_at && !seenUnreadIdsRef.current.has(msg.id)) {
+          seenUnreadIdsRef.current.add(msg.id)
+          setUnreadChat(prev => prev + 1)
+        }
       })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_messages', filter: `patient_id=eq.${user.id}` }, payload => {
-        if (payload.new.sender_role === 'dietitian' && payload.new.read_at && !payload.old?.read_at) setUnreadChat(prev => Math.max(0, prev - 1))
+      .on('broadcast', { event: 'UPDATE' }, payload => {
+        const msg = payload.payload
+        if (msg?.sender_role === 'dietitian' && msg?.read_at && seenUnreadIdsRef.current.has(msg.id)) {
+          seenUnreadIdsRef.current.delete(msg.id)
+          setUnreadChat(prev => Math.max(0, prev - 1))
+        }
       })
       .subscribe()
     return () => supabase.removeChannel(channel)

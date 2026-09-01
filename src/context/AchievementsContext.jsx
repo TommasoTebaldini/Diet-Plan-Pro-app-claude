@@ -342,8 +342,16 @@ export function AchievementsProvider({ children }) {
   // clinico. Un solo giorno per data, deduplicato.
   useEffect(() => {
     if (!user) return
-    const KEY = 'login_dates'
-    const today = new Date().toISOString().split('T')[0]
+    // Scoped per user.id: senza questo, su un dispositivo condiviso tra più
+    // pazienti la cronologia di accessi di un utente si mescola con quella
+    // del successivo che effettua il login sullo stesso dispositivo,
+    // assegnando streak/badge non guadagnati (o azzerando quelli reali).
+    const KEY = 'login_dates_' + user.id
+    const toKey = d => {
+      const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0')
+      return `${y}-${m}-${day}`
+    }
+    const today = toKey(new Date())
     let dates
     try { dates = JSON.parse(localStorage.getItem(KEY) || '[]') } catch { dates = [] }
     if (!dates.includes(today)) {
@@ -352,7 +360,6 @@ export function AchievementsProvider({ children }) {
       localStorage.setItem(KEY, JSON.stringify(dates))
     }
     const dateSet = new Set(dates)
-    const toKey = d => d.toISOString().split('T')[0]
     let cur = new Date()
     if (!dateSet.has(toKey(cur))) cur.setDate(cur.getDate() - 1)
     let streak = 0

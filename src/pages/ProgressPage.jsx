@@ -29,6 +29,15 @@ const MOOD_OPTIONS = [
 
 const SYMPTOM_LIST = ['Stanchezza', 'Gonfiore', 'Mal di testa', 'Insonnia', 'Fame', 'Nausea', 'Energia alta', 'Umore positivo']
 
+// Local calendar date (not UTC) — toISOString() shifts to UTC and shows
+// the wrong day for users east of UTC (e.g. Italy) right after midnight.
+function localDateStr(d = new Date()) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   return (
@@ -79,7 +88,7 @@ export default function ProgressPage() {
   const [saveOk, setSaveOk] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
   const [range, setRange] = useState(30)
-  const today = useMemo(() => new Date().toISOString().split('T')[0], [])
+  const today = useMemo(() => localDateStr(), [])
   const [cartellaId, setCartellaId] = useState(null)
   const [schede, setSchede] = useState([])
   const [biaData, setBiaData] = useState([])
@@ -94,7 +103,7 @@ export default function ProgressPage() {
 
   // ── Misure corporee (auto-misurate dal paziente) ────────────────
   const [bodyMeasurements, setBodyMeasurements] = useState([])
-  const [measureDate, setMeasureDate] = useState(new Date().toISOString().split('T')[0])
+  const [measureDate, setMeasureDate] = useState(localDateStr())
   const [waist, setWaist] = useState('')
   const [hips, setHips] = useState('')
   const [arms, setArms] = useState('')
@@ -608,7 +617,7 @@ export default function ProgressPage() {
               </div>
               <div style={{ marginBottom: 10 }}>
                 <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>{t('progress.dateLabel', 'Data')}</label>
-                <input type="date" className="input-field" value={measureDate} onChange={e => setMeasureDate(e.target.value)} max={new Date().toISOString().split('T')[0]} />
+                <input type="date" className="input-field" value={measureDate} onChange={e => setMeasureDate(e.target.value)} max={localDateStr()} />
               </div>
               <button className="btn btn-primary btn-full" onClick={saveMeasure} disabled={savingMeasure}>
                 {savingMeasure ? t('progress.saving', 'Salvataggio...') : t('progress.saveMeasures', 'Salva misure')}

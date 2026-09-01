@@ -248,8 +248,13 @@ async function handler(req, res) {
 
   // Blocco totale per pazienti con tag DCA/disturbi alimentari — mai
   // generare una risposta libera, mai chiamare il modello. Vedi commento
-  // in testa al file per il razionale.
-  if (hasDcaTag(tags)) {
+  // in testa al file per il razionale. tags === null significa che la
+  // lettura è fallita (non "nessun tag"): hasDcaTag(null) da sola
+  // restituirebbe false tramite (tags||[]).some(...), riaprendo il blocco
+  // esattamente nel caso in cui il commento di fetchPatientTags dice debba
+  // restare fail-safe — va quindi trattato come "blocca" qui, non demandato
+  // a hasDcaTag().
+  if (tags === null || hasDcaTag(tags)) {
     await logMessage(token, user.id, 'user', lastUserMessage);
     await logMessage(token, user.id, 'assistant', DCA_SAFE_REPLY, true);
     return res.status(200).json({ reply: DCA_SAFE_REPLY });
