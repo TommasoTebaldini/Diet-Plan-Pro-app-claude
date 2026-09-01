@@ -191,13 +191,18 @@ export default function FoodDatabasePage() {
   async function saveToFavorites(food) {
     const already = saved.find(s => s.name === food.name)
     if (already) return
-    const { data } = await supabase.from('custom_foods').insert({
+    const { data, error } = await supabase.from('custom_foods').insert({
       name: food.name, brand: food.brand || '',
       kcal_100g: food.kcal_100g, proteins_100g: food.proteins_100g,
       carbs_100g: food.carbs_100g, fats_100g: food.fats_100g,
       fiber_100g: food.fiber_100g || 0, source: food.source
     }).select().single()
-    if (data) setSaved(s => [...s, data])
+    if (data) {
+      setSaved(s => [...s, data])
+    } else {
+      console.error('saveToFavorites error:', error)
+      alert(t('food_db.save_favorite_error', 'Impossibile salvare tra i preferiti. Riprova.'))
+    }
   }
 
   async function removeFavorite(id) {
@@ -209,7 +214,7 @@ export default function FoodDatabasePage() {
 
   async function addCustomFood() {
     if (!form.name || !form.kcal_100g) return
-    const { data } = await supabase.from('custom_foods').insert({
+    const { data, error } = await supabase.from('custom_foods').insert({
       name: form.name, brand: form.brand,
       kcal_100g: parseFloat(form.kcal_100g) || 0,
       proteins_100g: parseFloat(form.proteins_100g) || 0,
@@ -222,6 +227,9 @@ export default function FoodDatabasePage() {
       setSaved(s => [...s, data])
       setShowAdd(false)
       setForm({ name: '', brand: '', kcal_100g: '', proteins_100g: '', carbs_100g: '', fats_100g: '', fiber_100g: '' })
+    } else {
+      console.error('addCustomFood error:', error)
+      alert(t('food_db.save_food_error', 'Impossibile salvare l\'alimento. Riprova.'))
     }
   }
 
@@ -234,7 +242,7 @@ export default function FoodDatabasePage() {
     if (!mealForm.name || mealForm.ingredients.length === 0) return
     const totals = mealTotals(mealForm.ingredients)
     const pesoTotale = mealForm.ingredients.reduce((s, i) => s + (parseFloat(i.grams) || 0), 0)
-    const { data } = await supabase.from('custom_meals').insert({
+    const { data, error } = await supabase.from('custom_meals').insert({
       name: mealForm.name,
       ingredients: mealForm.ingredients,
       peso_totale_g: pesoTotale,
@@ -247,6 +255,9 @@ export default function FoodDatabasePage() {
       setMeals(m => [data, ...m])
       setMealForm({ name: '', ingredients: [] })
       setShowMealCreate(false)
+    } else {
+      console.error('saveMeal error:', error)
+      alert(t('food_db.save_meal_error', 'Impossibile salvare il pasto. Riprova.'))
     }
   }
 
@@ -264,7 +275,7 @@ export default function FoodDatabasePage() {
     const pesoTotale = recForm.ingredienti.reduce((s, i) => s + (parseFloat(i.grams) || 0), 0)
     const porzioni = parseInt(recForm.porzioni) || 1
     const kcal100 = pesoTotale > 0 ? Math.round(totals.kcal / pesoTotale * 100) : 0
-    const { data } = await supabase.from('ricette').insert({
+    const { data, error } = await supabase.from('ricette').insert({
       nome: recForm.nome,
       ingredienti: recForm.ingredienti,
       porzioni,
@@ -283,6 +294,9 @@ export default function FoodDatabasePage() {
       setRicette(r => [data, ...r])
       setRecForm({ nome: '', porzioni: '1', ingredienti: [], note: '' })
       setShowRecCreate(false)
+    } else {
+      console.error('saveRicetta error:', error)
+      alert(t('food_db.save_recipe_error', 'Impossibile salvare la ricetta. Riprova.'))
     }
   }
 

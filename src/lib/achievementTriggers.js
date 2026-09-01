@@ -5,11 +5,23 @@
 // salvano ciascun tipo di dato chiamano queste funzioni dopo un salvataggio
 // riuscito — vedi MacroTrackerPage/WaterPage/WellnessPage.
 
+// Local calendar date (not UTC) — toISOString() shifts to UTC and shows
+// the wrong day for users east of UTC (e.g. Italy) right after midnight.
+// Same helper duplicated in WaterPage.jsx/specialSections.js — the date
+// columns this file reads (food_logs/water_logs/daily_wellness.date) are
+// all written using this local-day convention, not UTC.
+function localDateStr(d = new Date()) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 // Streak di giorni consecutivi che termina oggi o ieri (se oggi non c'è
 // ancora un log): stessa logica già usata in StreakCalendar.jsx, estratta
 // qui per essere riusabile anche per acqua/benessere.
 export function computeDayStreak(dateSet) {
-  const toKey = d => d.toISOString().split('T')[0]
+  const toKey = localDateStr
   const cur = new Date()
   if (!dateSet.has(toKey(cur))) cur.setDate(cur.getDate() - 1)
   let streak = 0
@@ -34,10 +46,10 @@ export async function checkFoodLogAchievements(supabase, userId, checkAndAward) 
 // water_logs: water_goal (oggi), water_week (7 giorni consecutivi di goal raggiunto)
 export async function checkWaterAchievements(supabase, userId, checkAndAward, goalMl) {
   const goal = goalMl || 2000
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateStr()
   const cutoff = new Date()
   cutoff.setDate(cutoff.getDate() - 13) // margine per calcolare uno streak fino a 7gg
-  const { data } = await supabase.from('water_logs').select('date,amount_ml').eq('user_id', userId).gte('date', cutoff.toISOString().split('T')[0])
+  const { data } = await supabase.from('water_logs').select('date,amount_ml').eq('user_id', userId).gte('date', localDateStr(cutoff))
   if (!data) return
   const totalsByDay = {}
   for (const r of data) totalsByDay[r.date] = (totalsByDay[r.date] || 0) + (r.amount_ml || 0)
@@ -50,7 +62,7 @@ export async function checkWaterAchievements(supabase, userId, checkAndAward, go
 export async function checkWellnessAchievements(supabase, userId, checkAndAward) {
   const cutoff = new Date()
   cutoff.setDate(cutoff.getDate() - 13)
-  const { data } = await supabase.from('daily_wellness').select('date').eq('user_id', userId).gte('date', cutoff.toISOString().split('T')[0])
+  const { data } = await supabase.from('daily_wellness').select('date').eq('user_id', userId).gte('date', localDateStr(cutoff))
   if (!data) return
   if (computeDayStreak(new Set(data.map(r => r.date))) >= 7) await checkAndAward('wellness_week')
 }

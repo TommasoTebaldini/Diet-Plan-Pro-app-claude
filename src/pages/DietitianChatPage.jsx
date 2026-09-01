@@ -1094,11 +1094,21 @@ export default function DietitianChatPage() {
       content: room, message_type: 'video_call', created_at: new Date().toISOString(), read_at: null,
     }
     setMessages(prev => [...prev, optimistic])
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('chat_messages')
       .insert({ patient_id: selected, dietitian_id: user.id, sender_role: 'dietitian', sender_id: user.id, content: room, message_type: 'video_call', status: 'sent' })
       .select().single()
-    if (data) setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
+    if (data) {
+      setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
+    } else {
+      // L'invito non è stato inviato: il paziente non saprà mai che la
+      // videochiamata è iniziata. Non lasciare il dietista da solo in una
+      // stanza che nessuno raggiungerà.
+      setMessages(prev => prev.filter(m => m.id !== optimistic.id))
+      setCallRoom(null)
+      alert(t('chat.video_call_error', 'Impossibile avviare la videochiamata. Riprova.'))
+      console.error('startVideoCall insert error:', error)
+    }
   }
 
   const currentPatient = patients.find(p => p.id === selected) ?? null
