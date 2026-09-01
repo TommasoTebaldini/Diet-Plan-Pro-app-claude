@@ -22,6 +22,26 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPA
 
 const MAX_TOKENS = 900;
 
+// Stesso vocabolario/logica di api/coach-ai.js: un'AI che suggerisce
+// sostituzioni alimentari "equivalenti per macro/calorie" a un paziente con
+// un disturbo alimentare rinforza esattamente il tipo di comportamento
+// (fissazione su calorie/porzioni, "food swapping" compulsivo) che il
+// percorso clinico cerca di ridurre — rischio noto, non mitigabile con un
+// prompt più cauto. Blocco totale, non richiesta di conferma.
+const DCA_EXACT_TAGS = new Set(['bed', 'arfid']);
+const DCA_SUBSTRINGS = [
+  'anoressia', 'bulimia', 'ortoressia',
+  'disturbo alimentare', 'disturbi alimentari', 'disturbo del comportamento alimentare',
+  'disturbo evitante restrittivo', 'binge eating', 'alimentazione incontrollata',
+];
+function hasDcaTag(tags) {
+  return (tags || []).some(t => {
+    const norm = String(t).trim().toLowerCase();
+    return DCA_EXACT_TAGS.has(norm) || DCA_SUBSTRINGS.some(s => norm.includes(s));
+  });
+}
+const DCA_SAFE_REPLY = 'Per il tipo di percorso che stai seguendo con il tuo dietista, preferisco non generare sostituzioni alimentari in autonomia — è un ambito in cui una risposta automatica su calorie/porzioni può fare più male che bene. Scrivi al tuo dietista in chat: è la persona giusta per questo.';
+
 // In-memoria per istanza, come api/fetch-page.js: bassa frequenza (un tasto
 // premuto dal paziente per pasto), non serve un rate limiter distribuito.
 const _rl = new Map();
@@ -60,18 +80,23 @@ async function verifySupabaseToken(token) {
 // cartella del paziente (NutriPlan-Pro), non duplicate in questo progetto.
 // Le leggiamo qui in sola lettura con il token dell'utente stesso (RLS:
 // is_linked_patient/patient_dietitian_select_own), mai con la service role.
-// Best-effort: se la query fallisce (paziente non ancora collegato a un
-// dietista, o tabelle non presenti in questo Supabase project) proseguiamo
-// senza lista esclusioni piuttosto che bloccare la feature.
+//
+// Ritorna null se la lettura fallisce (rete/RLS/tabelle assenti), [] se ha
+// davvero successo e non trova tag — la distinzione è quella che conta per
+// il blocco DCA sotto: fetchPatientTags(...) === null deve bloccare la
+// generazione (fail-closed sul rischio clinico), non essere equivalente a
+// "nessun tag" come lo era prima (stesso bug già corretto in coach-ai.js).
+// L'esclusione allergie invece resta best-effort: null viene trattato come
+// "nessun vincolo noto" solo lì, non nel controllo DCA.
 async function fetchPatientTags(token, userId) {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return [];
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
   const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` };
   try {
     const linkRes = await fetch(
       `${SUPABASE_URL}/rest/v1/patient_dietitian?patient_id=eq.${userId}&select=cartella_id&limit=5`,
       { headers }
     );
-    if (!linkRes.ok) return [];
+    if (!linkRes.ok) return null;
     const links = await linkRes.json();
     const cartellaIds = [...new Set((links || []).map(l => l.cartella_id).filter(Boolean))];
     if (!cartellaIds.length) return [];
@@ -80,7 +105,7 @@ async function fetchPatientTags(token, userId) {
       `${SUPABASE_URL}/rest/v1/cartelle?id=in.(${cartellaIds.join(',')})&select=tags`,
       { headers }
     );
-    if (!cartRes.ok) return [];
+    if (!cartRes.ok) return null;
     const cartelle = await cartRes.json();
     const tags = new Set();
     for (const c of cartelle || []) {
@@ -88,7 +113,7 @@ async function fetchPatientTags(token, userId) {
     }
     return [...tags];
   } catch {
-    return [];
+    return null;
   }
 }
 
@@ -178,6 +203,9 @@ async function handler(req, res) {
   const hasMacros = [kcal, proteins, carbs, fats].some(v => Number.isFinite(+v));
 
   const tags = await fetchPatientTags(token, user.id);
+  if (tags === null || hasDcaTag(tags)) {
+    return res.status(200).json({ alternatives: [], excludedTags: [], blocked: true, message: DCA_SAFE_REPLY });
+  }
   const trendsLine = (await fetchRecentTrends(token, user.id)) || 'Nessuno storico di log disponibile ancora.';
 
   const macroLine = hasMacros

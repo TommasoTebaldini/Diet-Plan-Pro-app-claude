@@ -162,13 +162,17 @@ function FoodItem({ food, overrideKey, override, onOverride }) {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
 
-      setAiSubs((data.alternatives || []).map(a => ({
-        name: a.name,
-        qtyLabel: `${a.quantity}${a.unit || 'g'}`,
-        parts: [{ name: a.name, quantity: a.quantity, unit: a.unit || 'g' }],
-        nota: a.note || '',
-        ai: true,
-      })))
+      if (data.blocked) {
+        setAiError(data.message || t('diet.ai_swap_blocked', 'Sostituzioni AI non disponibili per questo profilo.'))
+      } else {
+        setAiSubs((data.alternatives || []).map(a => ({
+          name: a.name,
+          qtyLabel: `${a.quantity}${a.unit || 'g'}`,
+          parts: [{ name: a.name, quantity: a.quantity, unit: a.unit || 'g' }],
+          nota: a.note || '',
+          ai: true,
+        })))
+      }
     } catch (e) {
       setAiError(e.message || t('diet.ai_swap_error', 'Errore nella generazione delle alternative'))
     }

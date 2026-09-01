@@ -45,6 +45,47 @@ function yesterday() {
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
+// Stesso vocabolario/logica di api/coach-ai.js e api/food-swap.js (repo
+// NutriPlan-Pro/Diet-Plan-Pro-app-claude, stesso progetto Supabase): un
+// riassunto AI di calorie/macro/zuccheri rispetto a un target è esattamente
+// il tipo di contenuto rischioso per un paziente con un disturbo
+// alimentare — rischio noto, non mitigabile con un prompt più cauto.
+const DCA_EXACT_TAGS = new Set(['bed', 'arfid'])
+const DCA_SUBSTRINGS = [
+  'anoressia', 'bulimia', 'ortoressia',
+  'disturbo alimentare', 'disturbi alimentari', 'disturbo del comportamento alimentare',
+  'disturbo evitante restrittivo', 'binge eating', 'alimentazione incontrollata',
+]
+function hasDcaTag(tags: string[]): boolean {
+  return tags.some(t => {
+    const norm = String(t).trim().toLowerCase()
+    return DCA_EXACT_TAGS.has(norm) || DCA_SUBSTRINGS.some(s => norm.includes(s))
+  })
+}
+
+// Ritorna null se la lettura fallisce (fail-closed: il chiamante deve
+// bloccare, non trattare un errore di rete come "nessun tag"), [] se ha
+// davvero successo senza trovare tag.
+async function fetchPatientTags(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+): Promise<string[] | null> {
+  const { data: links, error: linkErr } = await supabase
+    .from('patient_dietitian').select('cartella_id').eq('patient_id', userId).limit(5)
+  if (linkErr) return null
+  const cartellaIds = [...new Set((links || []).map((l: { cartella_id: string | null }) => l.cartella_id).filter(Boolean))]
+  if (!cartellaIds.length) return []
+
+  const { data: cartelle, error: cartErr } = await supabase
+    .from('cartelle').select('tags').in('id', cartellaIds)
+  if (cartErr) return null
+  const tags = new Set<string>()
+  for (const c of (cartelle || []) as { tags: string[] | null }[]) {
+    for (const t of Array.isArray(c.tags) ? c.tags : []) tags.add(String(t))
+  }
+  return [...tags]
+}
+
 async function callGemini(prompt: string): Promise<string> {
   const key = Deno.env.get('GEMINI_API_KEY')
   if (!key) throw new Error('GEMINI_API_KEY non configurata')
@@ -172,6 +213,15 @@ Deno.serve(async (req: Request) => {
     // no/invalid JSON body — fall back to server-computed UTC date below
   }
   const yest = clientDate || yesterday()
+
+  const patientTags = await fetchPatientTags(supabase, user.id)
+  if (patientTags === null || hasDcaTag(patientTags)) {
+    // Stesso contratto già usato per "nessun log ieri": la card sul client
+    // (DailyTipsCard.jsx) non mostra nulla quando noData è true — nessun
+    // messaggio da inventare, nessuna nuova UI, il consiglio AI semplicemente
+    // non appare per questo paziente.
+    return json({ tips: [], noData: true, date: yest })
+  }
 
   // Fetch all data in parallel
   const [logsRes, waterRes, wellnessRes, dietRes] = await Promise.all([
