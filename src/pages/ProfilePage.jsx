@@ -1057,9 +1057,13 @@ function DeleteAccountModal({ user, onClose, onDeleted }) {
       // delete_own_account() è plpgsql: cancella le righe DB ma non può
       // chiamare la Storage API. Senza questo cleanup, foto progressi
       // (progress-photos), ricette (recipe-photos), avatar (avatars) e
-      // allegati chat (chat-media/voice-messages, entrambi in cartelle
-      // <user.id>/... come gli altri bucket qui sopra — chat_messages ha
-      // ON DELETE CASCADE su auth.users) restano orfani nello storage per
+      // allegati chat (chat-media, in cartelle <user.id>/... come gli altri
+      // bucket qui sopra; voice-messages ha invece una cartella letterale
+      // 'voice-messages/' extra dentro il bucket — vedi
+      // chat.html sendVoiceMessage() in NutriPlan-Pro, path
+      // `voice-messages/${targetPatientId}/...` — e la policy RLS
+      // storage.foldername(name)[2], non [1], coerentemente — chat_messages
+      // ha ON DELETE CASCADE su auth.users) restano orfani nello storage per
       // sempre — dopo la RPC anche auth.users viene cancellato, quindi non
       // ci sarebbe più modo di risalire ai path per ripulirli in un secondo
       // momento. Best-effort: un fallimento qui non deve bloccare la
@@ -1070,7 +1074,7 @@ function DeleteAccountModal({ user, onClose, onDeleted }) {
           supabase.storage.from('recipe-photos').list(user.id),
           supabase.storage.from('avatars').list(''),
           supabase.storage.from('chat-media').list(user.id),
-          supabase.storage.from('voice-messages').list(user.id),
+          supabase.storage.from('voice-messages').list(`voice-messages/${user.id}`),
         ])
         const cleanups = []
         if (progressFiles?.length) cleanups.push(supabase.storage.from('progress-photos').remove(progressFiles.map(f => `${user.id}/${f.name}`)))
@@ -1078,7 +1082,7 @@ function DeleteAccountModal({ user, onClose, onDeleted }) {
         const avatarNames = (avatarFiles || []).filter(f => f.name.startsWith(user.id)).map(f => f.name)
         if (avatarNames.length) cleanups.push(supabase.storage.from('avatars').remove(avatarNames))
         if (chatMediaFiles?.length) cleanups.push(supabase.storage.from('chat-media').remove(chatMediaFiles.map(f => `${user.id}/${f.name}`)))
-        if (voiceFiles?.length) cleanups.push(supabase.storage.from('voice-messages').remove(voiceFiles.map(f => `${user.id}/${f.name}`)))
+        if (voiceFiles?.length) cleanups.push(supabase.storage.from('voice-messages').remove(voiceFiles.map(f => `voice-messages/${user.id}/${f.name}`)))
         await Promise.all(cleanups)
       } catch { /* best-effort, non bloccante */ }
 
