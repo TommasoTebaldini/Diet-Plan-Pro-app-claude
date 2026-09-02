@@ -53,6 +53,21 @@ registerRoute(
   }),
 )
 
+// /data/*.json (es. quiz-questions.json, ~1MB) vive in public/ ed è quindi
+// sempre presente in dist/, ma il tipo .json non è tra i globPatterns
+// dell'injectManifest (vite.config.js) e non aveva nessuna route di runtime
+// caching qui: senza questa route, un utente che installa la PWA e la apre
+// offline PRIMA di aver mai visitato /quiz o la daily-lesson card non ha
+// alcuna cache a cui appoggiarsi e il fetch fallisce. CacheFirst perché è un
+// question bank statico, non dati per-utente.
+registerRoute(
+  ({ url }) => url.pathname.startsWith('/data/') && url.pathname.endsWith('.json'),
+  new CacheFirst({
+    cacheName: 'static-data-cache',
+    plugins: [new ExpirationPlugin({ maxEntries: 5, maxAgeSeconds: 60 * 60 * 24 * 30 })],
+  }),
+)
+
 registerRoute(
   ({ url }) => url.hostname === 'fonts.googleapis.com',
   new StaleWhileRevalidate({ cacheName: 'google-fonts-css' }),

@@ -795,9 +795,21 @@ export default function RecipesPage() {
   }
 
   async function deleteRecipe(id) {
+    const recipe = myRecipes.find(x => x.id === id)
     const { error } = await supabase.from('ricette').delete().eq('id', id).eq('user_id', user.id)
     if (error) { showToast(t('recipes.error_delete')); return }
     setMyRecipes(r => r.filter(x => x.id !== id))
+    // Best-effort: la riga DB è già cancellata sopra, un fallimento qui
+    // lascia solo un file orfano nel bucket (nessun riferimento residuo in
+    // DB), non deve bloccare l'eliminazione già avvenuta.
+    if (recipe?.photo_url) {
+      const marker = '/recipe-photos/'
+      const idx = recipe.photo_url.indexOf(marker)
+      if (idx !== -1) {
+        const path = recipe.photo_url.slice(idx + marker.length)
+        supabase.storage.from('recipe-photos').remove([path]).catch(() => {})
+      }
+    }
   }
 
   async function savePublicRecipe(recipe) {
