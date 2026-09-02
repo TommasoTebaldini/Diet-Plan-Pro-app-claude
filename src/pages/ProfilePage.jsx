@@ -84,10 +84,12 @@ function PersonalDataModal({ profile, user, onClose, onSaved }) {
   const [currentWeight, setCurrentWeight] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
 
   async function save() {
     setSaving(true)
+    setError('')
     const updates = {
       id: user.id,
       full_name: `${form.first_name} ${form.last_name}`.trim(),
@@ -95,21 +97,27 @@ function PersonalDataModal({ profile, user, onClose, onSaved }) {
       height_cm: form.height_cm ? parseFloat(form.height_cm) : null,
       target_weight: form.target_weight ? parseFloat(form.target_weight) : null,
     }
-    const { error } = await supabase.from('profiles').upsert(updates)
+    const { error: saveError } = await supabase.from('profiles').upsert(updates)
     let weightError = null
-    if (!error && currentWeight) {
+    if (!saveError && currentWeight) {
       const today = localDateStr()
       ;({ error: weightError } = await supabase.from('weight_logs').upsert({
         user_id: user.id, date: today, weight_kg: parseFloat(currentWeight),
       }, { onConflict: 'user_id,date' }))
     }
     setSaving(false)
-    if (!error && !weightError) {
+    if (!saveError && !weightError) {
       setSaved(true)
       if (currentWeight) checkWeightAchievements(supabase, user.id, checkAndAward, parseFloat(currentWeight)).catch(() => {})
       const coreFilled = form.first_name && form.last_name && form.birth_date && form.gender && form.height_cm && form.activity_level
       if (coreFilled) checkAndAward('profile_complete').catch(() => {})
       setTimeout(() => { onSaved(); onClose() }, 900)
+    } else {
+      // Previously: on error the button just reverted from "Salvataggio…" to
+      // "Salva" with zero indication anything went wrong — the patient could
+      // believe safety-relevant data (allergies, etc.) had been saved when it
+      // hadn't. Surface it like SecurityModal already does for password errors.
+      setError((saveError || weightError)?.message || t('profile.save_error', 'Errore nel salvataggio'))
     }
   }
 
@@ -124,6 +132,11 @@ function PersonalDataModal({ profile, user, onClose, onSaved }) {
   return (
     <Modal title={t('profile.personal_data', 'Dati personali')} onClose={onClose}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {error && (
+          <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(220,74,74,0.08)', color: 'var(--red)', fontSize: 14 }}>
+            {error}
+          </div>
+        )}
         <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div className="input-group">
             <label className="input-label" htmlFor="pd-first-name">{t('profile.first_name', 'Nome')}</label>
@@ -203,6 +216,7 @@ function IntolerancesModal({ profile, user, onClose, onSaved }) {
   })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
 
   function toggle(item) {
     setSelected(s => s.includes(item) ? s.filter(x => x !== item) : [...s, item])
@@ -210,11 +224,15 @@ function IntolerancesModal({ profile, user, onClose, onSaved }) {
 
   async function save() {
     setSaving(true)
+    setError('')
     const extras = other.split(',').map(s => s.trim()).filter(Boolean)
     const all = [...selected.filter(x => ITEMS.includes(x)), ...extras]
-    const { error } = await supabase.from('profiles').upsert({ id: user.id, intolerances: all })
+    const { error: saveError } = await supabase.from('profiles').upsert({ id: user.id, intolerances: all })
     setSaving(false)
-    if (!error) { setSaved(true); setTimeout(() => { onSaved(); onClose() }, 900) }
+    if (!saveError) { setSaved(true); setTimeout(() => { onSaved(); onClose() }, 900) }
+    // Otherwise: don't let the button silently revert to "Salva" — allergy data
+    // is safety-relevant, the patient must know the save failed.
+    else setError(saveError.message || t('profile.save_error', 'Errore nel salvataggio'))
   }
 
   return (
@@ -223,6 +241,11 @@ function IntolerancesModal({ profile, user, onClose, onSaved }) {
         <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
           {t('profile.intolerances_select_text', 'Seleziona le tue intolleranze o allergie alimentari.')}
         </p>
+        {error && (
+          <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(220,74,74,0.08)', color: 'var(--red)', fontSize: 14, marginBottom: 16 }}>
+            {error}
+          </div>
+        )}
         {ITEMS.map((item, i) => (
           <div key={item} onClick={() => toggle(item)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 0', borderBottom: i < ITEMS.length - 1 ? '1px solid var(--border-light)' : 'none', cursor: 'pointer' }}>
             <div style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${selected.includes(item) ? 'var(--green-main)' : 'var(--border)'}`, background: selected.includes(item) ? 'var(--green-main)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
@@ -263,6 +286,7 @@ function FoodPrefsModal({ profile, user, onClose, onSaved }) {
   const [extras, setExtras] = useState(initial.filter(x => EXTRAS.includes(x)))
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
 
   function toggleExtra(item) {
     setExtras(s => s.includes(item) ? s.filter(x => x !== item) : [...s, item])
@@ -270,15 +294,22 @@ function FoodPrefsModal({ profile, user, onClose, onSaved }) {
 
   async function save() {
     setSaving(true)
+    setError('')
     const all = [diet, ...extras]
-    const { error } = await supabase.from('profiles').upsert({ id: user.id, food_preferences: all })
+    const { error: saveError } = await supabase.from('profiles').upsert({ id: user.id, food_preferences: all })
     setSaving(false)
-    if (!error) { setSaved(true); setTimeout(() => { onSaved(); onClose() }, 900) }
+    if (!saveError) { setSaved(true); setTimeout(() => { onSaved(); onClose() }, 900) }
+    else setError(saveError.message || t('profile.save_error', 'Errore nel salvataggio'))
   }
 
   return (
     <Modal title={t('profile.food_prefs', 'Preferenze alimentari')} onClose={onClose}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {error && (
+          <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(220,74,74,0.08)', color: 'var(--red)', fontSize: 14 }}>
+            {error}
+          </div>
+        )}
         <div>
           <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 10 }}>{t('profile.diet_type', 'Tipo di dieta')}</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -647,7 +678,7 @@ function NotificationsModal({ user, onClose }) {
           <div className="form-grid-2" style={{ padding: '10px 0 4px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>{t('profile.appointment_date_label', 'Data visita')}</p>
-              <input type="date" value={prefs.appointmentDate} onChange={e => update({ appointmentDate: e.target.value })} style={inputStyle} min={new Date().toISOString().split('T')[0]} />
+              <input type="date" value={prefs.appointmentDate} onChange={e => update({ appointmentDate: e.target.value })} style={inputStyle} min={localDateStr()} />
             </div>
             <div>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>{t('profile.time_label', 'Orario')}</p>

@@ -126,13 +126,16 @@ function recipeMatchesAllergen(recipe, allergen) {
 }
 
 // ── localStorage favorites ────────────────────────────────────────────────────
-function getFavIds() {
-  try { return JSON.parse(localStorage.getItem('fav_recipes') || '[]') } catch { return [] }
+// Scoped by user id — on a shared/family device, an unscoped key would leak
+// one patient's favorited "Dal Dietista" recipes (and let them be toggled) by
+// whoever logs in next on the same browser.
+function getFavIds(userId) {
+  try { return JSON.parse(localStorage.getItem(`fav_recipes_${userId}`) || '[]') } catch { return [] }
 }
-function toggleFavId(id) {
-  const ids = getFavIds()
+function toggleFavId(id, userId) {
+  const ids = getFavIds(userId)
   const next = ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]
-  localStorage.setItem('fav_recipes', JSON.stringify(next))
+  localStorage.setItem(`fav_recipes_${userId}`, JSON.stringify(next))
   return next
 }
 
@@ -683,7 +686,7 @@ export default function RecipesPage() {
   const [pubFilters, setPubFilters] = useState(EMPTY_FILTERS)
 
   // Favourites (dietist tab, stored in localStorage)
-  const [favIds, setFavIds] = useState(getFavIds)
+  const [favIds, setFavIds] = useState(() => getFavIds(user.id))
 
   useEffect(() => {
     setLoadingMine(true)
@@ -714,7 +717,7 @@ export default function RecipesPage() {
   function showToast(msg) { setToast(msg); setTimeout(() => setToast(null), 2500) }
 
   function handleToggleFav(id) {
-    const next = toggleFavId(id)
+    const next = toggleFavId(id, user.id)
     setFavIds(next)
   }
 
@@ -756,7 +759,7 @@ export default function RecipesPage() {
       photo_url: photoUrl,
     }
     if (editingRecipe) {
-      const { data, error } = await supabase.from('ricette').update(payload).eq('id', editingRecipe.id).select().single()
+      const { data, error } = await supabase.from('ricette').update(payload).eq('id', editingRecipe.id).eq('user_id', user.id).select().single()
       setSaving(false)
       if (error) { showToast(t('recipes.error_save')); return }
       if (data) {
@@ -792,7 +795,7 @@ export default function RecipesPage() {
   }
 
   async function deleteRecipe(id) {
-    const { error } = await supabase.from('ricette').delete().eq('id', id)
+    const { error } = await supabase.from('ricette').delete().eq('id', id).eq('user_id', user.id)
     if (error) { showToast(t('recipes.error_delete')); return }
     setMyRecipes(r => r.filter(x => x.id !== id))
   }
@@ -824,7 +827,7 @@ export default function RecipesPage() {
   }
 
   async function togglePublic(recipe) {
-    const { data } = await supabase.from('ricette').update({ is_public: !recipe.is_public }).eq('id', recipe.id).select().single()
+    const { data } = await supabase.from('ricette').update({ is_public: !recipe.is_public }).eq('id', recipe.id).eq('user_id', user.id).select().single()
     if (data) setMyRecipes(r => r.map(x => x.id === recipe.id ? data : x))
   }
 

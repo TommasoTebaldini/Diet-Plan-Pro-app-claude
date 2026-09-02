@@ -14,7 +14,10 @@ function toCSV(rows, columns) {
   const lines = rows.map(r => columns.map(c => {
     const v = r[c.key] ?? ''
     const s = String(v).replace(/"/g, '""')
-    return s.includes(',') || s.includes('\n') || s.includes('"') ? `"${s}"` : s
+    // A lone \r (no \n) is a legitimate record separator to many CSV/Excel
+    // parsers — leaving it unquoted splits this field into an extra malformed
+    // row and shifts every subsequent column.
+    return s.includes(',') || s.includes('\n') || s.includes('\r') || s.includes('"') ? `"${s}"` : s
   }).join(','))
   return '﻿' + [header, ...lines].join('\n') // BOM for Excel UTF-8
 }
@@ -230,12 +233,14 @@ export default function ExportDataPage() {
 
   // ── Export completo JSON ──────────────────────────────────────────────────
   async function exportAllJSON() {
-    const [foodLogs, waterLogs, weightLogs, wellness, activityLogs] = await Promise.all([
+    const [profileRes, foodLogs, waterLogs, weightLogs, wellness, activityLogs, measurements] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', user.id).single(),
       fetchAllRows(supabase.from('food_logs').select('*').eq('user_id', user.id).order('created_at')),
       fetchAllRows(supabase.from('water_logs').select('*').eq('user_id', user.id).order('created_at')),
       fetchAllRows(supabase.from('weight_logs').select('*').eq('user_id', user.id).order('date')),
       fetchAllRows(supabase.from('daily_wellness').select('*').eq('user_id', user.id).order('date')),
       fetchAllRows(supabase.from('activity_logs').select('*').eq('user_id', user.id).order('date')),
+      fetchAllRows(supabase.from('body_measurements').select('*').eq('user_id', user.id).order('date')),
     ])
 
     const exportPayload = {
@@ -243,11 +248,18 @@ export default function ExportDataPage() {
       user_id: user.id,
       note: t('export.gdpr_note', 'Esportazione dati personali ai sensi del GDPR Art. 20 – Portabilità dei dati'),
       data: {
+        // Previously missing: this "complete" GDPR export omitted the profile
+        // row (name, birth date, height, target weight, activity level,
+        // intolerances, food preferences) and body_measurements entirely,
+        // despite being labeled/described as containing "tutti i tuoi dati" —
+        // BackupModal.handleExport in ProfilePage.jsx already fetches both.
+        profilo: profileRes.data || null,
         diario_alimentare: foodLogs,
         acqua: waterLogs,
         peso: weightLogs,
         benessere: wellness,
         attivita: activityLogs,
+        misurazioni_corporee: measurements,
       },
     }
 

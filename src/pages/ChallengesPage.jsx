@@ -25,15 +25,22 @@ function mondayOfThisWeek() {
   return d
 }
 
-const HISTORY_KEY = 'weekly_challenges_history'
+// Scoped by user id — on a shared/family device, a bare key would show one
+// patient's "perfect weeks" history (and let it be appended to) to whoever
+// logs in next on the same browser, same class of bug as AchievementsContext's
+// login-history key (see 'login_dates_' + user.id there).
+function historyKey(userId) { return `weekly_challenges_history_${userId}` }
 
 export default function ChallengesPage() {
   const { user } = useAuth()
   const t = useT()
   const [challenges, setChallenges] = useState(null)
-  const [history, setHistory] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]') } catch { return [] }
-  })
+  const [history, setHistory] = useState([])
+
+  useEffect(() => {
+    if (!user?.id) { setHistory([]); return }
+    try { setHistory(JSON.parse(localStorage.getItem(historyKey(user.id)) || '[]')) } catch { setHistory([]) }
+  }, [user?.id])
 
   const load = useCallback(async () => {
     if (!user?.id) return
@@ -85,7 +92,7 @@ export default function ChallengesPage() {
       setHistory(prev => {
         if (prev.includes(mondayStr)) return prev
         const next = [...prev, mondayStr]
-        try { localStorage.setItem(HISTORY_KEY, JSON.stringify(next)) } catch { /* storage pieno */ }
+        try { localStorage.setItem(historyKey(user.id), JSON.stringify(next)) } catch { /* storage pieno */ }
         return next
       })
     }

@@ -263,11 +263,17 @@ export function AchievementsProvider({ children }) {
   // Load earned achievements from Supabase
   useEffect(() => {
     if (!user) { setEarned({}); return }
+    let cancelled = false
     const load = async () => {
       const { data, error } = await supabase
         .from('user_achievements')
         .select('achievement_key, earned_at')
         .eq('user_id', user.id)
+      // Guard against a stale response: on a shared/kiosk device, if user A logs
+      // out and user B logs in before A's slower in-flight request resolves,
+      // an unguarded setEarned here would overwrite B's just-loaded achievements
+      // with A's.
+      if (cancelled) return
       if (!error && data) {
         const map = {}
         data.forEach(row => { map[row.achievement_key] = row.earned_at })
@@ -275,6 +281,7 @@ export function AchievementsProvider({ children }) {
       }
     }
     load()
+    return () => { cancelled = true }
   }, [user])
 
   // Process toast queue
@@ -304,6 +311,12 @@ export function AchievementsProvider({ children }) {
       const now = new Date().toISOString()
       setEarned(prev => ({ ...prev, [key]: now }))
       setToastQueue(prev => [...prev, achievement])
+    } else if (error.code !== '23505') {
+      // 23505 = unique_violation on (user_id, achievement_key): expected when
+      // two concurrent triggers both pass the earnedRef "already earned" check
+      // before either's insert commits — not worth logging. Anything else
+      // (RLS, network, schema) was previously swallowed with zero visibility.
+      console.warn(`checkAndAward(${key}) failed:`, error.message)
     }
   }, [user])
 

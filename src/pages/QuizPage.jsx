@@ -157,7 +157,14 @@ export default function QuizPage({ inModal = false }) {
     const prog = loadProgress()
     setStreak(getStreak())
     if (prog?.done) {
-      setQuestions(getQuestionsForToday(bank))
+      // Use the exact questions the quiz was completed with (persisted below in
+      // finish()), not a fresh getQuestionsForToday() call: startQuiz() may have
+      // built `questions` from a filtered pool (category/difficulty), which can
+      // differ in length and content from the unfiltered daily set. Falling back
+      // to getQuestionsForToday() here would pair prog.answers with the wrong
+      // questions on reload. Older saved progress (before this field existed)
+      // falls back to the previous behavior.
+      setQuestions(prog.questions || getQuestionsForToday(bank))
       setAnswers(prog.answers || Array(QUESTIONS_PER_DAY).fill(null))
       setPhase('done')
     } else {
@@ -197,12 +204,12 @@ export default function QuizPage({ inModal = false }) {
     const score = finalAnswers.filter(a => a.correct).length
     const newStreak = updateStreak(true)
     setFinalStreak(newStreak)
-    saveProgress({ done: true, score, total: questions.length, answers: finalAnswers, streak: newStreak })
+    saveProgress({ done: true, score, total: questions.length, answers: finalAnswers, streak: newStreak, questions })
     setPhase('done')
     supabase.from('quiz_results').upsert(
       { user_id: user.id, date: todayKey(), score, total: questions.length, streak: newStreak },
       { onConflict: 'user_id,date' }
-    ).catch(() => {})
+    ).then(({ error }) => { if (error) console.warn('quiz_results upsert failed:', error.message) })
     if (newStreak >= 3)  checkAndAward('quiz_streak_3')
     if (newStreak >= 7)  checkAndAward('quiz_streak_7')
     if (newStreak >= 14) checkAndAward('quiz_streak_14')

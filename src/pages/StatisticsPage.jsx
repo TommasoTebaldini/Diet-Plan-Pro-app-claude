@@ -529,7 +529,12 @@ export default function StatisticsPage() {
       }
       const monthWaterAvg = Object.values(waterByDate).length ? round1(avg(Object.values(waterByDate))) : 0
       const monthWeightAvg = weightArr.length ? round1(avg(weightArr.map(w => w.weight_kg))) : null
-      const daysLogged = macros.filter(m => (m.kcal || 0) > 0).length
+      // Each row in `macros` is a daily_logs entry for a day the user actually
+      // logged — including fasting/water-only days that legitimately total 0
+      // kcal. Filtering on `kcal > 0` (falsy-zero) would wrongly exclude those
+      // days from "Giorni registrati", same distinction buildDailyChart() makes
+      // above between "no log at all" and "logged, totals to exactly 0".
+      const daysLogged = macros.length
 
       const loggedMealsByDate = {}
       for (const fl of allFoodLogs) {
@@ -1000,14 +1005,14 @@ export default function StatisticsPage() {
                         <div style={{ flex: 1 }}>
                           <p style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4 }}>{t('stats.current_week', 'Settimana corrente')}</p>
                           <div style={{ height: 28, background: 'var(--border-light)', borderRadius: 6, overflow: 'hidden', position: 'relative' }}>
-                            <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${row.target ? Math.min(100, row.curr / row.target * 100) : Math.min(100, row.prev > 0 ? (row.curr / Math.max(row.curr, row.prev)) * 100 : 100)}%`, background: 'var(--green-main)', opacity: 0.85, borderRadius: 6, transition: 'width 0.6s ease' }} />
+                            <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${row.target ? Math.min(100, row.curr / row.target * 100) : (row.curr <= 0 && row.prev <= 0) ? 0 : Math.min(100, row.prev > 0 ? (row.curr / Math.max(row.curr, row.prev)) * 100 : 100)}%`, background: 'var(--green-main)', opacity: 0.85, borderRadius: 6, transition: 'width 0.6s ease' }} />
                             <span style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{round1(row.curr)}</span>
                           </div>
                         </div>
                         <div style={{ flex: 1 }}>
                           <p style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4 }}>{t('stats.prev_week_short', 'Settimana prec.')}</p>
                           <div style={{ height: 28, background: 'var(--border-light)', borderRadius: 6, overflow: 'hidden', position: 'relative' }}>
-                            <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${row.target ? Math.min(100, row.prev / row.target * 100) : Math.min(100, row.curr > 0 ? (row.prev / Math.max(row.curr, row.prev)) * 100 : 100)}%`, background: '#94a3b8', opacity: 0.85, borderRadius: 6, transition: 'width 0.6s ease' }} />
+                            <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${row.target ? Math.min(100, row.prev / row.target * 100) : (row.curr <= 0 && row.prev <= 0) ? 0 : Math.min(100, row.curr > 0 ? (row.prev / Math.max(row.curr, row.prev)) * 100 : 100)}%`, background: '#94a3b8', opacity: 0.85, borderRadius: 6, transition: 'width 0.6s ease' }} />
                             <span style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{round1(row.prev)}</span>
                           </div>
                         </div>

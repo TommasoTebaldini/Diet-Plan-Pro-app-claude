@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useT } from '../i18n'
 
 const AUTO_DISMISS_MS = 4000
@@ -6,13 +6,30 @@ const AUTO_DISMISS_MS = 4000
 export default function AchievementToast({ achievement, onDismiss }) {
   const t = useT()
   const [visible, setVisible] = useState(false)
+  // Tracks the nested "fade out, then unmount" timeout so it can be cancelled.
+  // Without this, both the auto-hide timer (below) and a manual click can each
+  // independently schedule their own untracked setTimeout(onDismiss, 300) — if
+  // a user clicks right before the 4s auto-hide fires, both fire onDismiss:
+  // the second call dismisses whatever *next* toast has since taken its place,
+  // cutting its display time down to ~100-200ms.
+  const dismissTimeoutRef = useRef(null)
+
+  function scheduleDismiss() {
+    setVisible(false)
+    if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current)
+    dismissTimeoutRef.current = setTimeout(onDismiss, 300)
+  }
 
   useEffect(() => {
     if (!achievement) { setVisible(false); return }
     // small delay so CSS transition triggers after mount
     const show = setTimeout(() => setVisible(true), 10)
-    const hide = setTimeout(() => { setVisible(false); setTimeout(onDismiss, 300) }, AUTO_DISMISS_MS)
-    return () => { clearTimeout(show); clearTimeout(hide) }
+    const hide = setTimeout(scheduleDismiss, AUTO_DISMISS_MS)
+    return () => {
+      clearTimeout(show)
+      clearTimeout(hide)
+      if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current)
+    }
   }, [achievement, onDismiss])
 
   if (!achievement) return null
@@ -20,7 +37,7 @@ export default function AchievementToast({ achievement, onDismiss }) {
   return (
     <div
       className="achievement-toast"
-      onClick={() => { setVisible(false); setTimeout(onDismiss, 300) }}
+      onClick={scheduleDismiss}
       style={{
         position: 'fixed',
         right: '16px',
