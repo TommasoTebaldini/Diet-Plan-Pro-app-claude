@@ -304,7 +304,19 @@ export default function FoodDatabasePage() {
     const removed = ricette.find(x => x.id === id)
     setRicette(r => r.filter(x => x.id !== id))
     const { error } = await supabase.from('ricette').delete().eq('id', id)
-    if (error && removed) setRicette(r => [removed, ...r])
+    if (error && removed) { setRicette(r => [removed, ...r]); return }
+    // Best-effort: la riga DB è già cancellata sopra, un fallimento qui
+    // lascia solo un file orfano nel bucket (nessun riferimento residuo in
+    // DB), non deve bloccare l'eliminazione già avvenuta. Stesso pattern
+    // usato in RecipesPage.jsx per lo stesso bucket/tabella.
+    if (removed?.photo_url) {
+      const marker = '/recipe-photos/'
+      const idx = removed.photo_url.indexOf(marker)
+      if (idx !== -1) {
+        const path = removed.photo_url.slice(idx + marker.length)
+        supabase.storage.from('recipe-photos').remove([path]).catch(() => {})
+      }
+    }
   }
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))

@@ -1054,6 +1054,28 @@ function DeleteAccountModal({ user, onClose, onDeleted }) {
     setDeleting(true)
     setError('')
     try {
+      // delete_own_account() è plpgsql: cancella le righe DB ma non può
+      // chiamare la Storage API. Senza questo cleanup, foto progressi
+      // (progress-photos), ricette (recipe-photos) e avatar (avatars)
+      // restano orfane nello storage per sempre — dopo la RPC anche
+      // auth.users viene cancellato, quindi non ci sarebbe più modo di
+      // risalire ai path per ripulirli in un secondo momento. Best-effort:
+      // un fallimento qui non deve bloccare la cancellazione dell'account
+      // (diritto all'oblio, GDPR Art. 17).
+      try {
+        const [{ data: progressFiles }, { data: recipeFiles }, { data: avatarFiles }] = await Promise.all([
+          supabase.storage.from('progress-photos').list(user.id),
+          supabase.storage.from('recipe-photos').list(user.id),
+          supabase.storage.from('avatars').list(''),
+        ])
+        const cleanups = []
+        if (progressFiles?.length) cleanups.push(supabase.storage.from('progress-photos').remove(progressFiles.map(f => `${user.id}/${f.name}`)))
+        if (recipeFiles?.length) cleanups.push(supabase.storage.from('recipe-photos').remove(recipeFiles.map(f => `${user.id}/${f.name}`)))
+        const avatarNames = (avatarFiles || []).filter(f => f.name.startsWith(user.id)).map(f => f.name)
+        if (avatarNames.length) cleanups.push(supabase.storage.from('avatars').remove(avatarNames))
+        await Promise.all(cleanups)
+      } catch { /* best-effort, non bloccante */ }
+
       const { error: rpcErr } = await supabase.rpc('delete_own_account')
       if (rpcErr) throw rpcErr
       onDeleted()

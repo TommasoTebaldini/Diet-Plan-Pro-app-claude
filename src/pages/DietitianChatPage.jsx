@@ -929,6 +929,13 @@ export default function DietitianChatPage() {
   const [callRoom, setCallRoom] = useState(null)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
+  // Letto dentro loadMessages() dopo un await per rilevare se il dietista ha
+  // già selezionato un altro paziente nel frattempo — un normale `selected`
+  // catturato in chiusura resterebbe congelato al valore di quel render
+  // (loadMessages è ricreata ad ogni render insieme a `selected`), quindi il
+  // confronto risulterebbe sempre vero e non intercetterebbe mai la race.
+  const selectedRef = useRef(null)
+  selectedRef.current = selected
 
   // ── Load own profile ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -1040,6 +1047,12 @@ export default function DietitianChatPage() {
       .eq('patient_id', patientId)
       .order('created_at', { ascending: true })
       .limit(150)
+    // Il dietista può aver selezionato un altro paziente mentre questa
+    // query era in volo: selectedRef.current punterebbe già al nuovo
+    // paziente e scrivere comunque i messaggi di patientId mostrerebbe la
+    // chat sbagliata sotto l'header giusto. La loadMessages() del paziente
+    // corretto è già stata avviata dall'effect e sovrascriverà lo stato.
+    if (patientId !== selectedRef.current) return
     setMessages(msgs ?? [])
     const unread = (msgs ?? []).filter(m => m.sender_role === 'patient' && !m.read_at)
     if (unread.length) markAsRead(unread.map(m => m.id))
