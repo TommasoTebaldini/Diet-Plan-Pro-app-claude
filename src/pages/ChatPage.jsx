@@ -131,6 +131,25 @@ function AudioPlayer({ src, isMe }) {
   const [duration, setDuration] = useState(0)
   const audioRef = useRef(null)
 
+  // Messaggi vocali di gruppo: content non è più un URL firmato salvato in DB
+  // (validi 10 anni indipendentemente da una rimozione successiva dal
+  // gruppo — chi veniva tolto restava comunque in grado di riascoltare i
+  // vecchi vocali), ma il solo storage path — un URL firmato a validità
+  // breve viene richiesto qui, ogni volta che il messaggio viene mostrato,
+  // così is_chat_group_member() (RLS su group-chat-media) viene rivalutata
+  // sull'appartenenza ATTUALE. I messaggi già in DB con un URL completo
+  // (prefisso http) restano compatibili, usati così come sono.
+  const isPath = typeof src === 'string' && src && !src.startsWith('http') && !src.startsWith('blob:')
+  const [resolvedSrc, setResolvedSrc] = useState(isPath ? null : src)
+  useEffect(() => {
+    if (!isPath) { setResolvedSrc(src); return }
+    let cancelled = false
+    supabase.storage.from('group-chat-media').createSignedUrl(src, 3600).then(({ data }) => {
+      if (!cancelled) setResolvedSrc(data?.signedUrl || null)
+    })
+    return () => { cancelled = true }
+  }, [src, isPath])
+
   function toggle() {
     const a = audioRef.current
     if (!a) return
@@ -140,7 +159,7 @@ function AudioPlayer({ src, isMe }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 160 }}>
       <audio
-        ref={audioRef} src={src} preload="metadata"
+        ref={audioRef} src={resolvedSrc || undefined} preload="metadata"
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
         onEnded={() => { setPlaying(false); setProgress(0) }}
@@ -549,10 +568,12 @@ function GroupThreadView({ group, user, onBack }) {
       const path = `${group.id}/${Date.now()}.${ext}`
       const { error: upErr } = await supabase.storage.from('group-chat-media').upload(path, blob, { contentType: mimeType })
       if (upErr) throw upErr
-      const { data: signed, error: signErr } = await supabase.storage.from('group-chat-media').createSignedUrl(path, 315_360_000)
-      if (signErr) throw signErr
+      // Salva il solo storage path, non un URL firmato a validità decennale:
+      // AudioPlayer richiede un URL firmato a breve scadenza al momento della
+      // riproduzione, rivalutando l'appartenenza al gruppo ogni volta invece
+      // di fissarla per sempre a quella di chi invia oggi.
       const { data, error } = await supabase.from('chat_group_messages')
-        .insert({ group_id: group.id, sender_id: user.id, content: signed.signedUrl, type: 'voice', status: 'sent' })
+        .insert({ group_id: group.id, sender_id: user.id, content: path, type: 'voice', status: 'sent' })
         .select().single()
       if (data) {
         setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))

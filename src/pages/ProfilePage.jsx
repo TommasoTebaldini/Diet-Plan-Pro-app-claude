@@ -967,6 +967,16 @@ function BackupModal({ user, onClose }) {
       const text = await file.text()
       const backup = JSON.parse(text)
       if (!backup.data || backup.version !== 1) throw new Error(t('profile.backup_invalid_file', 'File di backup non valido.'))
+      // Il backup porta con sé l'id dell'account che lo ha esportato (vedi
+      // handleExport), ma finora non veniva mai confrontato con l'utente
+      // loggato ora — ogni riga viene riscritta con user.id corrente
+      // (`{...profile, id: user.id}` ecc.), quindi importare per sbaglio il
+      // file di un altro account (device condiviso, file scelto per errore)
+      // sovrascriveva silenziosamente i dati REALI dell'utente loggato con
+      // quelli dell'altra persona, senza alcun avviso.
+      if (backup.userId && backup.userId !== user.id) {
+        throw new Error(t('profile.backup_wrong_account', 'Questo file di backup appartiene a un altro account e non può essere importato qui.'))
+      }
 
       const { profile, dietLogs, waterLogs, measurements } = backup.data
 
