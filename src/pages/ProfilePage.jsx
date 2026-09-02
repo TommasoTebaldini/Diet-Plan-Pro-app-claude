@@ -1056,23 +1056,29 @@ function DeleteAccountModal({ user, onClose, onDeleted }) {
     try {
       // delete_own_account() è plpgsql: cancella le righe DB ma non può
       // chiamare la Storage API. Senza questo cleanup, foto progressi
-      // (progress-photos), ricette (recipe-photos) e avatar (avatars)
-      // restano orfane nello storage per sempre — dopo la RPC anche
-      // auth.users viene cancellato, quindi non ci sarebbe più modo di
-      // risalire ai path per ripulirli in un secondo momento. Best-effort:
-      // un fallimento qui non deve bloccare la cancellazione dell'account
-      // (diritto all'oblio, GDPR Art. 17).
+      // (progress-photos), ricette (recipe-photos), avatar (avatars) e
+      // allegati chat (chat-media/voice-messages, entrambi in cartelle
+      // <user.id>/... come gli altri bucket qui sopra — chat_messages ha
+      // ON DELETE CASCADE su auth.users) restano orfani nello storage per
+      // sempre — dopo la RPC anche auth.users viene cancellato, quindi non
+      // ci sarebbe più modo di risalire ai path per ripulirli in un secondo
+      // momento. Best-effort: un fallimento qui non deve bloccare la
+      // cancellazione dell'account (diritto all'oblio, GDPR Art. 17).
       try {
-        const [{ data: progressFiles }, { data: recipeFiles }, { data: avatarFiles }] = await Promise.all([
+        const [{ data: progressFiles }, { data: recipeFiles }, { data: avatarFiles }, { data: chatMediaFiles }, { data: voiceFiles }] = await Promise.all([
           supabase.storage.from('progress-photos').list(user.id),
           supabase.storage.from('recipe-photos').list(user.id),
           supabase.storage.from('avatars').list(''),
+          supabase.storage.from('chat-media').list(user.id),
+          supabase.storage.from('voice-messages').list(user.id),
         ])
         const cleanups = []
         if (progressFiles?.length) cleanups.push(supabase.storage.from('progress-photos').remove(progressFiles.map(f => `${user.id}/${f.name}`)))
         if (recipeFiles?.length) cleanups.push(supabase.storage.from('recipe-photos').remove(recipeFiles.map(f => `${user.id}/${f.name}`)))
         const avatarNames = (avatarFiles || []).filter(f => f.name.startsWith(user.id)).map(f => f.name)
         if (avatarNames.length) cleanups.push(supabase.storage.from('avatars').remove(avatarNames))
+        if (chatMediaFiles?.length) cleanups.push(supabase.storage.from('chat-media').remove(chatMediaFiles.map(f => `${user.id}/${f.name}`)))
+        if (voiceFiles?.length) cleanups.push(supabase.storage.from('voice-messages').remove(voiceFiles.map(f => `${user.id}/${f.name}`)))
         await Promise.all(cleanups)
       } catch { /* best-effort, non bloccante */ }
 

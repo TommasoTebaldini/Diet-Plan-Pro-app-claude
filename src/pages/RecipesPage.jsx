@@ -672,6 +672,15 @@ export default function RecipesPage() {
   const [editingRecipe, setEditingRecipe] = useState(null)
   const [photoFile, setPhotoFile] = useState(null)
   const [photoPreview, setPhotoPreview] = useState('')
+  // saveRecipe() awaits a photo upload + DB update before closing the edit
+  // panel: se durante l'attesa l'utente apre una ricetta diversa (o una
+  // bozza nuova) da modificare, il reset incondizionato a fine salvataggio
+  // cancellerebbe quella modifica in corso invece di chiudere solo il
+  // pannello della ricetta che è stata davvero salvata. Il ref riflette
+  // sempre la ricetta in modifica corrente, non quella catturata all'avvio
+  // del salvataggio.
+  const editingRecipeRef = useRef(editingRecipe)
+  useEffect(() => { editingRecipeRef.current = editingRecipe }, [editingRecipe])
   const photoInputRef = React.useRef(null)
 
   // Import ricetta da URL/foto
@@ -759,15 +768,21 @@ export default function RecipesPage() {
       photo_url: photoUrl,
     }
     if (editingRecipe) {
-      const { data, error } = await supabase.from('ricette').update(payload).eq('id', editingRecipe.id).eq('user_id', user.id).select().single()
+      const editingId = editingRecipe.id
+      const { data, error } = await supabase.from('ricette').update(payload).eq('id', editingId).eq('user_id', user.id).select().single()
       setSaving(false)
       if (error) { showToast(t('recipes.error_save')); return }
       if (data) {
         setMyRecipes(r => r.map(x => x.id === data.id ? data : x))
-        setEditingRecipe(null)
-        setForm(EMPTY_FORM); setNewStep(''); setPhotoFile(null); setPhotoPreview('')
-        setShowCreate(false)
         showToast(t('recipes.updated'))
+        // Chiude/pulisce il pannello solo se l'utente sta ancora modificando
+        // questa stessa ricetta — non se nel frattempo ha aperto una ricetta
+        // diversa (o una bozza nuova) mentre il salvataggio era in corso.
+        if (editingRecipeRef.current?.id === editingId) {
+          setEditingRecipe(null)
+          setForm(EMPTY_FORM); setNewStep(''); setPhotoFile(null); setPhotoPreview('')
+          setShowCreate(false)
+        }
       }
     } else {
       const { data, error } = await supabase.from('ricette').insert({ user_id: user.id, ...payload }).select().single()
@@ -776,8 +791,12 @@ export default function RecipesPage() {
       if (data) {
         setMyRecipes(r => [data, ...r])
         setTab('mine')
-        setForm(EMPTY_FORM); setNewStep(''); setPhotoFile(null); setPhotoPreview('')
-        setShowCreate(false)
+        // Come sopra: non chiudere/pulire il pannello se nel frattempo
+        // l'utente ha aperto una ricetta esistente da modificare.
+        if (!editingRecipeRef.current) {
+          setForm(EMPTY_FORM); setNewStep(''); setPhotoFile(null); setPhotoPreview('')
+          setShowCreate(false)
+        }
         showToast(t('recipes.saved'))
         checkAndAward('first_recipe').catch(() => {})
         if (myRecipes.length + 1 >= 5) checkAndAward('chef_novizio').catch(() => {})

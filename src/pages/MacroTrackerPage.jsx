@@ -327,6 +327,15 @@ export default function MacroTrackerPage() {
   // un giorno precedente più lento potrebbe sovrascrivere quello del giorno
   // effettivamente visualizzato.
   const latestDateRequestRef = useRef(date)
+  // handleBarcodeFound legge activeMealAdd DOPO un await (searchByBarcode):
+  // se durante la ricerca l'utente chiude la ricerca del pasto o ne apre
+  // un'altra (openMealSearch/closeSearch aggiornano lo stato), la closure
+  // async già in volo vedrebbe il valore di activeMealAdd catturato al
+  // render in cui è partita la scansione, non quello corrente — un alimento
+  // scansionato per la colazione potrebbe finire nella ricerca aperta nel
+  // frattempo per un altro pasto. Il ref viene sempre letto aggiornato.
+  const activeMealAddRef = useRef(activeMealAdd)
+  useEffect(() => { activeMealAddRef.current = activeMealAdd }, [activeMealAdd])
   const [, forceUpdate] = useState(0)
   const [mealNoteInputs, setMealNoteInputs] = useState({})
   const [savingNote, setSavingNote] = useState(null)
@@ -593,7 +602,7 @@ export default function MacroTrackerPage() {
     const food = await searchByBarcode(barcode)
     setScanningBarcode(false)
     if (food) {
-      if (activeMealAdd) {
+      if (activeMealAddRef.current) {
         // Inside meal search — fill directly
         setSelected(food)
         setGrams(String(getDefaultServingSize(food)))
