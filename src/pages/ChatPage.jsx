@@ -124,31 +124,33 @@ function lastSeenLabel(ts, t) {
 
 // ── AudioPlayer ─────────────────────────────────────────────────────────────
 
-function AudioPlayer({ src, isMe }) {
+function AudioPlayer({ src, isMe, bucket = 'group-chat-media' }) {
   const t = useT()
   const [playing, setPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
   const [duration, setDuration] = useState(0)
   const audioRef = useRef(null)
 
-  // Messaggi vocali di gruppo: content non è più un URL firmato salvato in DB
-  // (validi 10 anni indipendentemente da una rimozione successiva dal
-  // gruppo — chi veniva tolto restava comunque in grado di riascoltare i
-  // vecchi vocali), ma il solo storage path — un URL firmato a validità
-  // breve viene richiesto qui, ogni volta che il messaggio viene mostrato,
-  // così is_chat_group_member() (RLS su group-chat-media) viene rivalutata
-  // sull'appartenenza ATTUALE. I messaggi già in DB con un URL completo
-  // (prefisso http) restano compatibili, usati così come sono.
+  // Messaggi vocali (gruppo: bucket group-chat-media; 1:1: voice-messages se
+  // inviati dal dietista, chat-media se dal paziente): content/file_url non è
+  // più un URL firmato salvato in DB (validi 10 anni indipendentemente da una
+  // rimozione successiva dal gruppo o dallo scollegamento paziente-dietista —
+  // chi perdeva l'accesso restava comunque in grado di riascoltare i vecchi
+  // vocali), ma il solo storage path — un URL firmato a validità breve viene
+  // richiesto qui, ogni volta che il messaggio viene mostrato, così la policy
+  // di storage (RLS) viene rivalutata sull'accesso ATTUALE. I messaggi già in
+  // DB con un URL completo (prefisso http) restano compatibili, usati così
+  // come sono.
   const isPath = typeof src === 'string' && src && !src.startsWith('http') && !src.startsWith('blob:')
   const [resolvedSrc, setResolvedSrc] = useState(isPath ? null : src)
   useEffect(() => {
     if (!isPath) { setResolvedSrc(src); return }
     let cancelled = false
-    supabase.storage.from('group-chat-media').createSignedUrl(src, 3600).then(({ data }) => {
+    supabase.storage.from(bucket).createSignedUrl(src, 3600).then(({ data }) => {
       if (!cancelled) setResolvedSrc(data?.signedUrl || null)
     })
     return () => { cancelled = true }
-  }, [src, isPath])
+  }, [src, isPath, bucket])
 
   function toggle() {
     const a = audioRef.current
@@ -184,6 +186,37 @@ function AudioPlayer({ src, isMe }) {
         </span>
       </div>
     </div>
+  )
+}
+
+// ── ChatImage ────────────────────────────────────────────────────────────────
+// Foto inviate in chat 1:1 (bucket chat-media): stesso problema/soluzione di
+// AudioPlayer sopra — file_url può essere un solo storage path (righe recenti,
+// URL firmato a breve scadenza richiesto qui ad ogni visualizzazione così la
+// policy di storage viene rivalutata sull'accesso ATTUALE) oppure un URL
+// completo già firmato (righe vecchie, compatibilità), oppure un blob: locale
+// (anteprima ottimistica prima che l'upload finisca).
+function ChatImage({ src, alt, style }) {
+  const isPath = typeof src === 'string' && src && !src.startsWith('http') && !src.startsWith('blob:')
+  const [resolvedSrc, setResolvedSrc] = useState(isPath ? null : src)
+  useEffect(() => {
+    if (!isPath) { setResolvedSrc(src); return }
+    let cancelled = false
+    supabase.storage.from('chat-media').createSignedUrl(src, 3600).then(({ data }) => {
+      if (!cancelled) setResolvedSrc(data?.signedUrl || null)
+    })
+    return () => { cancelled = true }
+  }, [src, isPath])
+
+  if (!resolvedSrc) {
+    return <div style={{ ...style, background: 'var(--surface-3)' }} />
+  }
+  return (
+    <img
+      src={resolvedSrc} alt={alt}
+      style={{ ...style, cursor: 'pointer' }}
+      onClick={() => window.open(resolvedSrc, '_blank')}
+    />
   )
 }
 
@@ -1066,10 +1099,11 @@ export default function ChatPage() {
     const path = `${user.id}/${folder}_${Date.now()}.${ext}`
     const { error } = await supabase.storage.from('chat-media').upload(path, file)
     if (error) throw error
-    const { data: signed } = await supabase.storage
-      .from('chat-media')
-      .createSignedUrl(path, 315_360_000) // ~10 years
-    return signed.signedUrl
+    // Salva il solo storage path, non un URL firmato a validità decennale
+    // indipendente da uno scollegamento successivo dal dietista — vedi
+    // ChatImage/AudioPlayer sopra, che richiedono un URL firmato a breve
+    // scadenza ad ogni visualizzazione rivalutando l'accesso attuale.
+    return path
   }
 
   // ── Photo upload ────────────────────────────────────────────────────────
@@ -1420,15 +1454,14 @@ export default function ChatPage() {
                       )}
                       {type === 'image' && msg.file_url && (
                         <div>
-                          <img
+                          <ChatImage
                             src={msg.file_url} alt={t('chat.photo_alt', 'Foto')}
-                            style={{ display: 'block', maxWidth: 220, maxHeight: 220, borderRadius: 12, objectFit: 'cover', cursor: 'pointer' }}
-                            onClick={() => window.open(msg.file_url, '_blank')}
+                            style={{ display: 'block', maxWidth: 220, maxHeight: 220, borderRadius: 12, objectFit: 'cover' }}
                           />
                         </div>
                       )}
                       {type === 'audio' && msg.file_url && (
-                        <AudioPlayer src={msg.file_url} isMe={isMe} />
+                        <AudioPlayer src={msg.file_url} isMe={isMe} bucket={msg.sender_role === 'patient' ? 'chat-media' : 'voice-messages'} />
                       )}
                       {type === 'video_call' && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

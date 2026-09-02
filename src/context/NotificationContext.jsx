@@ -53,7 +53,7 @@ export function NotificationProvider({ children, user }) {
       )
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'diet_plans', filter: `patient_id=eq.${user.id}` },
+        { event: 'INSERT', schema: 'public', table: 'patient_diets', filter: `user_id=eq.${user.id}` },
         () => {
           if (prefsRef.current.dietUpdate) {
             showNotification(t('notif.diet_updated_title', '🥗 Piano alimentare aggiornato'), t('notif.diet_created_body', 'Il tuo dietista ha aggiornato la tua dieta'), 'diet-update')
@@ -62,7 +62,7 @@ export function NotificationProvider({ children, user }) {
       )
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'diet_plans', filter: `patient_id=eq.${user.id}` },
+        { event: 'UPDATE', schema: 'public', table: 'patient_diets', filter: `user_id=eq.${user.id}` },
         () => {
           if (prefsRef.current.dietUpdate) {
             showNotification(t('notif.diet_updated_title', '🥗 Piano alimentare aggiornato'), t('notif.diet_modified_body', 'Il tuo dietista ha modificato la tua dieta'), 'diet-update')

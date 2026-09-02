@@ -983,6 +983,8 @@ export default function MacroTrackerPage() {
     if (!error) {
       setLog(l => l.map(f => f.id === foodLog.id ? { ...f, grams: gVal, ...m } : f))
       await updateDailyLog()
+    } else {
+      alert(t('macro.err.updateGrams', "Errore durante la modifica. Riprova."))
     }
     setEditingFood(null)
     setEditSaving(false)
