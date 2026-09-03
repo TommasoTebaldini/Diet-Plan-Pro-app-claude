@@ -1211,6 +1211,17 @@ export default function ProfilePage() {
       const avatarUrl = `${data.publicUrl}?t=${Date.now()}`
       await supabase.from('profiles').upsert({ id: user.id, avatar_url: avatarUrl })
       await refreshProfile()
+      // Il path è `${user.id}.${ext}`: upsert:true sovrascrive solo se l'estensione
+      // non cambia. Se l'utente carica un'estensione diversa da quella precedente
+      // (es. da .jpg a .png), il file vecchio non viene mai sovrascritto né
+      // altrimenti rimosso — resterebbe orfano nello storage per sempre. Pulizia
+      // best-effort delle sole altre estensioni supportate (vedi
+      // ALLOWED_IMAGE_TYPES in fileValidation.js), non bloccante.
+      try {
+        const staleExts = ['jpg', 'jpeg', 'png', 'webp', 'gif'].filter(e => e !== ext)
+        const stalePaths = staleExts.map(e => `${user.id}.${e}`)
+        if (stalePaths.length) await supabase.storage.from('avatars').remove(stalePaths)
+      } catch { /* best-effort */ }
     } catch (err) {
       console.error('Avatar upload error:', err)
       setAvatarError(t('profile.avatar_upload_error', 'Errore nel caricamento. Riprova.'))
