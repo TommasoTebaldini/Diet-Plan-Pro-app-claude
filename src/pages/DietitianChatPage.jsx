@@ -624,6 +624,14 @@ function PatientDiary({ patientId }) {
   const [date, setDate] = useState(todayStr)
   const [foodLog, setFoodLog] = useState([])
   const [loading, setLoading] = useState(false)
+  // Il componente non viene rimontato al cambio paziente (nessuna key= su
+  // <PatientDiary> in DietitianChatPage), quindi resta la stessa istanza:
+  // se il dietista seleziona un altro paziente mentre questa query è ancora
+  // in volo, senza guardia il diario del paziente sbagliato finiva scritto
+  // in setFoodLog dopo il cambio — stessa race già corretta per loadMessages
+  // in questo stesso file (giro 9), qui su un componente diverso mai coperto.
+  const patientIdRef = useRef(patientId)
+  useEffect(() => { patientIdRef.current = patientId }, [patientId])
 
   useEffect(() => {
     if (!patientId) return
@@ -632,12 +640,14 @@ function PatientDiary({ patientId }) {
 
   async function loadDiary() {
     setLoading(true)
+    const requestedPatientId = patientId
     const { data } = await supabase
       .from('food_logs')
       .select('id,date,meal_type,food_name,grams,kcal,proteins,carbs,fats,food_data,created_at')
       .eq('user_id', patientId)
       .eq('date', date)
       .order('created_at')
+    if (patientIdRef.current !== requestedPatientId) return
     setFoodLog(data || [])
     setLoading(false)
   }
