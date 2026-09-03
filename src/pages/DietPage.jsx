@@ -294,23 +294,35 @@ function MealFeedbackModal({ meal, user, onClose }) {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
+  const [error, setError] = useState('')
   const mealLabel = meal.nome || t(`meal.${meal.meal_type}`, MEAL_LABELS_IT[meal.meal_type] || meal.meal_type)
 
   async function send() {
     if (!text.trim()) return
     setSending(true)
+    setError('')
     try {
       const dietitianId = await getMyDietitianId(user.id)
-      await supabase.from('chat_messages').insert({
+      // chat_messages.dietitian_id è NOT NULL: un paziente senza dietista
+      // collegato (dietitianId null) fa fallire l'insert — prima veniva
+      // inghiottito da un catch vuoto, il modal tornava silenziosamente al
+      // form senza alcun errore mostrato e il feedback andava perso. Stesso
+      // vincolo già documentato/gestito in CheckinPage.jsx, qui mai coperto.
+      if (!dietitianId) throw new Error('no dietitian linked')
+      const { error: insertError } = await supabase.from('chat_messages').insert({
         patient_id: user.id,
         dietitian_id: dietitianId,
         sender_id: user.id,
         sender_role: 'patient',
         content: `💬 Feedback sul pasto "${mealLabel}": ${text.trim()}`,
       })
+      if (insertError) throw insertError
       setSent(true)
       setTimeout(onClose, 1800)
-    } catch { /* ignore */ }
+    } catch (err) {
+      console.warn('MealFeedbackModal: invio feedback fallito:', err.message)
+      setError(t('diet.feedback_error', '❌ Invio non riuscito. Riprova.'))
+    }
     setSending(false)
   }
 
@@ -338,6 +350,9 @@ function MealFeedbackModal({ meal, user, onClose }) {
               style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1.5px solid var(--border)', fontFamily: 'inherit', fontSize: 14, resize: 'none', outline: 'none', boxSizing: 'border-box', marginBottom: 12 }}
               autoFocus
             />
+            {error && (
+              <p style={{ color: 'var(--red)', fontSize: 13, marginBottom: 10 }}>{error}</p>
+            )}
             <button
               onClick={send}
               disabled={!text.trim() || sending}
