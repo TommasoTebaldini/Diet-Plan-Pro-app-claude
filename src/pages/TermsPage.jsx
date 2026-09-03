@@ -65,7 +65,7 @@ export default function TermsPage() {
 
       <hr style={S.hr} />
       <h2 style={S.h2}>{t('terms.s4_title', '4. Funzioni basate su intelligenza artificiale')}</h2>
-      <p style={S.p}>{t('terms.s4_p1', 'Il riconoscimento automatico dei pasti tramite foto utilizza un modello di intelligenza artificiale di terze parti (Google Gemini). È una funzione facoltativa: puoi sempre inserire i pasti manualmente. I risultati sono stime e possono contenere errori — verifica sempre le porzioni/alimenti proposti prima di salvarli.')}</p>
+      <p style={S.p}>{t('terms.s4_p1', 'Il riconoscimento automatico dei pasti tramite foto utilizza un modello di intelligenza artificiale di terze parti (Google Gemini, con Anthropic Claude come alternativa se il primo non è disponibile). È una funzione facoltativa: puoi sempre inserire i pasti manualmente. I risultati sono stime e possono contenere errori — verifica sempre le porzioni/alimenti proposti prima di salvarli.')}</p>
 
       <hr style={S.hr} />
       <h2 style={S.h2}>{t('terms.s5_title', '5. Abbonamento (se previsto dal tuo piano)')}</h2>
@@ -117,7 +117,7 @@ export default function TermsPage() {
         <p style={{ color: '#dfeee5', fontSize: 13 }}>{t('terms.contact_text', "Per domande su questi Termini, contatta NutriPlan all'indirizzo indicato nell'app.")}</p>
       </div>
 
-      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 24, textAlign: 'center' }}>{t('terms.last_updated', 'Ultimo aggiornamento: Luglio 2026 — NutriPlan')}</p>
+      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 24, textAlign: 'center' }}>{t('terms.last_updated', 'Ultimo aggiornamento: Settembre 2026 — NutriPlan')}</p>
     </div>
   )
 }

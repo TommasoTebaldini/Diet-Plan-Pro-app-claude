@@ -78,7 +78,7 @@ export default function PrivacyPage() {
       <div style={S.banner}>
         📷 {t('privacy.s3_banner_pre', "Se scegli di fotografare un pasto per farlo riconoscere automaticamente, l'immagine viene inviata a")}{' '}
         <strong>{t('privacy.s3_banner_bold1', 'Google (modello Gemini)')}</strong>{' '}
-        {t('privacy.s3_banner_mid', "tramite un server intermedio, al solo fine di stimare gli alimenti presenti nella foto. L'immagine non viene associata al tuo nome quando inviata al modello, ma essendo una foto del tuo pasto rientra comunque tra i dati che riguardano le tue abitudini alimentari.")}{' '}
+        {t('privacy.s3_banner_mid', "tramite un server intermedio, al solo fine di stimare gli alimenti presenti nella foto — se il servizio Google non è disponibile, la richiesta può essere inoltrata in alternativa ad Anthropic (Claude). L'immagine non viene associata al tuo nome quando inviata al modello, ma essendo una foto del tuo pasto rientra comunque tra i dati che riguardano le tue abitudini alimentari.")}{' '}
         <strong>{t('privacy.s3_banner_bold2', "L'uso di questa funzione è sempre facoltativo")}</strong>
         {t('privacy.s3_banner_end', ': puoi sempre registrare i pasti manualmente senza usare la fotocamera.')}
       </div>
@@ -110,12 +110,23 @@ export default function PrivacyPage() {
           {t('privacy.s5_li3_text', " (USA) — hosting dell'app.")}
         </li>
         <li style={S.li}>
-          <strong>{t('privacy.s5_li4_bold', 'Google (Gemini API)')}</strong>
+          <strong>{t('privacy.s5_li4_bold', 'Google (Gemini API) e Anthropic (Claude)')}</strong>
           {t('privacy.s5_li4_text', ' (USA/UE) — solo per le foto che scegli di far analizzare, vedi sezione 3.')}
         </li>
         <li style={S.li}>{t('privacy.s5_li5', 'Servizi di notifica push del tuo browser/sistema operativo (Google, Apple, Mozilla) — solo il token del dispositivo, per recapitare le notifiche, nessun contenuto sanitario.')}</li>
+        <li style={S.li}>{t('privacy.s5_li6', 'Se il tuo dietista usa la chat di gruppo (es. per comunicazioni a più pazienti collegati allo stesso percorso): gli altri partecipanti al gruppo vedono i messaggi che scrivi in quel gruppo — mai i tuoi dati clinici individuali (piano, diario, note).')}</li>
+        <li style={S.li}>{t('privacy.s5_li7', "Se usi l'app su dispositivo mobile e attivi il conteggio passi: Apple Health/HealthKit o Google Health Connect, secondo il tuo sistema operativo — i dati restano sul dispositivo e vengono letti dall'app solo con il tuo permesso esplicito del sistema operativo.")}</li>
       </ul>
       <p style={S.p}>{t('privacy.s5_p1', 'Tutti i trasferimenti verso paesi extra-UE avvengono sulla base delle Clausole Contrattuali Standard (SCC).')}</p>
+
+      <hr style={S.hr} />
+      <h2 style={S.h2}>{t('privacy.s5b_title', '5bis. Sicurezza dei dati')}</h2>
+      <ul style={S.ul}>
+        <li style={S.li}>{t('privacy.s5b_li1', 'Password memorizzata in forma crittografata (hashing), mai in chiaro.')}</li>
+        <li style={S.li}>{t('privacy.s5b_li2', 'Comunicazioni cifrate (TLS/HTTPS) su tutte le connessioni tra app e server.')}</li>
+        <li style={S.li}>{t('privacy.s5b_li3', 'Cifratura a livello di campo per le categorie di dati più sensibili (es. messaggi di chat), leggibili in chiaro solo da te e dal tuo dietista tramite lo stesso meccanismo sicuro usato lato gestionale del dietista.')}</li>
+        <li style={S.li}>{t('privacy.s5b_li4', 'Accesso ai dati limitato esclusivamente al tuo account e al tuo dietista (Row Level Security a livello di database): nessun altro paziente può vedere i tuoi dati.')}</li>
+      </ul>
 
       <hr style={S.hr} />
       <h2 style={S.h2}>{t('privacy.s6_title', '6. Conservazione dei dati')}</h2>
@@ -146,7 +157,7 @@ export default function PrivacyPage() {
         <p style={{ color: '#dfeee5', fontSize: 13 }}>{t('privacy.contact_text', "Per domande sui tuoi dati, contatta il tuo dietista o NutriPlan all'indirizzo indicato nell'app.")}</p>
       </div>
 
-      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 24, textAlign: 'center' }}>{t('privacy.last_updated', 'Ultimo aggiornamento: Luglio 2026 — NutriPlan')}</p>
+      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 24, textAlign: 'center' }}>{t('privacy.last_updated', 'Ultimo aggiornamento: Settembre 2026 — NutriPlan')}</p>
     </div>
   )
 }
