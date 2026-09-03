@@ -144,7 +144,12 @@ export default function DietitianReviewsSection({ dietitianId }) {
 
   async function deleteReview() {
     if (!confirm(t('reviews.conferma_elimina', 'Eliminare la tua recensione?'))) return
-    await supabase.from('dietitian_reviews').delete().eq('id', myReview.id)
+    const { error: err } = await supabase.from('dietitian_reviews').delete().eq('id', myReview.id)
+    // A differenza di save() sopra, qui l'esito non veniva controllato: in
+    // caso di errore (RLS, rete) lo stato locale veniva azzerato comunque,
+    // mostrando "nessuna recensione" mentre quella vecchia restava nel DB —
+    // stessa classe di bug "toast silenzioso" del giro 8/15.
+    if (err) { setError(t('reviews.errore_eliminazione', { messaggio: err.message }, 'Errore nell\'eliminazione: {{messaggio}}')); return }
     setMyReview(null); setFormRating(0); setFormComment('')
     load()
   }

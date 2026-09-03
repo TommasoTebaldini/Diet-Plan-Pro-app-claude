@@ -1000,20 +1000,27 @@ export default function MacroTrackerPage() {
   }
 
   async function saveMood(value) {
+    const prevMood = mood
     const newMood = mood === value ? null : value
     setMood(newMood)
     // First check if a wellness entry already exists for this date
     const { data: existing } = await supabase.from('daily_wellness').select('id')
       .eq('user_id', user.id).eq('date', date).maybeSingle()
+    // L'update ottimistico sopra non veniva mai corretto in caso di errore:
+    // l'umore restava selezionato in UI per il resto della sessione anche se
+    // il salvataggio falliva, senza alcun avviso — stessa classe di bug
+    // "toast silenzioso" del giro 8/15, qui su un dato mai persistito.
+    let error;
     if (existing) {
       // Only update the mood field to preserve other wellness data
-      await supabase.from('daily_wellness').update({ mood: newMood })
-        .eq('user_id', user.id).eq('date', date)
+      ({ error } = await supabase.from('daily_wellness').update({ mood: newMood })
+        .eq('user_id', user.id).eq('date', date))
     } else {
-      await supabase.from('daily_wellness').insert(
+      ({ error } = await supabase.from('daily_wellness').insert(
         { user_id: user.id, date, mood: newMood }
-      )
+      ))
     }
+    if (error) { setMood(prevMood); alert(t('macro.err.saveMood', "Errore nel salvataggio dell'umore. Riprova.")) }
   }
 
   function changeDate(delta) {

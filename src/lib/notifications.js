@@ -291,7 +291,7 @@ export async function subscribeToPush(userId) {
     // push_subscriptions ha unique(user_id), non unique(endpoint) — con
     // onConflict:'endpoint' l'upsert falliva sempre con 42P10 (nessun vincolo
     // corrispondente), quindi nessuna sottoscrizione veniva mai salvata.
-    await supabase.from('push_subscriptions').upsert(
+    const { error } = await supabase.from('push_subscriptions').upsert(
       {
         user_id: userId,
         endpoint: subData.endpoint,
@@ -301,6 +301,12 @@ export async function subscribeToPush(userId) {
       },
       { onConflict: 'user_id' },
     )
+    // Una sottoscrizione push locale senza la riga DB è inutile (il server
+    // non ha modo di inviare nulla): l'esito non veniva mai controllato, il
+    // chiamante (ProfilePage) riceveva comunque `sub` (troncato) e mostrava
+    // le notifiche come attive nonostante non arrivasse mai nulla, senza
+    // alcun avviso — stessa classe di bug "toast silenzioso" del giro 8/15.
+    if (error) throw error
     return sub
   } catch (e) {
     console.warn('[push] Subscription failed:', e)

@@ -1578,6 +1578,7 @@ const translations = {
     'reviews.elimina': 'Elimina',
     'reviews.errore_punteggio': 'Seleziona un punteggio da 1 a 5 stelle.',
     'reviews.errore_salvataggio': 'Errore nel salvataggio: {{messaggio}}',
+    'reviews.errore_eliminazione': 'Errore nell\'eliminazione: {{messaggio}}',
     'reviews.conferma_elimina': 'Eliminare la tua recensione?',
     'reviews.paziente_default': 'Paziente',
     // ── DailyLessonCard ──
@@ -2462,6 +2463,7 @@ const translations = {
     'profile.waiting_ellipsis': 'In attesa…',
     'profile.enable_notifications_button': 'Attiva notifiche',
     'profile.notifications_not_supported': "⚠️ Il tuo browser non supporta le notifiche push. Installa l'app per ricevere le notifiche.",
+    'profile.push_subscribe_error': "⚠️ Permesso concesso, ma non è stato possibile attivare le notifiche push su questo dispositivo. Riprova più tardi.",
     'profile.notifications_dietitian_section': 'Avvisi dal dietista',
     'profile.notif_new_message_label': 'Nuovo messaggio',
     'profile.notif_new_message_desc': 'Avvisami quando il dietista ti scrive',
@@ -5230,6 +5232,7 @@ const translations = {
     'reviews.elimina': 'Delete',
     'reviews.errore_punteggio': 'Select a rating from 1 to 5 stars.',
     'reviews.errore_salvataggio': 'Error saving: {{messaggio}}',
+    'reviews.errore_eliminazione': 'Error deleting: {{messaggio}}',
     'reviews.conferma_elimina': 'Delete your review?',
     'reviews.paziente_default': 'Patient',
     // ── DailyLessonCard ──
@@ -6114,6 +6117,7 @@ const translations = {
     'profile.waiting_ellipsis': 'Waiting…',
     'profile.enable_notifications_button': 'Enable notifications',
     'profile.notifications_not_supported': "⚠️ Your browser doesn't support push notifications. Install the app to receive notifications.",
+    'profile.push_subscribe_error': "⚠️ Permission granted, but push notifications couldn't be enabled on this device. Please try again later.",
     'profile.notifications_dietitian_section': 'Alerts from your dietitian',
     'profile.notif_new_message_label': 'New message',
     'profile.notif_new_message_desc': 'Notify me when the dietitian writes to me',

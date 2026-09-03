@@ -444,6 +444,7 @@ function NotificationsModal({ user, onClose }) {
   const [prefs, setPrefs] = useState(loadPrefs)
   const [permStatus, setPermStatus] = useState(getPermissionStatus)
   const [requesting, setRequesting] = useState(false)
+  const [pushWarning, setPushWarning] = useState(false)
 
   function update(patch) {
     setPrefs(prev => {
@@ -461,7 +462,13 @@ function NotificationsModal({ user, onClose }) {
     setRequesting(false)
     if (result === 'granted') {
       initScheduledNotifications(prefs)
-      subscribeToPush(user.id)
+      // subscribeToPush ora ritorna null anche quando il permesso browser è
+      // concesso ma il salvataggio della sottoscrizione su Supabase fallisce
+      // — senza aspettarla e controllarla, l'utente vedeva "notifiche
+      // attive" pur non ricevendo mai nulla (il server non ha una riga
+      // push_subscriptions da cui inviare).
+      const sub = await subscribeToPush(user.id)
+      setPushWarning(!sub)
     }
   }
 
@@ -520,6 +527,12 @@ function NotificationsModal({ user, onClose }) {
       {notSupported && (
         <div style={{ background: '#fff4e6', border: '1.5px solid #f0922b', borderRadius: 14, padding: '14px 16px', marginBottom: 20 }}>
           <p style={{ fontSize: 13, color: '#b45309', lineHeight: 1.6 }}>{t('profile.notifications_not_supported', "⚠️ Il tuo browser non supporta le notifiche push. Installa l'app per ricevere le notifiche.")}</p>
+        </div>
+      )}
+
+      {permGranted && pushWarning && (
+        <div style={{ background: '#fff4e6', border: '1.5px solid #f0922b', borderRadius: 14, padding: '14px 16px', marginBottom: 20 }}>
+          <p style={{ fontSize: 13, color: '#b45309', lineHeight: 1.6 }}>{t('profile.push_subscribe_error', "⚠️ Permesso concesso, ma non è stato possibile attivare le notifiche push su questo dispositivo. Riprova più tardi.")}</p>
         </div>
       )}
 
