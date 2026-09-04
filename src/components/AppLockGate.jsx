@@ -86,14 +86,23 @@ export default function AppLockGate() {
     if (!password) return
     setError('')
     setBusy(true)
-    const { error: signInError } = await signIn(user.email, password)
-    setBusy(false)
-    if (signInError) {
+    try {
+      // signIn() now always resolves (it has its own internal timeout — see
+      // AuthContext) instead of ever hanging, but this still guards against
+      // any other unexpected throw so `busy` can never get stuck true with
+      // the unlock button permanently disabled and no way out but a reload.
+      const { error: signInError } = await signIn(user.email, password)
+      if (signInError) {
+        setError(t('applock.wrong_password', 'Password errata.'))
+      } else {
+        setPassword('')
+        setLocked(false)
+        markActive()
+      }
+    } catch {
       setError(t('applock.wrong_password', 'Password errata.'))
-    } else {
-      setPassword('')
-      setLocked(false)
-      markActive()
+    } finally {
+      setBusy(false)
     }
   }
 

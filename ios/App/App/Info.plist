@@ -51,5 +51,11 @@
 	<string>NutriPlan legge i tuoi passi da Salute per mostrarteli nell'app, anche quando NutriPlan è chiusa.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>NutriPlan non scrive dati in Salute.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>NutriPlan usa la fotocamera per scansionare il codice a barre degli alimenti e per fotografare i tuoi pasti.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>NutriPlan usa le tue foto per analizzare i pasti che hai fotografato.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

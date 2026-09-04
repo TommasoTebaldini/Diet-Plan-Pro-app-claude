@@ -26,22 +26,25 @@ export default function RegisterPage() {
     if (form.password.length < 8) return setError(t('auth.error_password_short'))
     if (!consent) return setError(t('auth.error_consent_required', 'Devi accettare Termini di Servizio e Informativa Privacy per registrarti.'))
     setLoading(true)
-    const { error } = await signUp(form.email, form.password, {
-      full_name: `${form.name} ${form.surname}`,
-      first_name: form.name,
-      last_name: form.surname,
-      termsAccepted: consent,
-      ...(dietitianRef ? { dietitian_ref: dietitianRef } : {})
-    })
-    if (error) {
-      setError(error.message === 'User already registered'
-        ? t('auth.error_email_taken')
-        : error.message)
-    } else {
-      if (dietitianRef) localStorage.setItem('pending_dietitian_ref', dietitianRef)
-      setSuccess(true)
+    try {
+      const { error } = await signUp(form.email, form.password, {
+        full_name: `${form.name} ${form.surname}`,
+        first_name: form.name,
+        last_name: form.surname,
+        termsAccepted: consent,
+        ...(dietitianRef ? { dietitian_ref: dietitianRef } : {})
+      })
+      if (error) {
+        setError(error.message === 'User already registered'
+          ? t('auth.error_email_taken')
+          : error.message)
+      } else {
+        if (dietitianRef) localStorage.setItem('pending_dietitian_ref', dietitianRef)
+        setSuccess(true)
+      }
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   if (success) return (

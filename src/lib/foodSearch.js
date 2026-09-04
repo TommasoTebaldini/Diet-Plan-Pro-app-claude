@@ -114,35 +114,41 @@ async function searchAllFoods(query) {
 }
 
 // ─── Foods added by the dietitian via database.html (shared via Supabase) ────
+// public_foods mirrors the entire static CREA/BDA database (no source_id)
+// PLUS genuinely custom foods the dietitian typed in by hand (source_id set,
+// links to alimenti_custom.id). The static rows here are a stripped-down
+// duplicate — this table has no micronutrient columns at all — of the same
+// entries searchAllFoods() already returns with full data (potassium,
+// calcium, magnesium, …) from the bundled all-foods.js. Deduplication in
+// searchFoodsLocal() keeps whichever of the two arrives first for a given
+// name, so without this filter the incomplete Supabase copy could shadow
+// the complete bundled one and silently drop every micronutrient except the
+// few columns this table happens to have (e.g. sugar_100g) — filtering to
+// source_id IS NOT NULL keeps only the custom entries that don't exist
+// anywhere else, which is the only reason to query this table at all.
 async function searchPublicFoods(query) {
   try {
     const { data } = await supabase
       .from('public_foods')
-      .select('id, name, category, kcal_100g, proteins_100g, carbs_100g, fats_100g, fiber_100g, sugar_100g, fat_sat_100g, src, source_id')
+      .select('id, name, category, kcal_100g, proteins_100g, carbs_100g, fats_100g, fiber_100g, sugar_100g, fat_sat_100g, source_id')
+      .not('source_id', 'is', null)
       .ilike('name', `%${query}%`)
       .limit(20)
     if (!data?.length) return []
-    return data.map(f => {
-      // Static foods (CREA, BDA, UPF, …) have no source_id; custom dietitian foods do
-      const isStatic = !f.source_id
-      const srcLabel = isStatic
-        ? `${f.src || 'CREA'} — ${f.category || translate('foodsearch.category_generic', 'Generico')}`
-        : translate('foodsearch.source_added_by_dietitian', '🥗 Aggiunto dal dietista')
-      return {
-        id: `public_${f.id}`,
-        name: f.name,
-        brand: srcLabel,
-        category: f.category || '',
-        kcal_100g: f.kcal_100g || 0,
-        proteins_100g: f.proteins_100g || 0,
-        carbs_100g: f.carbs_100g || 0,
-        fats_100g: f.fats_100g || 0,
-        fiber_100g: f.fiber_100g || 0,
-        sugar_100g: f.sugar_100g || 0,
-        fatSat_100g: f.fat_sat_100g || 0,
-        source: 'public',
-      }
-    })
+    return data.map(f => ({
+      id: `public_${f.id}`,
+      name: f.name,
+      brand: translate('foodsearch.source_added_by_dietitian', '🥗 Aggiunto dal dietista'),
+      category: f.category || '',
+      kcal_100g: f.kcal_100g || 0,
+      proteins_100g: f.proteins_100g || 0,
+      carbs_100g: f.carbs_100g || 0,
+      fats_100g: f.fats_100g || 0,
+      fiber_100g: f.fiber_100g || 0,
+      sugar_100g: f.sugar_100g || 0,
+      fatSat_100g: f.fat_sat_100g || 0,
+      source: 'public',
+    }))
   } catch { return [] }
 }
 

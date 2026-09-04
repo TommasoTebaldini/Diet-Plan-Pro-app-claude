@@ -26,6 +26,10 @@ supabase/.temp/
 android/app/build/
 android/.gradle/
 android/local.properties
+
+# Keystore di firma release Android — MAI committare (password + chiave privata)
+android/keystore.properties
+android/keystore/
 ios/App/Pods/
 ios/App/build/
 ios/App/DerivedData/

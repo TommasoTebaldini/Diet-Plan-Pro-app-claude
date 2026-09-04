@@ -39,15 +39,18 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const { error } = await signIn(email, password)
-    if (error) {
-      setError(error.message === 'Invalid login credentials'
-        ? t('auth.error_credentials')
-        : error.message)
-    } else {
-      navigate('/')
+    try {
+      const { error } = await signIn(email, password)
+      if (error) {
+        setError(error.message === 'Invalid login credentials'
+          ? t('auth.error_credentials')
+          : error.message)
+      } else {
+        navigate('/')
+      }
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   async function handleBiometricLogin() {

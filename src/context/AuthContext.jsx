@@ -31,17 +31,21 @@ function clearProfileCache() {
 }
 
 // ─── Fast session peek: reads Supabase's own localStorage key synchronously ──
-// Avoids showing LoadingScreen when the user was already logged in
+// Avoids showing LoadingScreen when the user was already logged in.
+// Must match the `storageKey` passed to createClient() in lib/supabase.js
+// ('nutriplan_patient_auth') — this used to scan for the default 'sb-*
+// -auth-token' pattern, which supabase-js only uses when storageKey is left
+// unset. Since this project sets a custom storageKey, that scan never
+// matched anything: the cache-hit fast path was silently dead code, so
+// every app open showed the full LoadingScreen (and, on flaky storage
+// reads, could briefly render the login form) even with a perfectly valid
+// persisted session, instead of painting the dashboard straight away.
+const SUPABASE_STORAGE_KEY = 'nutriplan_patient_auth'
 function peekSession() {
   try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i)
-      if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
-        const val = JSON.parse(localStorage.getItem(key) || 'null')
-        const exp = val?.expires_at
-        if (exp && exp * 1000 > Date.now() + 30_000) return val?.user ?? null
-      }
-    }
+    const val = JSON.parse(localStorage.getItem(SUPABASE_STORAGE_KEY) || 'null')
+    const exp = val?.expires_at
+    if (exp && exp * 1000 > Date.now() + 30_000) return val?.user ?? null
   } catch { /* ignore */ }
   return null
 }
@@ -137,18 +141,40 @@ export function AuthProvider({ children }) {
     }
   }, [user, fetchProfile])
 
-  const signIn = useCallback(async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    return { data, error }
+  // Any supabase.auth.*()/rpc() call can hang indefinitely instead of
+  // rejecting — seen in WKWebView/native builds when it contends with a
+  // concurrent autoRefreshToken cycle for supabase-js's internal auth
+  // mutex, and none of them have a built-in timeout. Without this race, an
+  // unlucky call left whatever button triggered it (login, the AppLockGate
+  // re-lock screen, registration — all of them go through here) permanently
+  // stuck in its loading state with no error, recoverable only by reloading
+  // the whole page. 15s is generous for a network call; a real failure (bad
+  // password, offline) normally resolves in <1s.
+  const withAuthTimeout = useCallback(async (promise) => {
+    try {
+      return await Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000)),
+      ])
+    } catch (e) {
+      const error = e?.message === 'timeout'
+        ? new Error(t('auth.error_timeout', 'Il server non risponde. Controlla la connessione e riprova.'))
+        : (e instanceof Error ? e : new Error(String(e)))
+      return { data: null, error }
+    }
   }, [])
+
+  const signIn = useCallback(async (email, password) => {
+    return withAuthTimeout(supabase.auth.signInWithPassword({ email, password }))
+  }, [withAuthTimeout])
 
   const signUp = useCallback(async (email, password, metadata) => {
     const { termsAccepted, ...rest } = metadata || {}
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await withAuthTimeout(supabase.auth.signUp({
       email,
       password,
       options: { data: { ...rest, role: 'patient' } }
-    })
+    }))
     if (!error && data?.user) {
       // Il trigger DB che creava il profilo automaticamente non esiste più su
       // questo progetto (rimosso lato NutriPlan-Pro, vedi supabase_setup.sql
@@ -158,21 +184,21 @@ export function AuthProvider({ children }) {
       // SEZIONE 76: la RPC non ingoia più i propri errori — se fallisce (auth.
       // users creato ma profiles no), va segnalato come errore di signUp
       // invece di lasciar credere alla UI che la registrazione sia riuscita.
-      const { error: profileErr } = await supabase.rpc('create_patient_profile', {
+      const { error: profileErr } = await withAuthTimeout(supabase.rpc('create_patient_profile', {
         uid: data.user.id,
         user_email: email,
         p_full_name: rest.full_name || null,
         p_first_name: rest.first_name || null,
         p_last_name: rest.last_name || null,
         terms_accepted: !!termsAccepted,
-      })
+      }))
       if (profileErr) {
         console.error('create_patient_profile failed:', profileErr)
         return { data, error: profileErr }
       }
     }
     return { data, error }
-  }, [])
+  }, [withAuthTimeout])
 
   // Consenso esplicito per l'analisi AI delle foto pasto (Google Gemini,
   // dati sanitari) — richiesto prima del primo utilizzo della funzione,
