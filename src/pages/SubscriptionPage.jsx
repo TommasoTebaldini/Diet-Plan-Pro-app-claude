@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { useSubscription, PAYMENTS_ACTIVE, FREE_FEATURES, PRO_FEATURES } from '../hooks/useSubscription'
+import { isRevenueCatSupported, purchaseMonthlyPackage, restorePurchases, openNativeSubscriptionManagement } from '../lib/revenuecat'
 import { useT } from '../i18n'
 import {
   ArrowLeft, Star, Check, X, Crown, CreditCard,
@@ -10,7 +11,7 @@ import {
 } from 'lucide-react'
 
 // ─── FAQ ──────────────────────────────────────────────────────────────────────
-function getFaqs(t) {
+function getFaqs(t, isNative) {
   return [
     {
       q: t('subscription.faq_q1', 'Cosa include il piano gratuito?'),
@@ -18,11 +19,15 @@ function getFaqs(t) {
     },
     {
       q: t('subscription.faq_q2', 'Posso disdire in qualsiasi momento?'),
-      a: t('subscription.faq_a2', 'Sì, puoi cancellare l\'abbonamento quando vuoi dal portale Stripe (pulsante "Gestisci abbonamento"). L\'accesso Pro rimane attivo fino alla fine del periodo già pagato. Hai inoltre diritto di recesso entro 14 giorni dalla sottoscrizione ai sensi del Codice del Consumo, indipendentemente dalla cancellazione ordinaria.'),
+      a: isNative
+        ? t('subscription.faq_a2_native', 'Sì, puoi cancellare l\'abbonamento quando vuoi dalle impostazioni del tuo account App Store / Google Play. L\'accesso Pro rimane attivo fino alla fine del periodo già pagato. Hai inoltre diritto di recesso entro 14 giorni dalla sottoscrizione ai sensi del Codice del Consumo, indipendentemente dalla cancellazione ordinaria.')
+        : t('subscription.faq_a2', 'Sì, puoi cancellare l\'abbonamento quando vuoi dal portale Stripe (pulsante "Gestisci abbonamento"). L\'accesso Pro rimane attivo fino alla fine del periodo già pagato. Hai inoltre diritto di recesso entro 14 giorni dalla sottoscrizione ai sensi del Codice del Consumo, indipendentemente dalla cancellazione ordinaria.'),
     },
     {
       q: t('subscription.faq_q3', 'I miei dati sono al sicuro?'),
-      a: t('subscription.faq_a3', 'Sì. I dati sono archiviati su Supabase (PostgreSQL) con crittografia TLS in transito e a riposo. I pagamenti sono gestiti da Stripe, certificato PCI-DSS Level 1. Non conserviamo mai i dati della tua carta.'),
+      a: isNative
+        ? t('subscription.faq_a3_native', 'Sì. I dati sono archiviati su Supabase (PostgreSQL) con crittografia TLS in transito e a riposo. I pagamenti sono gestiti direttamente da App Store / Google Play. Non conserviamo mai i dati della tua carta.')
+        : t('subscription.faq_a3', 'Sì. I dati sono archiviati su Supabase (PostgreSQL) con crittografia TLS in transito e a riposo. I pagamenti sono gestiti da Stripe, certificato PCI-DSS Level 1. Non conserviamo mai i dati della tua carta.'),
     },
     {
       q: t('subscription.faq_q4', 'Il mio dietista vede che sono abbonato?'),
@@ -121,16 +126,39 @@ function PlanCard({ title, price, period, features, locked, highlight, cta, onCt
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function SubscriptionPage() {
   const navigate = useNavigate()
-  const { profile } = useAuth()
+  const { profile, refreshProfile } = useAuth()
   const { isPro, paymentsActive, expiresAt } = useSubscription()
   const [loading, setLoading] = useState(false)
   const [portalLoading, setPortalLoading] = useState(false)
+  const [nativeError, setNativeError] = useState('')
   const t = useT()
 
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+  const isNative = isRevenueCatSupported()
 
   async function handleSubscribe() {
     if (!paymentsActive) return
+    // Apple/Google richiedono che gli acquisti in-app su build native passino
+    // da StoreKit/Play Billing (via RevenueCat), non da Stripe — vedi
+    // src/lib/revenuecat.js. Stripe resta per il solo web (sotto).
+    if (isNative) {
+      setLoading(true)
+      setNativeError('')
+      try {
+        const active = await purchaseMonthlyPackage()
+        if (active) await refreshProfile()
+      } catch (e) {
+        // userCancelled: l'utente ha chiuso il foglio di pagamento nativo —
+        // non è un errore da mostrare, è l'esito più comune di tutti.
+        if (!e?.userCancelled) {
+          console.error(e)
+          setNativeError(t('subscription.err_purchase', 'Acquisto non riuscito. Riprova tra poco.'))
+        }
+      } finally {
+        setLoading(false)
+      }
+      return
+    }
     setLoading(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -153,8 +181,28 @@ export default function SubscriptionPage() {
     }
   }
 
+  async function handleRestore() {
+    setLoading(true)
+    setNativeError('')
+    try {
+      const active = await restorePurchases()
+      if (active) await refreshProfile()
+      else setNativeError(t('subscription.err_no_purchase_to_restore', 'Nessun abbonamento attivo trovato per questo account store.'))
+    } catch (e) {
+      console.error(e)
+      setNativeError(t('subscription.err_purchase', 'Acquisto non riuscito. Riprova tra poco.'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
   async function handlePortal() {
     if (!paymentsActive) return
+    // La cancellazione di un acquisto in-app è sempre gestita dallo store,
+    // non è possibile costruire un flusso custom (né lo permetterebbe
+    // Apple/Google review) — qui si apre la pagina nativa di gestione
+    // abbonamenti invece del portale Stripe.
+    if (isNative) { openNativeSubscriptionManagement(); return }
     setPortalLoading(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -173,7 +221,7 @@ export default function SubscriptionPage() {
     }
   }
 
-  const FAQS = getFaqs(t)
+  const FAQS = getFaqs(t, isNative)
 
   const FREE_PLAN_ITEMS = [
     t('subscription.item_diet_plan', 'Piano alimentare del dietista'),
@@ -295,12 +343,39 @@ export default function SubscriptionPage() {
               period={t('subscription.period_month', '/mese')}
               features={PRO_PLAN_ITEMS}
               highlight={true}
-              cta={isPro ? t('subscription.cta_pro_active', '✅ Abbonamento attivo') : loading ? t('subscription.cta_redirecting', 'Reindirizzamento…') : t('subscription.cta_start_trial', '⭐ Inizia 7 giorni gratis')}
+              cta={isPro
+                ? t('subscription.cta_pro_active', '✅ Abbonamento attivo')
+                : loading
+                  ? (isNative ? t('subscription.loading', 'Caricamento…') : t('subscription.cta_redirecting', 'Reindirizzamento…'))
+                  : t('subscription.cta_start_trial', '⭐ Inizia 7 giorni gratis')}
               ctaDisabled={isPro || !paymentsActive || loading}
               note={!paymentsActive ? t('subscription.note_coming_soon', 'Disponibile a breve') : isPro ? undefined : t('subscription.note_no_card', 'Nessuna carta richiesta per la prova')}
               onCta={handleSubscribe}
             />
           </div>
+        )}
+
+        {nativeError && (
+          <div style={{
+            background: '#fff0f0', border: '1px solid #ffd4d4', borderRadius: 12,
+            padding: '12px 14px', marginBottom: 20, color: 'var(--red)', fontSize: 13,
+          }}>
+            {nativeError}
+          </div>
+        )}
+
+        {isNative && paymentsActive && !isPro && (
+          <button
+            onClick={handleRestore}
+            disabled={loading}
+            style={{
+              width: '100%', padding: '10px 0', marginBottom: 20, borderRadius: 12,
+              border: '1.5px solid var(--border-light)', background: 'var(--surface)',
+              color: 'var(--text-secondary)', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+            }}
+          >
+            {t('subscription.restore_purchases', 'Ripristina acquisti')}
+          </button>
         )}
 
         {/* Active Pro management */}
@@ -338,7 +413,9 @@ export default function SubscriptionPage() {
               {portalLoading ? t('subscription.loading', 'Caricamento…') : t('subscription.manage_cancel_btn', 'Gestisci / Cancella abbonamento')}
             </button>
             <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', margin: '8px 0 0' }}>
-              {t('subscription.manage_secure_note', 'Gestione sicura tramite portale Stripe')}
+              {isNative
+                ? t('subscription.manage_secure_note_native', 'Gestione tramite il tuo account App Store / Google Play')
+                : t('subscription.manage_secure_note', 'Gestione sicura tramite portale Stripe')}
             </p>
           </div>
         )}
@@ -383,7 +460,9 @@ export default function SubscriptionPage() {
               {t('subscription.guarantee_title', 'Nessun rischio: recesso garantito entro 14 giorni')}
             </p>
             <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-              {t('subscription.guarantee_desc', 'Se sottoscrivi l\'abbonamento hai comunque diritto di recesso entro 14 giorni ai sensi del Codice del Consumo — oltre alla prova gratuita di 7 giorni senza carta. Puoi disdire in qualsiasi momento dal portale Stripe.')}
+              {isNative
+                ? t('subscription.guarantee_desc_native', 'Se sottoscrivi l\'abbonamento hai comunque diritto di recesso entro 14 giorni ai sensi del Codice del Consumo — oltre alla prova gratuita di 7 giorni senza carta. Puoi disdire in qualsiasi momento dalle impostazioni del tuo account App Store / Google Play; per il recesso entro 14 giorni segui la procedura di rimborso dello store.')
+                : t('subscription.guarantee_desc', 'Se sottoscrivi l\'abbonamento hai comunque diritto di recesso entro 14 giorni ai sensi del Codice del Consumo — oltre alla prova gratuita di 7 giorni senza carta. Puoi disdire in qualsiasi momento dal portale Stripe.')}
             </p>
           </div>
         </div>
@@ -395,7 +474,9 @@ export default function SubscriptionPage() {
         {FAQS.map((faq, i) => <FAQItem key={i} {...faq} />)}
 
         <p style={{ textAlign: 'center', fontSize: 11.5, color: 'var(--text-muted)', marginTop: 24, lineHeight: 1.6 }}>
-          {t('subscription.footer_secure_payments', 'Pagamenti sicuri gestiti da Stripe — PCI-DSS Level 1')}
+          {isNative
+            ? t('subscription.footer_secure_payments_native', 'Pagamenti sicuri gestiti da App Store / Google Play')
+            : t('subscription.footer_secure_payments', 'Pagamenti sicuri gestiti da Stripe — PCI-DSS Level 1')}
         </p>
       </div>
     </div>

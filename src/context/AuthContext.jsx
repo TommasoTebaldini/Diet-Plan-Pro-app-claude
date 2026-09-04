@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { t } from '../i18n'
 import { clearSensitiveLocalCaches } from '../lib/clearSensitiveCache'
 import { syncPendingWrites, clearQueue } from '../lib/offlineDB'
+import { resetRevenueCat } from '../lib/revenuecat'
 
 const AuthContext = createContext({})
 
@@ -247,6 +248,9 @@ export function AuthProvider({ children }) {
     // dispositivo condiviso.
     try { await syncPendingWrites() } catch { /* offline o già vuota, si prosegue comunque */ }
     await clearQueue()
+    // Best-effort come sopra: se fallisce (RevenueCat non configurato per
+    // questo utente, non-nativo, rete assente) non deve bloccare il logout.
+    try { await resetRevenueCat() } catch { /* silenzioso, vedi src/lib/revenuecat.js */ }
     await supabase.auth.signOut()
   }, [])
 

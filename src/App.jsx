@@ -14,6 +14,7 @@ import PageTransition from './components/PageTransition'
 import { useT, t } from './i18n'
 import { getPedometer, isPedometerSupported, hasMotionPermission } from './lib/pedometer'
 import { logClientError } from './lib/errorLogger'
+import { initRevenueCat } from './lib/revenuecat'
 
 const CURRENT_YEAR = new Date().getFullYear()
 
@@ -145,6 +146,18 @@ function PedometerAutoStart() {
   return null
 }
 
+// Configura il client RevenueCat con l'uid Supabase dell'utente loggato,
+// solo nella build nativa — sul web l'abbonamento resta su Stripe (vedi
+// src/lib/revenuecat.js per il perché). Stesso pattern di PedometerAutoStart:
+// un effect "silenzioso" invece di aspettare che il paziente arrivi sulla
+// pagina Abbonamento, così l'entitlement è già pronto quando ne ha bisogno.
+function RevenueCatInit({ userId }) {
+  useEffect(() => {
+    if (userId) initRevenueCat(userId)
+  }, [userId])
+  return null
+}
+
 function IdlePrefetch() {
   useEffect(() => {
     const cb = typeof requestIdleCallback !== 'undefined' ? requestIdleCallback : (fn) => setTimeout(fn, 2000)
@@ -229,6 +242,7 @@ function AppInner() {
       <IdlePrefetch />
       <AppLockGate />
       {user && !isDietitian && <PedometerAutoStart />}
+      {user && !isDietitian && <RevenueCatInit userId={user.id} />}
       <OfflineBar onReconnect={handleReconnect} />
       <InstallBanner />
       {user && !isDietitian && <BottomNav />}
