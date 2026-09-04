@@ -873,6 +873,27 @@ export default function MacroTrackerPage() {
     setTogglingFav(null)
   }
 
+  // Rimuove un alimento dalla card "Preferiti" (deduplicata per nome — vedi
+  // loadRecentAndFavorites: più righe food_logs con lo stesso food_name
+  // collassano in una sola card). Va quindi tolto il flag da TUTTE le righe
+  // preferite con questo nome, non solo dall'ultima, altrimenti la card
+  // ricomparirebbe al prossimo refresh finché ne resta anche una sola.
+  async function removeFavoriteFood(foodName) {
+    if (!user) return
+    setTogglingFav(foodName)
+    setFavoriteFoods(f => f.filter(x => x.food_name !== foodName))
+    try {
+      const { error } = await supabase.from('food_logs').update({ is_favorite: false })
+        .eq('user_id', user.id).eq('food_name', foodName).eq('is_favorite', true)
+      if (error) await loadRecentAndFavorites()
+      else setLog(l => l.map(f => f.food_name === foodName ? { ...f, is_favorite: false } : f))
+    } catch (e) {
+      console.warn('removeFavoriteFood error:', e)
+      await loadRecentAndFavorites()
+    }
+    setTogglingFav(null)
+  }
+
   // ── Feature 7: Copy day ────────────────────────────────────────────────────────
   async function copyCurrentDay() {
     if (!copyTargetDate || copyTargetDate === date) return
@@ -1260,6 +1281,14 @@ export default function MacroTrackerPage() {
                       style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 8, background: 'var(--green-pale)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green-main)' }}
                     >
                       <Plus size={14} />
+                    </button>
+                    <button
+                      onClick={() => removeFavoriteFood(r.food_name)}
+                      disabled={togglingFav === r.food_name}
+                      aria-label={t('macro.removeFavorite', 'Rimuovi dai preferiti')}
+                      style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 8, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}
+                    >
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 )
@@ -1919,7 +1948,7 @@ export default function MacroTrackerPage() {
 
       {/* Barcode food modal — opened when scanning from header (no meal open) */}
       {/* Feature 2: Save meal modal */}
-      {showSaveMealModal && (
+      {showSaveMealModal && createPortal(
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 20, width: '100%', maxWidth: 400, maxHeight: '85dvh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -1950,11 +1979,12 @@ export default function MacroTrackerPage() {
               {savingMeal ? '…' : `💾 ${t('macro.modal.saveMealButton', 'Salva pasto')}`}
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Feature 7: Copy day modal */}
-      {showCopyModal && (
+      {showCopyModal && createPortal(
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 20, width: '100%', maxWidth: 400, maxHeight: '85dvh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -2003,7 +2033,8 @@ export default function MacroTrackerPage() {
               </>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Recent/Favorite food quantity picker ── */}
@@ -2012,7 +2043,7 @@ export default function MacroTrackerPage() {
         const pickerPreview = calcMacros(fd, pickerGrams)
         const defaultG = getDefaultServingSize(fd)
         const quickGrams = [defaultG, defaultG * 1.5, defaultG * 2].map(g => Math.round(g)).filter((g, i, a) => a.indexOf(g) === i && g > 0)
-        return (
+        return createPortal(
           <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
             <div className="animate-slideUp" style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', padding: 20, paddingBottom: 'calc(20px + env(safe-area-inset-bottom))', maxHeight: '90dvh', overflowY: 'auto', boxSizing: 'border-box' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
@@ -2071,14 +2102,15 @@ export default function MacroTrackerPage() {
                 {saving ? '…' : t('macro.addToDiary', 'Aggiungi al diario')}
               </button>
             </div>
-          </div>
+          </div>,
+          document.body
         )
       })()}
 
       {barcodeFoodModal && (() => {
         const { food, grams: bGrams, meal: bMeal } = barcodeFoodModal
         const bPreview = calcMacros(food, bGrams)
-        return (
+        return createPortal(
           <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
             <div className="animate-slideUp" style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', padding: 20, paddingBottom: 'calc(20px + env(safe-area-inset-bottom))', maxHeight: '90dvh', overflowY: 'auto', boxSizing: 'border-box' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
@@ -2141,7 +2173,8 @@ export default function MacroTrackerPage() {
                 {saving ? '…' : t('macro.addToDiary', 'Aggiungi al diario')}
               </button>
             </div>
-          </div>
+          </div>,
+          document.body
         )
       })()}
     </div>
