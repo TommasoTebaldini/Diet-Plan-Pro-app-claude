@@ -58,7 +58,9 @@ async function callGemini(imageBase64: string, mediaType: string) {
   if (!key) throw new Error('GEMINI_API_KEY non configurata nel server Supabase')
 
   // Use gemini-2.0-flash-lite — free tier, fast, vision support
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${key}`
+  // Auth key ("AQ.") sostituisce le vecchie Standard key ("AIza"): va passata
+  // come header x-goog-api-key, non piu' come ?key= in query string.
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent`
 
   const body = {
     contents: [{
@@ -76,7 +78,7 @@ async function callGemini(imageBase64: string, mediaType: string) {
 
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
     body: JSON.stringify(body),
   })
 
