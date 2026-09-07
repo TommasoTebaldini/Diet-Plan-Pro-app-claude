@@ -54,10 +54,10 @@ async function callGemini(text: string) {
 
   // Auth key ("AQ.") sostituisce le vecchie Standard key ("AIza"): va passata
   // come header x-goog-api-key, non piu' come ?key= in query string.
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent`
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent`
   const body = {
     contents: [{ parts: [{ text: `${PROMPT}\n\nTesto utente: "${text}"` }] }],
-    generationConfig: { temperature: 0.2, maxOutputTokens: 1024, responseMimeType: 'application/json' },
+    generationConfig: { maxOutputTokens: 1024, responseMimeType: 'application/json' },
   }
 
   const res = await fetch(url, {

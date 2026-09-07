@@ -91,13 +91,13 @@ async function callGemini(prompt: string): Promise<string> {
   if (!key) throw new Error('GEMINI_API_KEY non configurata')
   // Auth key ("AQ.") sostituisce le vecchie Standard key ("AIza"): va passata
   // come header x-goog-api-key, non piu' come ?key= in query string.
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent`
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent`
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.4, maxOutputTokens: 512, responseMimeType: 'application/json' },
+      generationConfig: { maxOutputTokens: 512, responseMimeType: 'application/json' },
     }),
   })
   if (!res.ok) throw new Error(`Gemini error ${res.status}`)

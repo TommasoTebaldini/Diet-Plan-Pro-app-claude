@@ -57,10 +57,10 @@ async function callGemini(imageBase64: string, mediaType: string) {
   const key = Deno.env.get('GEMINI_API_KEY')
   if (!key) throw new Error('GEMINI_API_KEY non configurata nel server Supabase')
 
-  // Use gemini-2.0-flash-lite — free tier, fast, vision support
+  // Use gemini-3.5-flash-lite — free tier, fast, vision support
   // Auth key ("AQ.") sostituisce le vecchie Standard key ("AIza"): va passata
   // come header x-goog-api-key, non piu' come ?key= in query string.
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent`
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent`
 
   const body = {
     contents: [{
@@ -70,7 +70,6 @@ async function callGemini(imageBase64: string, mediaType: string) {
       ],
     }],
     generationConfig: {
-      temperature: 0.2,
       maxOutputTokens: 1024,
       responseMimeType: 'application/json',
     },

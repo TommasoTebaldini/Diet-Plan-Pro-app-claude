@@ -48,10 +48,10 @@ async function callGeminiText(text: string) {
   // Auth key ("AQ.") sostituisce le vecchie Standard key ("AIza"): va passata
   // come header x-goog-api-key, non piu' come ?key= in query string (le
   // Standard key sono rifiutate del tutto da settembre 2026).
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent`
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent`
   const body = {
     contents: [{ parts: [{ text: `${PROMPT}\n\nContenuto:\n${text}` }] }],
-    generationConfig: { temperature: 0.2, maxOutputTokens: 1024, responseMimeType: 'application/json' },
+    generationConfig: { maxOutputTokens: 1024, responseMimeType: 'application/json' },
   }
   const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(body) })
   if (!res.ok) {
@@ -65,10 +65,10 @@ async function callGeminiText(text: string) {
 async function callGeminiImage(imageBase64: string, mediaType: string) {
   const key = Deno.env.get('GEMINI_API_KEY')
   if (!key) throw new Error('GEMINI_API_KEY non configurata nel server Supabase')
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent`
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent`
   const body = {
     contents: [{ parts: [{ text: PROMPT }, { inlineData: { mimeType: mediaType, data: imageBase64 } }] }],
-    generationConfig: { temperature: 0.2, maxOutputTokens: 1024, responseMimeType: 'application/json' },
+    generationConfig: { maxOutputTokens: 1024, responseMimeType: 'application/json' },
   }
   const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(body) })
   if (!res.ok) {
