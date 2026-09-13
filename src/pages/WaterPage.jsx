@@ -99,6 +99,21 @@ export default function WaterPage() {
     load()
   }, [today, user.id])
 
+  // Entries added offline carry a placeholder id ('pending_<timestamp>') until
+  // syncPendingWrites() lands them in Supabase — without a refetch here,
+  // removeLog() on a still-placeholder id fails (not a real row id) and the
+  // entry silently reappears. Reload today's logs once the sync brings the
+  // real row (and its real id) in.
+  useEffect(() => {
+    function onSynced(e) {
+      if (!e.detail?.tables?.includes('water_logs')) return
+      supabase.from('water_logs').select('id, amount_ml, created_at').eq('user_id', user.id).eq('date', today).order('created_at')
+        .then(({ data, error }) => { if (!error) setLogs(data || []) })
+    }
+    window.addEventListener('offlinedb:synced', onSynced)
+    return () => window.removeEventListener('offlinedb:synced', onSynced)
+  }, [today, user.id])
+
   // Load weekly data
   useEffect(() => {
     async function loadWeek() {

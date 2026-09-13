@@ -109,6 +109,26 @@ export async function getPendingCount() {
 }
 
 /**
+ * Recomputes the daily_logs aggregate cache for one user/date from the
+ * authoritative food_logs rows. Shared by MacroTrackerPage (online path) and
+ * syncPendingWrites (offline path) so the two never drift — a food log
+ * synced from the offline queue must land in the same cache the online path
+ * writes to, or the Dashboard (which only reads daily_logs, never food_logs
+ * directly) shows stale totals until the user happens to touch that day again.
+ */
+export async function recomputeDailyLog(userId, forDate) {
+  const { supabase } = await import('./supabase')
+  const { data } = await supabase.from('food_logs').select('kcal,proteins,carbs,fats').eq('user_id', userId).eq('date', forDate)
+  if (!data) return
+  const t = data.reduce((a, f) => ({
+    kcal: a.kcal + (f.kcal || 0), proteins: a.proteins + (f.proteins || 0),
+    carbs: a.carbs + (f.carbs || 0), fats: a.fats + (f.fats || 0),
+  }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
+  const { error } = await supabase.from('daily_logs').upsert({ user_id: userId, date: forDate, ...t }, { onConflict: 'user_id,date' })
+  if (error) console.warn('[offlineDB] recomputeDailyLog upsert failed:', error.message)
+}
+
+/**
  * Sync all pending queue items to Supabase.
  * Call this on reconnect (OfflineBar) or on app focus.
  * Returns { synced, failed }.
@@ -122,6 +142,9 @@ export async function syncPendingWrites() {
   const { supabase } = await import('./supabase')
   let synced = 0, failed = 0
   const syncedTables = new Set()
+  // Tracks unique user_id|date pairs among synced food_logs inserts so the
+  // daily_logs cache gets recomputed once per affected day, not once per row.
+  const dirtyDailyLogs = new Set()
 
   for (const item of pending) {
     try {
@@ -131,6 +154,9 @@ export async function syncPendingWrites() {
           ? await supabase.from(item.table_name).upsert(item.data, { onConflict: conflictTarget })
           : await supabase.from(item.table_name).insert(item.data)
         if (error) throw error
+        if (item.table_name === 'food_logs' && item.data?.user_id && item.data?.date) {
+          dirtyDailyLogs.add(`${item.data.user_id}|${item.data.date}`)
+        }
       } else if (item.operation === 'update') {
         const { id, ...rest } = item.data
         const { error } = await supabase.from(item.table_name).update(rest).eq('id', id)
@@ -146,6 +172,11 @@ export async function syncPendingWrites() {
       console.warn('[offlineDB] Sync failed for item', item.id, e.message)
       failed++
     }
+  }
+
+  for (const key of dirtyDailyLogs) {
+    const [userId, forDate] = key.split('|')
+    await recomputeDailyLog(userId, forDate).catch(() => {})
   }
 
   const tables = [...syncedTables]

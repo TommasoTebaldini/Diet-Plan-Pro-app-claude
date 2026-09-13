@@ -9,7 +9,7 @@ import { checkFoodLogAchievements } from '../lib/achievementTriggers'
 import { useT } from '../i18n'
 import { searchFoodsLocal, supplementWithOpenFoodFacts, searchByBarcode, sourceBadge, translateFoodName, ensureFoodNamesLoaded } from '../lib/foodSearch'
 import { Plus, Trash2, Apple, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, ScanLine, AlertCircle, Pencil, Check, Lock, Camera, Mic, Star, BookmarkPlus, ClipboardCopy, WifiOff } from 'lucide-react'
-import { safeWrite } from '../lib/offlineDB'
+import { safeWrite, recomputeDailyLog as recomputeDailyLogShared } from '../lib/offlineDB'
 const BarcodeScanner   = lazy(() => import('../components/BarcodeScanner'))
 const MealPhotoAnalyzer = lazy(() => import('../components/MealPhotoAnalyzer'))
 const MealTextAnalyzer = lazy(() => import('../components/MealTextAnalyzer'))
@@ -387,6 +387,19 @@ export default function MacroTrackerPage() {
 
   // Load recent/favorites once on mount
   useEffect(() => { loadRecentAndFavorites() }, [])
+
+  // Offline food_logs rows carry a placeholder id ('pending_<timestamp>') until
+  // syncPendingWrites() lands them in Supabase. Without a refetch here, `log`
+  // keeps showing the placeholder row/id after reconnect — the user can see it
+  // but any action on it (e.g. deleting it) fails because 'pending_...' isn't a
+  // real row id. Reloading the day's log after a sync swaps it for the real row.
+  useEffect(() => {
+    function onSynced(e) {
+      if (e.detail?.tables?.includes('food_logs')) loadLog()
+    }
+    window.addEventListener('offlinedb:synced', onSynced)
+    return () => window.removeEventListener('offlinedb:synced', onSynced)
+  }, [date])
 
   // Precarica la mappa nomi IT→EN (stesso DB usato dalla ricerca) così i
   // food_name già salvati nel diario (stringhe congelate in italiano al
@@ -937,17 +950,10 @@ export default function MacroTrackerPage() {
   }
 
   async function recomputeDailyLog(forDate) {
-    const { data } = await supabase.from('food_logs').select('kcal,proteins,carbs,fats').eq('user_id', user.id).eq('date', forDate)
-    if (!data) return
-    const t = data.reduce((a, f) => ({
-      kcal: a.kcal + (f.kcal || 0), proteins: a.proteins + (f.proteins || 0),
-      carbs: a.carbs + (f.carbs || 0), fats: a.fats + (f.fats || 0),
-    }), { kcal: 0, proteins: 0, carbs: 0, fats: 0 })
-    // Best-effort aggregate cache read by other pages (Dashboard/DietPage/
-    // Statistics/Wellness) — a failure here doesn't affect the food_logs the
-    // user just edited, but was previously completely invisible.
-    const { error } = await supabase.from('daily_logs').upsert({ user_id: user.id, date: forDate, ...t }, { onConflict: 'user_id,date' })
-    if (error) console.warn('recomputeDailyLog upsert failed:', error.message)
+    // Delegates to the shared implementation in offlineDB.js, which
+    // syncPendingWrites() also calls after flushing queued offline food
+    // logs — keeping one implementation avoids the two paths drifting apart.
+    await recomputeDailyLogShared(user.id, forDate)
   }
 
   async function updateDailyLog() {

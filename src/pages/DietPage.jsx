@@ -1116,48 +1116,72 @@ export default function DietPage() {
     return problematic.size > 0 ? [...problematic] : null
   }, [profile?.intolerances, meals, clinicalPlans])
 
-  useEffect(() => {
-    async function load() {
-      // Batch 1: active diet, diet history, and cartella link all in parallel
-      const [{ data: activeDiet }, { data: allDiets }, linkRes] = await Promise.all([
-        supabase.from('patient_diets').select('id, name, kcal_target, protein_target, carbs_target, fats_target, duration_weeks, notes').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
-        supabase.from('patient_diets').select('id, name, created_at, kcal_target, duration_weeks').eq('user_id', user.id).order('created_at', { ascending: false }),
-        supabase.from('patient_dietitian').select('cartella_id').eq('patient_id', user.id).maybeSingle().then(r => r, () => ({ data: null })),
-      ])
-      setDiet(activeDiet)
-      setHistory((allDiets || []).filter(d => !activeDiet || d.id !== activeDiet.id))
+  const loadDiet = useCallback(async () => {
+    // Batch 1: active diet, diet history, and cartella link all in parallel
+    const [{ data: activeDiet }, { data: allDiets }, linkRes] = await Promise.all([
+      supabase.from('patient_diets').select('id, name, kcal_target, protein_target, carbs_target, fats_target, duration_weeks, notes').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
+      supabase.from('patient_diets').select('id, name, created_at, kcal_target, duration_weeks').eq('user_id', user.id).order('created_at', { ascending: false }),
+      supabase.from('patient_dietitian').select('cartella_id').eq('patient_id', user.id).maybeSingle().then(r => r, () => ({ data: null })),
+    ])
+    setDiet(activeDiet)
+    setHistory((allDiets || []).filter(d => !activeDiet || d.id !== activeDiet.id))
 
-      const cartellaId = linkRes?.data?.cartella_id ?? null
+    const cartellaId = linkRes?.data?.cartella_id ?? null
 
-      // Batch 2: meal details + clinical plans in parallel (both depend on batch 1 results)
-      const batch2 = []
-      if (activeDiet) {
-        batch2.push(
-          supabase.from('diet_meals').select('id,diet_id,meal_type,meal_order,day_number,kcal,proteins,carbs,fats,notes,description,foods').eq('diet_id', activeDiet.id).order('day_number').order('meal_order'),
-          supabase.from('meal_completions').select('diet_meal_id').eq('user_id', user.id).eq('date', today),
-        )
-      } else {
-        batch2.push(Promise.resolve({ data: null }), Promise.resolve({ data: null }))
-      }
-      if (cartellaId) {
-        batch2.push(
-          supabase.from('piani').select('id, nome, data_piano, meals, print_image_url, saved_at, display_mode').eq('cartella_id', cartellaId).eq('visible_to_patient', true).order('saved_at', { ascending: false }).then(r => r, () => ({ data: null }))
-        )
-      } else {
-        batch2.push(Promise.resolve({ data: null }))
-      }
-
-      const [mealsRes, completionsRes, pianiRes] = await Promise.all(batch2)
-      if (activeDiet) {
-        setMeals(mealsRes.data || [])
-        setCompletions(new Set((completionsRes.data || []).map(c => c.diet_meal_id)))
-      }
-      if (pianiRes.data) setClinicalPlans(pianiRes.data)
-
-      setLoading(false)
+    // Batch 2: meal details + clinical plans in parallel (both depend on batch 1 results)
+    const batch2 = []
+    if (activeDiet) {
+      batch2.push(
+        supabase.from('diet_meals').select('id,diet_id,meal_type,meal_order,day_number,kcal,proteins,carbs,fats,notes,description,foods').eq('diet_id', activeDiet.id).order('day_number').order('meal_order'),
+        supabase.from('meal_completions').select('diet_meal_id').eq('user_id', user.id).eq('date', today),
+      )
+    } else {
+      batch2.push(Promise.resolve({ data: null }), Promise.resolve({ data: null }))
     }
-    load()
-  }, [today])
+    if (cartellaId) {
+      batch2.push(
+        supabase.from('piani').select('id, nome, data_piano, meals, print_image_url, saved_at, display_mode').eq('cartella_id', cartellaId).eq('visible_to_patient', true).order('saved_at', { ascending: false }).then(r => r, () => ({ data: null }))
+      )
+    } else {
+      batch2.push(Promise.resolve({ data: null }))
+    }
+
+    const [mealsRes, completionsRes, pianiRes] = await Promise.all(batch2)
+    if (activeDiet) {
+      setMeals(mealsRes.data || [])
+      setCompletions(new Set((completionsRes.data || []).map(c => c.diet_meal_id)))
+    }
+    if (pianiRes.data) setClinicalPlans(pianiRes.data)
+
+    setLoading(false)
+  }, [today, user.id])
+
+  useEffect(() => { loadDiet() }, [loadDiet])
+
+  // Without this, an in-progress edit by the dietitian (e.g. deleting and
+  // re-adding diet_meals rows while updating the plan) stays invisible here
+  // until the patient navigates away and back — the same postgres_changes
+  // pattern BottomNav.jsx already uses for shared_recipes (a plain table
+  // with RLS, unlike the encrypted chat_messages view which needs broadcast).
+  useEffect(() => {
+    if (!user?.id) return
+    const channel = supabase.channel(`diet-live-${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'patient_diets', filter: `user_id=eq.${user.id}` }, () => {
+        loadDiet()
+      })
+      .subscribe()
+    return () => supabase.removeChannel(channel)
+  }, [user?.id, loadDiet])
+
+  useEffect(() => {
+    if (!diet?.id) return
+    const channel = supabase.channel(`diet-meals-live-${diet.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'diet_meals', filter: `diet_id=eq.${diet.id}` }, () => {
+        loadDiet()
+      })
+      .subscribe()
+    return () => supabase.removeChannel(channel)
+  }, [diet?.id, loadDiet])
 
   const toggleComplete = useCallback(async (mealId) => {
     const isCompleted = completions.has(mealId)
@@ -1537,7 +1561,17 @@ export default function DietPage() {
                   />
                 </motion.div>
               ))
-              : <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)' }}>{t('diet.no_meals_for_day', 'Nessun pasto per questo giorno')}</div>
+              // A diet marked active with zero meals at all (not just today) usually
+              // means the dietitian is mid-update — diet_meals rows lack ON DELETE
+              // CASCADE from patient_diets, so a delete-then-recreate can leave this
+              // gap briefly visible. Distinguish it from a normal day-off in a
+              // weekly plan so it doesn't look like the app is broken.
+              : meals.length === 0
+                ? <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-muted)' }}>
+                    <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{t('diet.plan_being_updated_title', 'Il tuo piano è in aggiornamento')}</p>
+                    <p style={{ fontSize: 13 }}>{t('diet.plan_being_updated_body', 'Il tuo dietista sta aggiornando i pasti di questo piano. Ricontrolla tra poco.')}</p>
+                  </div>
+                : <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)' }}>{t('diet.no_meals_for_day', 'Nessun pasto per questo giorno')}</div>
             }
           </>
         )}

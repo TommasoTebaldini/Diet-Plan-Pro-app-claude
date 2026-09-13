@@ -20,10 +20,35 @@ function setCached(key, data, ttlMs) {
   _cache.set(key, { data, exp: Date.now() + ttlMs });
 }
 
+// In-memory sliding-window rate limit per IP. Best-effort only: it resets on
+// every cold start and isn't shared across Lambda instances, but it still
+// caps how hard a single misbehaving client (buggy retry loop, scraping)
+// can hammer the upstream OFF/Meilisearch APIs from one warm instance.
+const _rateLimit = new Map(); // ip → [timestamps]
+const RATE_LIMIT_WINDOW_MS = 60_000
+const RATE_LIMIT_MAX = 60
+
+function isRateLimited(ip) {
+  const now = Date.now()
+  const hits = (_rateLimit.get(ip) || []).filter(t => now - t < RATE_LIMIT_WINDOW_MS)
+  hits.push(now)
+  _rateLimit.set(ip, hits)
+  if (_rateLimit.size > 5000) {
+    for (const [k, v] of _rateLimit) if (!v.length || now - v[v.length - 1] > RATE_LIMIT_WINDOW_MS) _rateLimit.delete(k)
+  }
+  return hits.length > RATE_LIMIT_MAX
+}
+
 async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
   if (req.method === 'OPTIONS') return res.status(200).end()
+
+  const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim()
+  if (isRateLimited(ip)) {
+    res.setHeader('Retry-After', '60')
+    return res.status(429).json({ error: 'Too many requests, riprova tra poco.', products: [] })
+  }
 
   const { q, barcode } = req.query
   const FIELDS = 'code,product_name,product_name_it,product_name_en,brands,nutriments'

@@ -193,8 +193,17 @@ async function searchRecentFoods(query) {
 let _dietMealsCache = null
 async function _getDietMeals() {
   if (_dietMealsCache) return _dietMealsCache
+  // Explicit filter to the current user's own diets, defense-in-depth on top
+  // of RLS: this query has no server-side filter of its own, so it's only as
+  // safe as the diet_meals policy — if that policy is ever loosened by
+  // mistake, this still won't leak other patients' prescribed foods.
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) { _dietMealsCache = []; return _dietMealsCache }
+  const { data: diets } = await supabase.from('patient_diets').select('id').eq('user_id', user.id)
+  const dietIds = (diets || []).map(d => d.id)
+  if (!dietIds.length) { _dietMealsCache = []; return _dietMealsCache }
   const { data } = await supabase
-    .from('diet_meals').select('foods').not('foods', 'is', null).limit(40)
+    .from('diet_meals').select('foods').in('diet_id', dietIds).not('foods', 'is', null).limit(40)
   _dietMealsCache = data || []
   return _dietMealsCache
 }
