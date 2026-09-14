@@ -74,6 +74,11 @@ export default function MealDoseCalculator({ specialtyNotes, choGrams, fatGrams,
                           {t('dosecalc.correzione', { dose: r.calc.correctionDose }, '+ correzione: {{dose}} U')}
                         </p>
                       )}
+                      {r.calc.hypoglycemiaWarning && (
+                        <p style={{ fontSize: 11, color: '#B91C1C', fontWeight: 600, marginTop: 6 }}>
+                          {t('dosecalc.ipoglicemia_avviso', '⚠️ Glicemia sotto target: non sottrarre insulina, segui il tuo protocollo per l\'ipoglicemia.')}
+                        </p>
+                      )}
                     </>
                   )}
                   {r.key === 'pancreas' && (

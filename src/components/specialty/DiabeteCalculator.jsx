@@ -62,7 +62,7 @@ export default function DiabeteCalculator({ dati }) {
     { ...dati, fasce_orarie: fasciaAttiva ? [fasciaAttiva] : dati.fasce_orarie },
     { choGrams: choVal, glicemia: glicemiaVal }
   )
-  const { icRatio, fsi, target, mealDose, correctionDose, total } = dose
+  const { icRatio, fsi, target, mealDose, correctionDose, total, hypoglycemiaWarning } = dose
 
   function registra() {
     if (total === null) return
@@ -148,6 +148,17 @@ export default function DiabeteCalculator({ dati }) {
           </button>
         )}
       </div>
+
+      {hypoglycemiaWarning && (
+        <div style={{ marginTop: 16, padding: '14px 16px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 12 }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: '#B91C1C', marginBottom: 4 }}>
+            {t('diabete.ipoglicemiaAvvisoTitolo', '⚠️ Glicemia sotto target')}
+          </p>
+          <p style={{ fontSize: 12.5, color: '#B91C1C' }}>
+            {t('diabete.ipoglicemiaAvvisoTesto', 'Il calcolo darebbe una dose negativa, che non ha senso: non si "toglie" insulina. Segui il protocollo che il tuo dietista ti ha indicato per l\'ipoglicemia (di solito assunzione di carboidrati) prima di eventuali altre valutazioni.')}
+          </p>
+        </div>
+      )}
 
       {total !== null && (
         <div style={{ marginTop: 16, padding: '14px 16px', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 12 }}>

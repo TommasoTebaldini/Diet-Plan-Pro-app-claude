@@ -57,13 +57,22 @@ export function calcDiabeteMealDose(dati, { choGrams, glicemia, atTime } = {}) {
 
   const mealDoseRaw = icRatio && choVal ? choVal / icRatio : null
   const correctionDoseRaw = fsi && target && glicemiaVal ? (glicemiaVal - target) / fsi : null
-  const total = mealDoseRaw !== null || correctionDoseRaw !== null
-    ? round05((mealDoseRaw || 0) + (correctionDoseRaw || 0))
+  const rawTotal = mealDoseRaw !== null || correctionDoseRaw !== null
+    ? (mealDoseRaw || 0) + (correctionDoseRaw || 0)
     : null
+  // Una dose di insulina non può mai essere negativa: una glicemia sotto
+  // target senza pasto (o con un pasto piccolo) dà una correzione negativa
+  // che qui va clampata a 0, MAI mostrata/registrata così com'è — un numero
+  // negativo non significa "togliere insulina", significa che la situazione
+  // reale è un'ipoglicemia che richiede l'assunzione di carboidrati secondo
+  // il protocollo del paziente, non un calcolo di dose.
+  const total = rawTotal !== null ? Math.max(0, round05(rawTotal)) : null
+  const hypoglycemiaWarning = rawTotal !== null && rawTotal < 0
 
   return {
     available: !!(icRatio || fsi),
     total,
+    hypoglycemiaWarning,
     mealDose: mealDoseRaw !== null ? round05(mealDoseRaw) : null,
     correctionDose: correctionDoseRaw !== null ? round05(correctionDoseRaw) : null,
     icRatio, fsi, target,
