@@ -71,7 +71,7 @@ async function fetchPatientTags(
   userId: string,
 ): Promise<string[] | null> {
   const { data: links, error: linkErr } = await supabase
-    .from('patient_dietitian').select('cartella_id').eq('patient_id', userId).limit(5)
+    .from('patient_dietitian').select('cartella_id').eq('patient_id', userId)
   if (linkErr) return null
   const cartellaIds = [...new Set((links || []).map((l: { cartella_id: string | null }) => l.cartella_id).filter(Boolean))]
   if (!cartellaIds.length) return []

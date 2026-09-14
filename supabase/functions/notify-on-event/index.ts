@@ -197,8 +197,17 @@ Deno.serve(async (req: Request) => {
 
   // ── New chat message from dietitian ──────────────────────────────────────────
   if (table === 'chat_messages') {
-    const { patient_id, sender_role, content, message_type } = record as {
-      patient_id?: string; sender_role?: string; content?: string; message_type?: string
+    const { patient_id, sender_role, content, message_type, status } = record as {
+      patient_id?: string; sender_role?: string; content?: string; message_type?: string; status?: string
+    }
+    // Un messaggio "programmato" (📅 Programma invio, SEZIONE 103) non è
+    // ancora leggibile dal paziente (RLS nasconde status='scheduled', vedi
+    // SEZIONE 77) — notificarlo subito all'INSERT vanificherebbe lo scopo
+    // della programmazione (push/email senza nulla da leggere fino
+    // all'orario schedulato). dispatch_scheduled_messages() invoca questa
+    // stessa funzione via pg_net quando promuove scheduled -> sent.
+    if (status === 'scheduled') {
+      return json({ skipped: 'scheduled' })
     }
     if (sender_role === 'dietitian' && patient_id) {
       if (message_type === 'video_call') {
