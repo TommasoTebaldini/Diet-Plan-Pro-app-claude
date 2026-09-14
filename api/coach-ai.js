@@ -123,7 +123,7 @@ async function fetchPatientTags(token, userId) {
   const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` };
   try {
     const linkRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/patient_dietitian?patient_id=eq.${userId}&select=cartella_id&limit=5`,
+      `${SUPABASE_URL}/rest/v1/patient_dietitian?patient_id=eq.${userId}&select=cartella_id`,
       { headers }
     );
     if (!linkRes.ok) return null;

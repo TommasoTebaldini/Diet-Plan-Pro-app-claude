@@ -268,6 +268,19 @@ Deno.serve(async (req: Request) => {
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) return json({ error: 'Non autorizzato' }, 401)
 
+  // Consenso esplicito obbligatorio (trattamento dati sanitari particolarmente
+  // sensibile, art. 9 GDPR): controllato qui lato server perché il solo check
+  // client-side in MealPhotoAnalyzer.jsx (stato React) è aggirabile da chiunque
+  // invochi questa funzione direttamente con un JWT valido, saltando la UI.
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('ai_photo_consent_at')
+    .eq('id', user.id)
+    .maybeSingle()
+  if (profileError || !profile?.ai_photo_consent_at) {
+    return json({ error: 'Consenso all\'analisi AI delle foto pasto non ancora fornito.' }, 403)
+  }
+
   rateLimiter.prune()
   if (!rateLimiter.allow(user.id)) {
     return json({ error: 'Troppe richieste, riprova tra un minuto.' }, 429)

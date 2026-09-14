@@ -89,8 +89,8 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
     return !!getAvailForDow(dow)
   }
 
-  async function onSelectDate(dateStr) {
-    if (selectedDate === dateStr) return
+  async function onSelectDate(dateStr, force = false) {
+    if (selectedDate === dateStr && !force) return
     setSelectedDate(dateStr)
     setSelectedSlot(null)
     setSlotsLoading(true)
@@ -155,7 +155,21 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
       duration_minutes: dur,
     })
     setSaving(false)
-    if (err) { setError(t('ddetail.errore_prenotazione', 'Errore nella prenotazione. Riprova.')); return }
+    if (err) {
+      // 23505 = violazione dell'indice UNIQUE parziale su (dietitian_id,
+      // appointment_date) — un altro paziente ha prenotato lo stesso slot
+      // pochi istanti prima (race condition, vedi SEZIONE 113). Non è
+      // l'errore generico: rinfresca gli slot occupati così lo slot appena
+      // preso da altri sparisce dalla selezione invece di restare cliccabile.
+      if (err.code === '23505') {
+        setError(t('ddetail.errore_slot_occupato', 'Questo orario è appena stato prenotato da qualcun altro. Scegline un altro.'))
+        setSelectedSlot(null)
+        onSelectDate(selectedDate, true)
+      } else {
+        setError(t('ddetail.errore_prenotazione', 'Errore nella prenotazione. Riprova.'))
+      }
+      return
+    }
     setSaved(true)
     setTimeout(() => { onBooked?.(); onClose() }, 2600)
   }
