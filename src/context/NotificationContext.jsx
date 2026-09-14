@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { loadPrefs, initScheduledNotifications, showNotification, scheduleMedicationReminders } from '../lib/notifications'
 import { checkMealAndNotify, checkStreakAtRiskAndNotify } from '../lib/smartNotifications'
@@ -10,6 +10,18 @@ export function NotificationProvider({ children, user }) {
   const t = useT()
   const channelsRef = useRef([])
   const prefsRef = useRef(loadPrefs())
+  // Centro notifiche in-app (SEZIONE 123, tabella `notifications`) — DIVERSO
+  // dai canali realtime già presenti in questo file (quelli mostrano un
+  // toast/system notification nel momento in cui l'evento accade; questo è
+  // uno storico persistente, consultabile anche dopo). unreadCount alimenta
+  // il badge di NotificationBell.jsx.
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  const refreshUnreadCount = useCallback(() => {
+    if (!user) { setUnreadCount(0); return }
+    supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', user.id).is('read_at', null)
+      .then(({ count }) => setUnreadCount(count || 0))
+  }, [user])
 
   // (Re)initialise whenever user changes or on first mount
   useEffect(() => {
@@ -24,6 +36,8 @@ export function NotificationProvider({ children, user }) {
 
     // Scheduled local notifications
     initScheduledNotifications(prefsRef.current)
+
+    refreshUnreadCount()
 
     // Medication reminders — lista dinamica da Supabase, ripianificata anche
     // su ogni INSERT/UPDATE/DELETE (es. modifica fatta in un'altra tab/sessione)
@@ -74,6 +88,11 @@ export function NotificationProvider({ children, user }) {
         { event: '*', schema: 'public', table: 'medication_reminders', filter: `user_id=eq.${user.id}` },
         loadAndScheduleMeds,
       )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        () => setUnreadCount(c => c + 1),
+      )
       .subscribe()
 
     // chat_messages è una vista cifrata lato DB (SEZIONE 80 di
@@ -122,7 +141,7 @@ export function NotificationProvider({ children, user }) {
   }, [user?.id])
 
   return (
-    <NotificationContext.Provider value={{}}>
+    <NotificationContext.Provider value={{ unreadCount, refreshUnreadCount }}>
       {children}
     </NotificationContext.Provider>
   )

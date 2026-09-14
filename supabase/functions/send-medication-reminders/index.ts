@@ -60,6 +60,10 @@ function currentDateRome(): string {
 // già applicato a notify-on-event/sendPushToUser): un endpoint scaduto su un
 // dispositivo non deve bloccare la notifica sugli altri.
 async function sendPushToUser(userId: string, title: string, body: string): Promise<boolean> {
+  // Centro notifiche in-app (SEZIONE 123): registrato indipendentemente dal
+  // successo della push, così il promemoria resta consultabile anche se il
+  // dispositivo era spento o non aveva mai una sottoscrizione attiva.
+  await supabaseAdmin.from('notifications').insert({ user_id: userId, title, body, url: '/farmaci', type: 'medication' }).then(() => {}, () => {})
   const { data: subs } = await supabaseAdmin.from('push_subscriptions').select('id, endpoint, p256dh, auth').eq('user_id', userId)
   if (!subs?.length) return false
   let sentToAtLeastOne = false

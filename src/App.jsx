@@ -5,6 +5,7 @@ import { AppSettingsProvider } from './context/AppSettingsContext'
 import LoadingScreen from './components/LoadingScreen'
 import PageSkeleton from './components/PageSkeleton'
 import BottomNav from './components/BottomNav'
+import NotificationBell from './components/NotificationBell'
 import InstallBanner from './components/InstallBanner'
 import AppLockGate from './components/AppLockGate'
 import { NotificationProvider } from './context/NotificationContext'
@@ -56,6 +57,7 @@ const CoachAiPage          = lazy(() => import('./pages/CoachAiPage'))
 const PaymentsPage         = lazy(() => import('./pages/PaymentsPage'))
 const PrivacyPage          = lazy(() => import('./pages/PrivacyPage'))
 const TermsPage            = lazy(() => import('./pages/TermsPage'))
+const NotificationsPage    = lazy(() => import('./pages/NotificationsPage'))
 
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null } }
@@ -219,6 +221,7 @@ function AnimatedRoutes() {
         <Route path="/speciale" element={<PatientRoute><PageTransition><SpecialPage /></PageTransition></PatientRoute>} />
         <Route path="/settimana" element={<PatientRoute><PageTransition><WeeklyReportPage /></PageTransition></PatientRoute>} />
         <Route path="/sfide" element={<PatientRoute><PageTransition><ChallengesPage /></PageTransition></PatientRoute>} />
+        <Route path="/notifiche" element={<PatientRoute><PageTransition><NotificationsPage /></PageTransition></PatientRoute>} />
         <Route path="/privacy" element={<PageTransition><PrivacyPage /></PageTransition>} />
         <Route path="/termini" element={<PageTransition><TermsPage /></PageTransition>} />
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -245,6 +248,7 @@ function AppInner() {
       {user && !isDietitian && <RevenueCatInit userId={user.id} />}
       <OfflineBar onReconnect={handleReconnect} />
       <InstallBanner />
+      {user && !isDietitian && <NotificationBell />}
       {user && !isDietitian && <BottomNav />}
       <div className={user && !isDietitian ? 'app-content' : 'app-content-public'}>
         {/* key sulla pathname: un crash su una pagina si resetta da solo

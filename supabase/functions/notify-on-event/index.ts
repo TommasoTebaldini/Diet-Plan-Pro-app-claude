@@ -73,7 +73,20 @@ function timingSafeEqualStr(a: string, b: string): boolean {
   return diff === 0
 }
 
+// Centro notifiche in-app (SEZIONE 123): scritta SEMPRE che si tenti una
+// notifica, indipendentemente dal successo della push — un dispositivo
+// spento o un permesso mai concesso non deve far perdere l'evento, l'utente
+// lo trova comunque aprendo l'app. Best-effort, non deve mai bloccare l'invio.
+async function logNotification(userId: string, title: string, body: string, url: string, type: string) {
+  try {
+    await supabaseAdmin.from('notifications').insert({ user_id: userId, title, body, url, type })
+  } catch (e) {
+    console.warn('[logNotification] fallito per', userId, ':', (e as Error).message)
+  }
+}
+
 async function sendPushToUser(userId: string, title: string, body: string, url = '/', tag = 'nutriplan') {
+  await logNotification(userId, title, body, url, tag)
   const vapidPublic = Deno.env.get('VAPID_PUBLIC_KEY')
   const vapidPrivate = Deno.env.get('VAPID_PRIVATE_KEY')
   const vapidEmail = Deno.env.get('VAPID_CONTACT_EMAIL') || 'app@nutriplan.it'
