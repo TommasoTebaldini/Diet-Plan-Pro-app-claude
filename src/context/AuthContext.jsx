@@ -123,10 +123,15 @@ export function AuthProvider({ children }) {
         if (_event === 'SIGNED_IN') {
           const ref = localStorage.getItem('pending_dietitian_ref')
           if (ref && ref.length > 10) {
+            // Rimosso SEMPRE dopo il tentativo, anche se fallisce (RPC ritorna
+            // false o va in errore) — un residuo in localStorage veniva
+            // ritentato a OGNI SIGNED_IN futuro su questo browser, non solo
+            // dallo stesso utente: su un dispositivo condiviso (PC di
+            // famiglia, tablet in sala d'attesa) un secondo paziente che
+            // accede più tardi si ritrovava collegato in automatico al
+            // dietista del primo, senza aver mai cliccato quel link.
+            localStorage.removeItem('pending_dietitian_ref')
             supabase.rpc('link_patient_to_dietitian_via_ref', { p_dietitian_id: ref })
-              .then(({ data, error }) => {
-                if (!error && data === true) localStorage.removeItem('pending_dietitian_ref')
-              })
           }
         }
       } else { clearProfileCache(); setProfile(null); setLoading(false) }

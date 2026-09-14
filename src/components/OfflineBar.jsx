@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { WifiOff, Wifi, RefreshCw } from 'lucide-react'
+import { WifiOff, Wifi, RefreshCw, AlertTriangle } from 'lucide-react'
 import { useT } from '../i18n'
-import { syncPendingWrites, getPendingCount } from '../lib/offlineDB'
+import { syncPendingWrites, getPendingCount, getFailedCount } from '../lib/offlineDB'
 
 /**
  * Shows a banner when the device is offline.
@@ -12,8 +12,19 @@ export default function OfflineBar({ onReconnect }) {
   const [online, setOnline] = useState(() => navigator.onLine)
   const [justReconnected, setJustReconnected] = useState(false)
   const [syncing, setSyncing] = useState(false)
-  const [syncResult, setSyncResult] = useState(null) // { synced, failed }
+  const [syncResult, setSyncResult] = useState(null) // { synced, failed, gaveUp }
   const [pendingCount, setPendingCount] = useState(0)
+  const [failedCount, setFailedCount] = useState(0)
+
+  // Writes that gave up permanently (see offlineDB MAX_SYNC_ATTEMPTS) used to
+  // vanish silently — check once on mount so a user who reopens the app days
+  // later still finds out something was never saved, not just right after
+  // the sync that gave up on it.
+  useEffect(() => {
+    let mounted = true
+    getFailedCount().then(n => { if (mounted) setFailedCount(n) })
+    return () => { mounted = false }
+  }, [])
 
   // Poll pending count while offline
   useEffect(() => {
@@ -35,6 +46,7 @@ export default function OfflineBar({ onReconnect }) {
     try {
       const result = await syncPendingWrites()
       setSyncResult(result)
+      if (result.gaveUp > 0) setFailedCount(n => n + result.gaveUp)
       if (typeof onReconnect === 'function') await onReconnect()
     } finally {
       setSyncing(false)
@@ -56,11 +68,17 @@ export default function OfflineBar({ onReconnect }) {
     }
   }, [handleOnline, handleOffline])
 
-  if (online && !justReconnected) return null
-
   const isOffline = !online
 
+  // A permanently-failed write (see offlineDB MAX_SYNC_ATTEMPTS) used to just
+  // vanish once the reconnect banner faded — now it keeps a persistent
+  // notice up even fully online/idle, since the data was genuinely never
+  // saved and the user has no other way to find out.
+  const showFailedNotice = failedCount > 0 && online && !justReconnected && !syncing
+  if (online && !justReconnected && !showFailedNotice) return null
+
   let message
+  let bg = isOffline ? '#2d2d2d' : 'var(--green-main)'
   if (isOffline) {
     message = (
       <>
@@ -75,16 +93,23 @@ export default function OfflineBar({ onReconnect }) {
     )
   } else if (syncing) {
     message = <><RefreshCw size={15} style={{ animation: 'spin 0.7s linear infinite' }} /> {t('offline.syncing')}</>
+  } else if (syncResult && syncResult.gaveUp > 0) {
+    bg = '#B45309'
+    message = <><AlertTriangle size={15} /> {t('offline.gave_up_count', { count: syncResult.gaveUp }, '{{count}} elementi non salvati: riprova o contatta il supporto')}</>
   } else if (syncResult && syncResult.synced > 0) {
     message = <><Wifi size={15} /> ✓ {t('offline.synced_count', { count: syncResult.synced }, '{{count}} log sincronizzati')}</>
-  } else {
+  } else if (justReconnected) {
     message = <><Wifi size={15} /> {t('offline.reconnected')}</>
+  } else {
+    // showFailedNotice, tornati online da un pezzo: solo il residuo mai salvato
+    bg = '#B45309'
+    message = <><AlertTriangle size={15} /> {t('offline.failed_count', { count: failedCount }, '{{count}} elementi non salvati in un tentativo precedente')}</>
   }
 
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 300,
-      background: isOffline ? '#2d2d2d' : 'var(--green-main)',
+      background: bg,
       color: 'white',
       padding: 'calc(env(safe-area-inset-top) + 10px) 16px 10px',
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,

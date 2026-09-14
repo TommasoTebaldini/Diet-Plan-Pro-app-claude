@@ -30,6 +30,16 @@ async function getDB() {
   })
 }
 
+// A write that keeps failing (server-side validation, a constraint, a
+// permanently expired session — not just "we're offline") was retried
+// forever, silently, on every reconnect/focus, with no way for the user to
+// ever find out it was never actually saved. After this many failed sync
+// attempts an item is marked -1 ('failed', see markFailed below) instead of
+// staying at 0 ('pending') — getPendingItems() only looks at synced=0, so a
+// failed item naturally stops being retried and getFailedCount() can surface
+// it to the UI instead.
+const MAX_SYNC_ATTEMPTS = 5
+
 async function queueWrite(tableName, operation, data) {
   const db = await getDB()
   return new Promise((resolve, reject) => {
@@ -40,6 +50,7 @@ async function queueWrite(tableName, operation, data) {
       operation, // 'insert' | 'update' | 'delete'
       data,
       synced: 0,
+      attempts: 0,
       queued_at: new Date().toISOString(),
     })
     req.onsuccess = () => resolve(req.result)
@@ -69,6 +80,45 @@ async function markSynced(id) {
       const item = getReq.result
       if (!item) return resolve()
       item.synced = 1
+      const putReq = store.put(item)
+      putReq.onsuccess = () => resolve()
+      putReq.onerror = () => reject(putReq.error)
+    }
+    getReq.onerror = () => reject(getReq.error)
+  })
+}
+
+// synced=-1: permanently failed (see MAX_SYNC_ATTEMPTS above) — distinct from
+// 0 (still pending) so getPendingItems()'s IDBKeyRange.only(0) naturally
+// excludes it from future retry attempts.
+async function markFailed(id) {
+  const db = await getDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(QUEUE_STORE, 'readwrite')
+    const store = tx.objectStore(QUEUE_STORE)
+    const getReq = store.get(id)
+    getReq.onsuccess = () => {
+      const item = getReq.result
+      if (!item) return resolve()
+      item.synced = -1
+      const putReq = store.put(item)
+      putReq.onsuccess = () => resolve()
+      putReq.onerror = () => reject(putReq.error)
+    }
+    getReq.onerror = () => reject(getReq.error)
+  })
+}
+
+async function bumpAttempts(id, attempts) {
+  const db = await getDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(QUEUE_STORE, 'readwrite')
+    const store = tx.objectStore(QUEUE_STORE)
+    const getReq = store.get(id)
+    getReq.onsuccess = () => {
+      const item = getReq.result
+      if (!item) return resolve()
+      item.attempts = attempts
       const putReq = store.put(item)
       putReq.onsuccess = () => resolve()
       putReq.onerror = () => reject(putReq.error)
@@ -108,6 +158,23 @@ export async function getPendingCount() {
   }
 }
 
+/** Returns number of writes that failed MAX_SYNC_ATTEMPTS times and were given up on (never saved to the server) */
+export async function getFailedCount() {
+  try {
+    const db = await getDB()
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(QUEUE_STORE, 'readonly')
+      const store = tx.objectStore(QUEUE_STORE)
+      const idx = store.index('synced')
+      const req = idx.getAll(IDBKeyRange.only(-1))
+      req.onsuccess = () => resolve((req.result || []).length)
+      req.onerror = () => reject(req.error)
+    })
+  } catch {
+    return 0
+  }
+}
+
 /**
  * Recomputes the daily_logs aggregate cache for one user/date from the
  * authoritative food_logs rows. Shared by MacroTrackerPage (online path) and
@@ -134,13 +201,13 @@ export async function recomputeDailyLog(userId, forDate) {
  * Returns { synced, failed }.
  */
 export async function syncPendingWrites() {
-  if (!navigator.onLine) return { synced: 0, failed: 0, tables: [] }
+  if (!navigator.onLine) return { synced: 0, failed: 0, gaveUp: 0, tables: [] }
   let pending
-  try { pending = await getPendingItems() } catch { return { synced: 0, failed: 0, tables: [] } }
-  if (!pending.length) return { synced: 0, failed: 0, tables: [] }
+  try { pending = await getPendingItems() } catch { return { synced: 0, failed: 0, gaveUp: 0, tables: [] } }
+  if (!pending.length) return { synced: 0, failed: 0, gaveUp: 0, tables: [] }
 
   const { supabase } = await import('./supabase')
-  let synced = 0, failed = 0
+  let synced = 0, failed = 0, gaveUp = 0
   const syncedTables = new Set()
   // Tracks unique user_id|date pairs among synced food_logs inserts so the
   // daily_logs cache gets recomputed once per affected day, not once per row.
@@ -171,6 +238,19 @@ export async function syncPendingWrites() {
     } catch (e) {
       console.warn('[offlineDB] Sync failed for item', item.id, e.message)
       failed++
+      const attempts = (item.attempts || 0) + 1
+      if (attempts >= MAX_SYNC_ATTEMPTS) {
+        // Non un problema di rete (ha appena avuto una connessione per
+        // fallire qui): probabilmente un rifiuto permanente lato server
+        // (validazione, sessione scaduta durante il periodo offline). Smette
+        // di essere ritentato — prima restava in coda per sempre, ritentato
+        // in silenzio ad ogni riconnessione, senza che l'utente scoprisse
+        // mai che quel dato non è stato salvato.
+        await markFailed(item.id).catch(() => {})
+        gaveUp++
+      } else {
+        await bumpAttempts(item.id, attempts).catch(() => {})
+      }
     }
   }
 
@@ -189,7 +269,7 @@ export async function syncPendingWrites() {
     window.dispatchEvent(new CustomEvent('offlinedb:synced', { detail: { tables } }))
   }
 
-  return { synced, failed, tables }
+  return { synced, failed, gaveUp, tables }
 }
 
 /**

@@ -451,14 +451,21 @@ export async function searchFoodsLocal(query) {
   const q = query.toLowerCase().trim()
   if (!q) return []
   const [a, b, c, d, e, f] = await Promise.allSettled([
-    searchRecentFoods(q),
-    searchRicette(q),
-    searchDietMealFoods(q),
-    searchCustomMeals(q),
-    searchPublicFoods(q),
     searchAllFoods(q),
+    searchPublicFoods(q),
+    searchRecentFoods(q),
+    searchDietMealFoods(q),
+    searchRicette(q),
+    searchCustomMeals(q),
   ])
   const seen = new Set()
+  // Ordine di priorità nel dedup (CLAUDE.md): il database curato CREA/BDA
+  // deve vincere su un nome duplicato, non essere oscurato da una voce
+  // "recenti" imprecisa (es. una stima manuale vecchia) — _dedup tiene il
+  // PRIMO risultato per nome, quindi l'ordine qui è quello che decide chi
+  // vince, non solo l'ordine di visualizzazione. Prima allFoods/publicFoods
+  // (fonti curate) erano ULTIME: una vecchia voce imprecisa in food_logs
+  // rendeva la voce verificata irraggiungibile via ricerca sotto quel nome.
   return _dedup([a, b, c, d, e, f], seen).slice(0, 50)
 }
 
