@@ -390,7 +390,7 @@ export default function StatisticsPage() {
       addText(t('stats.pdf.weekly_title', 'Diet Plan Pro — Report Settimanale'), margin, 13, { size: 14, style: 'bold', color: [255, 255, 255] })
       addText(weekLabel, margin, 21, { size: 9, color: [200, 240, 220] })
       if (profile?.full_name) {
-        addText(t('stats.pdf.patient', { name: profile.full_name }, 'Paziente: {{name}}'), W - margin - 50, 13, { size: 9, color: [200, 240, 220] })
+        addText(t('stats.pdf.patient', { name: profile.full_name.replace(/[^\x00-\xFF]/g, '') }, 'Paziente: {{name}}'), W - margin - 50, 13, { size: 9, color: [200, 240, 220] })
       }
       addText(t('stats.pdf.generated_on', { date: format(today, 'd MMMM yyyy', { locale: it }) }, 'Generato il {{date}}'), W - margin - 50, 21, { size: 8, color: [180, 230, 200] })
       y = 40
@@ -571,7 +571,7 @@ export default function StatisticsPage() {
       doc.rect(0, 0, W, 30, 'F')
       addText(t('stats.pdf.monthly_title', 'Diet Plan Pro - Report Mensile'), margin, 13, { size: 14, style: 'bold', color: [255, 255, 255] })
       addText(monthName, margin, 21, { size: 9, color: [200, 240, 220] })
-      if (profile?.full_name) addText(t('stats.pdf.patient', { name: profile.full_name }, 'Paziente: {{name}}'), W - margin - 50, 13, { size: 9, color: [200, 240, 220] })
+      if (profile?.full_name) addText(t('stats.pdf.patient', { name: profile.full_name.replace(/[^\x00-\xFF]/g, '') }, 'Paziente: {{name}}'), W - margin - 50, 13, { size: 9, color: [200, 240, 220] })
       addText(t('stats.pdf.generated_on', { date: format(today, 'd MMMM yyyy', { locale: it }) }, 'Generato il {{date}}'), W - margin - 50, 21, { size: 8, color: [180, 230, 200] })
       y = 40
 
