@@ -85,28 +85,42 @@ async function sendPushToUser(userId: string, title: string, body: string, url =
 
   webpush.setVapidDetails(`mailto:${vapidEmail}`, vapidPublic, vapidPrivate)
 
-  const { data: sub, error } = await supabaseAdmin
+  // push_subscriptions supporta più dispositivi per utente (unique(endpoint),
+  // non unique(user_id) — vedi src/sql/push_subscriptions_multidevice.sql):
+  // .maybeSingle() qui andava in errore non appena un utente aveva più di
+  // una sottoscrizione attiva (esattamente il caso che quella migrazione
+  // doveva abilitare), azzerando silenziosamente ogni notifica push per
+  // quell'utente. Stesso pattern multi-dispositivo già corretto lato
+  // dietista in NutriPlan-Pro/api/cron.js (dietitian_push_subscriptions).
+  const { data: subs, error } = await supabaseAdmin
     .from('push_subscriptions')
-    .select('endpoint, p256dh, auth')
+    .select('id, endpoint, p256dh, auth')
     .eq('user_id', userId)
-    .maybeSingle()
 
-  if (error || !sub) return { sent: false, reason: 'no_subscription' }
+  if (error || !subs?.length) return { sent: false, reason: 'no_subscription' }
 
-  try {
-    await webpush.sendNotification(
-      { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-      JSON.stringify({ title, body, url, tag }),
-    )
-    return { sent: true }
-  } catch (e) {
-    console.error('[notify] Push failed:', (e as Error).message)
-    // Remove invalid subscription
-    if ((e as { statusCode?: number }).statusCode === 410) {
-      await supabaseAdmin.from('push_subscriptions').delete().eq('user_id', userId)
+  const payload = JSON.stringify({ title, body, url, tag })
+  let sentToAtLeastOne = false
+  let lastError = ''
+  for (const sub of subs) {
+    try {
+      await webpush.sendNotification(
+        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+        payload,
+      )
+      sentToAtLeastOne = true
+    } catch (e) {
+      lastError = (e as Error).message
+      console.error('[notify] Push failed for subscription', sub.id, ':', lastError)
+      // Rimuove solo QUESTA sottoscrizione scaduta, non tutte quelle
+      // dell'utente — un endpoint morto su un dispositivo non deve
+      // disattivare le notifiche sugli altri.
+      if ((e as { statusCode?: number }).statusCode === 410) {
+        await supabaseAdmin.from('push_subscriptions').delete().eq('id', sub.id)
+      }
     }
-    return { sent: false, reason: (e as Error).message }
   }
+  return sentToAtLeastOne ? { sent: true } : { sent: false, reason: lastError || 'all_failed' }
 }
 
 // Email di notifica nuovo messaggio — canale aggiuntivo al push, per i

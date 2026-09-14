@@ -245,7 +245,10 @@ export function scheduleMedicationReminders(meds) {
             : t('notif.med_time', 'È ora di prendere il farmaco'),
           `med-${med.id}-${time}`,
         )
-        const id = setTimeout(tick, 24 * 60 * 60 * 1000)
+        // msUntilTime() (non un intervallo fisso di 24h) ricalcola il prossimo
+        // scatto rispetto all'ora locale corrente: un intervallo fisso in ms
+        // drifta di un'ora ad ogni cambio ora legale/solare (marzo/ottobre).
+        const id = setTimeout(tick, msUntilTime(time))
         _medTimers.push(id)
       }
       const id = setTimeout(tick, msUntilTime(time))
