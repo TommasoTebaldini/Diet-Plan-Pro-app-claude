@@ -288,9 +288,13 @@ export async function subscribeToPush(userId) {
     }
     const subData = sub.toJSON()
     const { supabase } = await import('./supabase')
-    // push_subscriptions ha unique(user_id), non unique(endpoint) — con
-    // onConflict:'endpoint' l'upsert falliva sempre con 42P10 (nessun vincolo
-    // corrispondente), quindi nessuna sottoscrizione veniva mai salvata.
+    // push_subscriptions ha unique(endpoint), non unique(user_id) —
+    // src/sql/push_subscriptions_multidevice.sql ha droppato lo unique(user_id)
+    // originale per supportare più dispositivi per utente, ma questo upsert
+    // non era mai stato allineato: con onConflict:'user_id' (nessun vincolo
+    // corrispondente) falliva sempre con 42P10, quindi nessuna sottoscrizione
+    // veniva mai salvata/aggiornata — le notifiche push lato paziente non
+    // hanno mai funzionato per nessuna sottoscrizione nuova o rinnovata.
     const { error } = await supabase.from('push_subscriptions').upsert(
       {
         user_id: userId,
@@ -299,7 +303,7 @@ export async function subscribeToPush(userId) {
         auth: subData.keys?.auth,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: 'user_id' },
+      { onConflict: 'endpoint' },
     )
     // Una sottoscrizione push locale senza la riga DB è inutile (il server
     // non ha modo di inviare nulla): l'esito non veniva mai controllato, il
