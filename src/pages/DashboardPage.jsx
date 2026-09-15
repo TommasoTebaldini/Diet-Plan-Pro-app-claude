@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
+import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -71,7 +71,7 @@ function Ring({ pct, color, size = 60, strokeWidth = 7 }) {
   const circ = 2 * Math.PI * r
   const offset = circ - Math.min(100, display) / 100 * circ
   return (
-    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }} aria-hidden="true">
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,.15)" strokeWidth={strokeWidth} />
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color}
         strokeWidth={strokeWidth} strokeLinecap="round"
@@ -154,10 +154,19 @@ function QuizBannerCard({ onOpen }) {
   const done = (() => { try { return !!JSON.parse(localStorage.getItem(`quiz_${today}`) || 'null')?.done } catch { return false } })()
   const streak = (() => { try { return parseInt(localStorage.getItem('quiz_streak') || '0') } catch { return 0 } })()
   return (
-    <motion.div whileHover={{ y: -3, scale: 1.01 }} whileTap={{ scale: 0.98 }} onClick={onOpen} style={{ cursor: 'pointer' }}>
+    <motion.div
+      whileHover={{ y: -3, scale: 1.01 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onOpen}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen() } }}
+      role="button"
+      tabIndex={0}
+      aria-label={done ? t('dash.quiz_done_message', 'Ottimo lavoro! Torna domani') : t('dash.quiz_start_message', 'Impara qualcosa di nuovo oggi')}
+      style={{ cursor: 'pointer' }}
+    >
       <div style={{ background: done ? 'linear-gradient(135deg, #064E3B, #0F766E)' : 'linear-gradient(135deg, #4c1d95, #7c3aed)', borderRadius: 18, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: -18, right: -18, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,.07)' }} />
-        <div style={{ width: 46, height: 46, borderRadius: 14, background: 'rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 24 }}>
+        <div aria-hidden="true" style={{ width: 46, height: 46, borderRadius: 14, background: 'rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 24 }}>
           {done ? '✅' : '🧠'}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -194,10 +203,26 @@ export default function DashboardPage() {
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('onboarding_done'))
   const [showQuiz, setShowQuiz] = useState(false)
   const { isFirstVisit: isDashFirstVisit } = useFirstVisit('dashboard')
+  const quizCloseBtnRef = useRef(null)
+  const quizOpenerRef = useRef(null)
 
   function handleOnboardingDone() {
     setShowOnboarding(false)
   }
+
+  // Modale quiz: chiusura con Escape + focus spostato nel modale
+  // all'apertura e ripristinato sul trigger alla chiusura — senza questo un
+  // utente da tastiera resta bloccato sulla pagina sotto il backdrop.
+  useEffect(() => {
+    if (!showQuiz) return
+    quizCloseBtnRef.current?.focus()
+    function onKeyDown(e) { if (e.key === 'Escape') setShowQuiz(false) }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      quizOpenerRef.current?.focus()
+    }
+  }, [showQuiz])
 
   const MEAL_META = useMemo(() => Object.fromEntries(
     MEAL_ORDER.map(k => [k, { ...MEAL_STATIC[k], label: t(`meal.${k}`) }])
@@ -367,15 +392,15 @@ export default function DashboardPage() {
                 </div>
               )}
               {unreadChat > 0 && (
-                <Link to="/chat" style={{ width: 42, height: 42, borderRadius: '50%', background: '#dc4a4a', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', position: 'relative', boxShadow: '0 4px 12px rgba(220,74,74,.4)' }}>
-                  <MessageCircle size={18} color="white" />
-                  <span style={{ position: 'absolute', top: -2, right: -2, width: 18, height: 18, borderRadius: '50%', background: 'white', color: '#dc4a4a', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{unreadChat}</span>
+                <Link to="/chat" aria-label={t('dash.unread_messages', 'Messaggi non letti') + ` (${unreadChat})`} style={{ width: 42, height: 42, borderRadius: '50%', background: '#dc4a4a', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', position: 'relative', boxShadow: '0 4px 12px rgba(220,74,74,.4)' }}>
+                  <MessageCircle size={18} color="white" aria-hidden="true" />
+                  <span aria-hidden="true" style={{ position: 'absolute', top: -2, right: -2, width: 18, height: 18, borderRadius: '50%', background: 'white', color: '#dc4a4a', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{unreadChat}</span>
                 </Link>
               )}
-                <Link to="/profilo" style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(255,255,255,.18)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', color: 'white', fontWeight: 700, fontSize: 16, border: '1.5px solid rgba(255,255,255,.25)', position: 'relative' }}>
+                <Link to="/profilo" aria-label={t('dash.action_profile', 'Profilo')} style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(255,255,255,.18)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', color: 'white', fontWeight: 700, fontSize: 16, border: '1.5px solid rgba(255,255,255,.25)', position: 'relative' }}>
                 {firstName[0]?.toUpperCase()}
                 {isPro && (
-                  <span style={{ position: 'absolute', bottom: -4, right: -4, width: 18, height: 18, borderRadius: '50%', background: 'linear-gradient(135deg, #FCD34D, #F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, border: '2px solid rgba(255,255,255,0.3)' }}>
+                  <span aria-hidden="true" style={{ position: 'absolute', bottom: -4, right: -4, width: 18, height: 18, borderRadius: '50%', background: 'linear-gradient(135deg, #FCD34D, #F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, border: '2px solid rgba(255,255,255,0.3)' }}>
                     <Crown size={9} color="#7c2d12" />
                   </span>
                 )}
@@ -632,7 +657,7 @@ export default function DashboardPage() {
 
         {/* ── Quiz del giorno ── */}
         <motion.div initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}>
-          <QuizBannerCard onOpen={() => setShowQuiz(true)} />
+          <QuizBannerCard onOpen={() => { quizOpenerRef.current = document.activeElement; setShowQuiz(true) }} />
         </motion.div>
 
         {/* ── AI Daily Tips ── */}
@@ -695,19 +720,23 @@ export default function DashboardPage() {
               exit={{ scale: 0.92, opacity: 0, y: 20 }}
               transition={{ type: 'spring', stiffness: 340, damping: 28 }}
               onClick={e => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="quiz-modal-title"
               style={{ background: '#ffffff', borderRadius: 24, width: '100%', maxWidth: 460, maxHeight: '88dvh', overflowY: 'auto', boxShadow: '0 24px 60px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column' }}
             >
               {/* Card header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px 12px', borderBottom: '1px solid var(--border-light)', flexShrink: 0 }}>
-                <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>🧠 {t('dash.quiz_of_the_day', 'Quiz del giorno')}</span>
+                <span id="quiz-modal-title" style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>🧠 {t('dash.quiz_of_the_day', 'Quiz del giorno')}</span>
                 <button
+                  ref={quizCloseBtnRef}
                   onClick={() => setShowQuiz(false)}
                   aria-label={t('dash.quiz_close_aria', 'Chiudi quiz')}
                   style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--surface-2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1 }}
                 >✕</button>
               </div>
               {/* Quiz content */}
-              <Suspense fallback={<div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}><div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /></div>}>
+              <Suspense fallback={<div role="status" aria-label={t('common.loading', 'Caricamento')} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}><div aria-hidden="true" style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /></div>}>
                 <QuizPage inModal />
               </Suspense>
             </motion.div>

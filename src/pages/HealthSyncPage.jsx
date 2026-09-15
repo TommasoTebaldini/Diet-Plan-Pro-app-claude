@@ -46,7 +46,7 @@ function StatusBadge({ status }) {
   const Icon = cfg.icon
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: cfg.bg, color: cfg.color, borderRadius: 100, padding: '3px 9px', fontSize: 11, fontWeight: 600 }}>
-      <Icon size={10} />
+      <Icon size={10} aria-hidden="true" />
       {cfg.label}
     </span>
   )
@@ -58,7 +58,7 @@ function DataRow({ icon: Icon, label, value, unit, status, children }) {
   const t = useT()
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 0', borderBottom: '1px solid var(--border-light)' }}>
-      <div style={{ width: 38, height: 38, borderRadius: 11, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <div aria-hidden="true" style={{ width: 38, height: 38, borderRadius: 11, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <Icon size={18} color="var(--green-main)" />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -333,7 +333,7 @@ export default function HealthSyncPage() {
             counter, active only while the tab is open. */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card" style={{ padding: '14px 16px', background: '#f0fdf4', border: '1.5px solid #86efac' }}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            <span style={{ fontSize: 20, flexShrink: 0 }}>👣</span>
+            <span aria-hidden="true" style={{ fontSize: 20, flexShrink: 0 }}>👣</span>
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: 14, fontWeight: 700, color: '#14532d', marginBottom: 4 }}>{t('healthsync.pedometer_card_title', 'Contapassi NutriPlan')}</p>
               <p style={{ fontSize: 12, color: '#166534', lineHeight: 1.5, marginBottom: 10 }}>
@@ -355,7 +355,7 @@ export default function HealthSyncPage() {
                 disabled={syncing || !isPedometerSupported()}
                 style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#16a34a', color: 'white', border: 'none', borderRadius: 9, padding: '9px 14px', cursor: syncing ? 'default' : 'pointer', fontSize: 13, fontWeight: 600, opacity: isPedometerSupported() ? 1 : 0.5 }}
               >
-                <Footprints size={14} />
+                <Footprints size={14} aria-hidden="true" />
                 {syncing ? t('healthsync.pedometer_activating', 'Attivazione…') : hasMotionPermission() ? t('healthsync.pedometer_reactivate', 'Riattiva contapassi') : t('healthsync.pedometer_activate', 'Attiva contapassi')}
               </button>
               {!isPedometerSupported() && (
@@ -368,7 +368,7 @@ export default function HealthSyncPage() {
 
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card" style={{ padding: '14px 16px', background: '#fef9f0', border: '1.5px solid #fde68a' }}>
           <div style={{ display: 'flex', gap: 10 }}>
-            <span style={{ fontSize: 20, flexShrink: 0 }}>{os === 'ios' ? '🍎' : '❤️'}</span>
+            <span aria-hidden="true" style={{ fontSize: 20, flexShrink: 0 }}>{os === 'ios' ? '🍎' : '❤️'}</span>
             <div>
               <p style={{ fontSize: 14, fontWeight: 700, color: '#92400e', marginBottom: 4 }}>{t('healthsync.hr_sleep_card_title', 'Frequenza cardiaca e sonno')}</p>
               <p style={{ fontSize: 12, color: '#78350f', lineHeight: 1.5 }}>

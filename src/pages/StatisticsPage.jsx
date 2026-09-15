@@ -718,9 +718,9 @@ export default function StatisticsPage() {
 
       {/* tab bar */}
       <div style={{ padding: '14px 16px', background: 'var(--surface)', borderBottom: '1px solid var(--border-light)' }}>
-        <div style={{ display: 'flex', gap: 6, background: 'var(--surface-2)', borderRadius: 12, padding: 4 }}>
+        <div role="tablist" aria-label={t('stats.title', 'Statistiche')} style={{ display: 'flex', gap: 6, background: 'var(--surface-2)', borderRadius: 12, padding: 4 }}>
           {TABS_STATIC.map(tab_ => (
-            <button key={tab_.key} onClick={() => setTab(tab_.key)} style={{
+            <button key={tab_.key} id={`stats-tab-${tab_.key}`} role="tab" aria-selected={tab === tab_.key} aria-controls={`stats-panel-${tab_.key}`} onClick={() => setTab(tab_.key)} style={{
               flex: 1, padding: '8px 4px', borderRadius: 9, border: 'none', cursor: 'pointer', font: 'inherit',
               fontSize: 11.5, fontWeight: tab === tab_.key ? 700 : 500, transition: 'all .15s',
               background: tab === tab_.key ? 'var(--surface)' : 'transparent',
@@ -779,7 +779,8 @@ export default function StatisticsPage() {
               {/* weekly macro chart — Pro only */}
               <ProGate feature={t('stats.progate.charts_feature', 'Grafici settimanali')} teaser={t('stats.progate.charts_teaser', 'Visualizza i grafici di calorie e idratazione giorno per giorno')}>
                 <div className="card" style={{ padding: '16px 10px 14px' }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14, paddingLeft: 6 }}>📊 {t('stats.daily_calories', 'Calorie giornaliere')}</h3>
+                  <h3 id="stats-chart-kcal-title" style={{ fontSize: 14, fontWeight: 600, marginBottom: 14, paddingLeft: 6 }}>📊 {t('stats.daily_calories', 'Calorie giornaliere')}</h3>
+                  <div role="img" aria-labelledby="stats-chart-kcal-title">
                   <ResponsiveContainer width="100%" height={160}>
                     <BarChart data={dailyChart} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
@@ -792,6 +793,7 @@ export default function StatisticsPage() {
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
+                  </div>
                 </div>
 
                 <div className="card" style={{ padding: 16 }}>
@@ -1133,6 +1135,7 @@ export default function StatisticsPage() {
                   <button
                     key={m.key}
                     onClick={() => setPdfMode(m.key)}
+                    aria-pressed={pdfMode === m.key}
                     style={{ flex: 1, padding: '9px 4px', borderRadius: 9, background: pdfMode === m.key ? 'var(--surface)' : 'transparent', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: pdfMode === m.key ? 700 : 400, color: pdfMode === m.key ? 'var(--green-main)' : 'var(--text-muted)', boxShadow: pdfMode === m.key ? 'var(--shadow-sm)' : 'none', transition: 'all 0.15s', font: 'inherit' }}
                   >
                     {m.label}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef, useId } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -401,7 +401,7 @@ function FeatureCard({ feature, onOpen, index }) {
       {/* "Scopri" CTA */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 'auto' }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: feature.color, fontFamily: 'var(--font-b)' }}>{t('profeatures.discover_cta', 'Scopri')}</span>
-        <ChevronRight size={11} color={feature.color} />
+        <ChevronRight size={11} color={feature.color} aria-hidden="true" />
       </div>
     </motion.button>
   )
@@ -411,6 +411,36 @@ function FeatureCard({ feature, onOpen, index }) {
 function FeatureSheet({ feature, onClose, onSubscribe }) {
   const t = useT()
   const Illus = feature.illustration
+  const titleId = useId()
+  const sheetRef = useRef(null)
+  const lastFocusRef = useRef(null)
+
+  // Bottom sheet == modale: senza questo un utente da tastiera/screen reader
+  // non sa che si è aperto un dialog sopra la pagina, non può chiuderlo con
+  // Escape, e Tab lo porta sui controlli della pagina sottostante invece che
+  // restare dentro al foglio.
+  useEffect(() => {
+    lastFocusRef.current = document.activeElement
+    const sheet = sheetRef.current
+    const focusable = sheet?.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+    focusable?.[0]?.focus()
+
+    function onKeyDown(e) {
+      if (e.key === 'Escape') { onClose(); return }
+      if (e.key !== 'Tab' || !sheet) return
+      const items = Array.from(sheet.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+        .filter(el => !el.disabled && el.offsetParent !== null)
+      if (!items.length) return
+      const first = items[0], last = items[items.length - 1]
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      if (lastFocusRef.current && typeof lastFocusRef.current.focus === 'function') lastFocusRef.current.focus()
+    }
+  }, [onClose])
 
   const sheetContent = (
     <>
@@ -421,6 +451,7 @@ function FeatureSheet({ feature, onClose, onSubscribe }) {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
+        aria-hidden="true"
         style={{
           position: 'fixed', inset: 0,
           zIndex: 1010,
@@ -432,6 +463,10 @@ function FeatureSheet({ feature, onClose, onSubscribe }) {
       {/* Sheet */}
       <motion.div
         key="sheet"
+        ref={sheetRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
@@ -460,6 +495,7 @@ function FeatureSheet({ feature, onClose, onSubscribe }) {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={onClose}
+          aria-label={t('common.close', 'Chiudi')}
           style={{
             position: 'absolute', top: 16, right: 16, zIndex: 10,
             width: 32, height: 32, borderRadius: '50%',
@@ -467,7 +503,7 @@ function FeatureSheet({ feature, onClose, onSubscribe }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
           }}
         >
-          <X size={15} color="var(--text-muted)" />
+          <X size={15} color="var(--text-muted)" aria-hidden="true" />
         </motion.button>
 
         {/* Header gradient */}
@@ -490,7 +526,7 @@ function FeatureSheet({ feature, onClose, onSubscribe }) {
 
           <div style={{ position: 'relative', zIndex: 1 }}>
             <div style={{ fontSize: 36, lineHeight: 1, marginBottom: 8 }}>{feature.emoji}</div>
-            <h2 style={{ color: 'white', fontSize: 20, fontWeight: 800, margin: '0 0 3px', fontFamily: 'var(--font-d)' }}>{feature.title}</h2>
+            <h2 id={titleId} style={{ color: 'white', fontSize: 20, fontWeight: 800, margin: '0 0 3px', fontFamily: 'var(--font-d)' }}>{feature.title}</h2>
             <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, margin: 0, fontFamily: 'var(--font-b)' }}>{feature.subtitle}</p>
           </div>
 
@@ -532,7 +568,7 @@ function FeatureSheet({ feature, onClose, onSubscribe }) {
                   background: feature.pale, border: `1.5px solid ${feature.color}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <Check size={11} color={feature.color} />
+                  <Check size={11} color={feature.color} aria-hidden="true" />
                 </div>
                 <p style={{ fontSize: 13.5, color: 'var(--text-primary)', margin: 0, lineHeight: 1.45, fontFamily: 'var(--font-b)' }}>{h}</p>
               </motion.div>
@@ -548,7 +584,7 @@ function FeatureSheet({ feature, onClose, onSubscribe }) {
               display: 'flex', alignItems: 'center', gap: 10,
             }}
           >
-            <Crown size={18} color="#D97706" style={{ flexShrink: 0 }} />
+            <Crown size={18} color="#D97706" aria-hidden="true" style={{ flexShrink: 0 }} />
             <p style={{ fontSize: 12.5, color: '#92400E', margin: 0, lineHeight: 1.4, fontFamily: 'var(--font-b)' }}>
               {t('profeatures.exclusive_prefix', 'Funzione esclusiva del piano')} <strong>NutriPlan Pro</strong> {t('profeatures.exclusive_suffix', '· €5,99/mese')}
             </p>
@@ -569,7 +605,7 @@ function FeatureSheet({ feature, onClose, onSubscribe }) {
               fontFamily: 'var(--font-b)',
             }}
           >
-            <Star size={16} />
+            <Star size={16} aria-hidden="true" />
             {t('profeatures.unlock_with_pro_cta', 'Sblocca con il Pro')}
           </motion.button>
         </motion.div>
@@ -623,13 +659,14 @@ export default function ProFeaturesPage() {
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.92 }}
           onClick={() => navigate(-1)}
+          aria-label={t('common.back', 'Indietro')}
           style={{
             background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10,
             width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', color: 'white', marginBottom: 20, position: 'relative', zIndex: 1,
           }}
         >
-          <ArrowLeft size={18} />
+          <ArrowLeft size={18} aria-hidden="true" />
         </motion.button>
 
         {/* Hero content — staggered */}
@@ -650,7 +687,7 @@ export default function ProFeaturesPage() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >
-              <Crown size={24} color="#FCD34D" />
+              <Crown size={24} color="#FCD34D" aria-hidden="true" />
             </motion.div>
             <div>
               <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, margin: 0, letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 700, fontFamily: 'var(--font-b)' }}>NutriPlan</p>
@@ -671,7 +708,7 @@ export default function ProFeaturesPage() {
               borderRadius: 12, padding: '9px 14px', marginBottom: 16,
             }}
           >
-            <Star size={14} color="#FCD34D" fill="#FCD34D" />
+            <Star size={14} color="#FCD34D" fill="#FCD34D" aria-hidden="true" />
             <span style={{ color: 'white', fontSize: 13.5, fontWeight: 700, fontFamily: 'var(--font-b)' }}>{t('profeatures.price_per_month', '€5,99/mese')}</span>
             <span style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.3)' }} />
             <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12.5, fontFamily: 'var(--font-b)' }}>{t('profeatures.free_trial_badge', '7 giorni gratis')}</span>
@@ -691,7 +728,7 @@ export default function ProFeaturesPage() {
               fontFamily: 'var(--font-b)',
             }}
           >
-            <Star size={16} color="#0F766E" fill="#0F766E" />
+            <Star size={16} color="#0F766E" fill="#0F766E" aria-hidden="true" />
             {isPro ? t('profeatures.pro_active_badge', '✅ Piano Pro attivo') : t('profeatures.start_free_trial_cta', 'Inizia 7 giorni gratuiti')}
           </motion.button>
 
@@ -738,31 +775,33 @@ export default function ProFeaturesPage() {
             <div style={{ width: 3, height: 18, background: 'linear-gradient(180deg, #0F766E, #10B981)', borderRadius: 2 }} />
             <p style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', margin: 0, fontFamily: 'var(--font-b)' }}>{t('profeatures.compare_section_title', 'Free vs Pro')}</p>
           </div>
-          <div style={{ background: 'var(--surface)', border: '1.5px solid var(--border-light)', borderRadius: 18, overflow: 'hidden' }}>
-            {/* Table header */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border-light)' }}>
-              <div style={{ padding: '11px 14px', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-b)' }}>{t('profeatures.compare_header_feature', 'Funzione')}</div>
-              <div style={{ padding: '11px 8px', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-b)' }}>{t('profeatures.compare_header_free', 'Free')}</div>
-              <div style={{ padding: '11px 8px', fontSize: 11, fontWeight: 700, color: '#0F766E', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.06em', background: '#F0FDFA', fontFamily: 'var(--font-b)' }}>{t('profeatures.compare_header_pro', '⭐ Pro')}</div>
+          <div role="table" aria-label={t('profeatures.compare_section_title', 'Free vs Pro')} style={{ background: 'var(--surface)', border: '1.5px solid var(--border-light)', borderRadius: 18, overflow: 'hidden' }}>
+            {/* Table header — div/grid styled as a table (no <table> per il vincolo di non
+                cambiare layout), ruoli ARIA aggiunti per dargli la semantica corretta. */}
+            <div role="row" style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border-light)' }}>
+              <div role="columnheader" style={{ padding: '11px 14px', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-b)' }}>{t('profeatures.compare_header_feature', 'Funzione')}</div>
+              <div role="columnheader" style={{ padding: '11px 8px', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-b)' }}>{t('profeatures.compare_header_free', 'Free')}</div>
+              <div role="columnheader" style={{ padding: '11px 8px', fontSize: 11, fontWeight: 700, color: '#0F766E', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.06em', background: '#F0FDFA', fontFamily: 'var(--font-b)' }}>{t('profeatures.compare_header_pro', '⭐ Pro')}</div>
             </div>
             {COMPARE.map((row, i) => (
               <motion.div
                 key={i}
+                role="row"
                 initial={{ opacity: 0, x: -12 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.04, duration: 0.35, ease: easeOut }}
                 style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px', borderBottom: i < COMPARE.length - 1 ? '1px solid var(--border-light)' : 'none' }}
               >
-                <div style={{ padding: '11px 14px', fontSize: 12.5, color: 'var(--text-primary)', fontWeight: 500, display: 'flex', alignItems: 'center', fontFamily: 'var(--font-b)' }}>{row.label}</div>
-                <div style={{ padding: '11px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div role="rowheader" style={{ padding: '11px 14px', fontSize: 12.5, color: 'var(--text-primary)', fontWeight: 500, display: 'flex', alignItems: 'center', fontFamily: 'var(--font-b)' }}>{row.label}</div>
+                <div role="cell" aria-label={row.free === false ? t('profeatures.compare_not_included', 'Non incluso') : undefined} style={{ padding: '11px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {row.free === false
-                    ? <X size={14} color="#94A3B8" />
+                    ? <X size={14} color="#94A3B8" aria-hidden="true" />
                     : <span style={{ fontSize: 11, color: '#64748B', fontWeight: 600, textAlign: 'center', fontFamily: 'var(--font-b)' }}>{row.free}</span>}
                 </div>
-                <div style={{ padding: '11px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F0FDFA' }}>
+                <div role="cell" aria-label={row.pro === true ? t('profeatures.compare_included', 'Incluso') : undefined} style={{ padding: '11px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F0FDFA' }}>
                   {row.pro === true
-                    ? <Check size={14} color="#0F766E" />
+                    ? <Check size={14} color="#0F766E" aria-hidden="true" />
                     : <span style={{ fontSize: 11, color: '#0F766E', fontWeight: 700, textAlign: 'center', fontFamily: 'var(--font-b)' }}>{row.pro}</span>}
                 </div>
               </motion.div>
@@ -814,7 +853,7 @@ export default function ProFeaturesPage() {
             transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
             style={{ display: 'inline-block', marginBottom: 10 }}
           >
-            <Crown size={30} color="#FCD34D" />
+            <Crown size={30} color="#FCD34D" aria-hidden="true" />
           </motion.div>
           <h3 style={{ color: 'white', fontSize: 20, fontWeight: 700, margin: '0 0 6px', fontFamily: 'var(--font-d)' }}>NutriPlan Pro</h3>
           <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, margin: '0 0 4px', fontFamily: 'var(--font-b)' }}>{t('profeatures.final_cta_price_billed', '€5,99/mese · fatturato mensilmente')}</p>
@@ -830,7 +869,7 @@ export default function ProFeaturesPage() {
               boxShadow: '0 4px 20px rgba(0,0,0,0.2)', fontFamily: 'var(--font-b)',
             }}
           >
-            <Star size={16} color="#0F766E" fill="#0F766E" />
+            <Star size={16} color="#0F766E" fill="#0F766E" aria-hidden="true" />
             {isPro ? t('profeatures.pro_active_badge', '✅ Piano Pro attivo') : t('profeatures.start_free_trial_cta', 'Inizia 7 giorni gratuiti')}
           </motion.button>
           <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10.5, marginTop: 10, fontFamily: 'var(--font-b)' }}>

@@ -75,14 +75,20 @@ export default function BadgesPage() {
           </div>
 
           {/* Progress bar */}
-          <div style={{
-            marginTop: '16px',
-            height: '6px',
-            background: 'rgba(255,255,255,0.2)',
-            borderRadius: '3px',
-            maxWidth: '280px',
-            margin: '16px auto 0',
-          }}>
+          <div
+            role="progressbar"
+            aria-valuenow={earnedCount}
+            aria-valuemin={0}
+            aria-valuemax={totalCount}
+            aria-label={t('badges.progress_aria', 'Badge sbloccati')}
+            style={{
+              marginTop: '16px',
+              height: '6px',
+              background: 'rgba(255,255,255,0.2)',
+              borderRadius: '3px',
+              maxWidth: '280px',
+              margin: '16px auto 0',
+            }}>
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${(earnedCount / totalCount) * 100}%` }}
@@ -122,9 +128,14 @@ export default function BadgesPage() {
                   {items.map((ach, idx) => {
                     const isEarned = !!earned[ach.key]
                     const earnedAt = earned[ach.key]
+                    const statusLabel = isEarned
+                      ? t('badges.status_earned', { date: formatDate(earnedAt) }, 'Sbloccato il {{date}}')
+                      : t('badges.status_locked', 'Bloccato')
                     return (
                       <motion.div
                         key={ach.key}
+                        role="group"
+                        aria-label={`${t(ach.nameKey, ach.name)} — ${statusLabel}`}
                         initial={{ opacity: 0, scale: 0.88 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: idx * 0.04, duration: 0.22 }}
@@ -142,7 +153,7 @@ export default function BadgesPage() {
                         }}
                       >
                         {/* Icon */}
-                        <div style={{
+                        <div aria-hidden="true" style={{
                           width: 48,
                           height: 48,
                           borderRadius: '50%',
@@ -193,7 +204,7 @@ export default function BadgesPage() {
 
                         {/* Gold star for earned */}
                         {isEarned && (
-                          <div style={{
+                          <div aria-hidden="true" style={{
                             position: 'absolute',
                             top: '6px',
                             right: '6px',

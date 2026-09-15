@@ -108,7 +108,7 @@ export default function FastingPage() {
       <div style={{ background: 'linear-gradient(160deg, #0c4a6e, #0369a1)', padding: 'calc(env(safe-area-inset-top) + 20px) 20px 28px' }}>
         <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.05em' }}>{t('fasting.eyebrow', 'Nutrizione')}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 42, height: 42, borderRadius: 14, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div aria-hidden="true" style={{ width: 42, height: 42, borderRadius: 14, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Timer size={22} color="white" />
           </div>
           <div>
@@ -134,7 +134,7 @@ export default function FastingPage() {
             </p>
 
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
-              <svg width={120} height={120} viewBox="0 0 120 120">
+              <svg aria-hidden="true" width={120} height={120} viewBox="0 0 120 120">
                 <circle cx={60} cy={60} r={50} fill="none" stroke="var(--border-light)" strokeWidth={8} />
                 <circle
                   cx={60} cy={60} r={50} fill="none"
@@ -163,6 +163,7 @@ export default function FastingPage() {
 
             <input
               placeholder={t('fasting.notes_placeholder', 'Note facoltative…')}
+              aria-label={t('fasting.notes_placeholder', 'Note facoltative…')}
               value={notes}
               onChange={e => setNotes(e.target.value)}
               style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 10, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: 'var(--surface-2)', marginBottom: 12, color: 'var(--text-primary)' }}
@@ -171,7 +172,7 @@ export default function FastingPage() {
               onClick={stopFast}
               style={{ width: '100%', padding: '13px 0', borderRadius: 12, border: 'none', background: '#dc2626', color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
             >
-              <Square size={16} fill="white" />
+              <Square aria-hidden="true" size={16} fill="white" />
               {t('fasting.stop_button', 'Termina digiuno')}
             </button>
           </motion.div>
@@ -181,9 +182,9 @@ export default function FastingPage() {
             <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>{t('fasting.start_title', 'Inizia un nuovo digiuno')}</p>
 
             <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 10 }}>{t('fasting.protocol_section_label', 'Protocollo')}</p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
+            <div role="radiogroup" aria-label={t('fasting.protocol_section_label', 'Protocollo')} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
               {PROTOCOLS.map(p => (
-                <button key={p.key} onClick={() => setProtocol(p.key)}
+                <button key={p.key} role="radio" aria-checked={protocol === p.key} onClick={() => setProtocol(p.key)}
                   style={{ padding: '12px 10px', borderRadius: 12, border: `2px solid ${protocol === p.key ? '#0369a1' : 'var(--border)'}`, background: protocol === p.key ? '#eff6ff' : 'var(--surface-2)', cursor: 'pointer', textAlign: 'left', transition: 'all .15s' }}>
                   <p style={{ fontSize: 16, fontWeight: 800, color: protocol === p.key ? '#0369a1' : 'var(--text-primary)', marginBottom: 3 }}>{p.label}</p>
                   <p style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.3 }}>{t(p.descKey, p.desc)}</p>
@@ -201,7 +202,7 @@ export default function FastingPage() {
               onClick={startFast}
               style={{ width: '100%', padding: '14px 0', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #0369a1, #0284c7)', color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
             >
-              <Play size={16} fill="white" />
+              <Play aria-hidden="true" size={16} fill="white" />
               {t('fasting.start_button', { protocol: activeProto.label }, 'Inizia {{protocol}}')}
             </button>
           </motion.div>
@@ -210,15 +211,15 @@ export default function FastingPage() {
         {/* History */}
         <div>
           <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <History size={14} /> {t('fasting.history_title', 'Storico digiuni')}
+            <History aria-hidden="true" size={14} /> {t('fasting.history_title', 'Storico digiuni')}
           </p>
           {loading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div role="status" aria-label={t('common.loading', 'Caricamento')} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {[1, 2, 3].map(i => <div key={i} style={{ height: 70, borderRadius: 12, background: 'var(--border-light)', animation: 'skeletonPulse 1.4s ease-in-out infinite' }} />)}
             </div>
           ) : history.length === 0 ? (
             <div style={{ padding: '28px 16px', textAlign: 'center', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--border-light)' }}>
-              <Clock size={32} color="var(--text-muted)" style={{ opacity: 0.3, marginBottom: 8 }} />
+              <Clock aria-hidden="true" size={32} color="var(--text-muted)" style={{ opacity: 0.3, marginBottom: 8 }} />
               <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('fasting.history_empty_title', 'Nessun digiuno completato')}</p>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>{t('fasting.history_empty_subtitle', 'Inizia il tuo primo digiuno sopra')}</p>
             </div>

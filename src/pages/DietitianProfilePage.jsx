@@ -1,17 +1,22 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useId, cloneElement } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../i18n'
 import { ArrowLeft, User, MapPin, Phone, Mail, Globe, GraduationCap, Eye, EyeOff, Save, CheckCircle, Camera, Briefcase } from 'lucide-react'
 
+// La label e il campo erano fratelli non collegati (nessun htmlFor/id): uno
+// screen reader che entra nell'input non sente mai la label associata.
+// useId() genera un id stabile per collegarli senza dover passare un id a
+// mano su ognuna delle 11 chiamate a Field in questa pagina.
 function Field({ label, icon: Icon, children }) {
+  const id = useId()
   return (
     <div className="input-group">
-      <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        {Icon && <Icon size={12} />} {label}
+      <label htmlFor={id} className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+        {Icon && <Icon size={12} aria-hidden="true" />} {label}
       </label>
-      {children}
+      {cloneElement(children, { id: children.props.id || id })}
     </div>
   )
 }
@@ -123,7 +128,7 @@ export default function DietitianProfilePage() {
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh' }}>
-        <div style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+        <div role="status" aria-label={t('common.loading', 'Caricamento')} style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
       </div>
     )
   }
@@ -140,9 +145,10 @@ export default function DietitianProfilePage() {
       }}>
         <button
           onClick={() => navigate('/dietitian/chat')}
+          aria-label={t('common.back', 'Indietro')}
           style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0 }}
         >
-          <ArrowLeft size={18} />
+          <ArrowLeft size={18} aria-hidden="true" />
         </button>
         <div>
           <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 19, color: 'white', fontWeight: 300 }}>
@@ -186,10 +192,11 @@ export default function DietitianProfilePage() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
                 }}
                 title={t('dietitian_profile.change_photo', 'Cambia foto')}
+                aria-label={t('dietitian_profile.change_photo', 'Cambia foto')}
               >
                 {uploadingPhoto
-                  ? <span style={{ width: 9, height: 9, border: '1.5px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'block' }} />
-                  : <Camera size={10} color="white" />
+                  ? <span aria-hidden="true" style={{ width: 9, height: 9, border: '1.5px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'block' }} />
+                  : <Camera size={10} color="white" aria-hidden="true" />
                 }
               </button>
               <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoChange} />
@@ -201,7 +208,7 @@ export default function DietitianProfilePage() {
               {form.titoli && <p style={{ fontSize: 12, color: 'var(--green-main)', fontWeight: 500, marginTop: 2 }}>{form.titoli}</p>}
               {form.citta && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
-                  <MapPin size={11} color="var(--text-muted)" />
+                  <MapPin size={11} color="var(--text-muted)" aria-hidden="true" />
                   <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{form.citta}</span>
                 </div>
               )}
@@ -216,8 +223,8 @@ export default function DietitianProfilePage() {
           {/* Visibility badge */}
           <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
             {form.visible
-              ? <><Eye size={13} color="var(--green-main)" /><span style={{ fontSize: 12, color: 'var(--green-main)', fontWeight: 500 }}>{t('dietitian_profile.status_public', 'Profilo pubblico — visibile ai pazienti')}</span></>
-              : <><EyeOff size={13} color="var(--text-muted)" /><span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('dietitian_profile.status_hidden', 'Profilo nascosto — non visibile ai pazienti')}</span></>
+              ? <><Eye size={13} color="var(--green-main)" aria-hidden="true" /><span style={{ fontSize: 12, color: 'var(--green-main)', fontWeight: 500 }}>{t('dietitian_profile.status_public', 'Profilo pubblico — visibile ai pazienti')}</span></>
+              : <><EyeOff size={13} color="var(--text-muted)" aria-hidden="true" /><span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('dietitian_profile.status_hidden', 'Profilo nascosto — non visibile ai pazienti')}</span></>
             }
           </div>
         </div>
@@ -238,7 +245,7 @@ export default function DietitianProfilePage() {
               fontSize: 13, fontWeight: 600, color: 'var(--green-main)', fontFamily: 'var(--font-b)',
             }}
           >
-            <Camera size={15} />
+            <Camera size={15} aria-hidden="true" />
             {uploadingPhoto ? t('dietitian_profile.photo_uploading', 'Caricamento…') : form.avatar_url ? t('dietitian_profile.change_photo', 'Cambia foto') : t('dietitian_profile.photo_upload_btn', 'Carica foto')}
           </button>
         </div>
@@ -285,7 +292,7 @@ export default function DietitianProfilePage() {
         {/* Metodi di lavoro */}
         <div className="card" style={{ padding: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14 }}>
-            <Briefcase size={14} color="var(--green-main)" />
+            <Briefcase size={14} color="var(--green-main)" aria-hidden="true" />
             <p style={{ fontSize: 14, fontWeight: 600 }}>{t('dietitian_profile.work_methods_title', 'Metodi di lavoro')}</p>
           </div>
           <Field label={t('dietitian_profile.field_work_methods', 'Come lavori con i pazienti')}>
@@ -330,6 +337,9 @@ export default function DietitianProfilePage() {
               </p>
             </div>
             <button
+              role="switch"
+              aria-checked={form.visible}
+              aria-label={t('dietitian_profile.visibility_title', 'Profilo pubblico')}
               onClick={() => setForm(f => ({ ...f, visible: !f.visible }))}
               style={{
                 flexShrink: 0, width: 48, height: 28,
@@ -338,7 +348,7 @@ export default function DietitianProfilePage() {
                 position: 'relative', transition: 'background 0.2s',
               }}
             >
-              <span style={{
+              <span aria-hidden="true" style={{
                 position: 'absolute', top: 3,
                 left: form.visible ? 23 : 3,
                 width: 22, height: 22, borderRadius: '50%',
@@ -351,7 +361,7 @@ export default function DietitianProfilePage() {
 
         {/* Error */}
         {error && (
-          <div style={{ background: 'var(--alert-error-bg)', border: '1px solid var(--alert-error-border)', borderRadius: 10, padding: '10px 14px', color: 'var(--alert-error-text)', fontSize: 13 }}>
+          <div role="alert" style={{ background: 'var(--alert-error-bg)', border: '1px solid var(--alert-error-border)', borderRadius: 10, padding: '10px 14px', color: 'var(--alert-error-text)', fontSize: 13 }}>
             {error}
           </div>
         )}
@@ -364,10 +374,10 @@ export default function DietitianProfilePage() {
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
         >
           {saved
-            ? <><CheckCircle size={16} /> {t('profile.saved')}</>
+            ? <><CheckCircle size={16} aria-hidden="true" /> {t('profile.saved')}</>
             : saving
               ? '…'
-              : <><Save size={16} /> {t('common.save')}</>
+              : <><Save size={16} aria-hidden="true" /> {t('common.save')}</>
           }
         </button>
       </div>

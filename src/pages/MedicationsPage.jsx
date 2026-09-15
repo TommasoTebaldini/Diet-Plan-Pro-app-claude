@@ -7,6 +7,10 @@ import { scheduleMedicationReminders, getPermissionStatus, requestPermission } f
 import { useT } from '../i18n'
 
 const inputStyle = { boxSizing: 'border-box', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 10, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: 'var(--surface-2)', color: 'var(--text-primary)' }
+// Visivamente nascosto ma letto dagli screen reader (niente classe sr-only condivisa
+// nel CSS globale — inline per non toccare src/index.css mentre altri fork lavorano
+// in parallelo su altre pagine).
+const srOnlyStyle = { position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }
 
 export default function MedicationsPage() {
   const { user } = useAuth()
@@ -129,14 +133,14 @@ export default function MedicationsPage() {
           <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>{t('medications.add_medication', 'Aggiungi farmaco')}</p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
-            <input type="text" placeholder={t('medications.name_placeholder', 'Nome (es. Vitamina D)')} value={name} onChange={e => setName(e.target.value)} style={inputStyle} />
-            <input type="text" placeholder={t('medications.dosage_placeholder', 'Dose (es. 1 compressa, 2 gocce…)')} value={dosage} onChange={e => setDosage(e.target.value)} style={inputStyle} />
+            <input type="text" aria-label={t('medications.name_placeholder', 'Nome (es. Vitamina D)')} placeholder={t('medications.name_placeholder', 'Nome (es. Vitamina D)')} value={name} onChange={e => setName(e.target.value)} style={inputStyle} />
+            <input type="text" aria-label={t('medications.dosage_placeholder', 'Dose (es. 1 compressa, 2 gocce…)')} placeholder={t('medications.dosage_placeholder', 'Dose (es. 1 compressa, 2 gocce…)')} value={dosage} onChange={e => setDosage(e.target.value)} style={inputStyle} />
           </div>
 
           <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>{t('medications.times_label', 'Orari')}</p>
           {times.map((time, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <input type="time" value={time} onChange={e => updateTimeSlot(i, e.target.value)} style={{ ...inputStyle, flex: 1 }} />
+              <input type="time" aria-label={`${t('medications.times_label', 'Orari')} ${i + 1}`} value={time} onChange={e => updateTimeSlot(i, e.target.value)} style={{ ...inputStyle, flex: 1 }} />
               {times.length > 1 && (
                 <button onClick={() => removeTimeSlot(i)} aria-label={t('medications.remove_time_aria', 'Rimuovi orario')} style={{ background: '#fff0f0', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)', cursor: 'pointer', flexShrink: 0 }}>
                   <Trash2 size={15} />
@@ -163,8 +167,9 @@ export default function MedicationsPage() {
             <Clock size={14} /> {t('medications.my_medications', 'I tuoi farmaci')}
           </p>
           {loading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {[1, 2].map(i => <div key={i} style={{ height: 90, borderRadius: 12, background: 'var(--border-light)', animation: 'skeletonPulse 1.4s ease-in-out infinite' }} />)}
+            <div role="status" aria-live="polite" aria-busy="true" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={srOnlyStyle}>{t('medications.loading', 'Caricamento farmaci…')}</span>
+              {[1, 2].map(i => <div key={i} aria-hidden="true" style={{ height: 90, borderRadius: 12, background: 'var(--border-light)', animation: 'skeletonPulse 1.4s ease-in-out infinite' }} />)}
             </div>
           ) : meds.length === 0 ? (
             <div style={{ padding: '28px 16px', textAlign: 'center', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--border-light)' }}>
@@ -184,6 +189,8 @@ export default function MedicationsPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                       <button
                         onClick={() => updateMedication(med.id, { active: !med.active })}
+                        aria-pressed={med.active}
+                        aria-label={`${med.name} — ${med.active ? t('medications.status_active', 'Attivo') : t('medications.status_paused', 'In pausa')}`}
                         style={{ background: med.active ? '#dcfce7' : 'var(--surface-2)', border: 'none', borderRadius: 8, padding: '5px 10px', fontSize: 11, fontWeight: 700, color: med.active ? '#15803D' : 'var(--text-muted)', cursor: 'pointer' }}
                       >
                         {med.active ? t('medications.status_active', 'Attivo') : t('medications.status_paused', 'In pausa')}
@@ -195,7 +202,7 @@ export default function MedicationsPage() {
                   </div>
                   {(med.times || []).map((time, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                      <input type="time" value={time} onChange={e => updateMedTime(med, i, e.target.value)} style={{ ...inputStyle, flex: 1, padding: '6px 10px' }} />
+                      <input type="time" aria-label={`${med.name} — ${t('medications.times_label', 'Orari')} ${i + 1}`} value={time} onChange={e => updateMedTime(med, i, e.target.value)} style={{ ...inputStyle, flex: 1, padding: '6px 10px' }} />
                       {med.times.length > 1 && (
                         <button onClick={() => removeMedTime(med, i)} aria-label={t('medications.remove_time_aria', 'Rimuovi orario')} style={{ background: '#fff0f0', border: 'none', borderRadius: 8, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)', cursor: 'pointer', flexShrink: 0 }}>
                           <Trash2 size={13} />

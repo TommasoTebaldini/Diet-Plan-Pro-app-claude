@@ -15,6 +15,9 @@ const S = {
   todo: { background: '#FEF9C3', color: '#854D0E', padding: '1px 6px', borderRadius: 4, fontWeight: 700, fontSize: 12 },
   hr: { border: 'none', borderTop: '1.5px solid var(--border-light)', margin: '22px 0' },
   contact: { background: 'var(--green-dark)', color: 'white', borderRadius: 14, padding: '18px 20px', marginTop: 24 },
+  // Visualmente nascosto ma letto dagli screen reader — nessuna utility class
+  // condivisa in questo codebase, definito localmente pagina per pagina.
+  srOnly: { position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 },
 }
 
 export default function PrivacyPage() {
@@ -136,7 +139,7 @@ export default function PrivacyPage() {
       <h2 style={S.h2}>{t('privacy.s7_title', '7. I tuoi diritti')}</h2>
       <p style={S.p}>
         {t('privacy.s7_p1_pre', 'Hai diritto di accesso, rettifica, cancellazione, limitazione, portabilità e opposizione (artt. 15-22 GDPR) sui tuoi dati. Per i dati clinici, rivolgiti in prima battuta al tuo dietista; per i dati del tuo account app, puoi usare le funzioni "Esporta i miei dati" nel tuo profilo o scrivere a NutriPlan ai contatti sotto. Puoi anche proporre reclamo al')}{' '}
-        <a href="https://www.garanteprivacy.it" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--green-main)' }}>{t('privacy.s7_link_text', 'Garante Privacy')}</a>.
+        <a href="https://www.garanteprivacy.it" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--green-main)' }}>{t('privacy.s7_link_text', 'Garante Privacy')} <span style={S.srOnly}>{t('common.opens_new_tab', '(si apre in una nuova scheda)')}</span></a>.
       </p>
 
       <hr style={S.hr} />

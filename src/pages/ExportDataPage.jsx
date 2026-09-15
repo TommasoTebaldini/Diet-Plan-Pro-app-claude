@@ -89,7 +89,7 @@ function ExportCard({ icon: Icon, title, description, color, onExport }) {
         gap: 16,
       }}
     >
-      <div style={{
+      <div aria-hidden="true" style={{
         width: 44, height: 44, borderRadius: 12,
         background: color + '22', display: 'flex',
         alignItems: 'center', justifyContent: 'center', flexShrink: 0,
@@ -105,6 +105,7 @@ function ExportCard({ icon: Icon, title, description, color, onExport }) {
       <button
         onClick={handle}
         disabled={status === 'loading'}
+        aria-live="polite"
         style={{
           background: status === 'done' ? '#22c55e' : status === 'error' ? '#dc2626' : color,
           color: 'white',
@@ -122,10 +123,10 @@ function ExportCard({ icon: Icon, title, description, color, onExport }) {
           transition: 'background 0.2s',
         }}
       >
-        {status === 'loading' && <Loader size={14} style={{ animation: 'spin 0.7s linear infinite' }} />}
-        {status === 'done' && <CheckCircle size={14} />}
-        {status === 'idle' && <Download size={14} />}
-        {status === 'error' && <Download size={14} />}
+        {status === 'loading' && <Loader aria-hidden="true" size={14} style={{ animation: 'spin 0.7s linear infinite' }} />}
+        {status === 'done' && <CheckCircle aria-hidden="true" size={14} />}
+        {status === 'idle' && <Download aria-hidden="true" size={14} />}
+        {status === 'error' && <Download aria-hidden="true" size={14} />}
         {status === 'loading' ? t('export.esportando', 'Esportando…') : status === 'done' ? t('export.scaricato', 'Scaricato!') : status === 'error' ? t('export.errore', 'Errore') : t('export.esporta', 'Esporta')}
       </button>
     </motion.div>

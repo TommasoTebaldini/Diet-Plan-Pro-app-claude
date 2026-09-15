@@ -122,11 +122,11 @@ export default function ChallengesPage() {
         </p>
 
         {challenges === null ? (
-          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('challenges.loading', 'Caricamento…')}</p>
+          <p role="status" style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('challenges.loading', 'Caricamento…')}</p>
         ) : (
           <>
             <div className="card" style={{ padding: 16, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 14, ...(allDone ? { borderLeft: '3px solid var(--green-main)' } : {}) }}>
-              <Trophy size={26} color={allDone ? 'var(--green-main)' : 'var(--orange)'} />
+              <Trophy aria-hidden="true" size={26} color={allDone ? 'var(--green-main)' : 'var(--orange)'} />
               <div>
                 <p style={{ fontSize: 15, fontWeight: 800 }}>{t('challenges.completed_count', { completed, total }, '{{completed}}/{{total}} completate')}</p>
                 <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
@@ -144,16 +144,17 @@ export default function ChallengesPage() {
                   <motion.div key={c.id} className="card" style={{ padding: '14px 16px' }}
                     initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontSize: 22 }}>{c.emoji}</span>
+                      <span aria-hidden="true" style={{ fontSize: 22 }}>{c.emoji}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: 13.5, fontWeight: 700 }}>{meta.title}</p>
                         <p style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{meta.desc}</p>
                       </div>
                       {done
-                        ? <CheckCircle2 size={22} color="var(--green-main)" />
+                        ? <CheckCircle2 aria-hidden="true" size={22} color="var(--green-main)" />
                         : <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', flexShrink: 0 }}>{c.progress}/{c.goal}</span>}
                     </div>
-                    <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, marginTop: 10, overflow: 'hidden' }}>
+                    <div role="progressbar" aria-valuenow={c.progress} aria-valuemin={0} aria-valuemax={c.goal} aria-label={meta.title}
+                      style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, marginTop: 10, overflow: 'hidden' }}>
                       <div style={{ height: '100%', width: `${pct}%`, background: done ? 'var(--green-main)' : 'var(--orange)', borderRadius: 3, transition: 'width .5s' }} />
                     </div>
                   </motion.div>

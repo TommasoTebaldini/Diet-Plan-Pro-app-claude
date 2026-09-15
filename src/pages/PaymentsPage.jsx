@@ -79,7 +79,7 @@ export default function PaymentsPage() {
 
       <div style={{ padding: '0 16px 40px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {banner && (
-          <div className="card" style={{
+          <div className="card" role="status" aria-live={banner.type === 'error' ? 'assertive' : 'polite'} style={{
             padding: '12px 14px', fontSize: 13, fontWeight: 600,
             background: banner.type === 'ok' ? '#dcfce7' : banner.type === 'error' ? '#fee2e2' : '#dbeafe',
             color: banner.type === 'ok' ? '#15803d' : banner.type === 'error' ? '#b91c1c' : '#1e40af',
@@ -94,7 +94,7 @@ export default function PaymentsPage() {
           </div>
         ) : fatture.length === 0 ? (
           <div className="card" style={{ padding: '36px 20px', textAlign: 'center' }}>
-            <CreditCard size={30} color="var(--text-muted)" style={{ marginBottom: 10 }} />
+            <CreditCard size={30} color="var(--text-muted)" aria-hidden="true" style={{ marginBottom: 10 }} />
             <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{t('payments.no_invoices', 'Nessuna fattura')}</p>
             <p style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{t('payments.no_invoices_desc', 'Le fatture emesse dal tuo dietista compariranno qui.')}</p>
           </div>
@@ -107,7 +107,7 @@ export default function PaymentsPage() {
                   {daPagare.map(f => (
                     <div key={f.id} className="card" style={{ padding: '13px 15px', display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{ width: 38, height: 38, borderRadius: 11, background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Clock size={17} color="#92400e" />
+                        <Clock size={17} color="#92400e" aria-hidden="true" />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: 14, fontWeight: 700 }}>{f.tipo_visita || t('payments.service_default', 'Prestazione')}</p>
@@ -120,7 +120,7 @@ export default function PaymentsPage() {
                           disabled={payingId === f.id}
                           style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--green-main)', color: 'white', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: payingId === f.id ? 'default' : 'pointer' }}
                         >
-                          {payingId === f.id ? t('payments.waiting', 'Attendere…') : <>{t('payments.pay_now', 'Paga ora')} <ExternalLink size={12} /></>}
+                          {payingId === f.id ? t('payments.waiting', 'Attendere…') : <>{t('payments.pay_now', 'Paga ora')} <ExternalLink size={12} aria-hidden="true" /></>}
                         </button>
                       </div>
                     </div>
@@ -136,7 +136,7 @@ export default function PaymentsPage() {
                   {pagate.map(f => (
                     <div key={f.id} className="card" style={{ padding: '13px 15px', display: 'flex', alignItems: 'center', gap: 12, opacity: 0.75 }}>
                       <div style={{ width: 38, height: 38, borderRadius: 11, background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Check size={17} color="#065f46" />
+                        <Check size={17} color="#065f46" aria-hidden="true" />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: 14, fontWeight: 700 }}>{f.tipo_visita || t('payments.service_default', 'Prestazione')}</p>

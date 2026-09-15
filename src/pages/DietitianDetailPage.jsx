@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -190,6 +190,19 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
 
   const btnNav = { background: 'var(--surface-2)', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)' }
 
+  const closeBtnRef = useRef(null)
+  const openerRef = useRef(null)
+  useEffect(() => {
+    openerRef.current = document.activeElement
+    closeBtnRef.current?.focus()
+    function onKeyDown(e) { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      openerRef.current?.focus?.()
+    }
+  }, [onClose])
+
   return (
     <div
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', zIndex: 9999 }}
@@ -197,16 +210,19 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
     >
       <div
         className="animate-slideUpSheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="appointment-modal-title"
         style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 560, margin: '0 auto', maxHeight: '88dvh', display: 'flex', flexDirection: 'column', boxShadow: '0 -8px 40px rgba(0,0,0,0.15)' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 20px 14px', flexShrink: 0, borderBottom: '1px solid var(--border-light)' }}>
           <div>
-            <h2 style={{ fontSize: 17, fontWeight: 700 }}>{t('ddetail.prenota_colloquio', 'Prenota un colloquio')}</h2>
+            <h2 id="appointment-modal-title" style={{ fontSize: 17, fontWeight: 700 }}>{t('ddetail.prenota_colloquio', 'Prenota un colloquio')}</h2>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{t('ddetail.con_nome', { nome: dietitianName }, 'con {{nome}}')}</p>
           </div>
-          <button onClick={onClose} aria-label={t('ddetail.chiudi', 'Chiudi')} style={{ ...btnNav, borderRadius: '50%', width: 32, height: 32 }}>
+          <button ref={closeBtnRef} onClick={onClose} aria-label={t('ddetail.chiudi', 'Chiudi')} style={{ ...btnNav, borderRadius: '50%', width: 32, height: 32 }}>
             <X size={16} />
           </button>
         </div>
@@ -257,8 +273,8 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
                 </div>
 
                 {!avLoaded ? (
-                  <div style={{ textAlign: 'center', padding: 24 }}>
-                    <div style={{ width: 24, height: 24, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto' }} />
+                  <div role="status" aria-label={t('common.loading', 'Caricamento')} style={{ textAlign: 'center', padding: 24 }}>
+                    <div aria-hidden="true" style={{ width: 24, height: 24, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto' }} />
                   </div>
                 ) : (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
@@ -296,8 +312,8 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
                     {t('ddetail.orari_data', { data: new Date(selectedDate + 'T00:00:00').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }) }, 'Orari — {{data}}')}
                   </p>
                   {slotsLoading ? (
-                    <div style={{ textAlign: 'center', padding: 16 }}>
-                      <div style={{ width: 20, height: 20, border: '2px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto' }} />
+                    <div role="status" aria-label={t('common.loading', 'Caricamento')} style={{ textAlign: 'center', padding: 16 }}>
+                      <div aria-hidden="true" style={{ width: 20, height: 20, border: '2px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto' }} />
                     </div>
                   ) : slotsError ? (
                     <p style={{ fontSize: 13, color: '#dc2626' }}>{t('ddetail.errore_slot', 'Impossibile verificare gli orari disponibili. Riprova.')}</p>
@@ -347,7 +363,7 @@ function AppointmentModal({ dietitianId, dietitianName, onClose, onBooked }) {
               )}
 
               {error && (
-                <div style={{ background: 'var(--alert-error-bg)', border: '1px solid var(--alert-error-border)', borderRadius: 10, padding: '10px 14px', color: 'var(--alert-error-text)', fontSize: 13, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div role="alert" style={{ background: 'var(--alert-error-bg)', border: '1px solid var(--alert-error-border)', borderRadius: 10, padding: '10px 14px', color: 'var(--alert-error-text)', fontSize: 13, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <AlertCircle size={14} style={{ flexShrink: 0 }} /> {error}
                 </div>
               )}
@@ -459,7 +475,7 @@ export default function DietitianDetailPage() {
     return (
       <div className="page">
         <div style={{ background: 'linear-gradient(160deg, var(--green-dark), var(--green-main))', padding: 'calc(env(safe-area-inset-top) + 12px) 16px 18px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-          <button onClick={() => navigate('/dietisti')} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}>
+          <button onClick={() => navigate('/dietisti')} aria-label={t('common.back', 'Indietro')} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}>
             <ArrowLeft size={18} />
           </button>
           <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 19, color: 'white', fontWeight: 300 }}>{t('ddetail.titolo_pagina', 'Dietista')}</h1>
@@ -484,6 +500,7 @@ export default function DietitianDetailPage() {
       <div style={{ background: 'linear-gradient(160deg, var(--green-dark), var(--green-main))', padding: 'calc(env(safe-area-inset-top) + 12px) 16px 24px', flexShrink: 0 }}>
         <button
           onClick={() => navigate('/dietisti')}
+          aria-label={t('common.back', 'Indietro')}
           style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', marginBottom: 18 }}
         ><ArrowLeft size={18} /></button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>

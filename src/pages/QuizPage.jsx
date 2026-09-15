@@ -229,7 +229,7 @@ export default function QuizPage({ inModal = false }) {
       <p style={{ fontSize: 14, color: '#6b7280' }}>{t('quiz.load_error', 'Non è stato possibile caricare il quiz. Controlla la connessione e riprova.')}</p>
       <button onClick={() => setFetchAttempt(n => n + 1)}
         style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 10, border: 'none', background: '#7c3aed', color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-        <RefreshCw size={14} /> {t('quiz.retry', 'Riprova')}
+        <RefreshCw size={14} aria-hidden="true" /> {t('quiz.retry', 'Riprova')}
       </button>
     </div>
   )
@@ -254,7 +254,7 @@ export default function QuizPage({ inModal = false }) {
           <p style={{ color: 'rgba(255,255,255,.85)', fontSize: 14 }}>{msg}</p>
           {fs > 0 && (
             <div style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,165,0,.2)', border: '1.5px solid rgba(255,165,0,.4)', borderRadius: 20, padding: '4px 12px' }}>
-              <Flame size={13} color="#fbbf24" fill="#fbbf24" />
+              <Flame size={13} color="#fbbf24" fill="#fbbf24" aria-hidden="true" />
               <span style={{ color: '#fde68a', fontSize: 12, fontWeight: 700 }}>{streakLabel(fs)}</span>
             </div>
           )}
@@ -276,7 +276,7 @@ export default function QuizPage({ inModal = false }) {
               <motion.div key={i} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.25 + i * 0.07 }}
                 style={{ background: 'white', border: `1.5px solid ${correct ? '#bbf7d0' : '#fecaca'}`, borderRadius: 12, padding: '11px 13px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                 <div style={{ width: 26, height: 26, borderRadius: 8, background: correct ? '#dcfce7' : '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {correct ? <CheckCircle2 size={14} color="#16a34a" /> : <XCircle size={14} color="#dc2626" />}
+                  {correct ? <CheckCircle2 size={14} color="#16a34a" aria-hidden="true" /> : <XCircle size={14} color="#dc2626" aria-hidden="true" />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
@@ -292,7 +292,7 @@ export default function QuizPage({ inModal = false }) {
             )
           })}
           <div style={{ background: '#f3f4f6', borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10, border: '1px solid #e5e7eb' }}>
-            <Lock size={16} color="#9ca3af" />
+            <Lock size={16} color="#9ca3af" aria-hidden="true" />
             <div>
               <p style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{t('quiz.new_quiz_tomorrow', 'Nuovo quiz domani')}</p>
               <p style={{ fontSize: 11.5, color: '#9ca3af' }}>{t('quiz.new_quiz_tomorrow_desc', { count: QUESTIONS_PER_DAY }, 'Torna domani per {{count}} nuove domande!')}</p>
@@ -317,7 +317,7 @@ export default function QuizPage({ inModal = false }) {
             <p style={{ color: 'rgba(255,255,255,.75)', fontSize: 13 }}>{t('quiz.idle_subtitle', { count: QUESTIONS_PER_DAY }, '{{count}} domande • puoi tornare indietro quando vuoi')}</p>
             {currentStreak > 0 && (
               <div style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,165,0,.2)', border: '1.5px solid rgba(255,165,0,.4)', borderRadius: 20, padding: '4px 12px' }}>
-                <Flame size={13} color="#fbbf24" fill="#fbbf24" />
+                <Flame size={13} color="#fbbf24" fill="#fbbf24" aria-hidden="true" />
                 <span style={{ color: '#fde68a', fontSize: 12, fontWeight: 700 }}>{streakLabel(currentStreak)}</span>
               </div>
             )}
@@ -332,10 +332,10 @@ export default function QuizPage({ inModal = false }) {
               {Object.entries(CATEGORIES).map(([key, cat]) => {
                 const active = selectedCats.includes(key)
                 return (
-                  <button key={key}
+                  <button key={key} aria-pressed={active}
                     onClick={() => setSelectedCats(prev => prev.includes(key) ? prev.filter(c => c !== key) : [...prev, key])}
                     style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', background: active ? cat.bg : 'var(--surface-2)', borderRadius: 20, border: `1.5px solid ${active ? cat.light : 'var(--border)'}`, cursor: 'pointer', transition: 'all .15s' }}>
-                    <span style={{ fontSize: 13 }}>{cat.emoji}</span>
+                    <span aria-hidden="true" style={{ fontSize: 13 }}>{cat.emoji}</span>
                     <span style={{ fontSize: 11, fontWeight: 700, color: active ? cat.color : 'var(--text-muted)' }}>{t(cat.labelKey, cat.label)}</span>
                   </button>
                 )
@@ -348,7 +348,7 @@ export default function QuizPage({ inModal = false }) {
             <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>{t('quiz.difficulty_label', 'Difficoltà')}</p>
             <div style={{ display: 'flex', gap: 7 }}>
               {DIFFS.map(d => (
-                <button key={d.key}
+                <button key={d.key} aria-pressed={selectedDiff === d.key}
                   onClick={() => setSelectedDiff(d.key)}
                   style={{ flex: 1, padding: '7px 0', borderRadius: 10, border: `1.5px solid ${selectedDiff === d.key ? '#7c3aed' : 'var(--border)'}`, background: selectedDiff === d.key ? '#f5f3ff' : 'var(--surface-2)', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: selectedDiff === d.key ? '#7c3aed' : 'var(--text-muted)', transition: 'all .15s' }}>
                   {t(`quiz.diff_${d.key}`, d.label)}
@@ -372,9 +372,9 @@ export default function QuizPage({ inModal = false }) {
           </div>
           <motion.button whileTap={{ scale: 0.96 }} onClick={startQuiz}
             style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: 'white', border: 'none', borderRadius: 14, padding: '15px 24px', fontSize: 16, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: '0 4px 16px rgba(124,58,237,.4)' }}>
-            <Zap size={18} fill="white" color="white" />
+            <Zap size={18} fill="white" color="white" aria-hidden="true" />
             {t('quiz.start_button', 'Inizia il quiz')}
-            <ChevronRight size={18} />
+            <ChevronRight size={18} aria-hidden="true" />
           </motion.button>
         </div>
       </div>
@@ -393,14 +393,16 @@ export default function QuizPage({ inModal = false }) {
     <div className={pageClass} style={pageStyle}>
       {/* Progress dots */}
       <div style={{ padding: `${tp(12)} 18px 10px`, background: 'white', borderBottom: '1px solid #f0f0f0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+        <div role="tablist" aria-label={t('quiz.question_nav', 'Naviga tra le domande')} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
           {questions.map((_, i) => {
             const a = answers[i]
             const isCurrent = i === idx
             const color = a ? (a.correct ? '#16a34a' : '#dc2626') : isCurrent ? '#7c3aed' : '#d1d5db'
             const bg = a ? (a.correct ? '#16a34a' : '#dc2626') : isCurrent ? '#7c3aed' : 'transparent'
+            const status = a ? (a.correct ? t('quiz.dot_correct', 'risposta corretta') : t('quiz.dot_incorrect', 'risposta errata')) : t('quiz.dot_unanswered', 'non risposta')
             return (
-              <button key={i} onClick={() => setIdx(i)}
+              <button key={i} role="tab" aria-selected={isCurrent} onClick={() => setIdx(i)}
+                aria-label={t('quiz.question_dot_label', { n: i + 1, status }, 'Domanda {{n}}, {{status}}')}
                 style={{ flex: 1, height: 8, borderRadius: 4, background: bg, border: `2px solid ${color}`, cursor: 'pointer', transition: 'all .2s', opacity: isCurrent ? 1 : 0.7 }} />
             )
           })}
@@ -437,11 +439,16 @@ export default function QuizPage({ inModal = false }) {
               } else if (isSelected) {
                 bg = cat.bg; border = `2px solid ${cat.color}`; color = cat.color
               }
+              const stateLabel = isAnswered
+                ? (isCorrect ? t('quiz.opt_correct', ' — risposta corretta') : isSelected ? t('quiz.opt_incorrect_selected', ' — la tua risposta, errata') : '')
+                : ''
               return (
                 <motion.button key={i} whileTap={!isAnswered ? { scale: 0.97 } : {}}
                   onClick={() => handleSelect(i)}
+                  aria-pressed={isSelected}
+                  aria-label={`${['A','B','C','D'][i]}. ${opt}${stateLabel}`}
                   style={{ background: bg, border, borderRadius: 12, padding: '12px 14px', fontSize: 13.5, fontWeight: 600, color, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, transition: 'all .15s' }}>
-                  <span style={{ width: 26, height: 26, borderRadius: 7, background: isAnswered ? 'transparent' : '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 12, fontWeight: 800, color: isAnswered ? 'inherit' : '#6b7280', border: isAnswered ? 'none' : '1px solid #e5e7eb' }}>
+                  <span aria-hidden="true" style={{ width: 26, height: 26, borderRadius: 7, background: isAnswered ? 'transparent' : '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 12, fontWeight: 800, color: isAnswered ? 'inherit' : '#6b7280', border: isAnswered ? 'none' : '1px solid #e5e7eb' }}>
                     {isAnswered && icon ? icon : ['A','B','C','D'][i]}
                   </span>
                   <span style={{ flex: 1 }}>{opt}</span>
@@ -453,7 +460,7 @@ export default function QuizPage({ inModal = false }) {
           {/* Explanation — always visible once answered, no timer */}
           <AnimatePresence>
             {isAnswered && (
-              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}
+              <motion.div role="status" aria-live="polite" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}
                 style={{ background: currentAnswer.correct ? '#f0fdf4' : '#fef2f2', border: `1.5px solid ${currentAnswer.correct ? '#bbf7d0' : '#fecaca'}`, borderRadius: 12, padding: '12px 14px' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
                   <span style={{ fontSize: 18, flexShrink: 0 }}>{currentAnswer.correct ? '💡' : '📖'}</span>

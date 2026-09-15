@@ -124,7 +124,7 @@ export default function CoachAiPage() {
               {t('coachai.consent_li3_post', '.')}
             </li>
           </ul>
-          {error && <div className="alert-error" style={{ marginBottom: 12, fontSize: 12.5 }}>{error}</div>}
+          {error && <div role="alert" className="alert-error" style={{ marginBottom: 12, fontSize: 12.5 }}>{error}</div>}
           <button
             onClick={handleAcceptConsent}
             disabled={consenting}
@@ -152,7 +152,7 @@ export default function CoachAiPage() {
         </div>
       </div>
 
-      <div ref={scrollRef} className="chat-messages" style={{ flex: 1, overflowY: 'auto', padding: '14px 14px 0', WebkitOverflowScrolling: 'touch' }}>
+      <div ref={scrollRef} className="chat-messages" role="log" aria-live="polite" aria-label={t('coachai.title', 'Coach AI')} style={{ flex: 1, overflowY: 'auto', padding: '14px 14px 0', WebkitOverflowScrolling: 'touch' }}>
         {messages.map((msg, i) => {
           const isMe = msg.role === 'user'
           return (
@@ -175,8 +175,8 @@ export default function CoachAiPage() {
         })}
 
         {sending && (
-          <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 10 }}>
-            <div style={{ background: 'var(--surface-3)', border: '1px solid var(--border-light)', padding: '10px 14px', borderRadius: '16px 16px 16px 3px', display: 'flex', gap: 4 }}>
+          <div role="status" aria-label={t('coachai.sta_scrivendo', 'Coach AI sta scrivendo')} style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 10 }}>
+            <div aria-hidden="true" style={{ background: 'var(--surface-3)', border: '1px solid var(--border-light)', padding: '10px 14px', borderRadius: '16px 16px 16px 3px', display: 'flex', gap: 4 }}>
               {[0, 1, 2].map(i => (
                 <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#7C3AED', opacity: 0.5, animation: `coachDot 1.2s ${i * 0.15}s infinite` }} />
               ))}
@@ -200,7 +200,7 @@ export default function CoachAiPage() {
         )}
 
         {error && (
-          <p style={{ textAlign: 'center', color: 'var(--red)', fontSize: 12.5, margin: '4px 0 10px' }}>{error}</p>
+          <p role="alert" style={{ textAlign: 'center', color: 'var(--red)', fontSize: 12.5, margin: '4px 0 10px' }}>{error}</p>
         )}
       </div>
 
@@ -211,7 +211,8 @@ export default function CoachAiPage() {
               ref={inputRef} value={text}
               onChange={e => setText(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
-              placeholder={t('coachai.placeholder', 'Fai una domanda al Coach AI…')} rows={1}
+              placeholder={t('coachai.placeholder', 'Fai una domanda al Coach AI…')}
+              aria-label={t('coachai.placeholder', 'Fai una domanda al Coach AI…')} rows={1}
               style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontFamily: 'var(--font-b)', fontSize: 15, color: 'var(--text-primary)', resize: 'none', maxHeight: 100, lineHeight: 1.5 }}
             />
           </div>

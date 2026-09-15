@@ -299,12 +299,13 @@ export default function DietitianProfilesPage() {
             <input
               className="input-field"
               placeholder={t('dietitian.search_placeholder', 'Cerca per nome o specializzazione…')}
+              aria-label={t('dietitian.search_placeholder', 'Cerca per nome o specializzazione…')}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               style={{ paddingLeft: 36, paddingRight: searchQuery ? 36 : 14, background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.25)', color: 'white', borderRadius: 12 }}
             />
             {searchQuery && (
-              <button onClick={() => setSearchQuery('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.6)', padding: 2 }}>
+              <button onClick={() => setSearchQuery('')} aria-label={t('common.clear', 'Cancella')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.6)', padding: 2 }}>
                 <X size={14} />
               </button>
             )}

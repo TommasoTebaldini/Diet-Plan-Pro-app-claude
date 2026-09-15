@@ -80,13 +80,14 @@ export default function NotificationsPage() {
         <motion.button
           whileTap={{ scale: 0.92 }}
           onClick={() => navigate(-1)}
+          aria-label={t('common.back', 'Indietro')}
           style={{
             background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10,
             width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', color: 'white', marginBottom: 14,
           }}
         >
-          <ArrowLeft size={18} />
+          <ArrowLeft size={18} aria-hidden="true" />
         </motion.button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Bell size={22} />
@@ -97,7 +98,7 @@ export default function NotificationsPage() {
       <div style={{ padding: '16px 16px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: 4, background: 'var(--surface, white)', borderRadius: 10, padding: 4, border: '1px solid var(--border, #E2E8F0)' }}>
           {['all', 'unread'].map(f => (
-            <button key={f} onClick={() => setFilter(f)} style={{
+            <button key={f} onClick={() => setFilter(f)} aria-pressed={filter === f} style={{
               padding: '7px 14px', borderRadius: 7, border: 'none', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
               background: filter === f ? 'var(--text-primary, #1E293B)' : 'transparent',
               color: filter === f ? 'white' : 'var(--text-secondary, #64748B)',
@@ -125,13 +126,17 @@ export default function NotificationsPage() {
           <div
             key={n.id}
             onClick={() => handleClick(n)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(n) } }}
+            aria-label={(n.read_at ? '' : t('notifications.unread', 'Non letta') + ' — ') + n.title}
             style={{
               display: 'flex', gap: 12, alignItems: 'flex-start', padding: '13px 12px', marginBottom: 8,
               borderRadius: 12, cursor: 'pointer', border: '1px solid var(--border, #E2E8F0)',
               background: n.read_at ? 'var(--surface, white)' : 'rgba(26,127,90,0.06)',
             }}
           >
-            <div style={{ width: 8, height: 8, borderRadius: '50%', marginTop: 6, flexShrink: 0, background: n.read_at ? 'transparent' : '#1a7f5a' }} />
+            <div aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', marginTop: 6, flexShrink: 0, background: n.read_at ? 'transparent' : '#1a7f5a' }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13.5, fontWeight: n.read_at ? 500 : 700, color: 'var(--text-primary, #1E293B)' }}>{n.title}</div>
               {n.body && <div style={{ fontSize: 12.5, color: 'var(--text-secondary, #64748B)', marginTop: 2 }}>{n.body}</div>}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -44,6 +44,30 @@ function CustomTooltip({ active, payload, label }) {
     <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', boxShadow: 'var(--shadow-md)' }}>
       <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>{label}</p>
       <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--green-main)' }}>{payload[0].value} kg</p>
+    </div>
+  )
+}
+
+// Modale a tutto schermo per la foto ingrandita — senza questo un utente da
+// tastiera/screen reader non sa che si è aperto un dialog, non può chiuderlo
+// con Escape, e il focus resta perso sulla pagina sottostante.
+function Lightbox({ url, onClose, label, closeLabel }) {
+  const closeRef = useRef(null)
+  const lastFocusRef = useRef(null)
+  useEffect(() => {
+    lastFocusRef.current = document.activeElement
+    closeRef.current?.focus()
+    function onKeyDown(e) { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      if (lastFocusRef.current && typeof lastFocusRef.current.focus === 'function') lastFocusRef.current.focus()
+    }
+  }, [onClose])
+  return (
+    <div role="dialog" aria-modal="true" aria-label={label} onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <img src={url} alt={label} style={{ maxWidth: '100%', maxHeight: '90dvh', borderRadius: 12, objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
+      <button ref={closeRef} onClick={onClose} aria-label={closeLabel} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.18)', border: 'none', borderRadius: '50%', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', fontSize: 22, lineHeight: 1 }}>×</button>
     </div>
   )
 }
@@ -335,7 +359,7 @@ export default function ProgressPage() {
               }
             }}
             className="btn" style={{ background: 'white', color: 'var(--green-main)', borderRadius: 14, padding: '10px 16px', fontSize: 14, fontWeight: 600, gap: 6 }}>
-            <Plus size={16} />{t('common.today')}
+            <Plus size={16} aria-hidden="true" />{t('common.today')}
           </button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 10 }}>
@@ -362,14 +386,14 @@ export default function ProgressPage() {
       <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
         {/* Tab switcher */}
-        <div style={{ display: 'flex', gap: 6, background: 'var(--surface-2)', borderRadius: 12, padding: 4 }}>
+        <div role="tablist" aria-label={t('progress.title')} style={{ display: 'flex', gap: 6, background: 'var(--surface-2)', borderRadius: 12, padding: 4 }}>
           {[
             { key: 'peso', label: `⚖️ ${t('progress.tab.weight', 'Peso')}` },
             { key: 'circonferenze', label: `📏 ${t('progress.tab.measurements', 'Misure')}` },
             { key: 'bia', label: '⚡ BIA' },
             { key: 'foto', label: `📸 ${t('progress.tab.photos', 'Foto')}` },
           ].map(tab => (
-            <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
+            <button key={tab.key} role="tab" aria-selected={activeTab === tab.key} onClick={() => setActiveTab(tab.key)} style={{
               flex: 1, padding: '8px 4px', borderRadius: 9, border: 'none', cursor: 'pointer', font: 'inherit',
               fontSize: 12, fontWeight: 600, transition: 'all .15s',
               background: activeTab === tab.key ? 'var(--surface)' : 'transparent',
@@ -384,12 +408,12 @@ export default function ProgressPage() {
           <>
             {/* Success / Error feedback */}
             {saveOk && (
-              <div style={{ background: 'var(--alert-success-bg)', border: '1px solid var(--alert-success-border)', borderRadius: 12, padding: '12px 16px', fontSize: 14, color: 'var(--alert-success-text)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div role="status" aria-live="polite" style={{ background: 'var(--alert-success-bg)', border: '1px solid var(--alert-success-border)', borderRadius: 12, padding: '12px 16px', fontSize: 14, color: 'var(--alert-success-text)', display: 'flex', alignItems: 'center', gap: 8 }}>
                 ✅ {t('progress.saveSuccess', 'Dati salvati con successo!')}
               </div>
             )}
             {saveError && (
-              <div style={{ background: 'var(--alert-error-bg)', border: '1px solid var(--alert-error-border)', borderRadius: 12, padding: '12px 16px', fontSize: 13, color: 'var(--alert-error-text)' }}>
+              <div role="alert" aria-live="assertive" style={{ background: 'var(--alert-error-bg)', border: '1px solid var(--alert-error-border)', borderRadius: 12, padding: '12px 16px', fontSize: 13, color: 'var(--alert-error-text)' }}>
                 ⚠️ {saveError}
               </div>
             )}
@@ -425,7 +449,7 @@ export default function ProgressPage() {
                     <p className="input-label" style={{ marginBottom: 10 }}>😊 {t('progress.feelingToday', 'Come ti senti oggi?')}</p>
                     <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                       {MOOD_OPTIONS.map(m => (
-                        <button key={m.value} onClick={() => setMood(m.value)} style={{ flex: 1, minWidth: 44, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, background: 'none', border: `2px solid ${mood === m.value ? 'var(--green-main)' : 'var(--border)'}`, borderRadius: 14, padding: '10px 8px', cursor: 'pointer', transition: 'all 0.15s', transform: mood === m.value ? 'scale(1.1)' : 'none' }}>
+                        <button key={m.value} aria-pressed={mood === m.value} onClick={() => setMood(m.value)} style={{ flex: 1, minWidth: 44, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, background: 'none', border: `2px solid ${mood === m.value ? 'var(--green-main)' : 'var(--border)'}`, borderRadius: 14, padding: '10px 8px', cursor: 'pointer', transition: 'all 0.15s', transform: mood === m.value ? 'scale(1.1)' : 'none' }}>
                           <span style={{ fontSize: 24 }}>{m.emoji}</span>
                           <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{MOOD_LABELS[m.value]}</span>
                         </button>
@@ -436,7 +460,7 @@ export default function ProgressPage() {
                     <p className="input-label" style={{ marginBottom: 10 }}>🔍 {t('progress.symptomsNotes', 'Sintomi / Note fisiche')}</p>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {SYMPTOM_LIST.map(s => (
-                        <button key={s} onClick={() => setSymptoms(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])} style={{ padding: '6px 14px', borderRadius: 100, background: symptoms.includes(s) ? 'var(--green-pale)' : 'var(--surface-2)', color: symptoms.includes(s) ? 'var(--green-main)' : 'var(--text-secondary)', border: `1.5px solid ${symptoms.includes(s) ? 'var(--green-main)' : 'var(--border)'}`, font: 'inherit', fontSize: 13, cursor: 'pointer' }}>
+                        <button key={s} aria-pressed={symptoms.includes(s)} onClick={() => setSymptoms(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])} style={{ padding: '6px 14px', borderRadius: 100, background: symptoms.includes(s) ? 'var(--green-pale)' : 'var(--surface-2)', color: symptoms.includes(s) ? 'var(--green-main)' : 'var(--text-secondary)', border: `1.5px solid ${symptoms.includes(s) ? 'var(--green-main)' : 'var(--border)'}`, font: 'inherit', fontSize: 13, cursor: 'pointer' }}>
                           {symptomLabel(s)}
                         </button>
                       ))}
@@ -461,7 +485,7 @@ export default function ProgressPage() {
                   <h3 style={{ fontSize: 15, fontWeight: 600 }}>{t('progress.weightTrend', 'Andamento peso')}</h3>
                   <div style={{ display: 'flex', gap: 6 }}>
                     {[7, 30, 90].map(r => (
-                      <button key={r} onClick={() => setRange(r)} style={{ padding: '4px 10px', borderRadius: 100, background: range === r ? 'var(--green-main)' : 'var(--surface-2)', color: range === r ? 'white' : 'var(--text-muted)', border: `1px solid ${range === r ? 'transparent' : 'var(--border)'}`, font: 'inherit', fontSize: 12, cursor: 'pointer' }}>
+                      <button key={r} aria-pressed={range === r} onClick={() => setRange(r)} style={{ padding: '4px 10px', borderRadius: 100, background: range === r ? 'var(--green-main)' : 'var(--surface-2)', color: range === r ? 'white' : 'var(--text-muted)', border: `1px solid ${range === r ? 'transparent' : 'var(--border)'}`, font: 'inherit', fontSize: 12, cursor: 'pointer' }}>
                         {r}{t('progress.daySuffix', 'g')}
                       </button>
                     ))}
@@ -574,12 +598,12 @@ export default function ProgressPage() {
             {weights.length === 0 && !showAdd && (
               <div className="card" style={{ textAlign: 'center', padding: '36px 20px' }}>
                 <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                  <Scale size={36} color="var(--green-main)" />
+                  <Scale size={36} color="var(--green-main)" aria-hidden="true" />
                 </div>
                 <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>{t('progress.startTracking', 'Inizia a tracciare i progressi')}</p>
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 20 }}>{t('progress.startTrackingDesc', 'Registra il tuo peso ogni settimana per vedere il tuo percorso.')}</p>
                 <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
-                  <Plus size={16} />{t('progress.firstMeasurement', 'Prima misurazione')}
+                  <Plus size={16} aria-hidden="true" />{t('progress.firstMeasurement', 'Prima misurazione')}
                 </button>
               </div>
             )}
@@ -594,7 +618,7 @@ export default function ProgressPage() {
             <div className="card" style={{ padding: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                 <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--icon-bg-green)', color: 'var(--green-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Ruler size={15} />
+                  <Ruler size={15} aria-hidden="true" />
                 </div>
                 <h3 style={{ fontSize: 15, fontWeight: 700 }}>{t('progress.yourMeasurements', 'Le tue misure')}</h3>
               </div>
@@ -1174,7 +1198,7 @@ export default function ProgressPage() {
               <p className="input-label" style={{ marginBottom: 8 }}>{t('progress.photoType', 'Tipo di foto')}</p>
               <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
                 {[{ val: 'prima', label: t('progress.photoType.before', 'Prima') }, { val: 'progresso', label: t('progress.photoType.during', 'Durante') }, { val: 'dopo', label: t('progress.photoType.after', 'Dopo') }].map(pt => (
-                  <button key={pt.val} onClick={() => setPhotoType(pt.val)} style={{
+                  <button key={pt.val} aria-pressed={photoType === pt.val} onClick={() => setPhotoType(pt.val)} style={{
                     flex: 1, padding: '9px 6px', borderRadius: 10,
                     border: `2px solid ${photoType === pt.val ? 'var(--green-main)' : 'var(--border)'}`,
                     background: photoType === pt.val ? 'var(--green-pale)' : 'var(--surface-2)',
@@ -1188,18 +1212,22 @@ export default function ProgressPage() {
                 <input className="input-field" placeholder={t('progress.photoNotesPlaceholder', 'es. Settimana 4 di dieta…')} value={photoNotes} onChange={e => setPhotoNotes(e.target.value)} />
               </div>
               {photoError && (
-                <div style={{ background: 'var(--alert-error-bg)', border: '1px solid var(--alert-error-border)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--alert-error-text)', marginBottom: 12 }}>
+                <div role="alert" aria-live="assertive" style={{ background: 'var(--alert-error-bg)', border: '1px solid var(--alert-error-border)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--alert-error-text)', marginBottom: 12 }}>
                   {photoError}
                 </div>
               )}
               <label style={{ display: 'block' }}>
-                <input type="file" accept="image/*" style={{ display: 'none' }} disabled={photoUploading}
+                {/* position:absolute+opacity:0 invece di display:none: un
+                    <input> display:none esce dal tab order e diventa
+                    irraggiungibile da tastiera — questo modo resta invisibile
+                    ma attivabile con Tab+Invio/Spazio. */}
+                <input type="file" accept="image/*" aria-label={t('progress.choosePhoto', 'Scegli foto')} style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', border: 0 }} disabled={photoUploading}
                   onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.target.value = '' }} />
                 <span className="btn btn-primary" style={{
                   width: '100%', justifyContent: 'center', display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 0',
                   cursor: photoUploading ? 'wait' : 'pointer', opacity: photoUploading ? 0.7 : 1,
                 }}>
-                  {photoUploading ? t('progress.uploading', 'Caricamento…') : <><Camera size={16} /> {t('progress.choosePhoto', 'Scegli foto')}</>}
+                  {photoUploading ? t('progress.uploading', 'Caricamento…') : <><Camera size={16} aria-hidden="true" /> {t('progress.choosePhoto', 'Scegli foto')}</>}
                 </span>
               </label>
             </div>
@@ -1223,9 +1251,16 @@ export default function ProgressPage() {
                       dopo: t('progress.photoType.after', 'Dopo'),
                     }
                     return (
-                      <div key={photo.id} onClick={() => url && setLightboxUrl(url)} style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', aspectRatio: '1', cursor: url ? 'pointer' : 'default', background: 'var(--surface-2)' }}>
+                      <div
+                        key={photo.id}
+                        onClick={() => url && setLightboxUrl(url)}
+                        role={url ? 'button' : undefined}
+                        tabIndex={url ? 0 : undefined}
+                        onKeyDown={url ? (e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLightboxUrl(url) } }) : undefined}
+                        aria-label={url ? t('progress.viewPhotoAlt', { type: TYPE_LABELS[photo.photo_type] || '' }, 'Visualizza foto {{type}}') : undefined}
+                        style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', aspectRatio: '1', cursor: url ? 'pointer' : 'default', background: 'var(--surface-2)' }}>
                         {url ? (
-                          <img src={url} alt={TYPE_LABELS[photo.photo_type] || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                          <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
                         ) : (
                           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 24 }}>⏳</div>
                         )}
@@ -1242,10 +1277,7 @@ export default function ProgressPage() {
 
             {/* Lightbox */}
             {lightboxUrl && (
-              <div onClick={() => setLightboxUrl(null)} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-                <img src={lightboxUrl} alt={t('progress.progressPhotoAlt', 'Foto progressi')} style={{ maxWidth: '100%', maxHeight: '90dvh', borderRadius: 12, objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
-                <button onClick={() => setLightboxUrl(null)} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.18)', border: 'none', borderRadius: '50%', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', fontSize: 22, lineHeight: 1 }}>×</button>
-              </div>
+              <Lightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} label={t('progress.progressPhotoAlt', 'Foto progressi')} closeLabel={t('common.close', 'Chiudi')} />
             )}
           </div>
         )}

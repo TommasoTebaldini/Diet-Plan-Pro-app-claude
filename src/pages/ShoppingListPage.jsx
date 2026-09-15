@@ -217,15 +217,15 @@ function DietTab({ user }) {
   }
 
   if (loading) return (
-    <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
-      <div style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+    <div role="status" aria-live="polite" style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
+      <div aria-hidden="true" style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
       {t('shopping.caricamento_dieta', 'Caricamento dieta...')}
     </div>
   )
 
   if (foods.length === 0) return (
     <div style={{ textAlign: 'center', padding: '40px 24px', color: 'var(--text-muted)' }}>
-      <ShoppingCart size={40} style={{ opacity: 0.25, marginBottom: 12 }} />
+      <ShoppingCart size={40} aria-hidden="true" style={{ opacity: 0.25, marginBottom: 12 }} />
       <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{t('shopping.nessuna_dieta_attiva', 'Nessuna dieta attiva')}</p>
       <p style={{ fontSize: 13, lineHeight: 1.6 }}>{t('shopping.nessuna_dieta_attiva_desc', 'Quando il tuo dietista ti assegna un piano alimentare, qui troverai la lista della spesa generata automaticamente.')}</p>
     </div>
@@ -257,15 +257,17 @@ function DietTab({ user }) {
           <div key={cat} style={{ background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 14, overflow: 'hidden' }}>
             <button
               onClick={() => toggleCollapse(cat)}
+              aria-expanded={!isCollapsed}
+              aria-controls={`diet-cat-${cat}`}
               style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
             >
-              <span style={{ fontSize: 18 }}>{CATEGORY_ICONS[cat]}</span>
+              <span aria-hidden="true" style={{ fontSize: 18 }}>{CATEGORY_ICONS[cat]}</span>
               <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{categoryLabel(t, cat)}</span>
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{catChecked}/{items.length}</span>
-              {isCollapsed ? <ChevronDown size={16} color="var(--text-muted)" /> : <ChevronUp size={16} color="var(--text-muted)" />}
+              {isCollapsed ? <ChevronDown size={16} color="var(--text-muted)" aria-hidden="true" /> : <ChevronUp size={16} color="var(--text-muted)" aria-hidden="true" />}
             </button>
             {!isCollapsed && (
-              <div style={{ borderTop: '1px solid var(--border-light)' }}>
+              <div id={`diet-cat-${cat}`} style={{ borderTop: '1px solid var(--border-light)' }}>
                 {items.map((food, localIdx) => {
                   const globalIdx = foods.indexOf(food)
                   const key = `${cat}_${globalIdx}_${food.name}`
@@ -273,10 +275,15 @@ function DietTab({ user }) {
                   return (
                     <div
                       key={key}
+                      role="checkbox"
+                      aria-checked={isChecked}
+                      aria-label={food.quantity ? `${food.name}, ${food.quantity}` : food.name}
+                      tabIndex={0}
                       onClick={() => toggleCheck(key)}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCheck(key) } }}
                       style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderBottom: localIdx < items.length - 1 ? '1px solid var(--border-light)' : 'none', cursor: 'pointer', background: isChecked ? 'var(--surface-2)' : 'transparent', transition: 'background 0.15s' }}
                     >
-                      <div style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${isChecked ? 'var(--green-main)' : 'var(--border)'}`, background: isChecked ? 'var(--green-main)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
+                      <div aria-hidden="true" style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${isChecked ? 'var(--green-main)' : 'var(--border)'}`, background: isChecked ? 'var(--green-main)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
                         {isChecked && <Check size={13} color="white" strokeWidth={3} />}
                       </div>
                       <span style={{ flex: 1, fontSize: 14, color: isChecked ? 'var(--text-muted)' : 'var(--text-primary)', textDecoration: isChecked ? 'line-through' : 'none', transition: 'all 0.15s' }}>
@@ -350,15 +357,15 @@ function DiaryTab({ user }) {
   }
 
   if (loading) return (
-    <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
-      <div style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+    <div role="status" aria-live="polite" style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
+      <div aria-hidden="true" style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTopColor: 'var(--green-main)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
       {t('shopping.caricamento_diario', 'Caricamento diario...')}
     </div>
   )
 
   if (foods.length === 0) return (
     <div style={{ textAlign: 'center', padding: '40px 24px', color: 'var(--text-muted)' }}>
-      <BookOpen size={40} style={{ opacity: 0.25, marginBottom: 12 }} />
+      <BookOpen size={40} aria-hidden="true" style={{ opacity: 0.25, marginBottom: 12 }} />
       <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{t('shopping.nessun_dato_diario', 'Nessun dato nel diario')}</p>
       <p style={{ fontSize: 13, lineHeight: 1.6 }}>{t('shopping.nessun_dato_diario_desc', { days }, 'Registra i pasti nel diario per gli ultimi {{days}} giorni per generare la lista automaticamente.')}</p>
     </div>
@@ -367,10 +374,10 @@ function DiaryTab({ user }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {/* Period selector */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 13, color: 'var(--text-muted)', flexShrink: 0 }}>{t('shopping.ultimi', 'Ultimi')}</span>
+      <div role="group" aria-label={t('shopping.ultimi', 'Ultimi')} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span aria-hidden="true" style={{ fontSize: 13, color: 'var(--text-muted)', flexShrink: 0 }}>{t('shopping.ultimi', 'Ultimi')}</span>
         {[7, 14, 30].map(d => (
-          <button key={d} onClick={() => setDays(d)} style={{ padding: '5px 12px', borderRadius: 20, border: 'none', font: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer', background: days === d ? 'var(--green-main)' : 'var(--surface-2)', color: days === d ? 'white' : 'var(--text-secondary)' }}>{t('shopping.giorni_abbr', { d }, '{{d}}gg')}</button>
+          <button key={d} onClick={() => setDays(d)} aria-pressed={days === d} style={{ padding: '5px 12px', borderRadius: 20, border: 'none', font: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer', background: days === d ? 'var(--green-main)' : 'var(--surface-2)', color: days === d ? 'white' : 'var(--text-secondary)' }}>{t('shopping.giorni_abbr', { d }, '{{d}}gg')}</button>
         ))}
       </div>
 
@@ -389,20 +396,26 @@ function DiaryTab({ user }) {
         const catChecked = items.filter(f => checked[f.name]).length
         return (
           <div key={cat} style={{ background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 14, overflow: 'hidden' }}>
-            <button onClick={() => setCollapsed(s => ({ ...s, [cat]: !s[cat] }))} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-              <span style={{ fontSize: 18 }}>{CATEGORY_ICONS[cat]}</span>
+            <button onClick={() => setCollapsed(s => ({ ...s, [cat]: !s[cat] }))} aria-expanded={!isCollapsed} aria-controls={`diary-cat-${cat}`} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+              <span aria-hidden="true" style={{ fontSize: 18 }}>{CATEGORY_ICONS[cat]}</span>
               <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{categoryLabel(t, cat)}</span>
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{catChecked}/{items.length}</span>
-              {isCollapsed ? <ChevronDown size={16} color="var(--text-muted)" /> : <ChevronUp size={16} color="var(--text-muted)" />}
+              {isCollapsed ? <ChevronDown size={16} color="var(--text-muted)" aria-hidden="true" /> : <ChevronUp size={16} color="var(--text-muted)" aria-hidden="true" />}
             </button>
             {!isCollapsed && (
-              <div style={{ borderTop: '1px solid var(--border-light)' }}>
+              <div id={`diary-cat-${cat}`} style={{ borderTop: '1px solid var(--border-light)' }}>
                 {items.map((food, idx) => {
                   const isChecked = !!checked[food.name]
                   return (
-                    <div key={food.name} onClick={() => setChecked(s => ({ ...s, [food.name]: !s[food.name] }))}
+                    <div key={food.name}
+                      role="checkbox"
+                      aria-checked={isChecked}
+                      aria-label={`${food.name}, ${food.count}×`}
+                      tabIndex={0}
+                      onClick={() => setChecked(s => ({ ...s, [food.name]: !s[food.name] }))}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setChecked(s => ({ ...s, [food.name]: !s[food.name] })) } }}
                       style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderBottom: idx < items.length - 1 ? '1px solid var(--border-light)' : 'none', cursor: 'pointer', background: isChecked ? 'var(--surface-2)' : 'transparent', transition: 'background 0.15s' }}>
-                      <div style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${isChecked ? 'var(--green-main)' : 'var(--border)'}`, background: isChecked ? 'var(--green-main)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
+                      <div aria-hidden="true" style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${isChecked ? 'var(--green-main)' : 'var(--border)'}`, background: isChecked ? 'var(--green-main)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
                         {isChecked && <Check size={13} color="white" strokeWidth={3} />}
                       </div>
                       <span style={{ flex: 1, fontSize: 14, color: isChecked ? 'var(--text-muted)' : 'var(--text-primary)', textDecoration: isChecked ? 'line-through' : 'none', transition: 'all 0.15s' }}>{food.name}</span>
@@ -523,11 +536,12 @@ function ListsTab({ user }) {
                   value={editNameText}
                   onChange={e => setEditNameText(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') renameList(activeList.id) }}
+                  aria-label={t('shopping.rinomina_lista', 'Rinomina lista')}
                   autoFocus
                   style={{ flex: 1, padding: '7px 10px', border: '1.5px solid var(--green-main)', borderRadius: 10, fontSize: 14, fontFamily: 'inherit', outline: 'none' }}
                 />
                 <button onClick={() => renameList(activeList.id)} style={{ padding: '7px 12px', borderRadius: 10, border: 'none', background: 'var(--green-main)', color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{t('shopping.ok', 'OK')}</button>
-                <button onClick={() => setEditingName(null)} style={{ padding: '7px 10px', borderRadius: 10, border: '1px solid var(--border)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-muted)' }}>✕</button>
+                <button onClick={() => setEditingName(null)} aria-label={t('shopping.annulla', 'Annulla')} style={{ padding: '7px 10px', borderRadius: 10, border: '1px solid var(--border)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-muted)' }}>✕</button>
               </div>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -555,14 +569,16 @@ function ListsTab({ user }) {
             onChange={e => setNewItemText(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') addItem(activeList.id) }}
             placeholder={t('shopping.aggiungi_articolo_placeholder', 'Aggiungi un articolo...')}
+            aria-label={t('shopping.aggiungi_articolo_placeholder', 'Aggiungi un articolo...')}
             style={{ flex: 1, padding: '11px 14px', border: '1.5px solid var(--border)', borderRadius: 12, fontSize: 14, fontFamily: 'inherit', outline: 'none', background: 'var(--surface)' }}
           />
           <button
             onClick={() => addItem(activeList.id)}
             disabled={!newItemText.trim()}
+            aria-label={t('shopping.aggiungi_articolo_placeholder', 'Aggiungi un articolo...')}
             style={{ padding: '11px 16px', borderRadius: 12, border: 'none', background: newItemText.trim() ? 'var(--green-main)' : 'var(--border)', color: 'white', cursor: newItemText.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700 }}
           >
-            <Plus size={16} />
+            <Plus size={16} aria-hidden="true" />
           </button>
         </div>
 
@@ -581,18 +597,24 @@ function ListsTab({ user }) {
                   <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>{categoryLabel(t, cat)}</span>
                 </div>
                 {items.map((item, idx) => (
-                  <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderBottom: idx < items.length - 1 ? '1px solid var(--border-light)' : 'none', background: item.checked ? 'var(--surface-2)' : 'transparent' }}>
-                    <div onClick={() => toggleItem(activeList.id, item.id)} style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${item.checked ? 'var(--green-main)' : 'var(--border)'}`, background: item.checked ? 'var(--green-main)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', transition: 'all 0.15s' }}>
+                  <div key={item.id}
+                    role="checkbox"
+                    aria-checked={item.checked}
+                    aria-label={item.name}
+                    tabIndex={0}
+                    onClick={() => toggleItem(activeList.id, item.id)}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleItem(activeList.id, item.id) } }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderBottom: idx < items.length - 1 ? '1px solid var(--border-light)' : 'none', background: item.checked ? 'var(--surface-2)' : 'transparent', cursor: 'pointer' }}>
+                    <div aria-hidden="true" style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${item.checked ? 'var(--green-main)' : 'var(--border)'}`, background: item.checked ? 'var(--green-main)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
                       {item.checked && <Check size={13} color="white" strokeWidth={3} />}
                     </div>
                     <span
-                      onClick={() => toggleItem(activeList.id, item.id)}
-                      style={{ flex: 1, fontSize: 14, color: item.checked ? 'var(--text-muted)' : 'var(--text-primary)', textDecoration: item.checked ? 'line-through' : 'none', cursor: 'pointer', transition: 'all 0.15s' }}
+                      style={{ flex: 1, fontSize: 14, color: item.checked ? 'var(--text-muted)' : 'var(--text-primary)', textDecoration: item.checked ? 'line-through' : 'none', transition: 'all 0.15s' }}
                     >
                       {item.name}
                     </span>
-                    <button onClick={() => deleteItem(activeList.id, item.id)} aria-label={t('shopping.rimuovi_elemento', 'Rimuovi elemento')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4, display: 'flex', alignItems: 'center' }}>
-                      <X size={14} />
+                    <button onClick={e => { e.stopPropagation(); deleteItem(activeList.id, item.id) }} aria-label={t('shopping.rimuovi_elemento', 'Rimuovi elemento')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4, display: 'flex', alignItems: 'center' }}>
+                      <X size={14} aria-hidden="true" />
                     </button>
                   </div>
                 ))}
@@ -614,11 +636,12 @@ function ListsTab({ user }) {
             onChange={e => setNewListName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') createList() }}
             placeholder={t('shopping.nome_lista_placeholder', 'Nome della lista...')}
+            aria-label={t('shopping.nome_lista_placeholder', 'Nome della lista...')}
             autoFocus
             style={{ flex: 1, padding: '11px 14px', border: '1.5px solid var(--green-main)', borderRadius: 12, fontSize: 14, fontFamily: 'inherit', outline: 'none' }}
           />
           <button onClick={createList} disabled={!newListName.trim()} style={{ padding: '11px 16px', borderRadius: 12, border: 'none', background: newListName.trim() ? 'var(--green-main)' : 'var(--border)', color: 'white', cursor: newListName.trim() ? 'pointer' : 'default', fontSize: 14, fontWeight: 700 }}>{t('shopping.crea', 'Crea')}</button>
-          <button onClick={() => { setCreatingList(false); setNewListName('') }} style={{ padding: '11px 14px', borderRadius: 12, border: '1px solid var(--border)', background: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--text-muted)' }}>✕</button>
+          <button onClick={() => { setCreatingList(false); setNewListName('') }} aria-label={t('shopping.annulla', 'Annulla')} style={{ padding: '11px 14px', borderRadius: 12, border: '1px solid var(--border)', background: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--text-muted)' }}>✕</button>
         </div>
       ) : (
         <button
@@ -661,9 +684,10 @@ function ListsTab({ user }) {
                 )}
                 <button
                   onClick={() => deleteList(list.id)}
+                  aria-label={`${t('shopping.rimuovi_elemento', 'Rimuovi')} ${list.name}`}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '6px', display: 'flex', alignItems: 'center', flexShrink: 0 }}
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={16} aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -701,16 +725,20 @@ export default function ShoppingListPage() {
         </div>
 
         {/* Tab switcher */}
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div role="tablist" aria-label={t('shopping.titolo_pagina', 'Lista della spesa')} style={{ display: 'flex', gap: 8 }}>
           {tabs.map((tabItem, i) => {
             const Icon = tabItem.icon
             return (
               <button
                 key={i}
+                id={`shopping-tab-${i}`}
+                role="tab"
+                aria-selected={tab === i}
+                aria-controls={`shopping-panel-${i}`}
                 onClick={() => setTab(i)}
                 style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px 12px', borderRadius: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 600, transition: 'all 0.15s', background: tab === i ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.15)', color: tab === i ? 'var(--green-dark)' : 'rgba(255,255,255,0.85)' }}
               >
-                <Icon size={14} strokeWidth={2} />
+                <Icon size={14} strokeWidth={2} aria-hidden="true" />
                 {tabItem.label}
               </button>
             )
@@ -718,7 +746,7 @@ export default function ShoppingListPage() {
         </div>
       </div>
 
-      <div style={{ padding: '16px 16px 100px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div id={`shopping-panel-${tab}`} role="tabpanel" aria-labelledby={`shopping-tab-${tab}`} style={{ padding: '16px 16px 100px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {tab === 0 ? <DietTab user={user} /> : tab === 1 ? <DiaryTab user={user} /> : <ListsTab user={user} />}
       </div>
     </div>

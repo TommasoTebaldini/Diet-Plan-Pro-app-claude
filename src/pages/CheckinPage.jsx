@@ -41,16 +41,20 @@ function getMotivationalMessages(t) {
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 function RatingRow({ label, value, onChange, max = 5, emojis }) {
+  const t = useT()
   return (
     <div style={{ marginBottom: '12px' }}>
       <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 500 }}>
         {label}
       </div>
-      <div style={{ display: 'flex', gap: '8px' }}>
+      <div role="radiogroup" aria-label={label} style={{ display: 'flex', gap: '8px' }}>
         {Array.from({ length: max }, (_, i) => i + 1).map(n => (
           <button
             key={n}
             type="button"
+            role="radio"
+            aria-checked={value === n}
+            aria-label={t('checkin.rating_option_aria', { label, n, max }, '{{label}}: {{n}} su {{max}}')}
             onClick={() => onChange(n)}
             style={{
               flex: 1,
@@ -65,7 +69,7 @@ function RatingRow({ label, value, onChange, max = 5, emojis }) {
               transition: 'all 0.15s',
             }}
           >
-            {emojis ? emojis[n - 1] : n}
+            <span aria-hidden="true">{emojis ? emojis[n - 1] : n}</span>
           </button>
         ))}
       </div>
@@ -98,6 +102,7 @@ function SatisfactionSlider({ value, onChange }) {
         max={10}
         value={value}
         onChange={e => onChange(Number(e.target.value))}
+        aria-label={t('checkin.soddisfazione_aria', { low: t('checkin.per_niente_soddisfatto', 'Per niente soddisfatto'), high: t('checkin.molto_soddisfatto', 'Molto soddisfatto') }, 'Soddisfazione, da {{low}} a {{high}}')}
         style={{
           width: '100%',
           height: '6px',
@@ -277,7 +282,7 @@ export default function CheckinPage() {
     return (
       <PageTransition>
         <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60dvh' }}>
-          <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid var(--border-light)', borderTopColor: 'var(--green-main)', animation: 'spin 0.8s linear infinite' }} />
+          <div role="status" aria-label={t('common.loading', 'Caricamento')} style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid var(--border-light)', borderTopColor: 'var(--green-main)', animation: 'spin 0.8s linear infinite' }} />
         </div>
       </PageTransition>
     )
@@ -287,7 +292,7 @@ export default function CheckinPage() {
     return (
       <PageTransition>
         <div className="page" style={{ padding: '24px 16px', textAlign: 'center', minHeight: '60dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
-          <div style={{ fontSize: '64px' }}>✅</div>
+          <div aria-hidden="true" style={{ fontSize: '64px' }}>✅</div>
           <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
             {t('checkin.gia_completato_titolo', 'Check-in già completato')}
           </h2>
@@ -304,6 +309,7 @@ export default function CheckinPage() {
       <PageTransition>
         <div className="page" style={{ padding: '40px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
           <motion.div
+            aria-hidden="true"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 400, damping: 20 }}
@@ -366,7 +372,7 @@ export default function CheckinPage() {
           color: '#fff',
           textAlign: 'center',
         }}>
-          <div style={{ fontSize: '36px', marginBottom: '10px' }}>📋</div>
+          <div aria-hidden="true" style={{ fontSize: '36px', marginBottom: '10px' }}>📋</div>
           <h1 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 6px', fontFamily: 'var(--font-d)' }}>
             {t('checkin.titolo_pagina', 'Check-in Settimanale')}
           </h1>
@@ -385,11 +391,13 @@ export default function CheckinPage() {
 
           {/* 2. Aderenza al piano */}
           <Section number="2" title={t('checkin.sezione2_titolo', 'Hai seguito il piano alimentare?')}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            <div role="radiogroup" aria-label={t('checkin.sezione2_titolo', 'Hai seguito il piano alimentare?')} style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               {adherenceOptions.map(opt => (
                 <button
                   key={opt.value}
                   type="button"
+                  role="radio"
+                  aria-checked={adherence === opt.value}
                   onClick={() => setAdherence(opt.value)}
                   style={{
                     flex: '1 1 calc(33% - 8px)',
@@ -420,6 +428,7 @@ export default function CheckinPage() {
                 min="30"
                 max="300"
                 placeholder={t('checkin.peso_placeholder', 'es. 72.5')}
+                aria-label={t('checkin.sezione3_titolo', 'Peso attuale (opzionale)')}
                 value={weightKg}
                 onChange={e => setWeightKg(e.target.value)}
                 style={{
@@ -463,6 +472,7 @@ export default function CheckinPage() {
           <Section number="5" title={t('checkin.sezione5_titolo', 'Difficoltà incontrate (opzionale)')}>
             <textarea
               placeholder={t('checkin.difficolta_placeholder', 'Descrivi eventuali difficoltà nella settimana...')}
+              aria-label={t('checkin.sezione5_titolo', 'Difficoltà incontrate (opzionale)')}
               value={difficulties}
               onChange={e => setDifficulties(e.target.value)}
               rows={3}
@@ -486,6 +496,7 @@ export default function CheckinPage() {
           <Section number="6" title={t('checkin.sezione6_titolo', 'Obiettivo per la prossima settimana (opzionale)')}>
             <textarea
               placeholder={t('checkin.obiettivo_placeholder', 'Cosa vuoi migliorare o raggiungere la prossima settimana?')}
+              aria-label={t('checkin.sezione6_titolo', 'Obiettivo per la prossima settimana (opzionale)')}
               value={nextWeekGoal}
               onChange={e => setNextWeekGoal(e.target.value)}
               rows={3}
@@ -509,6 +520,7 @@ export default function CheckinPage() {
           <Section number="7" title={t('checkin.sezione7_titolo', 'Messaggio al dietista (opzionale)')}>
             <textarea
               placeholder={t('checkin.messaggio_placeholder', 'Vuoi comunicare qualcosa al tuo dietista? (verrà inviato anche in chat)')}
+              aria-label={t('checkin.sezione7_titolo', 'Messaggio al dietista (opzionale)')}
               value={messageToDietitian}
               onChange={e => setMessageToDietitian(e.target.value)}
               rows={3}
@@ -544,6 +556,7 @@ export default function CheckinPage() {
           <AnimatePresence>
             {error && (
               <motion.div
+                role="alert"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
@@ -558,7 +571,7 @@ export default function CheckinPage() {
                   marginBottom: '12px',
                 }}
               >
-                <AlertCircle size={16} color="var(--alert-error-text)" style={{ flexShrink: 0, marginTop: '1px' }} />
+                <AlertCircle aria-hidden="true" size={16} color="var(--alert-error-text)" style={{ flexShrink: 0, marginTop: '1px' }} />
                 <span style={{ fontSize: '13px', color: 'var(--alert-error-text)' }}>{error}</span>
               </motion.div>
             )}
@@ -588,12 +601,12 @@ export default function CheckinPage() {
           >
             {submitting ? (
               <>
-                <div style={{ width: 18, height: 18, borderRadius: '50%', border: '2.5px solid var(--text-muted)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+                <div aria-hidden="true" style={{ width: 18, height: 18, borderRadius: '50%', border: '2.5px solid var(--text-muted)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
                 {t('checkin.invio_in_corso', 'Invio in corso...')}
               </>
             ) : (
               <>
-                <CheckCircle size={18} />
+                <CheckCircle aria-hidden="true" size={18} />
                 {t('checkin.invia', 'Invia check-in')}
               </>
             )}

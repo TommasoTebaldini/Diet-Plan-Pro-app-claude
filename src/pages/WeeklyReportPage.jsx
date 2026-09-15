@@ -123,7 +123,7 @@ export default function WeeklyReportPage() {
   useEffect(() => { load() }, [load])
 
   if (!data) {
-    return <div className="page" style={{ padding: 16 }}><p style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('weeklyreport.loading', 'Caricamento…')}</p></div>
+    return <div className="page" style={{ padding: 16 }}><p role="status" style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('weeklyreport.loading', 'Caricamento…')}</p></div>
   }
 
   const maxBar = Math.max(1, ...data.bars.map(b => b.kcal))
@@ -152,11 +152,14 @@ export default function WeeklyReportPage() {
             {data.daysCur}<span style={{ fontSize: 15, color: 'var(--text-muted)', fontWeight: 600 }}>{t('weeklyreport.out_of_7_days', '/7 giorni')}</span>
           </p>
           <Delta value={data.daysCur - data.daysPrev} unit={t('weeklyreport.unit_days', ' gg')} />
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height: 64, marginTop: 14 }}>
+          <div role="img" aria-label={t('weeklyreport.chart_aria', 'Grafico kcal registrate negli ultimi 7 giorni: ') + data.bars.map((b, i) => {
+              const dow = (new Date(b.date + 'T12:00:00').getDay() + 6) % 7
+              return `${giorniLbl[dow]} ${b.kcal} kcal`
+            }).join(', ')} style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height: 64, marginTop: 14 }}>
             {data.bars.map((b, i) => {
               const dow = (new Date(b.date + 'T12:00:00').getDay() + 6) % 7
               return (
-                <div key={b.date} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                <div key={b.date} aria-hidden="true" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
                   <div style={{
                     width: '100%', borderRadius: 5,
                     height: `${Math.max(4, (b.kcal / maxBar) * 48)}px`,

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { supabase, getMyDietitianId } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -221,6 +221,7 @@ function FoodItem({ food, overrideKey, override, onOverride }) {
               type="number"
               value={customGrams}
               onChange={e => onOverride(overrideKey, { subIdx: selectedSubIdx, grams: e.target.value })}
+              aria-label={t('diet.grams_aria', { food: displayName }, 'Grammi per {{food}}')}
               style={{ width: 60, padding: '2px 6px', borderRadius: 8, border: '1.5px solid var(--green-main)', fontSize: 13, fontFamily: 'inherit', textAlign: 'center', outline: 'none' }}
               min={1}
             />
@@ -296,6 +297,21 @@ function MealFeedbackModal({ meal, user, onClose }) {
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
   const mealLabel = meal.nome || t(`meal.${meal.meal_type}`, MEAL_LABELS_IT[meal.meal_type] || meal.meal_type)
+  const closeBtnRef = useRef(null)
+  const openerRef = useRef(null)
+
+  // Focus iniziale già gestito dall'autoFocus sulla textarea sotto (è
+  // l'azione primaria del foglio); qui solo Escape-per-chiudere e ripristino
+  // del focus sul trigger alla chiusura.
+  useEffect(() => {
+    openerRef.current = document.activeElement
+    function onKeyDown(e) { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      openerRef.current?.focus?.()
+    }
+  }, [onClose])
 
   async function send() {
     if (!text.trim()) return
@@ -328,24 +344,25 @@ function MealFeedbackModal({ meal, user, onClose }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', padding: '0 0 calc(64px + env(safe-area-inset-bottom))' }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', padding: '20px 20px 24px', width: '100%', boxShadow: '0 -8px 32px rgba(0,0,0,0.2)', maxHeight: '85dvh', overflowY: 'auto', boxSizing: 'border-box' }}>
+      <div onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="meal-feedback-title" style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', padding: '20px 20px 24px', width: '100%', boxShadow: '0 -8px 32px rgba(0,0,0,0.2)', maxHeight: '85dvh', overflowY: 'auto', boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div>
-            <p style={{ fontSize: 15, fontWeight: 700 }}>{t('diet.feedback_title', '💬 Feedback al dietista')}</p>
+            <p id="meal-feedback-title" style={{ fontSize: 15, fontWeight: 700 }}>{t('diet.feedback_title', '💬 Feedback al dietista')}</p>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{t('diet.feedback_meal_label', { meal: mealLabel }, 'Pasto: {{meal}}')}</p>
           </div>
-          <button onClick={onClose} aria-label={t('common.close', 'Chiudi')} style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <button ref={closeBtnRef} onClick={onClose} aria-label={t('common.close', 'Chiudi')} style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <X size={16} color="var(--text-muted)" />
           </button>
         </div>
         {sent ? (
-          <div style={{ textAlign: 'center', padding: '12px 0', color: 'var(--green-main)', fontWeight: 600, fontSize: 15 }}>{t('diet.feedback_sent', '✅ Feedback inviato!')}</div>
+          <div role="status" style={{ textAlign: 'center', padding: '12px 0', color: 'var(--green-main)', fontWeight: 600, fontSize: 15 }}>{t('diet.feedback_sent', '✅ Feedback inviato!')}</div>
         ) : (
           <>
             <textarea
               value={text}
               onChange={e => setText(e.target.value)}
               placeholder={t('diet.feedback_placeholder', 'Es: questo pranzo era troppo pesante, posso ridurre i carboidrati?')}
+              aria-label={t('diet.feedback_title', '💬 Feedback al dietista')}
               rows={3}
               style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1.5px solid var(--border)', fontFamily: 'inherit', fontSize: 14, resize: 'none', outline: 'none', boxSizing: 'border-box', marginBottom: 12 }}
               autoFocus
@@ -715,6 +732,7 @@ function PianoAlimentareContent({ piano }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }} onClick={e => e.stopPropagation()}>
                     <input type="date" value={copyState.date}
                       onChange={e => setCopyState(s => ({ ...s, date: e.target.value }))}
+                      aria-label={t('diet.copy_to_date_aria', 'Data di destinazione per la copia del giorno')}
                       style={{ padding: '3px 6px', borderRadius: 7, border: 'none', fontSize: 11.5, background: 'rgba(255,255,255,.92)', color: '#1a1a1a', outline: 'none', maxWidth: 120 }}
                     />
                     <button onClick={() => copyDayToDiary(day, di)} disabled={copyState.busy}
@@ -1521,6 +1539,7 @@ export default function DietPage() {
                       type="date"
                       value={copyDiet.date || today}
                       onChange={e => setCopyDiet(s => ({ ...s, date: e.target.value }))}
+                      aria-label={t('diet.copy_to_date', '📋 Copia in data:')}
                       style={{ flex: 1, padding: '5px 8px', borderRadius: 8, border: '1.5px solid var(--border)', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
                     />
                     <button

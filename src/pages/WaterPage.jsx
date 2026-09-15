@@ -240,7 +240,7 @@ export default function WaterPage() {
           transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
           style={{ padding: '24px 20px', textAlign: 'center' }}>
           <div style={{ position: 'relative', width: 160, height: 160, margin: '0 auto 16px' }}>
-            <svg viewBox="0 0 160 160" style={{ width: 160, height: 160, transform: 'rotate(-90deg)' }}>
+            <svg aria-hidden="true" viewBox="0 0 160 160" style={{ width: 160, height: 160, transform: 'rotate(-90deg)' }}>
               <circle cx={80} cy={80} r={68} fill="none" stroke="#dbeafe" strokeWidth={12} />
               <circle cx={80} cy={80} r={68} fill="none" stroke="#3b82f6"
                 strokeWidth={12} strokeLinecap="round"
@@ -318,6 +318,7 @@ export default function WaterPage() {
               type="number"
               className="input-field"
               placeholder={t('water.custom_amount') + ' (ml)'}
+              aria-label={t('water.custom_amount') + ' (ml)'}
               value={custom}
               onChange={e => setCustom(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') { const v = parseInt(custom, 10); if (v > 0) addWater(v) } }}
@@ -332,25 +333,25 @@ export default function WaterPage() {
         </motion.div>
 
         {/* Tabs: oggi / settimana */}
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div role="tablist" aria-label={t('water.history', 'Cronologia acqua')} style={{ display: 'flex', gap: 8 }}>
           {[
             { key: 'oggi', icon: <List size={14} />, label: t('common.today') },
             { key: 'settimana', icon: <BarChart2 size={14} />, label: t('common.week') },
-          ].map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)} style={{
+          ].map(tb => (
+            <button key={tb.key} id={`water-tab-${tb.key}`} role="tab" aria-selected={tab === tb.key} aria-controls={`water-panel-${tb.key}`} onClick={() => setTab(tb.key)} style={{
               flex: 1, padding: '10px 8px', borderRadius: 12, border: 'none', font: 'inherit',
               fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              background: tab === t.key ? '#3b82f6' : 'var(--surface-2)',
-              color: tab === t.key ? 'white' : 'var(--text-secondary)',
+              background: tab === tb.key ? '#3b82f6' : 'var(--surface-2)',
+              color: tab === tb.key ? 'white' : 'var(--text-secondary)',
             }}>
-              {t.icon}{t.label}
+              {tb.icon}{tb.label}
             </button>
           ))}
         </div>
 
         {/* Tab content */}
         {tab === 'oggi' && (
-          <div className="card" style={{ padding: '18px 20px' }}>
+          <div id="water-panel-oggi" role="tabpanel" aria-labelledby="water-tab-oggi" className="card" style={{ padding: '18px 20px' }}>
             {logs.length === 0 ? (
               <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 14, padding: '12px 0' }}>{t('common.no_data')}</p>
             ) : (
@@ -375,11 +376,12 @@ export default function WaterPage() {
         )}
 
         {tab === 'settimana' && (
-          <div className="card" style={{ padding: '18px 20px' }}>
+          <div id="water-panel-settimana" role="tabpanel" aria-labelledby="water-tab-settimana" className="card" style={{ padding: '18px 20px' }}>
             <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{t('water.history')}</h3>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
               {t('water.avg', 'Media:')} {weekData.length ? Math.round(weekData.reduce((s, d) => s + d.total, 0) / weekData.length) : 0} {t('water.ml_per_day', 'ml/giorno')}
             </p>
+            <div role="img" aria-label={`${t('water.history', 'Cronologia settimanale')}: ${weekData.map(d => `${format(parseISO(d.date), 'd MMM', { locale: it })} ${d.total} ml`).join(', ')}`}>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={weekData} margin={{ top: 0, right: 4, left: -20, bottom: 0 }} barCategoryGap="25%">
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" vertical={false} />
@@ -394,6 +396,7 @@ export default function WaterPage() {
                 />
               </BarChart>
             </ResponsiveContainer>
+            </div>
 
             {/* Daily summary list */}
             <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
