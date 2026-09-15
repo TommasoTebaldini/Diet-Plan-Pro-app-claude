@@ -121,27 +121,32 @@ function LogForm({ onClose, onSaved, userWeight, userId }) {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end' }}>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="log-activity-modal-title"
+      onKeyDown={e => { if (e.key === 'Escape') onClose() }}
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end' }}>
       <div style={{ width: '100%', maxWidth: 480, margin: '0 auto', background: 'var(--surface)', borderRadius: '24px 24px 0 0', padding: '20px 20px calc(24px + env(safe-area-inset-bottom))', maxHeight: '90dvh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <h3 style={{ fontSize: 17, fontWeight: 700 }}>{t('activity.log_title', 'Registra attività')}</h3>
+          <h3 id="log-activity-modal-title" style={{ fontSize: 17, fontWeight: 700 }}>{t('activity.log_title', 'Registra attività')}</h3>
           <button onClick={onClose} aria-label={t('common.close', 'Chiudi')} style={{ background: 'var(--surface-3)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <X size={16} color="var(--text-muted)" />
+            <X size={16} color="var(--text-muted)" aria-hidden="true" />
           </button>
         </div>
 
         {/* Activity type selector */}
         <div style={{ marginBottom: 14 }}>
           <label className="input-label" style={{ display: 'block', marginBottom: 8 }}>{t('activity.type', 'Tipo di attività')}</label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(60px, 1fr))', gap: 8 }}>
+          <div role="group" aria-label={t('activity.type', 'Tipo di attività')} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(60px, 1fr))', gap: 8 }}>
             {ACTIVITIES.map(a => (
-              <button key={a.type} onClick={() => setForm(f => ({ ...f, activity_type: a.type }))} style={{
+              <button key={a.type} aria-pressed={form.activity_type === a.type} onClick={() => setForm(f => ({ ...f, activity_type: a.type }))} style={{
                 padding: '10px 4px', borderRadius: 12,
                 background: form.activity_type === a.type ? a.color + '22' : 'var(--surface-2)',
                 border: form.activity_type === a.type ? `2px solid ${a.color}` : '1.5px solid var(--border)',
                 cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
               }}>
-                <span style={{ fontSize: 20 }}>{a.icon}</span>
+                <span aria-hidden="true" style={{ fontSize: 20 }}>{a.icon}</span>
                 <span style={{ fontSize: 9, fontWeight: 600, color: form.activity_type === a.type ? a.color : 'var(--text-muted)' }}>{t(ACTIVITY_LABEL_KEYS[a.type], a.label)}</span>
               </button>
             ))}
@@ -171,7 +176,7 @@ function LogForm({ onClose, onSaved, userWeight, userId }) {
         {/* Estimated calories preview */}
         {estimatedCalories && (
           <div style={{ background: 'var(--icon-bg-amber)', borderRadius: 12, padding: '12px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, border: '1px solid var(--alert-warning-border)' }}>
-            <Flame size={18} color="var(--orange)" />
+            <Flame size={18} color="var(--orange)" aria-hidden="true" />
             <div>
               <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--orange)' }}>{t('activity.calories_estimate_value', { kcal: estimatedCalories }, '~{{kcal}} kcal bruciate stimate')}</p>
               <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('activity.calories_estimate_basis', { met: meta.met, weight: userWeight, duration: form.duration_minutes }, 'Basato su MET {{met}} × {{weight}} kg × {{duration}} min')}</p>
@@ -180,11 +185,11 @@ function LogForm({ onClose, onSaved, userWeight, userId }) {
         )}
 
         {error && (
-          <div style={{ marginBottom: 12, background: 'var(--alert-error-bg)', border: '1.5px solid var(--alert-error-border)', borderRadius: 12, padding: '10px 14px', color: 'var(--alert-error-text)', fontSize: 13, fontWeight: 500 }}>{error}</div>
+          <div role="alert" style={{ marginBottom: 12, background: 'var(--alert-error-bg)', border: '1.5px solid var(--alert-error-border)', borderRadius: 12, padding: '10px 14px', color: 'var(--alert-error-text)', fontSize: 13, fontWeight: 500 }}>{error}</div>
         )}
 
         <button className="btn btn-primary btn-full" onClick={save} disabled={saving || !durationNum || durationNum <= 0}>
-          {saving ? t('activity.saving', 'Salvando…') : <><Check size={16} /> {t('activity.save', 'Salva attività')}</>}
+          {saving ? t('activity.saving', 'Salvando…') : <><Check size={16} aria-hidden="true" /> {t('activity.save', 'Salva attività')}</>}
         </button>
       </div>
     </div>
@@ -475,7 +480,7 @@ export default function ActivityPage() {
 
         {/* ── Log activity button ── */}
         <button className="btn btn-primary btn-full" onClick={() => setShowForm(true)} style={{ gap: 8, fontSize: 15 }}>
-          <Plus size={18} /> {t('common.add')}
+          <Plus size={18} aria-hidden="true" /> {t('common.add')}
         </button>
 
         {/* ── Live Pedometer card ── */}
@@ -501,7 +506,7 @@ export default function ActivityPage() {
                   whileTap={{ scale: 0.92 }}
                   style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, background: 'linear-gradient(135deg, var(--green-main), var(--green-mid))', color: 'white', minHeight: 44 }}
                 >
-                  <Footprints size={14} /> {t('activity.activate', 'Attiva')}
+                  <Footprints size={14} aria-hidden="true" /> {t('activity.activate', 'Attiva')}
                 </motion.button>
               ) : pedoActive ? (
                 <motion.button
@@ -509,7 +514,7 @@ export default function ActivityPage() {
                   whileTap={{ scale: 0.92 }}
                   style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 13px', borderRadius: 10, border: '1.5px solid #fed7aa', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: 'transparent', color: '#f97316', minHeight: 36 }}
                 >
-                  <Square size={12} /> {t('activity.stop', 'Ferma')}
+                  <Square size={12} aria-hidden="true" /> {t('activity.stop', 'Ferma')}
                 </motion.button>
               ) : null}
             </div>
@@ -547,17 +552,17 @@ export default function ActivityPage() {
             )}
             {!pedoActive && !pedoNeedsGesture && !pedoPermErr && !isNativeApp() && (
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Info size={11} /> {t('activity.pedometer_keep_open', "Tieni l'app aperta nelle app recenti per continuare il conteggio")}
+                <Info size={11} aria-hidden="true" /> {t('activity.pedometer_keep_open', "Tieni l'app aperta nelle app recenti per continuare il conteggio")}
               </p>
             )}
             {!pedoActive && !pedoNeedsGesture && !pedoPermErr && isNativeApp() && (
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Info size={11} /> {t('activity.pedometer_native_tracking', { app: navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad') ? t('activity.health_app_name_ios', 'Salute') : 'Health Connect' }, 'Conta i passi tramite {{app}} anche ad app chiusa')}
+                <Info size={11} aria-hidden="true" /> {t('activity.pedometer_native_tracking', { app: navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad') ? t('activity.health_app_name_ios', 'Salute') : 'Health Connect' }, 'Conta i passi tramite {{app}} anche ad app chiusa')}
               </p>
             )}
             {pedoNeedsGesture && (
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Info size={11} /> {t('activity.pedometer_ios_permission_note', "Su iOS è richiesta l'autorizzazione al primo utilizzo")}
+                <Info size={11} aria-hidden="true" /> {t('activity.pedometer_ios_permission_note', "Su iOS è richiesta l'autorizzazione al primo utilizzo")}
               </p>
             )}
           </motion.div>
@@ -594,7 +599,7 @@ export default function ActivityPage() {
                   min="500"
                 />
                 <button onClick={handleSaveGoal} aria-label={t('activity.save_step_goal_aria', 'Salva obiettivo passi')} style={{ background: 'var(--green-main)', border: 'none', borderRadius: 8, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                  <Check size={14} color="white" />
+                  <Check size={14} color="white" aria-hidden="true" />
                 </button>
               </div>
             )}
@@ -627,14 +632,14 @@ export default function ActivityPage() {
               background: 'var(--icon-bg-blue)', border: '1px solid var(--alert-info-border)', borderRadius: 10, padding: '10px 8px',
               textDecoration: 'none', color: 'var(--blue)', fontSize: 12, fontWeight: 600,
             }}>
-              <span>🍎</span> {t('activity.apple_health_label', 'Apple Health')} <ExternalLink size={11} />
+              <span>🍎</span> {t('activity.apple_health_label', 'Apple Health')} <ExternalLink size={11} aria-hidden="true" />
             </a>
             <a href="https://fit.google.com" target="_blank" rel="noopener noreferrer" style={{
               flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               background: 'var(--icon-bg-lime)', border: '1px solid var(--alert-success-border)', borderRadius: 10, padding: '10px 8px',
               textDecoration: 'none', color: 'var(--green-mid)', fontSize: 12, fontWeight: 600,
             }}>
-              <span>🏃</span> {t('activity.google_fit_label', 'Google Fit')} <ExternalLink size={11} />
+              <span>🏃</span> {t('activity.google_fit_label', 'Google Fit')} <ExternalLink size={11} aria-hidden="true" />
             </a>
           </div>
         </motion.div>
@@ -657,10 +662,10 @@ export default function ActivityPage() {
                   try { localStorage.setItem('nutriplan_activity_goals', JSON.stringify(next)) } catch {}
                   setEditingGoals(false)
                 }} aria-label={t('activity.save_goals_aria', 'Salva obiettivi')} style={{ background: '#f97316', border: 'none', borderRadius: 8, minWidth: 44, minHeight: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                  <Check size={14} color="white" />
+                  <Check size={14} color="white" aria-hidden="true" />
                 </button>
                 <button onClick={() => setEditingGoals(false)} aria-label={t('common.cancel', 'Annulla')} style={{ background: 'var(--surface-2)', border: 'none', borderRadius: 8, minWidth: 44, minHeight: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                  <X size={14} color="var(--text-muted)" />
+                  <X size={14} color="var(--text-muted)" aria-hidden="true" />
                 </button>
               </div>
             )}
@@ -699,13 +704,13 @@ export default function ActivityPage() {
         </motion.div>
 
         {/* ── Tabs ── */}
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div role="tablist" aria-label={t('nav.activities', 'Attività')} style={{ display: 'flex', gap: 8 }}>
           {[
-            { key: 'oggi', icon: <List size={14} />, label: t('activity.tab_today', 'Oggi') },
-            { key: 'settimana', icon: <BarChart2 size={14} />, label: t('activity.tab_week', 'Settimana') },
-            { key: 'storico', icon: <Clock size={14} />, label: t('activity.tab_history', 'Storico') },
+            { key: 'oggi', icon: <List size={14} aria-hidden="true" />, label: t('activity.tab_today', 'Oggi') },
+            { key: 'settimana', icon: <BarChart2 size={14} aria-hidden="true" />, label: t('activity.tab_week', 'Settimana') },
+            { key: 'storico', icon: <Clock size={14} aria-hidden="true" />, label: t('activity.tab_history', 'Storico') },
           ].map(tb => (
-            <button key={tb.key} onClick={() => setTab(tb.key)} style={{
+            <button key={tb.key} role="tab" aria-selected={tab === tb.key} onClick={() => setTab(tb.key)} style={{
               flex: 1, padding: '10px 8px', borderRadius: 12, border: 'none', font: 'inherit',
               fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               background: tab === tb.key ? '#f97316' : 'var(--surface-2)',
@@ -720,7 +725,7 @@ export default function ActivityPage() {
         {tab === 'oggi' && (
           <div className="card" style={{ padding: '18px 20px' }}>
             {deleteError && (
-              <div style={{ marginBottom: 12, background: 'var(--alert-error-bg)', border: '1.5px solid var(--alert-error-border)', borderRadius: 12, padding: '10px 14px', color: 'var(--alert-error-text)', fontSize: 13, fontWeight: 500 }}>{deleteError}</div>
+              <div role="alert" style={{ marginBottom: 12, background: 'var(--alert-error-bg)', border: '1.5px solid var(--alert-error-border)', borderRadius: 12, padding: '10px 14px', color: 'var(--alert-error-text)', fontSize: 13, fontWeight: 500 }}>{deleteError}</div>
             )}
             {loading ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -751,7 +756,7 @@ export default function ActivityPage() {
                         {l.notes && <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{l.notes}</p>}
                       </div>
                       <button onClick={() => deleteLog(l.id)} aria-label={t('activity.delete_activity_aria', 'Elimina attività')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 12, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Trash2 size={15} />
+                        <Trash2 size={15} aria-hidden="true" />
                       </button>
                     </div>
                   )
@@ -798,15 +803,17 @@ export default function ActivityPage() {
                 <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--purple)' }}>{weekMinutesAvg}</p>
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={weekData} margin={{ top: 0, right: 4, left: -20, bottom: 0 }} barCategoryGap="25%">
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: '#fff7ed' }} />
-                <Bar dataKey="calories" radius={[6, 6, 0, 0]} fill="#fb923c" maxBarSize={40} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div role="img" aria-label={t('activity.weekly_chart_feature', 'Grafico settimanale') + ': ' + weekData.map(d => `${d.label} ${d.calories} kcal`).join(', ')}>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={weekData} margin={{ top: 0, right: 4, left: -20, bottom: 0 }} barCategoryGap="25%">
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: '#fff7ed' }} />
+                  <Bar dataKey="calories" radius={[6, 6, 0, 0]} fill="#fb923c" maxBarSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
 
             {/* Daily summary list */}
             <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>

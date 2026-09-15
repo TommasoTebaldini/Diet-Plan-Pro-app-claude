@@ -50,7 +50,7 @@ export default function RegisterPage() {
   if (success) return (
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, background: 'var(--green-mist)', textAlign: 'center' }}>
       <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-        <CheckCircle size={36} color="var(--green-main)" />
+        <CheckCircle size={36} color="var(--green-main)" aria-hidden="true" />
       </div>
       <h2 style={{ fontFamily: 'var(--font-d)', fontSize: 26, fontWeight: 300, marginBottom: 12 }}>{t('auth.register_success')}</h2>
       <p style={{ color: 'var(--text-secondary)', marginBottom: 8 }}>{t('auth.register_check_email')}</p>
@@ -87,41 +87,44 @@ export default function RegisterPage() {
           <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 20 }}>{t('auth.register')}</h2>
 
           {error && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fff0f0', border: '1px solid #ffd4d4', borderRadius: 'var(--radius-sm)', padding: '12px 14px', marginBottom: 16, color: 'var(--red)', fontSize: 14 }}>
-              <AlertCircle size={16} /> {error}
+            <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fff0f0', border: '1px solid #ffd4d4', borderRadius: 'var(--radius-sm)', padding: '12px 14px', marginBottom: 16, color: 'var(--red)', fontSize: 14 }}>
+              <AlertCircle size={16} aria-hidden="true" /> {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div className="input-group">
-                <label className="input-label">{t('profile.first_name')}</label>
-                <input type="text" className="input-field" placeholder={t('profile.first_name_placeholder', 'Mario')} value={form.name} onChange={set('name')} required />
+                <label className="input-label" htmlFor="reg-name">{t('profile.first_name')}</label>
+                <input id="reg-name" type="text" className="input-field" placeholder={t('profile.first_name_placeholder', 'Mario')} value={form.name} onChange={set('name')} required />
               </div>
               <div className="input-group">
-                <label className="input-label">{t('profile.last_name')}</label>
-                <input type="text" className="input-field" placeholder={t('profile.last_name_placeholder', 'Rossi')} value={form.surname} onChange={set('surname')} required />
+                <label className="input-label" htmlFor="reg-surname">{t('profile.last_name')}</label>
+                <input id="reg-surname" type="text" className="input-field" placeholder={t('profile.last_name_placeholder', 'Rossi')} value={form.surname} onChange={set('surname')} required />
               </div>
             </div>
 
             <div className="input-group">
-              <label className="input-label">{t('auth.email')}</label>
-              <input type="email" className="input-field" placeholder={t('auth.register_email_placeholder', 'mario@email.com')} value={form.email} onChange={set('email')} required autoComplete="email" />
+              <label className="input-label" htmlFor="reg-email">{t('auth.email')}</label>
+              <input id="reg-email" type="email" className="input-field" placeholder={t('auth.register_email_placeholder', 'mario@email.com')} value={form.email} onChange={set('email')} required autoComplete="email" />
             </div>
 
             <div className="input-group">
-              <label className="input-label">{t('auth.password')}</label>
+              <label className="input-label" htmlFor="reg-password">{t('auth.password')}</label>
               <div style={{ position: 'relative' }}>
-                <input type={showPass ? 'text' : 'password'} className="input-field" placeholder={t('auth.password_placeholder')} value={form.password} onChange={set('password')} required style={{ paddingRight: 48 }} />
-                <button type="button" onClick={() => setShowPass(v => !v)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
-                  {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                <input id="reg-password" type={showPass ? 'text' : 'password'} className="input-field" placeholder={t('auth.password_placeholder')} value={form.password} onChange={set('password')} required style={{ paddingRight: 48 }} />
+                <button type="button" onClick={() => setShowPass(v => !v)}
+                  aria-label={showPass ? t('auth.hide_password', 'Nascondi password') : t('auth.show_password', 'Mostra password')}
+                  aria-pressed={showPass}
+                  style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+                  {showPass ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
                 </button>
               </div>
             </div>
 
             <div className="input-group">
-              <label className="input-label">{t('auth.confirm_password')}</label>
-              <input type="password" className="input-field" placeholder={t('auth.confirm_password_placeholder')} value={form.confirm} onChange={set('confirm')} required />
+              <label className="input-label" htmlFor="reg-confirm">{t('auth.confirm_password')}</label>
+              <input id="reg-confirm" type="password" className="input-field" placeholder={t('auth.confirm_password_placeholder')} value={form.confirm} onChange={set('confirm')} required />
             </div>
 
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, color: 'var(--text-secondary)', margin: '2px 0 4px', cursor: 'pointer', lineHeight: 1.4 }}>
@@ -134,10 +137,10 @@ export default function RegisterPage() {
               </span>
             </label>
 
-            <button type="submit" className="btn btn-primary btn-full" disabled={loading || !consent} style={{ marginTop: 4 }}>
+            <button type="submit" className="btn btn-primary btn-full" disabled={loading || !consent} aria-busy={loading} style={{ marginTop: 4 }}>
               {loading
                 ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                    <span aria-hidden="true" style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
                     {t('auth.register')}…
                   </span>
                 : t('auth.register_btn')}

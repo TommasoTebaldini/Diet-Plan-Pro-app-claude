@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import patientViewRaw from '../assets/patientViewHtml.js'
 import { supabase } from '../lib/supabase'
@@ -957,6 +957,18 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
   const [iframeHtml, setIframeHtml] = useState(null)
   const [error, setError]           = useState(null)
   const [imgFailed, setImgFailed]   = useState(false)
+  const titleId = useId()
+  const closeBtnRef = useRef(null)
+
+  // Modale a schermo intero senza equivalente nativo (via portal) — Escape
+  // per chiudere e focus portato sul bottone di chiusura all'apertura,
+  // ripristinato dal browser al trigger quando il portal viene smontato.
+  useEffect(() => {
+    closeBtnRef.current?.focus()
+    function onKeyDown(e) { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
 
   useEffect(() => {
     setIframeHtml(null)
@@ -1003,23 +1015,25 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
   // nemmeno z-index 99999 supera il menu laterale (contesto radice). Il portal
   // fa uscire il visualizzatore da qualunque contenitore, così copre tutto.
   return createPortal(
-    <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', flexDirection: 'column', background: 'white' }}>
+    <div role="dialog" aria-modal="true" aria-labelledby={titleId} style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', flexDirection: 'column', background: 'white' }}>
       {/* Header */}
       <div style={{ background: 'linear-gradient(160deg, #0d5c3a, #1a7f5a)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,.15)' }}>
-        <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', fontSize: 20, flexShrink: 0 }}>←</button>
+        <button ref={closeBtnRef} onClick={onClose} aria-label={t('common.close', 'Chiudi')} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', fontSize: 20, flexShrink: 0 }}>←</button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, margin: 0 }}>{typeLabel(t, metaKey)}</p>
-          <h2 style={{ color: 'white', fontSize: 17, fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.title}</h2>
+          <h2 id={titleId} style={{ color: 'white', fontSize: 17, fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.title}</h2>
         </div>
         {printImageUrl && (
-          <a href={printImageUrl} target="_blank" rel="noopener noreferrer" download={`${doc.title || 'documento'}.png`} title={t('docs.download_image_title', 'Scarica immagine')}
+          <a href={printImageUrl} target="_blank" rel="noopener noreferrer" download={`${doc.title || 'documento'}.png`} title={t('docs.download_image_title', 'Scarica immagine')} aria-label={t('docs.download_image_title', 'Scarica immagine')}
             style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 10, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0, textDecoration: 'none' }}>
-            <Download size={18} />
+            <Download size={18} aria-hidden="true" />
           </a>
         )}
         <button onClick={() => onToggleBookmark(doc.id)}
+          aria-label={bookmarked ? t('docs.remove_bookmark', 'Rimuovi dai preferiti') : t('docs.add_bookmark', 'Aggiungi ai preferiti')}
+          aria-pressed={bookmarked}
           style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0 }}>
-          {bookmarked ? <BookmarkCheck size={18} /> : <Bookmark size={18} />}
+          {bookmarked ? <BookmarkCheck size={18} aria-hidden="true" /> : <Bookmark size={18} aria-hidden="true" />}
         </button>
       </div>
 
@@ -1040,7 +1054,7 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
             {hasAttachment && (
               <a href={doc.file_url} target="_blank" rel="noopener noreferrer" download
                 style={{ background: '#1a7f5a', color: 'white', padding: '10px 20px', borderRadius: 12, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-                <Download size={16} />{t('docs.download_attachment', 'Scarica file allegato')}
+                <Download size={16} aria-hidden="true" />{t('docs.download_attachment', 'Scarica file allegato')}
               </a>
             )}
           </div>
@@ -1054,7 +1068,7 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
               <div style={{ fontSize: 15, lineHeight: 1.75, color: '#1e293b', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{textContent}</div>
               {doc.signed_at && (
                 <div style={{ marginTop: 26, padding: '12px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <CheckCircle2 size={16} color="#16a34a" />
+                  <CheckCircle2 size={16} color="#16a34a" aria-hidden="true" />
                   <span style={{ fontSize: 13, color: '#15803d', fontWeight: 600 }}>{t('docs.signed_on', { date: new Date(doc.signed_at).toLocaleDateString('it-IT') }, 'Firmato il {{date}}')}</span>
                 </div>
               )}
@@ -1074,7 +1088,7 @@ function DocModal({ doc, onClose, bookmarked, onToggleBookmark, onPrint }) {
           <p style={{ marginBottom: 16, color: '#666' }}>{t('docs.attached_document', 'Documento allegato')}</p>
           <a href={doc.file_url} target="_blank" rel="noopener noreferrer" download
             style={{ background: '#1a7f5a', color: 'white', padding: '12px 24px', borderRadius: 12, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <Download size={16} />{t('docs.download_document', 'Scarica documento')}
+            <Download size={16} aria-hidden="true" />{t('docs.download_document', 'Scarica documento')}
           </a>
         </div>
       ) : error ? (
@@ -1539,14 +1553,14 @@ export default function DocumentsPage() {
 
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 10, WebkitOverflowScrolling: 'touch' }}>
             {types.map(typ => (
-              <button key={typ} onClick={() => setTypeFilter(typ)} style={{
+              <button key={typ} onClick={() => setTypeFilter(typ)} aria-pressed={typeFilter === typ} style={{
                 flexShrink: 0, padding: '7px 14px', borderRadius: 100,
                 background: typeFilter === typ ? 'white' : 'rgba(255,255,255,0.15)',
                 color:      typeFilter === typ ? 'var(--green-main)' : 'white',
                 border: 'none', font: 'inherit', fontSize: 13, fontWeight: 500, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 5,
               }}>
-                {typ === 'bookmarks' && <Star size={12} fill={typeFilter === 'bookmarks' ? 'var(--green-main)' : 'white'} />}
+                {typ === 'bookmarks' && <Star size={12} fill={typeFilter === 'bookmarks' ? 'var(--green-main)' : 'white'} aria-hidden="true" />}
                 {typ === 'all' ? t('docs.filter_all', 'Tutti') : typ === 'bookmarks' ? t('docs.filter_favorites', 'Preferiti') : typeLabel(t, typ)}
               </button>
             ))}
@@ -1555,7 +1569,7 @@ export default function DocumentsPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ display: 'flex', gap: 6, overflowX: 'auto', flex: 1, WebkitOverflowScrolling: 'touch' }}>
               {DATE_FILTERS.map(({ key }) => (
-                <button key={key} onClick={() => setDateFilter(key)} style={{
+                <button key={key} onClick={() => setDateFilter(key)} aria-pressed={dateFilter === key} style={{
                   flexShrink: 0, padding: '5px 12px', borderRadius: 100,
                   background: dateFilter === key ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.1)',
                   color:      dateFilter === key ? 'var(--green-dark)'  : 'rgba(255,255,255,0.8)',
@@ -1568,11 +1582,12 @@ export default function DocumentsPage() {
             </div>
             <button onClick={reload} aria-label={t('docs.reload_aria', 'Ricarica documenti')}
               style={{ flexShrink: 0, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}>
-              <RefreshCw size={15} />
+              <RefreshCw size={15} aria-hidden="true" />
             </button>
             <button onClick={() => setSortAsc(v => !v)}
+              aria-label={sortAsc ? t('docs.sort_desc_aria', 'Ordina dal più recente') : t('docs.sort_asc_aria', 'Ordina dal più vecchio')}
               style={{ flexShrink: 0, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}>
-              <ArrowUpDown size={15} />
+              <ArrowUpDown size={15} aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -1582,7 +1597,7 @@ export default function DocumentsPage() {
           {pendingSignatureDocs.length > 0 && (
             <div style={{ borderRadius: 16, overflow: 'hidden', border: '2px solid #f59e0b', background: '#fffbeb', boxShadow: '0 2px 12px rgba(245,158,11,0.15)' }}>
               <div style={{ padding: '13px 16px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <PenLine size={18} color="white" />
+                <PenLine size={18} color="white" aria-hidden="true" />
                 <span style={{ fontSize: 14, fontWeight: 700, color: 'white' }}>
                   {pendingSignatureDocs.length === 1
                     ? t('docs.to_sign_one', { count: pendingSignatureDocs.length }, 'Documento da firmare ({{count}})')
@@ -1599,7 +1614,7 @@ export default function DocumentsPage() {
                   <div key={doc.id} style={{ padding: '14px 16px', borderTop: idx > 0 ? '1px solid #fde68a' : 'none' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
                       <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <FileText size={18} color="#d97706" />
+                        <FileText size={18} color="#d97706" aria-hidden="true" />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: 14, fontWeight: 700, color: '#92400e', marginBottom: 2 }}>{doc.title || t('docs.sign_fallback_title', 'Documento da firmare')}</p>
@@ -1617,7 +1632,7 @@ export default function DocumentsPage() {
                         disabled={signingId === doc.id}
                         style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: 'none', cursor: signingId === doc.id ? 'wait' : 'pointer', background: '#16a34a', color: 'white', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, opacity: signingId === doc.id ? 0.7 : 1, transition: 'opacity .2s' }}
                       >
-                        <CheckCircle2 size={16} />
+                        <CheckCircle2 size={16} aria-hidden="true" />
                         {t('docs.accept', 'Accetta')}
                       </button>
                       <button
@@ -1625,7 +1640,7 @@ export default function DocumentsPage() {
                         disabled={signingId === doc.id}
                         style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: '1.5px solid #fca5a5', cursor: signingId === doc.id ? 'wait' : 'pointer', background: 'white', color: '#dc2626', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, opacity: signingId === doc.id ? 0.7 : 1, transition: 'opacity .2s' }}
                       >
-                        <XCircle size={16} />
+                        <XCircle size={16} aria-hidden="true" />
                         {t('docs.reject', 'Rifiuta')}
                       </button>
                     </div>
@@ -1636,7 +1651,8 @@ export default function DocumentsPage() {
           )}
 
           {loading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div role="status" aria-live="polite" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <span style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }}>{t('common.loading', 'Caricamento…')}</span>
               {[1, 2, 3, 4].map(i => (
                 <div key={i} className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
                   <div className="skeleton" style={{ width: 44, height: 44, borderRadius: 14, flexShrink: 0 }} />
@@ -1700,20 +1716,23 @@ export default function DocumentsPage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.title}</p>
                       <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <Calendar size={10} />{new Date(doc.created_at).toLocaleDateString('it-IT')}
+                        <Calendar size={10} aria-hidden="true" />{new Date(doc.created_at).toLocaleDateString('it-IT')}
                       </span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                       {doc.file_url && (
                         <a href={doc.file_url} target="_blank" rel="noopener noreferrer" download
                           onClick={e => e.stopPropagation()}
+                          aria-label={t('docs.download_attachment', 'Scarica file allegato')}
                           style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green-main)', textDecoration: 'none' }}>
-                          <Download size={13} />
+                          <Download size={13} aria-hidden="true" />
                         </a>
                       )}
                       <button onClick={e => { e.stopPropagation(); toggleBookmark(doc.id) }}
+                        aria-label={isBookmarked ? t('docs.remove_bookmark', 'Rimuovi dai preferiti') : t('docs.add_bookmark', 'Aggiungi ai preferiti')}
+                        aria-pressed={isBookmarked}
                         style={{ width: 30, height: 30, borderRadius: 8, background: isBookmarked ? '#fff4e6' : 'var(--surface-2)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isBookmarked ? '#f0922b' : 'var(--text-muted)', cursor: 'pointer' }}>
-                        {isBookmarked ? <BookmarkCheck size={13} /> : <Bookmark size={13} />}
+                        {isBookmarked ? <BookmarkCheck size={13} aria-hidden="true" /> : <Bookmark size={13} aria-hidden="true" />}
                       </button>
                     </div>
                   </button>
@@ -1766,7 +1785,7 @@ export default function DocumentsPage() {
               return (
                 <div key={folder.key}>
                   {/* Folder header */}
-                  <button onClick={() => toggleFolder(folder.key)} style={{
+                  <button onClick={() => toggleFolder(folder.key)} aria-expanded={isOpen} style={{
                     width: '100%', background: isOpen ? folder.bg : 'white',
                     border: `1.5px solid ${isOpen ? folder.color + '60' : 'var(--border-light)'}`,
                     borderRadius: isOpen ? '14px 14px 0 0' : 14,

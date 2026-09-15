@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useId } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -42,12 +42,15 @@ function getFaqs(t, isNative) {
 
 function FAQItem({ q, a }) {
   const [open, setOpen] = useState(false)
+  const id = useId()
   return (
     <div style={{
       border: '1px solid var(--border-light)', borderRadius: 12, overflow: 'hidden', marginBottom: 8,
     }}>
       <button
         onClick={() => setOpen(v => !v)}
+        aria-expanded={open}
+        aria-controls={id}
         style={{
           width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '14px 16px', background: 'var(--surface)', border: 'none', cursor: 'pointer',
@@ -55,10 +58,10 @@ function FAQItem({ q, a }) {
         }}
       >
         <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{q}</span>
-        {open ? <ChevronUp size={16} color="var(--text-muted)" /> : <ChevronDown size={16} color="var(--text-muted)" />}
+        {open ? <ChevronUp size={16} color="var(--text-muted)" aria-hidden="true" /> : <ChevronDown size={16} color="var(--text-muted)" aria-hidden="true" />}
       </button>
       {open && (
-        <div style={{ padding: '0 16px 14px', fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6, background: 'var(--surface)' }}>
+        <div id={id} style={{ padding: '0 16px 14px', fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6, background: 'var(--surface)' }}>
           {a}
         </div>
       )}
@@ -93,9 +96,14 @@ function PlanCard({ title, price, period, features, locked, highlight, cta, onCt
         {features.map((f, i) => (
           <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13 }}>
             {locked?.[i]
-              ? <X size={14} color="#94a3b8" style={{ flexShrink: 0, marginTop: 2 }} />
-              : <Check size={14} color="var(--green-main)" style={{ flexShrink: 0, marginTop: 2 }} />}
-            <span style={{ color: locked?.[i] ? 'var(--text-muted)' : 'var(--text-secondary)' }}>{f}</span>
+              ? <X size={14} color="#94a3b8" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
+              : <Check size={14} color="var(--green-main)" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />}
+            <span style={{ color: locked?.[i] ? 'var(--text-muted)' : 'var(--text-secondary)' }}>
+              <span style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }}>
+                {locked?.[i] ? t('subscription.not_included', 'Non incluso: ') : t('subscription.included', 'Incluso: ')}
+              </span>
+              {f}
+            </span>
           </li>
         ))}
       </ul>
@@ -264,13 +272,14 @@ export default function SubscriptionPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
           <button
             onClick={() => navigate(-1)}
+            aria-label={t('common.back', 'Indietro')}
             style={{
               background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10,
               width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer', color: 'white', flexShrink: 0,
             }}
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={18} aria-hidden="true" />
           </button>
           <h1 style={{ color: 'white', fontSize: 18, fontWeight: 700, margin: 0 }}>{t('subscription.title', 'Abbonamento')}</h1>
         </div>
@@ -287,7 +296,7 @@ export default function SubscriptionPage() {
             background: isPro ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.15)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           }}>
-            {isPro ? <Crown size={20} color="#fbbf24" /> : <Lock size={18} color="rgba(255,255,255,0.8)" />}
+            {isPro ? <Crown size={20} color="#fbbf24" aria-hidden="true" /> : <Lock size={18} color="rgba(255,255,255,0.8)" aria-hidden="true" />}
           </div>
           <div>
             <p style={{ color: 'white', fontWeight: 700, fontSize: 15, margin: '0 0 2px' }}>
@@ -409,7 +418,7 @@ export default function SubscriptionPage() {
                 justifyContent: 'center', gap: 8,
               }}
             >
-              <CreditCard size={16} />
+              <CreditCard size={16} aria-hidden="true" />
               {portalLoading ? t('subscription.loading', 'Caricamento…') : t('subscription.manage_cancel_btn', 'Gestisci / Cancella abbonamento')}
             </button>
             <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', margin: '8px 0 0' }}>
@@ -436,7 +445,7 @@ export default function SubscriptionPage() {
                 background: 'var(--green-pale)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <Zap size={14} color="var(--green-main)" />
+                <Zap size={14} color="var(--green-main)" aria-hidden="true" />
               </div>
               <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{t(f.key, f.label)}</span>
             </div>
@@ -453,7 +462,7 @@ export default function SubscriptionPage() {
             width: 32, height: 32, borderRadius: 10, flexShrink: 0,
             background: 'var(--green-main)', display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <ShieldCheck size={17} color="white" />
+            <ShieldCheck size={17} color="white" aria-hidden="true" />
           </div>
           <div>
             <p style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>

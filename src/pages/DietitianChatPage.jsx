@@ -243,16 +243,21 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
   }
 
   return (
-    <div style={overlayStyle} onClick={onClose}>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="link-patient-modal-title"
+      onKeyDown={e => { if (e.key === 'Escape') onClose() }}
+      style={overlayStyle} onClick={onClose}>
       <div style={modalStyle} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div style={headerStyle}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {step === 1
-              ? <UserPlus size={18} color="white" />
-              : <FolderOpen size={18} color="white" />
+              ? <UserPlus size={18} color="white" aria-hidden="true" />
+              : <FolderOpen size={18} color="white" aria-hidden="true" />
             }
-            <span style={{ color: 'white', fontSize: 16, fontWeight: 600 }}>
+            <span id="link-patient-modal-title" style={{ color: 'white', fontSize: 16, fontWeight: 600 }}>
               {step === 1 ? t('dchat.link_patient_title', 'Collega paziente') : t('dchat.select_folder_title', 'Seleziona cartella')}
             </span>
           </div>
@@ -261,7 +266,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
             width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer',
           }}>
-            <X size={16} color="white" />
+            <X size={16} color="white" aria-hidden="true" />
           </button>
         </div>
 
@@ -280,6 +285,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
                     onChange={e => { setEmail(e.target.value); setError(''); setFoundPatient(null) }}
                     onKeyDown={e => { if (e.key === 'Enter') searchPatient() }}
                     placeholder={t('dchat.patient_email_placeholder', 'Email del paziente…')}
+                    aria-label={t('dchat.patient_email_placeholder', 'Email del paziente…')}
                     style={inputStyle}
                   />
                 </div>
@@ -290,7 +296,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
                   display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 500,
                   flexShrink: 0,
                 }}>
-                  <Search size={14} />
+                  <Search size={14} aria-hidden="true" />
                   {searching ? t('dchat.searching', 'Cerco…') : t('dchat.search_button', 'Cerca')}
                 </button>
               </div>
@@ -320,7 +326,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
                   ...btnPrimary,
                   opacity: linking ? 0.7 : 1,
                 }}>
-                  <UserPlus size={15} />
+                  <UserPlus size={15} aria-hidden="true" />
                   {linking ? t('dchat.linking', 'Collegamento…') : t('dchat.link_patient_title', 'Collega paziente')}
                 </button>
               )}
@@ -344,12 +350,13 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
 
               {/* Search field for cartelle */}
               <div style={{ position: 'relative', marginBottom: 10 }}>
-                <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <Search size={14} aria-hidden="true" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
                   type="text"
                   value={cartellaSearch}
                   onChange={e => setCartellaSearch(e.target.value)}
                   placeholder={t('dchat.folder_search_placeholder', 'Cerca per nome, cognome o codice fiscale…')}
+                  aria-label={t('dchat.folder_search_placeholder', 'Cerca per nome, cognome o codice fiscale…')}
                   style={{ ...inputStyle, paddingLeft: 34 }}
                 />
               </div>
@@ -367,23 +374,23 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
                 </div>
               ) : filteredCartelle.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>
-                  <FolderOpen size={28} style={{ marginBottom: 6, opacity: 0.3 }} />
+                  <FolderOpen size={28} aria-hidden="true" style={{ marginBottom: 6, opacity: 0.3 }} />
                   <p style={{ fontSize: 13 }}>
                     {cartellaSearch ? t('dchat.no_folder_found', 'Nessuna cartella trovata') : t('dchat.no_folder_available', 'Nessuna cartella disponibile')}
                   </p>
                 </div>
               ) : (
-                <div style={{ maxHeight: 220, overflowY: 'auto', borderRadius: 10, border: '1px solid var(--border)', marginBottom: 14 }}>
+                <div role="radiogroup" aria-label={t('dchat.select_folder_title', 'Seleziona cartella')} style={{ maxHeight: 220, overflowY: 'auto', borderRadius: 10, border: '1px solid var(--border)', marginBottom: 14 }}>
                   {filteredCartelle.map(c => {
                     const isSelected = selectedCartella === c.id
                     return (
-                      <button key={c.id} onClick={() => setSelectedCartella(c.id)} style={{
+                      <button key={c.id} role="radio" aria-checked={isSelected} onClick={() => setSelectedCartella(c.id)} style={{
                         width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                         padding: '11px 14px', background: isSelected ? 'var(--green-pale)' : 'white',
                         border: 'none', borderBottom: '1px solid var(--border-light)',
                         cursor: 'pointer', textAlign: 'left', transition: 'background 0.12s',
                       }}>
-                        <div style={{
+                        <div aria-hidden="true" style={{
                           width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
                           border: isSelected ? 'none' : '2px solid var(--border)',
                           background: isSelected ? 'var(--green-main)' : 'white',
@@ -412,7 +419,7 @@ function LinkPatientModal({ dietitianId, onClose, onLinked }) {
                 opacity: !selectedCartella || saving ? 0.5 : 1,
                 cursor: !selectedCartella || saving ? 'default' : 'pointer',
               }}>
-                <FolderOpen size={15} />
+                <FolderOpen size={15} aria-hidden="true" />
                 {saving ? t('dchat.saving_folder', 'Salvataggio…') : t('dchat.save_folder', 'Salva cartella')}
               </button>
 
@@ -443,7 +450,7 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkP
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Users size={20} color="white" />
+          <Users size={20} color="white" aria-hidden="true" />
           <div>
             <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 18, color: 'white', fontWeight: 400 }}>
               {t('dchat.title')}
@@ -457,14 +464,14 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkP
             padding: '7px 10px', cursor: 'pointer', color: 'white',
             display: 'flex', alignItems: 'center', gap: 5, fontSize: 12,
           }}>
-            <UserPlus size={14} /> {t('dchat.connect')}
+            <UserPlus size={14} aria-hidden="true" /> {t('dchat.connect')}
           </button>
           <button onClick={onSignOut} style={{
             background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10,
             padding: '7px 10px', cursor: 'pointer', color: 'white',
             display: 'flex', alignItems: 'center', gap: 5, fontSize: 12,
           }}>
-            <LogOut size={14} /> {t('dchat.sign_out')}
+            <LogOut size={14} aria-hidden="true" /> {t('dchat.sign_out')}
           </button>
         </div>
       </div>
@@ -479,7 +486,7 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkP
             onClick={() => navigate('/dietitian/profilo')}
             style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--green-pale)', border: 'none', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--green-main)', fontFamily: 'var(--font-b)' }}
           >
-            <Pencil size={11} /> {t('common.edit', 'Modifica')}
+            <Pencil size={11} aria-hidden="true" /> {t('common.edit', 'Modifica')}
           </button>
         </div>
         {profileLoading ? (
@@ -508,7 +515,7 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkP
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
                     {dietitianProfile.citta && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <MapPin size={10} color="var(--text-muted)" />
+                        <MapPin size={10} color="var(--text-muted)" aria-hidden="true" />
                         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{dietitianProfile.citta}</span>
                       </div>
                     )}
@@ -517,8 +524,8 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkP
                     )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                       {dietitianProfile.visible
-                        ? <><Eye size={10} color="var(--green-main)" /><span style={{ fontSize: 11, color: 'var(--green-main)', fontWeight: 500 }}>{t('dchat.public_status', 'Pubblico')}</span></>
-                        : <><EyeOff size={10} color="var(--text-muted)" /><span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('dchat.hidden_status', 'Nascosto')}</span></>
+                        ? <><Eye size={10} color="var(--green-main)" aria-hidden="true" /><span style={{ fontSize: 11, color: 'var(--green-main)', fontWeight: 500 }}>{t('dchat.public_status', 'Pubblico')}</span></>
+                        : <><EyeOff size={10} color="var(--text-muted)" aria-hidden="true" /><span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('dchat.hidden_status', 'Nascosto')}</span></>
                       }
                     </div>
                   </div>
@@ -549,7 +556,7 @@ function PatientList({ patients, loading, selected, onSelect, onSignOut, onLinkP
           </div>
         ) : patients.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '50px 24px' }}>
-            <MessageCircle size={40} color="var(--border)" style={{ marginBottom: 12 }} />
+            <MessageCircle size={40} color="var(--border)" style={{ marginBottom: 12 }} aria-hidden="true" />
             <p style={{ fontSize: 14, fontWeight: 500 }}>{t('dchat.no_patients')}</p>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.6, maxWidth: 280 }}>
               {t('dchat.no_patients_desc')}
@@ -672,8 +679,8 @@ function PatientDiary({ patientId }) {
     <div style={{ flex: 1, overflowY: 'auto', padding: 14 }}>
       {/* Date navigation */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <button onClick={() => changeDate(-1)} style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-          <ChevronLeft size={16} />
+        <button onClick={() => changeDate(-1)} aria-label={t('dchat.giorno_precedente', 'Giorno precedente')} style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+          <ChevronLeft size={16} aria-hidden="true" />
         </button>
         <div style={{ textAlign: 'center' }}>
           <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -685,8 +692,8 @@ function PatientDiary({ patientId }) {
             </p>
           )}
         </div>
-        <button onClick={() => changeDate(1)} disabled={isToday} style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isToday ? 'default' : 'pointer', color: isToday ? 'var(--border)' : 'var(--text-secondary)' }}>
-          <ChevronRight size={16} />
+        <button onClick={() => changeDate(1)} disabled={isToday} aria-label={t('dchat.giorno_successivo', 'Giorno successivo')} style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isToday ? 'default' : 'pointer', color: isToday ? 'var(--border)' : 'var(--text-secondary)' }}>
+          <ChevronRight size={16} aria-hidden="true" />
         </button>
       </div>
 
@@ -697,7 +704,7 @@ function PatientDiary({ patientId }) {
         </div>
       ) : foodLog.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
-          <Apple size={36} style={{ marginBottom: 10, opacity: 0.2 }} />
+          <Apple size={36} style={{ marginBottom: 10, opacity: 0.2 }} aria-hidden="true" />
           <p style={{ fontSize: 14, fontWeight: 500 }}>{t('dchat.no_food_logged', 'Nessun alimento registrato')}</p>
           <p style={{ fontSize: 12, marginTop: 4 }}>{t('dchat.no_food_logged_desc', 'Il paziente non ha registrato pasti per questa data.')}</p>
         </div>
@@ -717,13 +724,13 @@ function PatientDiary({ patientId }) {
                 {mealFoods.map(f => (
                   <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 9, paddingBottom: 8 }}>
                     <div style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Apple size={13} color="var(--green-main)" />
+                      <Apple size={13} color="var(--green-main)" aria-hidden="true" />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.food_name}</p>
                       <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                         {t('dchat.food_macro_summary', { grams: f.grams, kcal: f.kcal, p: f.proteins, c: f.carbs, g: f.fats }, '{{grams}}g · {{kcal}} kcal · P:{{p}}g · C:{{c}}g · G:{{g}}g')}
-                        {f.food_data?.meal_time && <> · <Clock size={9} style={{ display: 'inline', verticalAlign: 'middle' }} /> {f.food_data.meal_time}</>}
+                        {f.food_data?.meal_time && <> · <Clock size={9} aria-hidden="true" style={{ display: "inline", verticalAlign: "middle" }} /> {f.food_data.meal_time}</>}
                       </p>
                     </div>
                   </div>
@@ -758,7 +765,7 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
             width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', color: 'white', flexShrink: 0,
           }} aria-label={t('dchat.back_to_list_aria', 'Torna alla lista')}>
-            <ArrowLeft size={18} />
+            <ArrowLeft size={18} aria-hidden="true" />
           </button>
           {currentPatient ? (
             <>
@@ -777,7 +784,7 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
                 aria-label={t('chat.video_call_aria', 'Avvia videochiamata')}
                 style={{ background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer', padding: 9, minWidth: 40, minHeight: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
               >
-                <Video size={17} color="white" />
+                <Video size={17} color="white" aria-hidden="true" />
               </button>
             </>
           ) : (
@@ -786,12 +793,12 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
         </div>
         {/* Tabs */}
         {currentPatient && (
-          <div style={{ display: 'flex', gap: 0 }}>
+          <div role="tablist" style={{ display: 'flex', gap: 0 }}>
             {[
-              { key: 'chat', label: t('dchat.tab_chat'), icon: <MessageCircle size={13} /> },
-              { key: 'diario', label: t('dchat.tab_diary'), icon: <BookOpen size={13} /> },
+              { key: 'chat', label: t('dchat.tab_chat'), icon: <MessageCircle size={13} aria-hidden="true" /> },
+              { key: 'diario', label: t('dchat.tab_diary'), icon: <BookOpen size={13} aria-hidden="true" /> },
             ].map(tab_item => (
-              <button key={tab_item.key} onClick={() => setTab(tab_item.key)} style={{
+              <button key={tab_item.key} role="tab" aria-selected={tab === tab_item.key} onClick={() => setTab(tab_item.key)} style={{
                 flex: 1, background: 'none', border: 'none', cursor: 'pointer', padding: '8px 10px',
                 color: tab === tab_item.key ? 'white' : 'rgba(255,255,255,0.55)',
                 borderBottom: `2px solid ${tab === tab_item.key ? 'white' : 'transparent'}`,
@@ -807,7 +814,7 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
 
       {!currentPatient ? (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', textAlign: 'center' }}>
-          <MessageCircle size={48} color="var(--border)" style={{ marginBottom: 14 }} />
+          <MessageCircle size={48} color="var(--border)" style={{ marginBottom: 14 }} aria-hidden="true" />
           <p style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-muted)' }}>{t('dchat.select_patient')}</p>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.6, maxWidth: 260 }}>
             {t('dchat.select_patient_desc')}
@@ -848,7 +855,7 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
                         <div style={{ maxWidth: '75%', background: isMe ? 'linear-gradient(135deg, var(--green-main), var(--green-mid))' : 'white', color: isMe ? 'white' : 'var(--text-primary)', padding: '9px 13px', borderRadius: isMe ? '16px 16px 3px 16px' : '16px 16px 16px 3px', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', border: isMe ? 'none' : '1px solid var(--border-light)' }}>
                           {msg.message_type === 'video_call' ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <Video size={16} color={isMe ? 'white' : 'var(--green-main)'} />
+                              <Video size={16} color={isMe ? 'white' : 'var(--green-main)'} aria-hidden="true" />
                               <span style={{ fontSize: 13.5, fontWeight: 500 }}>
                                 {isMe ? t('chat.call_started_by_me', 'Hai avviato una videochiamata') : t('chat.call_in_progress', 'Videochiamata in corso')}
                               </span>
@@ -872,7 +879,7 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
                               paziente, spunta di lettura inclusa. */}
                           {isMe && msg.status === 'scheduled' && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
-                              <Clock size={10} style={{ opacity: 0.7 }} />
+                              <Clock size={10} style={{ opacity: 0.7 }} aria-hidden="true" />
                               <span style={{ fontSize: 10.5, opacity: 0.75, fontStyle: 'italic' }}>
                                 {t('chat.scheduled_badge', 'Programmato')}{msg.scheduled_at ? ` · ${formatTime(msg.scheduled_at)}` : ''}
                               </span>
@@ -881,8 +888,8 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 3, marginTop: 3 }}>
                             <span style={{ fontSize: 10, opacity: 0.65 }}>{formatTime(msg.created_at)}</span>
                             {isMe && msg.status !== 'scheduled' && (msg.read_at
-                              ? <CheckCheck size={11} style={{ opacity: 0.7 }} />
-                              : <Check size={11} style={{ opacity: 0.4 }} />
+                              ? <CheckCheck size={11} style={{ opacity: 0.7 }} aria-label={t('chat.read', 'Letto')} role="img" />
+                              : <Check size={11} style={{ opacity: 0.4 }} aria-label={t('chat.sent', 'Inviato')} role="img" />
                             )}
                           </div>
                         </div>
@@ -903,12 +910,12 @@ function ChatView({ currentPatient, messages, text, setText, sending, bottomRef,
                   ref={inputRef} value={text}
                   onChange={e => setText(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(e) } }}
-                  placeholder={t('chat.placeholder')} rows={1}
+                  placeholder={t('chat.placeholder')} aria-label={t('chat.placeholder')} rows={1}
                   style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontFamily: 'var(--font-body)', fontSize: 15, color: 'var(--text-primary)', resize: 'none', maxHeight: 100, lineHeight: 1.5 }}
                 />
               </div>
               <button type="submit" disabled={!text.trim() || sending} aria-label={t('chat.send_aria', 'Invia messaggio')} style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: text.trim() ? 'var(--green-main)' : 'var(--border)', border: 'none', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.15s', boxShadow: text.trim() ? '0 2px 8px rgba(26,127,90,0.3)' : 'none' }}>
-                <Send size={17} color="white" style={{ marginLeft: 2 }} />
+                <Send size={17} color="white" style={{ marginLeft: 2 }} aria-hidden="true" />
               </button>
             </form>
           </div>

@@ -117,8 +117,9 @@ function MealItem({ item, onRemove }) {
           display: 'flex', alignItems: 'center',
         }}
         title={t('mealplan.rimuovi', 'Rimuovi')}
+        aria-label={t('mealplan.rimuovi_alimento', { nome: item.food_name }, 'Rimuovi {{nome}}')}
       >
-        <X size={12} />
+        <X size={12} aria-hidden="true" />
       </button>
       <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', paddingRight: 16, lineHeight: 1.3 }}>
         {item.food_name}
@@ -147,10 +148,19 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
   const inputRef = useRef(null)
   const debounceRef = useRef(null)
   const searchIdRef = useRef(0)
+  const previouslyFocusedRef = useRef(null)
 
   useEffect(() => {
+    previouslyFocusedRef.current = document.activeElement
     if (inputRef.current) inputRef.current.focus()
+    return () => { previouslyFocusedRef.current?.focus?.() }
   }, [])
+
+  useEffect(() => {
+    function onKeyDown(e) { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
 
   // Search foods or recipes depending on tab
   useEffect(() => {
@@ -258,6 +268,9 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-food-modal-title"
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -275,7 +288,7 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div id="add-food-modal-title" style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
               {t('mealplan.aggiungi_al_piano', 'Aggiungi al piano')}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
@@ -287,17 +300,17 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
             aria-label={t('mealplan.chiudi', 'Chiudi')}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}
           >
-            <X size={20} />
+            <X size={20} aria-hidden="true" />
           </button>
         </div>
 
         {/* Tab switcher */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+        <div role="tablist" aria-label={t('mealplan.tab_switcher_label', 'Tipo di ricerca')} style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
           {[
             { key: 'alimento', i18nKey: 'mealplan.tab_alimento', fallback: '🍎 Alimento' },
             { key: 'ricetta', i18nKey: 'mealplan.tab_ricetta', fallback: '👨‍🍳 Ricetta' },
           ].map(tabDef => (
-            <button key={tabDef.key} onClick={() => { setTab(tabDef.key); setQuery(''); setSelected(null) }}
+            <button key={tabDef.key} role="tab" aria-selected={tab === tabDef.key} onClick={() => { setTab(tabDef.key); setQuery(''); setSelected(null) }}
               style={{ flex: 1, padding: '8px', borderRadius: 10, border: 'none', font: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer', background: tab === tabDef.key ? 'var(--green-main)' : 'var(--surface-2)', color: tab === tabDef.key ? 'white' : 'var(--text-secondary)' }}>
               {t(tabDef.i18nKey, tabDef.fallback)}
             </button>
@@ -309,6 +322,7 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
           value={query}
           onChange={e => { setQuery(e.target.value); setSelected(null) }}
           placeholder={tab === 'alimento' ? t('mealplan.cerca_alimento_placeholder', 'Cerca alimento...') : t('mealplan.cerca_ricetta_placeholder', 'Cerca ricetta...')}
+          aria-label={tab === 'alimento' ? t('mealplan.cerca_alimento_placeholder', 'Cerca alimento...') : t('mealplan.cerca_ricetta_placeholder', 'Cerca ricetta...')}
           style={{
             width: '100%', padding: '10px 12px', borderRadius: 10,
             border: '1.5px solid var(--border)', background: 'var(--surface-2)',
@@ -318,7 +332,7 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
         />
 
         {loading && (
-          <div style={{ textAlign: 'center', padding: '12px 0', color: 'var(--text-muted)', fontSize: 13 }}>
+          <div role="status" aria-live="polite" style={{ textAlign: 'center', padding: '12px 0', color: 'var(--text-muted)', fontSize: 13 }}>
             {t('mealplan.ricerca_in_corso', 'Ricerca in corso...')}
           </div>
         )}
@@ -372,11 +386,12 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
 
             {selected._isRecipe ? (
               <>
-                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                <label htmlFor="mealplan-portions" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
                   {t('mealplan.numero_porzioni', 'Numero di porzioni')}
                 </label>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <input
+                    id="mealplan-portions"
                     type="number"
                     value={portions}
                     onChange={e => setPortions(e.target.value)}
@@ -394,11 +409,12 @@ function AddFoodModal({ dayIndex, mealType, onClose, onAdd, userId }) {
               </>
             ) : (
               <>
-                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                <label htmlFor="mealplan-grams" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
                   {t('mealplan.grammi_label', 'Grammi')}
                 </label>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <input
+                    id="mealplan-grams"
                     type="number"
                     value={grams}
                     onChange={e => setGrams(e.target.value)}
@@ -517,7 +533,7 @@ function ShoppingListTab({ items, userId, weekStart }) {
   if (totalItems === 0) {
     return (
       <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
-        <ShoppingCart size={48} style={{ opacity: 0.3, marginBottom: 12 }} />
+        <ShoppingCart size={48} style={{ opacity: 0.3, marginBottom: 12 }} aria-hidden="true" />
         <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>{t('mealplan.lista_vuota_titolo', 'Lista vuota')}</div>
         <div style={{ fontSize: 14 }}>{t('mealplan.lista_vuota_testo', 'Aggiungi alimenti al piano per generare la lista della spesa')}</div>
       </div>
@@ -541,7 +557,7 @@ function ShoppingListTab({ items, userId, weekStart }) {
               color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer',
             }}
           >
-            <Trash2 size={14} /> {t('mealplan.pulisci_acquistati', 'Pulisci acquistati')}
+            <Trash2 size={14} aria-hidden="true" /> {t('mealplan.pulisci_acquistati', 'Pulisci acquistati')}
           </button>
           <button
             onClick={shareList}
@@ -552,7 +568,7 @@ function ShoppingListTab({ items, userId, weekStart }) {
               fontSize: 13, fontWeight: 600, cursor: 'pointer',
             }}
           >
-            <Share2 size={14} /> {t('mealplan.condividi_lista', 'Condividi lista')}
+            <Share2 size={14} aria-hidden="true" /> {t('mealplan.condividi_lista', 'Condividi lista')}
           </button>
         </div>
       </div>
@@ -583,6 +599,9 @@ function ShoppingListTab({ items, userId, weekStart }) {
                 }}
               >
                 <button
+                  role="checkbox"
+                  aria-checked={!!checked[item.name]}
+                  aria-label={item.name}
                   onClick={() => toggleItem(item.name)}
                   style={{
                     width: 22, height: 22, borderRadius: 6, flexShrink: 0,
@@ -591,7 +610,7 @@ function ShoppingListTab({ items, userId, weekStart }) {
                     cursor: 'pointer', transition: 'background 0.15s',
                   }}
                 >
-                  {checked[item.name] && <Check size={13} color="#fff" strokeWidth={3} />}
+                  {checked[item.name] && <Check size={13} color="#fff" strokeWidth={3} aria-hidden="true" />}
                 </button>
                 <span style={{
                   fontSize: 14, color: 'var(--text-primary)', flex: 1,
@@ -664,7 +683,7 @@ function GridCell({ dayIndex, mealType, items, onAdd, onRemove }) {
         onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--green-main)'; e.currentTarget.style.color = 'var(--green-main)' }}
         onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
       >
-        <Plus size={12} /> {t('mealplan.aggiungi', 'Aggiungi')}
+        <Plus size={12} aria-hidden="true" /> {t('mealplan.aggiungi', 'Aggiungi')}
       </button>
     </div>
   )
@@ -680,7 +699,7 @@ function DayStrip({ weekStart, selectedDay, onSelect, items }) {
   const t = useT()
   const todayStr = format(new Date(), 'yyyy-MM-dd')
   return (
-    <div style={{ display: 'flex', gap: 6, overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 2 }}>
+    <div role="tablist" aria-label={t('mealplan.giorni_settimana', 'Giorni della settimana')} style={{ display: 'flex', gap: 6, overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 2 }}>
       {DAYS_SHORT.map((day, di) => {
         const date = addDays(weekStart, di)
         const isToday = format(date, 'yyyy-MM-dd') === todayStr
@@ -691,6 +710,10 @@ function DayStrip({ weekStart, selectedDay, onSelect, items }) {
         return (
           <button
             key={day}
+            id={`day-tab-${di}`}
+            role="tab"
+            aria-selected={active}
+            aria-controls="day-panel"
             onClick={() => onSelect(di)}
             style={{
               flex: '0 0 auto', minWidth: 50, padding: '8px 4px 7px', borderRadius: 12,
@@ -720,7 +743,7 @@ function MobileDayPlan({ dayIndex, items, onAdd, onRemove }) {
   const dayTotal = dayItems.reduce((sum, i) => sum + calcMacros(i.food_data, i.grams).kcal, 0)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
+    <div id="day-panel" role="tabpanel" aria-labelledby={`day-tab-${dayIndex}`} style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
       {dayTotal > 0 && (
         <div style={{ textAlign: 'center', fontSize: 13, fontWeight: 700, color: 'var(--green-main)' }}>
           {t('mealplan.kcal_totali_giornata', { kcal: dayTotal }, '{{kcal}} kcal totali in giornata')}
@@ -747,7 +770,7 @@ function MobileDayPlan({ dayIndex, items, onAdd, onRemove }) {
                 fontSize: 13, gap: 5, marginTop: mealItems.length ? 4 : 0,
               }}
             >
-              <Plus size={13} /> {t('mealplan.aggiungi', 'Aggiungi')}
+              <Plus size={13} aria-hidden="true" /> {t('mealplan.aggiungi', 'Aggiungi')}
             </button>
           </div>
         )
@@ -931,44 +954,48 @@ export default function MealPlannerPage() {
           <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
             {t('mealplan.titolo', 'Pianificatore Settimanale')}
           </h1>
-          <Calendar size={22} color="var(--green-main)" />
+          <Calendar size={22} color="var(--green-main)" aria-hidden="true" />
         </div>
 
         {/* Week navigation */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
           <button
             onClick={() => setWeekOffset(w => w - 1)}
+            aria-label={t('mealplan.settimana_precedente', 'Settimana precedente')}
             style={{
               background: 'var(--surface-2)', border: '1.5px solid var(--border)',
               borderRadius: 8, width: 34, height: 34, display: 'flex',
               alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
             }}
           >
-            <ChevronLeft size={18} color="var(--text-secondary)" />
+            <ChevronLeft size={18} color="var(--text-secondary)" aria-hidden="true" />
           </button>
           <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', minWidth: 160, textAlign: 'center' }}>
             {formatWeekRange(weekStart)}
           </span>
           <button
             onClick={() => setWeekOffset(w => w + 1)}
+            aria-label={t('mealplan.settimana_successiva', 'Settimana successiva')}
             style={{
               background: 'var(--surface-2)', border: '1.5px solid var(--border)',
               borderRadius: 8, width: 34, height: 34, display: 'flex',
               alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
             }}
           >
-            <ChevronRight size={18} color="var(--text-secondary)" />
+            <ChevronRight size={18} color="var(--text-secondary)" aria-hidden="true" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 4, marginTop: 14, background: 'var(--surface-3)', borderRadius: 10, padding: 4 }}>
+        <div role="tablist" aria-label={t('mealplan.titolo', 'Pianificatore Settimanale')} style={{ display: 'flex', gap: 4, marginTop: 14, background: 'var(--surface-3)', borderRadius: 10, padding: 4 }}>
           {[
             { key: 'piano', i18nKey: 'mealplan.tab_piano', fallback: 'Piano' },
             { key: 'spesa', i18nKey: 'mealplan.tab_lista_spesa', fallback: 'Lista Spesa' },
           ].map(tab => (
             <button
               key={tab.key}
+              role="tab"
+              aria-selected={activeTab === tab.key}
               onClick={() => setActiveTab(tab.key)}
               style={{
                 flex: 1, padding: '8px 0', borderRadius: 7, border: 'none',
@@ -1128,7 +1155,7 @@ export default function MealPlannerPage() {
           zIndex: 100,
         }}>
           {saveMsg && (
-            <span style={{
+            <span role="status" aria-live={saveMsgIsError ? 'assertive' : 'polite'} style={{
               fontSize: 13, color: saveMsgIsError ? 'var(--red)' : 'var(--green-main)',
               fontWeight: 600, flex: 1,
             }}>

@@ -91,10 +91,12 @@ function getSymptomList(t) {
 
 function ScaleSelector({ options, value, onChange }) {
   return (
-    <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+    <div role="group" style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
       {options.map(o => (
         <button
           key={o.value}
+          aria-pressed={value === o.value}
+          aria-label={o.label}
           onClick={() => onChange(value === o.value ? null : o.value)}
           style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -105,8 +107,8 @@ function ScaleSelector({ options, value, onChange }) {
             minWidth: 52,
           }}
         >
-          <span style={{ fontSize: 22 }}>{o.emoji}</span>
-          <span style={{ fontSize: 9, color: value === o.value ? 'var(--green-main)' : 'var(--text-muted)', fontWeight: value === o.value ? 600 : 400 }}>{o.label}</span>
+          <span aria-hidden="true" style={{ fontSize: 22 }}>{o.emoji}</span>
+          <span aria-hidden="true" style={{ fontSize: 9, color: value === o.value ? 'var(--green-main)' : 'var(--text-muted)', fontWeight: value === o.value ? 600 : 400 }}>{o.label}</span>
         </button>
       ))}
     </div>
@@ -472,7 +474,7 @@ export default function WellnessPage() {
             className="btn"
             style={{ background: 'rgba(255,255,255,0.18)', color: 'white', backdropFilter: 'blur(8px)', border: '1.5px solid rgba(255,255,255,0.25)', borderRadius: 14, padding: '10px 16px', fontSize: 14, fontWeight: 600, gap: 6 }}
           >
-            <Plus size={16} />{t('common.today')}
+            <Plus size={16} aria-hidden="true" />{t('common.today')}
           </button>
         </div>
 
@@ -506,15 +508,15 @@ export default function WellnessPage() {
 
         {/* Saved feedback */}
         {saved && (
-          <div className="animate-slideUp" style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--green-pale)', border: '1.5px solid var(--green-light)', borderRadius: 14, padding: '12px 16px', color: 'var(--green-dark)' }}>
-            <CheckCircle size={18} />
+          <div role="status" aria-live="polite" className="animate-slideUp" style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--green-pale)', border: '1.5px solid var(--green-light)', borderRadius: 14, padding: '12px 16px', color: 'var(--green-dark)' }}>
+            <CheckCircle size={18} aria-hidden="true" />
             <span style={{ fontSize: 14, fontWeight: 500 }}>{t('wellness.saved')}</span>
           </div>
         )}
 
         {/* Error feedback */}
         {error && (
-          <div className="animate-slideUp" style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--alert-error-bg)', border: '1.5px solid var(--alert-error-border)', borderRadius: 14, padding: '12px 16px', color: 'var(--alert-error-text)' }}>
+          <div role="alert" className="animate-slideUp" style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--alert-error-bg)', border: '1.5px solid var(--alert-error-border)', borderRadius: 14, padding: '12px 16px', color: 'var(--alert-error-text)' }}>
             <span style={{ fontSize: 14, fontWeight: 500 }}>{error}</span>
           </div>
         )}
@@ -630,6 +632,7 @@ export default function WellnessPage() {
                   {symptomList.map(({ value, label }) => (
                     <button
                       key={value}
+                      aria-pressed={symptoms.includes(value)}
                       onClick={() => toggleSymptom(value)}
                       style={{
                         padding: '6px 14px', borderRadius: 100, font: 'inherit', fontSize: 13, cursor: 'pointer',
@@ -681,11 +684,11 @@ export default function WellnessPage() {
             finestra 7/30/90gg corrente */}
         {!showForm && !todayLog && hasAnyHistory === false && (
           <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)' }}>
-            <Heart size={40} style={{ marginBottom: 12, opacity: 0.3 }} />
+            <Heart size={40} style={{ marginBottom: 12, opacity: 0.3 }} aria-hidden="true" />
             <p style={{ fontSize: 15, fontWeight: 500 }}>{t('wellness.start_title', 'Inizia il tuo diario del benessere')}</p>
             <p style={{ fontSize: 13, marginTop: 4 }}>{t('wellness.empty_subtitle', 'Registra umore, energia e qualità del sonno ogni giorno.')}</p>
             <button className="btn btn-primary" onClick={() => setShowForm(true)} style={{ marginTop: 20, background: 'linear-gradient(135deg, #4c1d95, #7c3aed)' }}>
-              <Plus size={16} />{t('wellness.first_checkin', 'Primo check-in')}
+              <Plus size={16} aria-hidden="true" />{t('wellness.first_checkin', 'Primo check-in')}
             </button>
           </div>
         )}
@@ -697,13 +700,15 @@ export default function WellnessPage() {
         {hasAnyHistory && (
           <div className="card" style={{ padding: '18px 12px 14px' }}>
             {/* Tab selector */}
-            <div style={{ display: 'flex', gap: 8, paddingLeft: 8, marginBottom: 16 }}>
+            <div role="tablist" aria-label={t('wellness.insights_title', 'Insight automatici')} style={{ display: 'flex', gap: 8, paddingLeft: 8, marginBottom: 16 }}>
               {[
                 { key: 'trend', label: t('wellness.tab_trend', '📈 Andamento') },
                 { key: 'correlazione', label: t('wellness.tab_correlation', '🔗 Correlazione dieta') },
               ].map(tab => (
                 <button
                   key={tab.key}
+                  role="tab"
+                  aria-selected={chartTab === tab.key}
                   onClick={() => setChartTab(tab.key)}
                   style={{
                     padding: '6px 14px', borderRadius: 100, font: 'inherit', fontSize: 12, fontWeight: 500, cursor: 'pointer',
@@ -718,10 +723,11 @@ export default function WellnessPage() {
             </div>
 
             {/* Range selector */}
-            <div style={{ display: 'flex', gap: 6, paddingLeft: 8, marginBottom: 14 }}>
+            <div role="group" aria-label={t('wellness.scale_label', 'Intervallo')} style={{ display: 'flex', gap: 6, paddingLeft: 8, marginBottom: 14 }}>
               {[7, 30, 90].map(r => (
                 <button
                   key={r}
+                  aria-pressed={range === r}
                   onClick={() => setRange(r)}
                   style={{
                     padding: '3px 10px', borderRadius: 100, font: 'inherit', fontSize: 11, cursor: 'pointer',
@@ -748,36 +754,40 @@ export default function WellnessPage() {
                   {trendData.some(d => d.sleep) && <span style={{ color: '#06b6d4' }}> &nbsp;● {t('wellness.label_sleep', 'Sonno')}</span>}
                   {trendData.some(d => d.restedness) && <span style={{ color: '#10b981' }}> &nbsp;● {t('wellness.label_restedness', 'Riposo')}</span>}
                 </p>
-                <ResponsiveContainer width="100%" height={200}>
-                  <LineChart data={trendData} margin={{ top: 4, right: 8, left: -22, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} interval="preserveStartEnd" />
-                    <YAxis domain={[0, 5.5]} ticks={[1, 2, 3, 4, 5]} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
-                    <Tooltip content={<CustomMoodTooltip />} />
-                    <ReferenceLine y={3} stroke="var(--border)" strokeDasharray="3 3" />
-                    <Line type="monotone" dataKey="mood" stroke="#7c3aed" strokeWidth={2.5} dot={{ r: 4, fill: '#7c3aed' }} activeDot={{ r: 6 }} connectNulls />
-                    <Line type="monotone" dataKey="energy" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3, fill: '#f59e0b' }} activeDot={{ r: 5 }} connectNulls />
-                    <Line type="monotone" dataKey="sleep" stroke="#06b6d4" strokeWidth={2} dot={{ r: 3, fill: '#06b6d4' }} activeDot={{ r: 5 }} connectNulls />
-                    <Line type="monotone" dataKey="restedness" stroke="#10b981" strokeWidth={2} dot={{ r: 3, fill: '#10b981' }} activeDot={{ r: 5 }} connectNulls />
-                  </LineChart>
-                </ResponsiveContainer>
+                <div role="img" aria-label={t('wellness.tab_trend', 'Andamento') + ': ' + trendData.map(d => `${d.date} ${t('wellness.mood', 'umore')} ${d.mood ?? '–'}/5`).join(', ')}>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <LineChart data={trendData} margin={{ top: 4, right: 8, left: -22, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
+                      <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} interval="preserveStartEnd" />
+                      <YAxis domain={[0, 5.5]} ticks={[1, 2, 3, 4, 5]} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                      <Tooltip content={<CustomMoodTooltip />} />
+                      <ReferenceLine y={3} stroke="var(--border)" strokeDasharray="3 3" />
+                      <Line type="monotone" dataKey="mood" stroke="#7c3aed" strokeWidth={2.5} dot={{ r: 4, fill: '#7c3aed' }} activeDot={{ r: 6 }} connectNulls />
+                      <Line type="monotone" dataKey="energy" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3, fill: '#f59e0b' }} activeDot={{ r: 5 }} connectNulls />
+                      <Line type="monotone" dataKey="sleep" stroke="#06b6d4" strokeWidth={2} dot={{ r: 3, fill: '#06b6d4' }} activeDot={{ r: 5 }} connectNulls />
+                      <Line type="monotone" dataKey="restedness" stroke="#10b981" strokeWidth={2} dot={{ r: 3, fill: '#10b981' }} activeDot={{ r: 5 }} connectNulls />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
               </>
             ) : correlationData.length > 0 ? (
               <>
                 <p style={{ fontSize: 11, color: 'var(--text-muted)', paddingLeft: 8, marginBottom: 8 }}>
                   {t('wellness.correlation_desc', 'Umore (linea viola) vs Kcal ingerite (barre arancio)')}
                 </p>
-                <ResponsiveContainer width="100%" height={200}>
-                  <ComposedChart data={correlationData} margin={{ top: 4, right: 8, left: -22, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} interval="preserveStartEnd" />
-                    <YAxis yAxisId="left" domain={[0, 5.5]} ticks={[1, 2, 3, 4, 5]} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
-                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
-                    <Tooltip content={<CustomCorrelationTooltip />} />
-                    <Bar yAxisId="right" dataKey="kcal" fill="#f59e0b" fillOpacity={0.35} radius={[3, 3, 0, 0]} />
-                    <Line yAxisId="left" type="monotone" dataKey="mood" stroke="#7c3aed" strokeWidth={2.5} dot={{ r: 4, fill: '#7c3aed' }} activeDot={{ r: 6 }} connectNulls />
-                  </ComposedChart>
-                </ResponsiveContainer>
+                <div role="img" aria-label={t('wellness.correlation_desc', 'Umore vs Kcal ingerite') + ': ' + correlationData.map(d => `${d.date} ${t('wellness.mood', 'umore')} ${d.mood}/5, ${Math.round(d.kcal)} kcal`).join(', ')}>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <ComposedChart data={correlationData} margin={{ top: 4, right: 8, left: -22, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
+                      <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} interval="preserveStartEnd" />
+                      <YAxis yAxisId="left" domain={[0, 5.5]} ticks={[1, 2, 3, 4, 5]} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                      <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                      <Tooltip content={<CustomCorrelationTooltip />} />
+                      <Bar yAxisId="right" dataKey="kcal" fill="#f59e0b" fillOpacity={0.35} radius={[3, 3, 0, 0]} />
+                      <Line yAxisId="left" type="monotone" dataKey="mood" stroke="#7c3aed" strokeWidth={2.5} dot={{ r: 4, fill: '#7c3aed' }} activeDot={{ r: 6 }} connectNulls />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
               </>
             ) : (
               <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--text-muted)', fontSize: 13 }}>
@@ -838,7 +848,7 @@ export default function WellnessPage() {
         {/* Insights automatici */}
         <div className="card" style={{ padding: '18px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: insights.length > 0 ? 14 : 0 }}>
-            <Lightbulb size={16} color="#f59e0b" />
+            <Lightbulb size={16} color="#f59e0b" aria-hidden="true" />
             <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{t('wellness.insights_title', 'Insight automatici')}</h3>
             {history.length > 0 && <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 4 }}>{t('wellness.insights_range_count', { count: history.length }, 'ultimi {{count}} giorni')}</span>}
           </div>

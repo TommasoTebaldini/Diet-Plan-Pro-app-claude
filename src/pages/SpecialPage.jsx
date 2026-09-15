@@ -102,7 +102,7 @@ function MealsTable({ meals }) {
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
         <thead>
           <tr style={{ borderBottom: '1.5px solid var(--border)' }}>
-            {cols.map(c => <th key={c.key} style={{ padding: '6px 8px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>{c.label}</th>)}
+            {cols.map(c => <th key={c.key} scope="col" style={{ padding: '6px 8px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>{c.label}</th>)}
           </tr>
         </thead>
         <tbody>
@@ -163,7 +163,7 @@ function TipsCard({ tipo, accent, accentBg }) {
     <div className="card" style={{ padding: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
         <div style={{ width: 32, height: 32, borderRadius: 10, background: accentBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Lightbulb size={16} color={accent} />
+          <Lightbulb size={16} color={accent} aria-hidden="true" />
         </div>
         <h3 style={{ fontSize: 15, fontWeight: 700 }}>{t('special.tips_title', 'Consigli pratici')}</h3>
       </div>
@@ -267,7 +267,7 @@ export default function SpecialPage() {
         {active ? (
           <>
             <button onClick={() => setActiveTipo(null)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 100, padding: '6px 12px 6px 8px', color: 'white', fontSize: 12, fontWeight: 600, marginBottom: 16, cursor: 'pointer' }}>
-              <ChevronLeft size={14} /> {t('special.title', '✨ Speciale')}
+              <ChevronLeft size={14} aria-hidden="true" /> {t('special.title', '✨ Speciale')}
             </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 26 }}>
@@ -291,9 +291,10 @@ export default function SpecialPage() {
 
       <div style={{ padding: 20 }}>
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div role="status" aria-live="polite" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <span style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }}>{t('common.loading', 'Caricamento…')}</span>
             {[1, 2, 3].map(i => (
-              <div key={i} style={{ height: 64, borderRadius: 14, background: 'var(--border-light)', animation: 'skeletonPulse 1.4s ease-in-out infinite', animationDelay: `${i * 0.07}s` }} />
+              <div key={i} aria-hidden="true" style={{ height: 64, borderRadius: 14, background: 'var(--border-light)', animation: 'skeletonPulse 1.4s ease-in-out infinite', animationDelay: `${i * 0.07}s` }} />
             ))}
           </div>
         ) : (
@@ -302,7 +303,7 @@ export default function SpecialPage() {
               <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {availableSpecialties.length === 0 ? (
                   <div className="card" style={{ padding: 28, textAlign: 'center' }}>
-                    <Sparkles size={30} color="var(--text-muted)" style={{ marginBottom: 12 }} />
+                    <Sparkles size={30} color="var(--text-muted)" aria-hidden="true" style={{ marginBottom: 12 }} />
                     <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{t('special.empty_title', 'Nessuna sezione attiva')}</p>
                     <p style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{t('special.empty_desc', 'Il tuo dietista non ha ancora attivato nessuna sezione qui.')}</p>
                   </div>
@@ -327,7 +328,7 @@ export default function SpecialPage() {
                           {section.note ? t('special.updated_on', { date: fmtDate(section.note.updated_at || section.note.created_at) }, '● Aggiornato {{date}}') : t('special.awaiting_data_short', '○ In attesa dei dati del dietista')}
                         </p>
                       </div>
-                      <ChevronRight size={18} color="var(--text-muted)" />
+                      <ChevronRight size={18} color="var(--text-muted)" aria-hidden="true" />
                     </motion.button>
                   )
                 })}
@@ -338,7 +339,7 @@ export default function SpecialPage() {
                 {!activeSection?.note && !Tool ? (
                   <div className="card" style={{ padding: 28, textAlign: 'center' }}>
                     <div style={{ width: 52, height: 52, borderRadius: 16, background: active.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
-                      <Clock size={24} color={active.color} />
+                      <Clock size={24} color={active.color} aria-hidden="true" />
                     </div>
                     <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{t('special.awaiting_data_title', 'In attesa dei dati')}</p>
                     <p style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{t('special.awaiting_data_desc', 'Il tuo dietista ha attivato questa sezione ma non ha ancora salvato una scheda — torna a controllare più avanti.')}</p>

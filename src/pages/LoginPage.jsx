@@ -212,20 +212,21 @@ export default function LoginPage() {
           </h2>
 
           {error && (
-            <div style={{
+            <div role="alert" style={{
               display: 'flex', alignItems: 'center', gap: 10,
               background: '#fff0f0', border: '1px solid #ffd4d4',
               borderRadius: 'var(--r-sm)', padding: '12px 14px',
               marginBottom: 20, color: 'var(--red)', fontSize: 14,
             }}>
-              <AlertCircle size={16} /> {error}
+              <AlertCircle size={16} aria-hidden="true" /> {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             <motion.div className="input-group" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 }}>
-              <label className="input-label">{t('auth.email')}</label>
+              <label className="input-label" htmlFor="login-email">{t('auth.email')}</label>
               <input
+                id="login-email"
                 type="email" className="input-field"
                 placeholder={t('auth.email_placeholder', 'nome@email.com')}
                 value={email} onChange={e => setEmail(e.target.value)}
@@ -234,9 +235,10 @@ export default function LoginPage() {
             </motion.div>
 
             <motion.div className="input-group" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
-              <label className="input-label">{t('auth.password')}</label>
+              <label className="input-label" htmlFor="login-password">{t('auth.password')}</label>
               <div style={{ position: 'relative' }}>
                 <input
+                  id="login-password"
                   type={showPass ? 'text' : 'password'}
                   className="input-field"
                   placeholder="••••••••"
@@ -246,22 +248,24 @@ export default function LoginPage() {
                 />
                 <button type="button"
                   onClick={() => setShowPass(v => !v)}
+                  aria-label={showPass ? t('auth.hide_password', 'Nascondi password') : t('auth.show_password', 'Mostra password')}
+                  aria-pressed={showPass}
                   style={{
                     position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
                     background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)',
                     display: 'flex', alignItems: 'center',
                   }}>
-                  {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPass ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
                 </button>
               </div>
             </motion.div>
 
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
-            <button type="submit" className="btn btn-primary btn-full" disabled={loading}
+            <button type="submit" className="btn btn-primary btn-full" disabled={loading} aria-busy={loading}
               style={{ marginTop: 6, padding: '14px 22px', fontSize: 15 }}>
               {loading
                 ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                    <span aria-hidden="true" style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
                     {t('auth.logging_in')}
                   </span>
                 : t('auth.login_btn')}
@@ -279,12 +283,14 @@ export default function LoginPage() {
               <button
                 onClick={handleBiometricLogin}
                 disabled={biometricLoading}
+                aria-busy={biometricLoading}
+                aria-label={biometricLoading ? t('auth.logging_in') : undefined}
                 className="btn btn-secondary btn-full"
                 style={{ gap: 10 }}
               >
                 {biometricLoading
-                  ? <span style={{ width: 16, height: 16, border: '2px solid var(--green-main)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-                  : <Fingerprint size={20} />
+                  ? <span aria-hidden="true" style={{ width: 16, height: 16, border: '2px solid var(--green-main)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                  : <Fingerprint size={20} aria-hidden="true" />
                 }
                 {biometricLoading ? '…' : t('auth.login_with_biometric')}
               </button>

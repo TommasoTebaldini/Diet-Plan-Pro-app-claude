@@ -197,26 +197,32 @@ function MiniCalendar({ cycles, predictedRanges }) {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <button onClick={prevMonth} aria-label={t('menstrual.aria_mese_precedente', 'Mese precedente')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
-          <ChevronLeft size={18} />
+          <ChevronLeft size={18} aria-hidden="true" />
         </button>
         <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'capitalize' }}>
           {new Date(viewYear, viewMonth, 1).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })}
         </p>
         <button onClick={nextMonth} aria-label={t('menstrual.aria_mese_successivo', 'Mese successivo')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
-          <ChevronRight size={18} />
+          <ChevronRight size={18} aria-hidden="true" />
         </button>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
+      <div role="grid" aria-label={new Date(viewYear, viewMonth, 1).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
         {DAYS_IT.map((d, i) => (
-          <div key={i} style={{ textAlign: 'center', fontSize: 10, color: 'var(--text-muted)', fontWeight: 700, paddingBottom: 4 }}>{d}</div>
+          <div key={i} role="columnheader" style={{ textAlign: 'center', fontSize: 10, color: 'var(--text-muted)', fontWeight: 700, paddingBottom: 4 }}>{d}</div>
         ))}
         {cells.map((day, i) => {
-          if (!day) return <div key={i} />
+          if (!day) return <div key={i} role="gridcell" />
           const isToday = isCurrentMonth && day === todayObj.getDate()
           const isCycle = cycleDays.has(day)
           const isPredicted = predictedDays.has(day)
+          const statusLabel = [
+            String(day),
+            isToday ? t('menstrual.legenda_oggi', 'Oggi') : null,
+            isCycle ? t('menstrual.legenda_ciclo_registrato', 'Ciclo registrato') : null,
+            isPredicted ? t('menstrual.legenda_ciclo_previsto', 'Ciclo previsto') : null,
+          ].filter(Boolean).join(', ')
           return (
-            <div key={i} style={{
+            <div key={i} role="gridcell" aria-label={statusLabel} style={{
               width: '100%', aspectRatio: '1', borderRadius: 8,
               background: isCycle ? '#fce7f3' : isPredicted ? '#fff0f7' : isToday ? 'var(--green-pale)' : 'transparent',
               border: isToday ? '1.5px solid var(--green-main)'
@@ -513,7 +519,7 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
       <div style={{ padding: '16px 16px 80px', display: 'flex', flexDirection: 'column', gap: 14 }}>
 
         {error && (
-          <div style={{ background: 'var(--alert-error-bg)', border: '1px solid var(--alert-error-border)', borderRadius: 12, padding: '12px 16px', color: 'var(--alert-error-text)', fontSize: 13 }}>
+          <div role="alert" style={{ background: 'var(--alert-error-bg)', border: '1px solid var(--alert-error-border)', borderRadius: 12, padding: '12px 16px', color: 'var(--alert-error-text)', fontSize: 13 }}>
             {error}
           </div>
         )}
@@ -527,7 +533,7 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
               disabled={saving}
               style={{ flex: 1, background: 'linear-gradient(135deg, #9d174d, #ec4899)', justifyContent: 'center', gap: 8 }}
             >
-              <Plus size={16} />
+              <Plus size={16} aria-hidden="true" />
               {saving ? '…' : t('menstrual.inizia_ciclo_oggi', 'Inizia ciclo oggi')}
             </button>
           ) : (
@@ -549,7 +555,7 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
                 disabled={saving}
                 style={{ background: '#fce7f3', color: '#be185d', border: '1.5px solid #f9a8d4', gap: 6, padding: '0 16px' }}
               >
-                <Check size={15} />
+                <Check size={15} aria-hidden="true" />
                 {t('menstrual.fine_ciclo', 'Fine ciclo')}
               </button>
             </>
@@ -706,7 +712,7 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
           <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 13 }}>{t('menstrual.caricamento', 'Caricamento…')}</div>
         ) : cycles.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
-            <Calendar size={40} style={{ opacity: 0.3, marginBottom: 12 }} />
+            <Calendar size={40} style={{ opacity: 0.3, marginBottom: 12 }} aria-hidden="true" />
             <p style={{ fontSize: 15, fontWeight: 500 }}>{t('menstrual.nessun_ciclo_registrato', 'Nessun ciclo registrato')}</p>
             <p style={{ fontSize: 13, marginTop: 4 }}>{t('menstrual.stato_vuoto_desc', { btn: t('menstrual.inizia_ciclo_oggi', 'Inizia ciclo oggi') }, 'Premi "{{btn}}" per cominciare il tracciamento.')}</p>
           </div>
@@ -768,8 +774,8 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
                             </button>
                           </div>
                         </div>
-                        <button onClick={() => deleteCycle(cycle.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)', flexShrink: 0 }}>
-                          <Trash2 size={13} />
+                        <button onClick={() => deleteCycle(cycle.id)} aria-label={t('menstrual.elimina_ciclo', 'Elimina ciclo')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)', flexShrink: 0 }}>
+                          <Trash2 size={13} aria-hidden="true" />
                         </button>
                       </div>
                     </div>
@@ -783,15 +789,21 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
 
       {/* Symptom modal */}
       {showSymptomModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="symptom-modal-title"
+          onClick={e => { if (e.target === e.currentTarget) setShowSymptomModal(null) }}
+          onKeyDown={e => { if (e.key === 'Escape') setShowSymptomModal(null) }}
+          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
           <div className="animate-slideUp" style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', padding: 20, paddingBottom: 'calc(20px + env(safe-area-inset-bottom))', maxHeight: '90dvh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700 }}>{t('menstrual.modal_sintomi_titolo', 'Sintomi')}</h3>
-              <button onClick={() => setShowSymptomModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+              <h3 id="symptom-modal-title" style={{ fontSize: 16, fontWeight: 700 }}>{t('menstrual.modal_sintomi_titolo', 'Sintomi')}</h3>
+              <button onClick={() => setShowSymptomModal(null)} aria-label={t('menstrual.chiudi', 'Chiudi')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} aria-hidden="true" /></button>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
               {CYCLE_SYMPTOMS.map(s => (
-                <button key={s} onClick={() => setSelectedSymptoms(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])}
+                <button key={s} aria-pressed={selectedSymptoms.includes(s)} onClick={() => setSelectedSymptoms(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])}
                   style={{ padding: '7px 14px', borderRadius: 100, font: 'inherit', fontSize: 13, cursor: 'pointer',
                     background: selectedSymptoms.includes(s) ? '#fce7f3' : 'var(--surface-2)',
                     color: selectedSymptoms.includes(s) ? '#be185d' : 'var(--text-secondary)',
@@ -809,11 +821,17 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
 
       {/* Notes modal */}
       {showNotes && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="notes-modal-title"
+          onClick={e => { if (e.target === e.currentTarget) setShowNotes(null) }}
+          onKeyDown={e => { if (e.key === 'Escape') setShowNotes(null) }}
+          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 20, width: '100%', maxWidth: 400, maxHeight: '85dvh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700 }}>{t('menstrual.modal_note_titolo', 'Note ciclo')}</h3>
-              <button onClick={() => setShowNotes(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+              <h3 id="notes-modal-title" style={{ fontSize: 16, fontWeight: 700 }}>{t('menstrual.modal_note_titolo', 'Note ciclo')}</h3>
+              <button onClick={() => setShowNotes(null)} aria-label={t('menstrual.chiudi', 'Chiudi')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} aria-hidden="true" /></button>
             </div>
             <textarea
               className="input-field"
@@ -821,6 +839,7 @@ CREATE POLICY "own" ON menstrual_cycle FOR ALL
               value={noteText}
               onChange={e => setNoteText(e.target.value)}
               placeholder={t('menstrual.note_placeholder', 'Come ti senti? Annotazioni…')}
+              aria-label={t('menstrual.modal_note_titolo', 'Note ciclo')}
               style={{ resize: 'vertical', marginBottom: 12 }}
               autoFocus
             />
