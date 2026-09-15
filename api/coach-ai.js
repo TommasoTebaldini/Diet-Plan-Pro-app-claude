@@ -294,7 +294,12 @@ Regole importanti:
       if (response.status === 401) {
         return res.status(401).json({ error: 'Chiave API Groq non valida. Verifica GEMINI_API_KEY su Vercel.' });
       }
-      return res.status(503).json({ error: data.error?.message || `Servizio AI non disponibile (HTTP ${response.status}).` });
+      // Messaggio grezzo del provider solo nel log server — al client un
+      // errore generico, altrimenti si confermerebbe a chiunque chiami
+      // l'endpoint dettagli come "chiave API non valida"/"rate limit" del
+      // provider AI (piccola fuga di informazioni, non la chiave stessa).
+      await logServerError('coach-ai', `Groq ${response.status}: ${data.error?.message || 'errore sconosciuto'}`, req).catch(() => {});
+      return res.status(503).json({ error: `Servizio AI non disponibile (HTTP ${response.status}).` });
     }
 
     const reply = (data.choices?.[0]?.message?.content || '').trim();
